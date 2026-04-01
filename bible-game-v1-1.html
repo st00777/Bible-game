@@ -1251,9 +1251,23 @@ const avatarState = JSON.parse(localStorage.getItem('avatar_state') || JSON.stri
   hat: '',
   body: '🧑',
   item: '',
-  streak: 1,
-  items: []
+  streak: 0,
+  items: [],       // [{ emoji, name, desc, slot, chapter }]
+  lastDone: ''     // YYYY-MM-DD of last completed devotion
 }));
+
+// Migrate old items format (string array → object array)
+if (avatarState.items.length && typeof avatarState.items[0] === 'string') {
+  avatarState.items = [];
+}
+
+// Today's date string
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+const ALREADY_DONE_TODAY = avatarState.lastDone === todayStr();
 
 // ── 七天內容資料庫（使徒行傳第10-16章）──────────────────
 const CHAPTERS = [
@@ -1594,44 +1608,78 @@ document.getElementById('reflection-text').addEventListener('input', function() 
 });
 
 async function completeDevotional() {
+  // Fix 1: prevent re-completion same day
+  if (ALREADY_DONE_TODAY) {
+    alert('你今天已經完成靈修了！明天再來 🙏');
+    return;
+  }
+
+  const reflText = document.getElementById('reflection-text').value.trim();
+
+  // Fix 4: prompt if reflection empty before submitting
+  if (!reflText) {
+    const goBack = await showConfirmPrompt(
+      '要先填寫默想嗎？',
+      '填寫默想可以獲得稀有裝備 ⭐\n要回去填，還是直接完成？',
+      '回去填默想',
+      '直接完成'
+    );
+    if (goBack) return;
+  }
+
   const btn = document.getElementById('complete-btn');
   btn.disabled = true;
   btn.innerHTML = '✨ 正在整理今日收穫…';
 
-  // Submit reflection if not yet done
-  const reflText = document.getElementById('reflection-text').value.trim();
   if (reflText && !reflectionSubmitted) {
     await submitReflection();
     await new Promise(r => setTimeout(r, 1200));
   }
 
-  // Update avatar
-  const newItem = CHAPTER_ITEMS.base;
-  const hasBonus = reflText.length > 20;
-  const bonusItem = hasBonus ? CHAPTER_ITEMS.bonus : null;
+  // Fix 3: bonus = any reflection text
+  const hasBonus = reflText.length > 0;
+  const newItem = { ...CHAPTER_ITEMS.base, chapter: TODAY.chapter };
+  const bonusItem = hasBonus ? { ...CHAPTER_ITEMS.bonus, chapter: TODAY.chapter } : null;
 
-  // Apply base item
+  // Apply to avatar slots
   if (newItem.slot === 'item') avatarState.item = newItem.emoji;
   if (newItem.slot === 'hat') avatarState.hat = newItem.emoji;
-
-  // Apply bonus
+  if (newItem.slot === 'body') avatarState.body = newItem.emoji;
   if (bonusItem) {
     if (bonusItem.slot === 'hat') avatarState.hat = bonusItem.emoji;
     if (bonusItem.slot === 'item') avatarState.item = bonusItem.emoji;
+    if (bonusItem.slot === 'body') avatarState.body = bonusItem.emoji;
   }
+
+  // Fix 2: store full item objects for wardrobe
+  avatarState.items.push(newItem);
+  if (bonusItem) avatarState.items.push(bonusItem);
 
   avatarState.xp = Math.min(avatarState.xp + (hasBonus ? 35 : 20), 100);
-  if (avatarState.xp >= 100) {
-    avatarState.level += 1;
-    avatarState.xp = 10;
-  }
+  if (avatarState.xp >= 100) { avatarState.level += 1; avatarState.xp = 10; }
   avatarState.streak += 1;
-  avatarState.items.push(newItem.name);
+  avatarState.lastDone = todayStr(); // Fix 1: record today
 
   localStorage.setItem('avatar_state', JSON.stringify(avatarState));
-
-  // Show reward
   showReward(newItem, bonusItem, hasBonus);
+}
+
+// Confirm prompt helper
+function showConfirmPrompt(title, msg, cancelLabel, confirmLabel) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(61,43,31,0.7);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);';
+    overlay.innerHTML = `
+      <div style="background:#FFFDF8;border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(61,43,31,0.3);">
+        <div style="font-size:20px;font-weight:900;color:#3D2B1F;margin-bottom:8px;">${title}</div>
+        <p style="font-size:13px;color:#7A6050;line-height:1.7;margin-bottom:20px;white-space:pre-line;">${msg}</p>
+        <button id="cp-cancel" style="width:100%;background:linear-gradient(135deg,#7BC67E,#4CAF50);border:none;border-radius:12px;padding:13px;color:white;font-family:'Noto Sans TC',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;">${cancelLabel}</button>
+        <button id="cp-confirm" style="width:100%;background:#E8F4FD;border:2px solid #B8D9F0;border-radius:12px;padding:11px;color:#7A6050;font-family:'Noto Sans TC',sans-serif;font-size:14px;cursor:pointer;">${confirmLabel}</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#cp-cancel').onclick = () => { overlay.remove(); resolve(true); };
+    overlay.querySelector('#cp-confirm').onclick = () => { overlay.remove(); resolve(false); };
+  });
 }
 
 function showReward(item, bonus, hasBonus) {
@@ -1640,15 +1688,41 @@ function showReward(item, bonus, hasBonus) {
   document.getElementById('r-body').textContent = avatarState.body;
   document.getElementById('r-item').textContent = avatarState.item;
 
-  const displayItem = bonus || item;
-  document.getElementById('new-item-emoji').textContent = displayItem.emoji;
-  document.getElementById('new-item-name').textContent = displayItem.name;
-  document.getElementById('new-item-desc').textContent = displayItem.desc;
+  // Show base item
+  document.getElementById('new-item-emoji').textContent = item.emoji;
+  document.getElementById('new-item-name').textContent = item.name;
+  document.getElementById('new-item-desc').textContent = item.desc;
+
+  const itemReveal = document.getElementById('item-reveal');
 
   if (bonus) {
-    document.getElementById('item-reveal').style.background = 'linear-gradient(135deg, #F3E8FF, #EDE0FF)';
-    document.getElementById('item-reveal').style.borderColor = '#9C7BB5';
-    document.querySelector('.new-item-label').textContent = '✨ 稀有裝備解鎖！';
+    // Show both items
+    itemReveal.innerHTML = `
+      <div style="display:flex; gap:10px; margin-bottom:4px;">
+        <div style="flex:1; background:rgba(76,175,80,0.1); border-radius:10px; padding:10px; text-align:center;">
+          <div style="font-size:10px; font-weight:700; color:var(--green-dark); margin-bottom:4px; letter-spacing:0.1em;">✨ 基本裝備</div>
+          <div style="font-size:28px; margin-bottom:4px;">${item.emoji}</div>
+          <div style="font-size:12px; font-weight:700; color:var(--text);">${item.name}</div>
+        </div>
+        <div style="flex:1; background:rgba(156,123,181,0.12); border-radius:10px; padding:10px; text-align:center; border:1.5px solid rgba(156,123,181,0.4);">
+          <div style="font-size:10px; font-weight:700; color:var(--purple); margin-bottom:4px; letter-spacing:0.1em;">⭐ 稀有裝備</div>
+          <div style="font-size:28px; margin-bottom:4px; animation:bounce 0.6s ease infinite alternate;">${bonus.emoji}</div>
+          <div style="font-size:12px; font-weight:700; color:var(--text);">${bonus.name}</div>
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--text-soft); text-align:center; margin-top:6px; font-style:italic;">${bonus.desc}</div>
+    `;
+  } else {
+    // Show only base item + hint about bonus
+    itemReveal.innerHTML = `
+      <div class="new-item-label">✨ 今日裝備</div>
+      <span class="new-item-emoji" style="font-size:36px; display:block; margin-bottom:6px;">${item.emoji}</span>
+      <div class="new-item-name">${item.name}</div>
+      <div class="new-item-desc">${item.desc}</div>
+      <div style="margin-top:10px; padding:8px 12px; background:rgba(156,123,181,0.1); border-radius:8px; font-size:12px; color:var(--purple);">
+        💡 填寫默想可獲得稀有裝備 ⭐
+      </div>
+    `;
   }
 
   document.getElementById('modal-streak').textContent = avatarState.streak;
@@ -1876,21 +1950,36 @@ function switchSlot(slot, tabEl) {
 
 function renderEquipGrid(slot) {
   const grid = document.getElementById('equip-grid');
-  const items = ALL_ITEMS[slot];
-  const collectedChapters = avatarState.items || [];
-  // Items player has unlocked (always-available + collected by chapter)
+
+  // Build item list: none option + collected items for this slot
+  const collected = (avatarState.items || []).filter(i => i && i.slot === slot);
+  const noneItem = { id: 'none', emoji: slot === 'body' ? '🧑' : '✖️', name: slot === 'body' ? '素白旅人' : slot === 'bg' ? '清晨草地 🌿' : '不裝備', always: true, slot };
+
+  // Deduplicate by emoji
+  const seen = new Set();
+  const items = [noneItem];
+  collected.forEach(i => {
+    if (!seen.has(i.emoji)) { seen.add(i.emoji); items.push(i); }
+  });
+
+  if (items.length === 1) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-soft);font-size:13px;">完成更多靈修來收集這個部位的裝備 🔒</div>`;
+    return;
+  }
+
   grid.innerHTML = items.map(item => {
     const isNone = item.id === 'none';
-    const hasIt = item.always || collectedChapters.some(i => i === item.name);
     const isEquipped = isSlotEquipped(slot, item);
+    const emojiStr = isNone ? (slot === 'body' ? '🧑' : slot === 'bg' ? '🌿' : '✖️') : item.emoji;
+    const nameStr = item.name;
+    const onclick = `equipItem('${slot}','${isNone ? 'none' : item.id || item.emoji}','${emojiStr}','${nameStr}')`;
 
     return `
-      <div class="equip-item ${isEquipped ? 'equipped' : ''} ${!hasIt ? 'locked' : ''} ${isNone ? 'equip-none' : ''}"
-           onclick="${hasIt ? `equipItem('${slot}','${item.id}','${item.emoji}','${item.name}')` : 'showLockedMsg()'}">
-        <div class="equip-emoji">${isNone ? '✖️' : item.emoji}</div>
-        <div class="equip-name">${item.name}</div>
+      <div class="equip-item ${isEquipped ? 'equipped' : ''} ${isNone ? 'equip-none' : ''}"
+           onclick="${onclick}">
+        <div class="equip-emoji">${emojiStr}</div>
+        <div class="equip-name">${nameStr}</div>
         ${isEquipped ? '<div class="equip-check">✓</div>' : ''}
-        ${!hasIt ? `<div class="equip-lock">🔒</div>` : ''}
       </div>`;
   }).join('');
 }
