@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>靈修冒險 · 使徒行傳</title>
+<title>靈修冒險 v2.1 · 使徒行傳</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -388,7 +388,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
     <!-- Chapter selector -->
     <div class="chapter-sel-card">
-      <div class="chapter-sel-title">📅 選擇今日章節</div>
+      <div class="chapter-sel-title" id="chapter-sel-title">📅 選擇章節</div>
       <div class="chapter-grid" id="chapter-grid"></div>
     </div>
 
@@ -446,6 +446,19 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">v2.1 · 體驗優化</div>
+      <div class="log-date">2026年4月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>教會讀經進度同步——打開遊戲自動對應大光教會當日讀經章節</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>性別專屬裝備——弟兄獲得先知斗篷🧥與屬靈寶劍⚔️；姐妹獲得服事外袍👘與代禱燈台🕯️</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>裝備分類重整——所有裝備依直覺重新歸類至帽子、衣服、手持、背景四個部位</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>章節格子顯示書卷縮寫——「徒10」「徒11」取代純數字，避免與日期混淆</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>日期顯示優化——移除錯誤的日曆圖示，改為顯示真實當日日期</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>選項按鈕失效問題——切換章節後可正常進行兩次點擊確認</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>衣櫃裝備同步——完成靈修獲得的裝備現可正確出現在衣櫃中</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>AI 默想回應改為完成後才觸發，不再自動浮現</span></div>
     </div>
 
     <div class="log-entry">
@@ -713,6 +726,32 @@ function isChapterDone(ch) {
   return !!state.completed[chapterKey(ch)];
 }
 
+// ══ GENDER ITEMS ════════════════════════════════════════
+const GENDER_ITEMS = {
+  m: [
+    { emoji:'🧥', name:'先知的斗篷', desc:'「你受的膏油勝過同伴」——使命的外袍', slot:'body' },
+    { emoji:'⚔️', name:'屬靈的寶劍', desc:'「聖靈的寶劍，就是神的道」', slot:'hand' }
+  ],
+  f: [
+    { emoji:'👘', name:'服事的外袍', desc:'「才德的婦人，她的價值遠勝珍珠」', slot:'body' },
+    { emoji:'🕯️', name:'代禱的燈台', desc:'「她點上燈，打掃房屋，細心尋找」', slot:'hand' }
+  ],
+  n: [
+    { emoji:'🌿', name:'旅人的外衣', desc:'「我們在世上是客旅、是寄居的」', slot:'body' }
+  ]
+};
+
+function giveGenderItems(gender) {
+  const items = GENDER_ITEMS[gender] || GENDER_ITEMS['n'];
+  const seen = new Set(state.items.map(i=>i.emoji));
+  items.forEach(item => {
+    if (!seen.has(item.emoji)) {
+      state.items.push({...item, chapter:'starter'});
+      seen.add(item.emoji);
+    }
+  });
+}
+
 // ══ SETUP ══════════════════════════════════════════════════
 
 let selectedGender = 'n';
@@ -729,11 +768,52 @@ function finishSetup() {
   state.gender = selectedGender;
   state.body = selectedGender === 'f' ? '👩' : selectedGender === 'm' ? '🧔' : '🧑';
   state.setup = true;
+  // Give gender-specific starter items
+  giveGenderItems(selectedGender);
   saveState();
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   initApp();
   if (!localStorage.getItem('tut_done')) openOverlay('tut-overlay');
+}
+
+// ══ SCHEDULE ════════════════════════════════════════════
+// 大光教會2026每日讀經進度對應表
+// 格式：'YYYY-MM-DD': chapterIndex（對應 CHAPTERS 陣列的 index）
+// 合併章節的日子挑主要章節設計
+const SCHEDULE = {
+  '2026-04-01': 10, '2026-04-02': 11, '2026-04-03': 12,
+  '2026-04-04': 13, '2026-04-05': 14, '2026-04-06': 16,
+  '2026-04-07': 17, '2026-04-08': 18, '2026-04-09': 19,
+  '2026-04-10': 20, '2026-04-11': 21, '2026-04-12': 22,
+  '2026-04-13': 23, '2026-04-14': 24, '2026-04-15': 25,
+  '2026-04-16': 26, '2026-04-17': 27, '2026-04-18': 'ROM1',
+  '2026-04-19': 'ROM2', '2026-04-20': 'ROM3', '2026-04-21': 'ROM4',
+  '2026-04-22': 'ROM5', '2026-04-23': 'ROM6', '2026-04-24': 'ROM7',
+  '2026-04-25': 'ROM8', '2026-04-26': 'ROM9', '2026-04-27': 'ROM10',
+  '2026-04-28': 'ROM12', '2026-04-29': 'ROM13', '2026-04-30': 'ROM14'
+};
+
+// Get today's scheduled chapter (falls back to first available)
+function getTodayChapter() {
+  const today = todayStr();
+  const chapterNum = SCHEDULE[today];
+  if (chapterNum && typeof chapterNum === 'number') {
+    // Check if this chapter exists in CHAPTERS array
+    const found = CHAPTERS.find(c => c.chapter === chapterNum);
+    if (found) return chapterNum;
+  }
+  // If today's chapter isn't in game yet, find the latest available
+  const availableDates = Object.keys(SCHEDULE)
+    .filter(d => d <= today && typeof SCHEDULE[d] === 'number')
+    .sort();
+  if (availableDates.length > 0) {
+    const lastDate = availableDates[availableDates.length - 1];
+    const ch = SCHEDULE[lastDate];
+    const found = CHAPTERS.find(c => c.chapter === ch);
+    if (found) return ch;
+  }
+  return CHAPTERS[0].chapter;
 }
 
 // ══ INIT ══════════════════════════════════════════════════
@@ -747,8 +827,14 @@ let reflTimer = null;
 function initApp() {
   renderAvatar();
   renderWardrobeUI();
+  // Fix 1: show real date without misleading calendar emoji
+  const today = new Date();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  const titleEl = document.getElementById('chapter-sel-title');
+  if (titleEl) titleEl.textContent = `${mm}月${dd}日 今日讀經・可補讀`;
   renderChapterGrid();
-  selectChapter(CHAPTERS[0].chapter); // default: ch10
+  selectChapter(getTodayChapter());
 }
 
 function renderAvatar() {
@@ -804,14 +890,24 @@ function levelTitle(lv) {
 
 // ══ CHAPTER GRID ══════════════════════════════════════════
 
+// Book abbreviation for display
+function chapterLabel(ch) {
+  if (ch <= 28) return `徒${ch}`;
+  // Future books will add here
+  return `${ch}`;
+}
+
 function renderChapterGrid() {
   const grid = document.getElementById('chapter-grid');
+  const todayCh = getTodayChapter();
   grid.innerHTML = CHAPTERS.map(c => {
     const done = isChapterDone(c.chapter);
     const active = selectedChapter === c.chapter;
-    return `<button class="ch-btn${active?' active':''}${done?' done':''}" onclick="selectChapter(${c.chapter})" id="ch-btn-${c.chapter}">
-      <div class="ch-num">${c.chapter}</div>
-      <div class="ch-dot"></div>
+    const isToday = c.chapter === todayCh;
+    const label = chapterLabel(c.chapter);
+    return `<button class="ch-btn${active?' active':''}${done?' done':''}" onclick="selectChapter(${c.chapter})" id="ch-btn-${c.chapter}" title="${label}">
+      <div class="ch-num" style="font-size:10px;">${label}</div>
+      ${isToday ? '<div style="font-size:8px;font-weight:700;color:var(--warm);line-height:1.2;">今日</div>' : '<div class="ch-dot"></div>'}
     </button>`;
   }).join('');
 }
@@ -1209,6 +1305,8 @@ function unlockAllItems() {
     allItems.push({...ch.bonusItem, chapter: ch.chapter});
   });
   allItems.push({emoji:'🩱', name:'腓立比的囚衣', desc:'「保羅和西拉在監獄裡讚美神」', slot:'body', chapter:16});
+  // All gender items
+  Object.values(GENDER_ITEMS).flat().forEach(i => allItems.push({...i, chapter:'starter'}));
 
   const seen = new Set(state.items.map(i=>i.emoji));
   allItems.forEach(i => { if (!seen.has(i.emoji)) { seen.add(i.emoji); state.items.push(i); } });
@@ -1313,6 +1411,9 @@ if (!state.setup) {
 } else {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
+  // Give gender items to existing users if not already given
+  giveGenderItems(state.gender || 'n');
+  saveState();
   initApp();
   if (!localStorage.getItem('tut_done')) {
     setTimeout(()=>openOverlay('tut-overlay'),500);
