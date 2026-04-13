@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.3
+**目前版本**：v2.6
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -36,10 +36,57 @@ Bible-game/
 
 ## 技術架構
 
-**純前端**：HTML + CSS + JavaScript，無後端
+**前端**：HTML + CSS + JavaScript（單一 HTML 檔案 + content.js）
 **部署**：GitHub Pages（HTTPS，免費）
-**資料儲存**：localStorage（玩家進度存在自己的瀏覽器）
+**後端**：Firebase（Firestore Database + Authentication）
+**登入方式**：Google 登入（未登入可繼續使用訪客模式）
+**資料同步**：登入後進度自動同步 Firestore；未登入使用 localStorage
+**Firebase 專案**：`bible-game-bcb84`
 **AI 回應**：Anthropic API（`claude-sonnet-4-20250514`），只在 HTTPS 環境下有效
+
+---
+
+## 後端架構
+
+### Firestore 資料結構
+
+```
+users/{userId}/
+  completed:  { "ACT10": "2026-04-01", ... }   // 已完成章節（章節key → 完成日期）
+  streak:     3                                  // 連續天數
+  items:      [ { emoji, name, desc, slot, chapter }, ... ]  // 擁有裝備
+  hat:        "🎓"                               // 目前穿戴：帽子
+  body:       "🧥"                               // 目前穿戴：衣服
+  item:       "⚔️"                               // 目前穿戴：手持
+  bg:         "🌿"                               // 目前穿戴：背景
+  level:      5                                  // 等級
+  xp:         120                                // 經驗值
+  name:       "James"                            // 玩家名稱
+  gender:     "m"                                // 性別（m/f/n）
+  setup:      true                               // 是否完成初始設定
+  updatedAt:  Timestamp                          // 最後同步時間
+```
+
+### 安全規則
+
+每個玩家只能讀寫自己的資料：
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+### 授權網域
+
+Firebase Authentication 已授權：`st00777.github.io`
+
+---
 
 **content.js 結構**：
 ```javascript
@@ -177,14 +224,16 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 ## 近期待開發功能
 
-**優先（技術簡單，靈修價值高）**
+**優先（後端已就緒，可直接開始）**
+- [ ] 成就系統（連續7/14/30天、書卷完成徽章）← 後端已就緒，可開始實作
+- [ ] 靈修日記（每天默想自動存檔，可回顧）← 後端已就緒，可開始實作
+- [ ] 默想 AI 個人化回應 ← 需要在後端安全存放 API Key（目前直接呼叫有暴露風險）
+- [ ] 時段成就統計（晨間/午間/晚間靈修）← 現在可以收集玩家靈修時段資料
 - [ ] 先讀經文提醒（輕量彈窗＋閱讀勳章）
-- [ ] 成就系統（連續7/14/30天、書卷完成徽章）
-- [ ] 靈修日記（每天默想自動存檔，可回顧）
 
 **中期**
 - [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）
-- [ ] Firebase 雲端存檔＋Google/Line 登入（多裝置）
+- [x] Firebase 雲端存檔＋Google 登入（已完成，v2.6）
 - [ ] 5月起羅馬書後續書卷內容
 
 **長期願景**
