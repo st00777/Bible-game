@@ -291,6 +291,13 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .dot:nth-child(2){animation-delay:.2s}
 .dot:nth-child(3){animation-delay:.4s}
 @keyframes dot-blink{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1.2)}}
+
+/* Auth button */
+.auth-btn{display:flex;align-items:center;gap:6px;background:white;border:2px solid var(--sky-deep);border-radius:20px;padding:5px 12px;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;box-shadow:0 2px 8px var(--shadow);transition:all .2s;white-space:nowrap;max-width:120px;overflow:hidden;}
+.auth-btn:hover{border-color:var(--purple);color:var(--purple);}
+.auth-btn.logged-in{background:linear-gradient(135deg,#E8F4FD,#EDE0FF);border-color:var(--purple);color:var(--purple);}
+.auth-btn img{width:20px;height:20px;border-radius:50%;flex-shrink:0;}
+.auth-btn-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -418,6 +425,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   <div class="topbar">
     <div class="book-badge" id="book-badge">📖 使徒行傳</div>
     <div class="topbar-right">
+      <button class="auth-btn" id="auth-btn" onclick="handleAuthClick()" title="Google 登入">🔑 登入</button>
       <button class="icon-btn" onclick="openOverlay('tut-overlay')" title="說明">❓</button>
       <button class="icon-btn" onclick="openOverlay('reset-overlay')" title="重置">🔄</button>
       <button class="icon-btn" onclick="switchPage('changelog')" title="更新">📢</button>
@@ -675,6 +683,10 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 </div><!-- end main-app -->
 
 <!-- 載入外部內容檔案 -->
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="content.js"></script>
 
 <!-- Month picker -->
@@ -699,6 +711,92 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   </div>
 </div>
 <script>
+// ══ FIREBASE ═══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
+  authDomain: "bible-game-bcb84.firebaseapp.com",
+  projectId: "bible-game-bcb84",
+  storageBucket: "bible-game-bcb84.firebasestorage.app",
+  messagingSenderId: "998309781226",
+  appId: "1:998309781226:web:3393ab62963940ef720193"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+let currentUser = null;
+
+// Fields to sync with Firestore
+const SYNC_FIELDS = ['setup','name','gender','level','xp','streak','hat','body','item','bg','items','completed'];
+
+let firestoreSaveTimer = null;
+function saveToFirestore() {
+  if (!currentUser) return;
+  clearTimeout(firestoreSaveTimer);
+  firestoreSaveTimer = setTimeout(() => {
+    const data = {};
+    SYNC_FIELDS.forEach(f => { data[f] = state[f]; });
+    data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    db.collection('users').doc(currentUser.uid).set(data, { merge: true })
+      .catch(e => console.warn('Firestore save error:', e));
+  }, 1500);
+}
+
+async function loadFromFirestore(uid) {
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      SYNC_FIELDS.forEach(f => { if (data[f] !== undefined) state[f] = data[f]; });
+      localStorage.setItem('bible_state', JSON.stringify(state));
+      if (typeof renderAvatar === 'function') renderAvatar();
+      if (typeof renderChapterGrid === 'function') renderChapterGrid();
+      if (typeof renderCalendar === 'function') renderCalendar();
+      showToast('☁️ 已從雲端載入進度');
+    }
+  } catch(e) {
+    console.warn('Firestore load error:', e);
+  }
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById('auth-btn');
+  if (!btn) return;
+  if (currentUser) {
+    const name = (currentUser.displayName || '').split(' ')[0] || '玩家';
+    const photo = currentUser.photoURL;
+    btn.innerHTML = (photo ? `<img src="${photo}" alt="">` : '👤') +
+      `<span class="auth-btn-name">${name}</span>`;
+    btn.classList.add('logged-in');
+    btn.title = `已登入：${currentUser.displayName || currentUser.email}\n點擊登出`;
+  } else {
+    btn.innerHTML = '🔑 登入';
+    btn.classList.remove('logged-in');
+    btn.title = 'Google 登入，同步靈修進度';
+  }
+}
+
+function handleAuthClick() {
+  if (currentUser) {
+    if (confirm(`登出 ${currentUser.displayName || currentUser.email}？\n（進度已同步，登出後將使用本機資料）`)) {
+      auth.signOut();
+    }
+  } else {
+    auth.signInWithPopup(googleProvider).catch(e => {
+      console.warn('Login error:', e);
+      showToast('登入失敗，請再試一次');
+    });
+  }
+}
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  updateAuthUI();
+  if (user && typeof state !== 'undefined' && state.setup) {
+    loadFromFirestore(user.uid);
+  }
+});
+
 // ══ STATE ══════════════════════════════════════════════════
 
 function loadState() {
@@ -720,6 +818,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem('bible_state', JSON.stringify(state));
+  saveToFirestore();
 }
 
 let state = loadState();
