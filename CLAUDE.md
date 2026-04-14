@@ -63,7 +63,9 @@ users/{userId}/                          ← 主文件（進度同步）
 users/{userId}/profile/data              ← 玩家基本資料
   firstLoginAt: Timestamp                // 第一次登入時間（只寫一次）
   lastLoginAt:  Timestamp                // 每次登入更新
-  loginMethod:  'google'
+  loginMethod:  'google' | 'line'
+  lineDisplayName: '...'             // LINE 顯示名稱（LINE 登入才有）
+  linePictureUrl:  '...'             // LINE 頭像網址（LINE 登入才有）
   totalDays:    12                       // 累計靈修天數（非連續）
 
 users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM1）
@@ -112,6 +114,17 @@ service cloud.firestore {
 ### 授權網域
 
 Firebase Authentication 已授權：`st00777.github.io`
+
+### Cloud Functions
+
+**lineLogin**（us-central1，2nd Gen）
+- 功能：LINE OAuth 2.0 授權碼換 Firebase 自訂 Token
+- URL：`https://linelogin-kvjdptgk7q-uc.a.run.app`
+- CORS：只允許 `https://st00777.github.io`
+- Channel ID：`2009801861`（公開，可硬編碼）
+- Channel Secret：存放於 Firebase Secret Manager（`LINE_CHANNEL_SECRET`）
+- Firebase UID 格式：`line:{lineUserId}`（與 Google 帳號 UID 空間隔離）
+- 流程：接收 `code` + `redirect_uri` → 換 access token → 取 LINE profile → 建立 custom token → 回傳 token + 姓名 + 頭像
 
 ---
 
@@ -261,6 +274,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 **中期**
 - [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）
 - [x] Firebase 雲端存檔＋Google 登入（已完成，v2.6）
+- [x] LINE 登入（已完成，v2.7）
 - [ ] 5月起羅馬書後續書卷內容
 
 **長期願景**

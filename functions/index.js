@@ -1,3 +1,4 @@
+// LINE login Cloud Function — v2.7
 const { setGlobalOptions } = require('firebase-functions');
 const { onRequest } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
