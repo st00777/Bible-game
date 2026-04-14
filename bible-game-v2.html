@@ -798,11 +798,111 @@ function handleAuthClick() {
   }
 }
 
+// ── 時段判斷 ──────────────────────────────────────────────
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return 'morning';
+  if (h >= 12 && h < 18) return 'afternoon';
+  if (h >= 18 && h < 22) return 'evening';
+  return 'night'; // 22:00–04:59
+}
+
+// ── 判斷是否補讀（章節排定日期 < 今天）──────────────────────
+function isMakeupChapter(ch) {
+  const key = chapterKey(ch);
+  const today = todayStr();
+  const scheduledDate = Object.keys(SCHEDULE).find(d => {
+    const k = typeof SCHEDULE[d] === 'string' ? SCHEDULE[d] : `ACT${SCHEDULE[d]}`;
+    return k === key;
+  });
+  return scheduledDate ? scheduledDate < today : false;
+}
+
+// ── 玩家 profile（firstLoginAt 只寫一次）────────────────────
+async function updateProfile() {
+  if (!currentUser) return;
+  const ref = db.collection('users').doc(currentUser.uid)
+    .collection('profile').doc('data');
+  try {
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const doc = await ref.get();
+    if (!doc.exists || !doc.data().firstLoginAt) {
+      await ref.set({
+        firstLoginAt: now,
+        lastLoginAt: now,
+        loginMethod: 'google',
+        totalDays: Object.keys(state.completed || {}).length
+      }, { merge: true });
+    } else {
+      await ref.update({ lastLoginAt: now });
+    }
+  } catch(e) { console.warn('Profile update error:', e); }
+}
+
+// ── 儲存單章完整記錄 + 更新統計 ──────────────────────────────
+async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead) {
+  if (!currentUser) return;
+  const key = chapterKey(ch);
+  const h = new Date().getHours();
+  const inc = firebase.firestore.FieldValue.increment;
+  try {
+    // 每章完整記錄
+    await db.collection('users').doc(currentUser.uid)
+      .collection('chapters').doc(key).set({
+        date: todayStr(),
+        completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        timeOfDay: getTimeOfDay(),
+        choiceSelected: choiceSelected || '',
+        hasReflection: !!hasReflection,
+        hasRead: !!hasRead
+      });
+    // 累計統計
+    const statsUpdates = { totalDays: inc(1) };
+    if (hasReflection) statsUpdates.reflectionCount = inc(1);
+    if (hasRead)       statsUpdates.readCount       = inc(1);
+    if (h >= 5 && h < 9)        statsUpdates.morningCount = inc(1);
+    if (h >= 22 || h < 5)       statsUpdates.nightCount   = inc(1);
+    if (isMakeupChapter(ch))    statsUpdates.makeupCount  = inc(1);
+    await db.collection('users').doc(currentUser.uid)
+      .collection('stats').doc('data')
+      .set(statsUpdates, { merge: true });
+    // profile.totalDays 同步更新
+    await db.collection('users').doc(currentUser.uid)
+      .collection('profile').doc('data')
+      .set({ totalDays: inc(1) }, { merge: true });
+  } catch(e) { console.warn('Chapter record error:', e); }
+}
+
+// ── 成就文件初始化（空結構，供日後使用）────────────────────────
+async function initAchievements() {
+  if (!currentUser) return;
+  try {
+    const ref = db.collection('users').doc(currentUser.uid)
+      .collection('achievements').doc('data');
+    const doc = await ref.get();
+    if (!doc.exists) {
+      await ref.set({ unlockedAt: {}, progress: {} });
+    }
+  } catch(e) { console.warn('Achievements init error:', e); }
+}
+
+// ── 分享次數 +1 ──────────────────────────────────────────────
+async function incrementShareCount() {
+  if (!currentUser) return;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('stats').doc('data')
+      .set({ shareCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+  } catch(e) { console.warn('Share count error:', e); }
+}
+
 auth.onAuthStateChanged(user => {
   currentUser = user;
   updateAuthUI();
   if (user && typeof state !== 'undefined' && state.setup) {
     loadFromFirestore(user.uid);
+    updateProfile();
+    initAchievements();
   }
 });
 
@@ -943,6 +1043,8 @@ let pendingChoice = null;
 let choiceConfirmed = false;
 let reflSubmitted = false;
 let reflTimer = null;
+let sessionChoice = null;    // 本章玩家選的選項（A/B/C/D）
+let sessionHasRead = false;  // 本章是否點閱讀完整章節
 
 function initApp() {
   renderAvatar();
@@ -1033,6 +1135,7 @@ function toggleReadStep() {
 
 function markAsRead() {
   if (chapterReadDone) return;
+  sessionHasRead = true;
   // Give bonus XP
   state.xp = Math.min(state.xp + 15, 100);
   if (state.xp >= 100) { state.level++; state.xp = 10; }
@@ -1333,6 +1436,8 @@ function selectChapter(ch) {
   pendingChoice = null;
   choiceConfirmed = false;
   reflSubmitted = false;
+  sessionChoice = null;
+  sessionHasRead = false;
   document.getElementById('refl-text').value = '';
   document.getElementById('ai-resp').classList.remove('show');
   document.getElementById('choice-feedback').style.display = 'none';
@@ -1415,6 +1520,7 @@ function selectChoice(btn, choice) {
 
   // Second tap: confirm
   choiceConfirmed = true;
+  sessionChoice = choice;
   pendingChoice = null;
   document.querySelectorAll('.choice-btn').forEach(b => {
     b.disabled = true;
@@ -1515,6 +1621,7 @@ async function completeDevotional() {
   state.streak++;
   state.completed[chapterKey(selectedChapter)] = todayStr();
   saveState();
+  saveChapterRecord(selectedChapter, sessionChoice, hasBonus, sessionHasRead);
 
   renderAvatar();
   renderChapterGrid();
@@ -1563,6 +1670,7 @@ function closeReward() {
 // ══ COPY SHARE ══════════════════════════════════════════
 
 function copyShare() {
+  incrementShareCount();
   const text = document.getElementById('share-text').innerText;
   const btn = document.querySelector('#reward-overlay .green-btn');
   const ok = () => { btn.textContent='✅ 已複製！貼到Line群組吧'; setTimeout(()=>btn.textContent='📋 複製分享給小組',2500); };

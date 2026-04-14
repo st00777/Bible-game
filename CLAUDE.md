@@ -51,21 +51,48 @@ Bible-game/
 ### Firestore 資料結構
 
 ```
-users/{userId}/
-  completed:  { "ACT10": "2026-04-01", ... }   // 已完成章節（章節key → 完成日期）
-  streak:     3                                  // 連續天數
-  items:      [ { emoji, name, desc, slot, chapter }, ... ]  // 擁有裝備
-  hat:        "🎓"                               // 目前穿戴：帽子
-  body:       "🧥"                               // 目前穿戴：衣服
-  item:       "⚔️"                               // 目前穿戴：手持
-  bg:         "🌿"                               // 目前穿戴：背景
-  level:      5                                  // 等級
-  xp:         120                                // 經驗值
-  name:       "James"                            // 玩家名稱
-  gender:     "m"                                // 性別（m/f/n）
-  setup:      true                               // 是否完成初始設定
-  updatedAt:  Timestamp                          // 最後同步時間
+users/{userId}/                          ← 主文件（進度同步）
+  completed:  { "ACT10": "2026-04-01" } // 已完成章節（章節key → 完成日期）
+  streak:     3                          // 連續天數
+  items:      [ { emoji, name, desc, slot, chapter }, ... ]
+  hat / body / item / bg                 // 目前穿戴裝備
+  level / xp                             // 等級與經驗值
+  name / gender / setup                  // 玩家設定
+  updatedAt:  Timestamp
+
+users/{userId}/profile/data              ← 玩家基本資料
+  firstLoginAt: Timestamp                // 第一次登入時間（只寫一次）
+  lastLoginAt:  Timestamp                // 每次登入更新
+  loginMethod:  'google'
+  totalDays:    12                       // 累計靈修天數（非連續）
+
+users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM1）
+  date:           "2026-04-01"           // 完成日期
+  completedAt:    Timestamp              // 完整完成時間戳記
+  timeOfDay:      'morning'              // 時段（morning/afternoon/evening/night）
+  choiceSelected: 'A'                    // 玩家選的選項
+  hasReflection:  true                   // 是否填寫默想
+  hasRead:        false                  // 是否點閱讀完整章節
+
+users/{userId}/stats/data                ← 累計統計
+  totalDays:       12                    // 累計完成天數
+  reflectionCount: 8                     // 累計填寫默想次數
+  readCount:       5                     // 累計點閱讀完整章節次數
+  shareCount:      3                     // 累計分享次數
+  makeupCount:     2                     // 累計補讀次數（日期已過才完成）
+  morningCount:    4                     // 清晨靈修次數（05:00-08:59）
+  nightCount:      1                     // 深夜靈修次數（22:00-04:59）
+
+users/{userId}/achievements/data         ← 成就預備（結構已建立，待實作）
+  unlockedAt: {}                         // 解鎖成就時間戳記（成就key → Timestamp）
+  progress:   {}                         // 成就進度數值（成就key → number）
 ```
+
+**時段定義**：
+- `morning`：05:00–11:59
+- `afternoon`：12:00–17:59
+- `evening`：18:00–21:59
+- `night`：22:00–04:59（清晨統計用 05:00–08:59）
 
 ### 安全規則
 
