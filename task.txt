@@ -1,0 +1,40 @@
+Implement LINE login functionality as follows:
+
+1. Read CLAUDE.md first.
+
+2. Set LINE Channel Secret:
+   Execute `firebase functions:secrets:set LINE_CHANNEL_SECRET`
+   Value: ca0cf07458ac7cd383b63a798fa29faa
+
+3. Create functions/index.js:
+   Implement `lineLogin` Cloud Function:
+   - Accept `code` and `redirect_uri` from frontend.
+   - POST to https://api.line.me/oauth2/v2.1/token to exchange for access token.
+   - Call https://api.line.me/v2/profile using the token to get user data.
+   - Use `admin.auth().createCustomToken()` to generate a Firebase custom token.
+   - CORS: Only allow https://st00777.github.io.
+   - Read Channel Secret from Secret Manager (do not hardcode).
+
+4. Update bible-game-v2.html:
+   - Add "LINE Login" button (green, next to Google login).
+   - Redirect to LINE authorization page.
+   - On page load, check for `?code=` parameter in URL.
+   - Call the Cloud Function to exchange the code for a custom token.
+   - Use `signInWithCustomToken` for Firebase login.
+   - Clear query parameters from URL after login.
+   - Write to Firestore `users/{uid}/profile`: loginMethod: 'line', lineDisplayName, linePictureUrl.
+
+5. Account Independence:
+   Ensure LINE login and Google login create separate Firebase UIDs (do not merge).
+
+6. Deploy:
+   Execute `firebase deploy --only functions`.
+
+7. Finalize:
+   - Update CLAUDE.md.
+   - Execute `git push` to GitHub.
+   - List all modified files.
+
+Context:
+- Channel ID: 2009801861
+- Callback URL: https://st00777.github.io/Bible-game/bible-game-v2.html

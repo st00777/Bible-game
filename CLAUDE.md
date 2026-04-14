@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.6
+**目前版本**：v2.7
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -39,7 +39,7 @@ Bible-game/
 **前端**：HTML + CSS + JavaScript（單一 HTML 檔案 + content.js）
 **部署**：GitHub Pages（HTTPS，免費）
 **後端**：Firebase（Firestore Database + Authentication）
-**登入方式**：Google 登入（未登入可繼續使用訪客模式）
+**登入方式**：Google 登入、LINE 登入（未登入可繼續使用訪客模式）
 **資料同步**：登入後進度自動同步 Firestore；未登入使用 localStorage
 **Firebase 專案**：`bible-game-bcb84`
 **AI 回應**：Anthropic API（`claude-sonnet-4-20250514`），只在 HTTPS 環境下有效

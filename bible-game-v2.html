@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>靈修冒險 v2.6 · 使徒行傳・羅馬書</title>
+<title>靈修冒險 v2.7 · 使徒行傳・羅馬書</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -298,6 +298,10 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .auth-btn.logged-in{background:linear-gradient(135deg,#E8F4FD,#EDE0FF);border-color:var(--purple);color:var(--purple);}
 .auth-btn img{width:20px;height:20px;border-radius:50%;flex-shrink:0;}
 .auth-btn-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* LINE login button */
+.line-auth-btn{background:#06C755;border-color:#06C755;color:white;}
+.line-auth-btn:hover{background:#05b34d;border-color:#05b34d;color:white;}
+.line-auth-btn.logged-in{background:linear-gradient(135deg,#c8f7d4,#a0f0be);border-color:#06C755;color:#027836;}
 </style>
 </head>
 <body>
@@ -426,6 +430,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div class="book-badge" id="book-badge">📖 使徒行傳</div>
     <div class="topbar-right">
       <button class="auth-btn" id="auth-btn" onclick="handleAuthClick()" title="Google 登入">🔑 登入</button>
+      <button class="auth-btn line-auth-btn" id="line-btn" onclick="handleLineLoginClick()" title="LINE 登入">LINE 登入</button>
       <button class="icon-btn" onclick="openOverlay('tut-overlay')" title="說明">❓</button>
       <button class="icon-btn" onclick="openOverlay('reset-overlay')" title="重置">🔄</button>
       <button class="icon-btn" onclick="switchPage('changelog')" title="更新">📢</button>
@@ -606,6 +611,13 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">v2.7 · LINE 登入</div>
+      <div class="log-date">2026年4月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>LINE 登入——點頂部綠色「LINE 登入」按鈕，用 LINE 帳號同步進度</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>LINE 與 Google 帳號獨立——兩種登入方式各自保有雲端進度</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">v2.6 · 雲端存檔</div>
       <div class="log-date">2026年4月</div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>Google 登入功能——點頂部「🔑 登入」即可</span></div>
@@ -770,18 +782,46 @@ async function loadFromFirestore(uid) {
 
 function updateAuthUI() {
   const btn = document.getElementById('auth-btn');
+  const lineBtn = document.getElementById('line-btn');
   if (!btn) return;
   if (currentUser) {
-    const name = (currentUser.displayName || '').split(' ')[0] || '玩家';
-    const photo = currentUser.photoURL;
-    btn.innerHTML = (photo ? `<img src="${photo}" alt="">` : '👤') +
-      `<span class="auth-btn-name">${name}</span>`;
-    btn.classList.add('logged-in');
-    btn.title = `已登入：${currentUser.displayName || currentUser.email}\n點擊登出`;
+    const isLine = currentUser.uid.startsWith('line:');
+    if (isLine) {
+      // LINE user logged in — show LINE button as active, hide Google button
+      const name = (currentUser.displayName || '').split(' ')[0] || 'LINE用戶';
+      const photo = currentUser.photoURL;
+      btn.innerHTML = '🔑 登入';
+      btn.classList.remove('logged-in');
+      btn.title = 'Google 登入，同步靈修進度';
+      btn.style.display = 'none';
+      if (lineBtn) {
+        lineBtn.innerHTML = (photo ? `<img src="${photo}" alt="">` : '💬') +
+          `<span class="auth-btn-name">${name}</span>`;
+        lineBtn.classList.add('logged-in');
+        lineBtn.title = `LINE 已登入：${currentUser.displayName || 'LINE用戶'}\n點擊登出`;
+        lineBtn.style.display = '';
+      }
+    } else {
+      // Google user logged in — show Google button as active, hide LINE button
+      const name = (currentUser.displayName || '').split(' ')[0] || '玩家';
+      const photo = currentUser.photoURL;
+      btn.innerHTML = (photo ? `<img src="${photo}" alt="">` : '👤') +
+        `<span class="auth-btn-name">${name}</span>`;
+      btn.classList.add('logged-in');
+      btn.title = `已登入：${currentUser.displayName || currentUser.email}\n點擊登出`;
+      btn.style.display = '';
+      if (lineBtn) lineBtn.style.display = 'none';
+    }
   } else {
     btn.innerHTML = '🔑 登入';
     btn.classList.remove('logged-in');
     btn.title = 'Google 登入，同步靈修進度';
+    btn.style.display = '';
+    if (lineBtn) {
+      lineBtn.innerHTML = 'LINE 登入';
+      lineBtn.classList.remove('logged-in');
+      lineBtn.style.display = '';
+    }
   }
 }
 
@@ -796,6 +836,103 @@ function handleAuthClick() {
       showToast('登入失敗，請再試一次');
     });
   }
+}
+
+// ── LINE Login ────────────────────────────────────────────
+const LINE_CLIENT_ID = '2009801861';
+const LINE_REDIRECT_URI = 'https://st00777.github.io/Bible-game/bible-game-v2.html';
+const LINE_FUNCTION_URL = 'https://us-central1-bible-game-bcb84.cloudfunctions.net/lineLogin';
+
+function handleLineLoginClick() {
+  if (currentUser && currentUser.uid.startsWith('line:')) {
+    if (confirm(`登出 ${currentUser.displayName || 'LINE 使用者'}？\n（進度已同步，登出後將使用本機資料）`)) {
+      auth.signOut();
+    }
+    return;
+  }
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem('line_state', state);
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: LINE_CLIENT_ID,
+    redirect_uri: LINE_REDIRECT_URI,
+    state,
+    scope: 'profile',
+  });
+  location.href = `https://access.line.me/oauth2/v2.1/authorize?${params}`;
+}
+
+async function handleLineCallback() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  if (!code) return;
+
+  // Clear URL params before doing anything
+  history.replaceState({}, '', location.pathname);
+
+  const savedState = sessionStorage.getItem('line_state');
+  sessionStorage.removeItem('line_state');
+  if (savedState && state !== savedState) {
+    showToast('LINE 登入驗證失敗，請再試一次');
+    return;
+  }
+
+  showToast('🔄 LINE 登入中...');
+  try {
+    const res = await fetch(LINE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, redirect_uri: LINE_REDIRECT_URI }),
+    });
+    if (!res.ok) throw new Error('Cloud Function error: ' + res.status);
+    const { customToken, displayName, pictureUrl } = await res.json();
+
+    await auth.signInWithCustomToken(customToken);
+
+    // Set display name and photo on the Firebase user
+    const user = auth.currentUser;
+    if (user && (displayName || pictureUrl)) {
+      await user.updateProfile({ displayName: displayName || '', photoURL: pictureUrl || '' });
+    }
+
+    // Save LINE profile info to Firestore
+    if (auth.currentUser) {
+      await updateLineProfile(displayName, pictureUrl);
+    }
+
+    showToast('✅ LINE 登入成功');
+  } catch (e) {
+    console.error('LINE login error:', e);
+    showToast('LINE 登入失敗，請再試一次');
+  }
+}
+
+async function updateLineProfile(lineDisplayName, linePictureUrl) {
+  if (!currentUser) return;
+  const ref = db.collection('users').doc(currentUser.uid)
+    .collection('profile').doc('data');
+  try {
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const doc = await ref.get();
+    if (!doc.exists || !doc.data().firstLoginAt) {
+      await ref.set({
+        firstLoginAt: now,
+        lastLoginAt: now,
+        loginMethod: 'line',
+        lineDisplayName: lineDisplayName || '',
+        linePictureUrl: linePictureUrl || '',
+        totalDays: Object.keys(state.completed || {}).length
+      }, { merge: true });
+    } else {
+      await ref.update({
+        lastLoginAt: now,
+        loginMethod: 'line',
+        lineDisplayName: lineDisplayName || '',
+        linePictureUrl: linePictureUrl || '',
+      });
+    }
+  } catch(e) { console.warn('LINE profile update error:', e); }
 }
 
 // ── 時段判斷 ──────────────────────────────────────────────
@@ -901,10 +1038,14 @@ auth.onAuthStateChanged(user => {
   updateAuthUI();
   if (user && typeof state !== 'undefined' && state.setup) {
     loadFromFirestore(user.uid);
-    updateProfile();
+    // Only call updateProfile for Google users; LINE profile is handled by updateLineProfile
+    if (!user.uid.startsWith('line:')) updateProfile();
     initAchievements();
   }
 });
+
+// Handle LINE OAuth callback on page load
+window.addEventListener('load', () => { handleLineCallback(); });
 
 // ══ STATE ══════════════════════════════════════════════════
 
