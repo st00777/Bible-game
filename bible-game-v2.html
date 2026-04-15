@@ -899,6 +899,10 @@ async function handleLineCallback() {
       await user.updateProfile({ displayName: displayName || '', photoURL: pictureUrl || '' });
     }
 
+    // updateProfile doesn't re-fire onAuthStateChanged, so refresh the UI manually
+    // so the header button shows the LINE name/photo instead of the fallback.
+    updateAuthUI();
+
     // Save LINE profile info to Firestore
     if (auth.currentUser) {
       await updateLineProfile(displayName, pictureUrl);
