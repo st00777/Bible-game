@@ -885,7 +885,10 @@ async function handleLineCallback() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, redirect_uri: LINE_REDIRECT_URI }),
     });
-    if (!res.ok) throw new Error('Cloud Function error: ' + res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Cloud Function ${res.status}: ${body}`);
+    }
     const { customToken, displayName, pictureUrl } = await res.json();
 
     await auth.signInWithCustomToken(customToken);

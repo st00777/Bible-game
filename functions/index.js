@@ -15,6 +15,7 @@ exports.lineLogin = onRequest(
   {
     secrets: [lineChannelSecret],
     cors: [ALLOWED_ORIGIN],
+    invoker: 'public',
   },
   async (req, res) => {
     // Only allow POST
