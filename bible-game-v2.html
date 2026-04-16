@@ -31,6 +31,27 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .icon-btn{width:32px;height:32px;background:white;border:none;border-radius:10px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px var(--shadow);transition:all .2s;flex-shrink:0;}
 .icon-btn:hover{transform:scale(1.1);}
 .streak-pill{background:var(--warm);color:white;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(255,138,101,.4);}
+.more-wrap{position:relative;}
+.more-menu{position:absolute;right:0;top:40px;background:white;border-radius:13px;box-shadow:0 6px 22px var(--shadow);padding:6px;display:none;z-index:100;min-width:160px;}
+.more-menu.show{display:block;animation:popIn .2s ease;}
+.more-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;border-radius:8px;transition:background .15s;white-space:nowrap;}
+.more-menu button:hover{background:var(--sky);}
+
+/* Feedback form */
+.fb-label{font-size:13px;font-weight:700;color:var(--text-soft);margin:14px 0 8px;}
+.fb-opts{display:flex;flex-wrap:wrap;gap:8px;}
+.fb-opts-col{flex-direction:column;}
+.fb-opt{flex:1 1 calc(33% - 6px);min-width:72px;background:white;border:2px solid var(--sky-deep);border-radius:12px;padding:10px 6px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s;font-size:22px;line-height:1;}
+.fb-opt span{font-size:12px;font-weight:700;}
+.fb-opt.sel{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);}
+.fb-opt-row{flex-direction:row !important;align-items:flex-start;text-align:left;padding:12px 14px;flex:1 1 100%;font-size:22px;gap:10px;}
+.fb-opt-row>span:first-child{flex-shrink:0;}
+.fb-opt-row>span:last-child{flex:1;font-size:13px;font-weight:700;}
+.fb-opt-row small{color:var(--text-soft);font-weight:normal;font-size:11px;display:block;margin-top:2px;}
+.fb-textarea{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);resize:none;min-height:80px;line-height:1.7;outline:none;transition:border-color .2s;box-sizing:border-box;}
+.fb-textarea:focus{border-color:var(--purple);}
+.fb-count{font-size:11px;color:var(--text-soft);text-align:right;margin:4px 0 12px;}
+.fb-verse-box{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px 16px;margin:14px 0 18px;font-size:14px;line-height:1.85;font-family:'Noto Serif TC',serif;}
 
 /* Avatar card */
 .avatar-card{background:var(--card);border-radius:24px;padding:18px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);display:flex;align-items:center;gap:14px;opacity:0;animation:popIn .5s ease forwards .2s;}
@@ -395,14 +416,69 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   </div>
 </div>
 
-<!-- Feedback (曠野呼聲) modal -->
-<div class="overlay center" id="feedback-overlay">
+<!-- Feedback (曠野呼聲) sheet -->
+<div class="overlay" id="feedback-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div class="sheet-title">🏜️ 曠野呼聲</div>
+      <button onclick="closeOverlay('feedback-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
+    </div>
+    <div class="sheet-sub">你的聲音對我們很重要，幫助靈修冒險變得更好 🙏</div>
+
+    <div id="fb-form">
+      <div class="fb-label">今天靈修的感覺如何？</div>
+      <div class="fb-opts" id="fb-mood">
+        <button class="fb-opt" data-val="平靜" onclick="selectFbOption('fb-mood','mood',this)">😇<span>平靜</span></button>
+        <button class="fb-opt" data-val="有動力" onclick="selectFbOption('fb-mood','mood',this)">🔥<span>有動力</span></button>
+        <button class="fb-opt" data-val="有點累" onclick="selectFbOption('fb-mood','mood',this)">😴<span>有點累</span></button>
+        <button class="fb-opt" data-val="經文太難" onclick="selectFbOption('fb-mood','mood',this)">🤔<span>經文太難</span></button>
+        <button class="fb-opt" data-val="其他" onclick="selectFbOption('fb-mood','mood',this)">✏️<span>其他</span></button>
+      </div>
+
+      <div class="fb-label">身份</div>
+      <div class="fb-opts fb-opts-col" id="fb-ident">
+        <button class="fb-opt fb-opt-row" data-val="anon" onclick="selectFbOption('fb-ident','identity',this)">
+          <span>🫥</span><span>匿名填寫<small>安心暢所欲言</small></span>
+        </button>
+        <button class="fb-opt fb-opt-row" data-val="named" onclick="selectFbOption('fb-ident','identity',this)">
+          <span>🆔</span><span>具名留言<small>方便開發團隊進一步追蹤</small></span>
+        </button>
+      </div>
+
+      <div class="fb-label">分類</div>
+      <div class="fb-opts" id="fb-category">
+        <button class="fb-opt" data-val="靈性感受" onclick="selectFbOption('fb-category','category',this)">🙏<span>靈性感受</span></button>
+        <button class="fb-opt" data-val="遊戲體驗" onclick="selectFbOption('fb-category','category',this)">🎮<span>遊戲體驗</span></button>
+        <button class="fb-opt" data-val="我的異象" onclick="selectFbOption('fb-category','category',this)">💡<span>我的異象</span></button>
+        <button class="fb-opt" data-val="其他" onclick="selectFbOption('fb-category','category',this)">✏️<span>其他</span></button>
+      </div>
+
+      <div class="fb-label">想多說什麼嗎？（選填）</div>
+      <textarea id="fb-message" class="fb-textarea" placeholder="把心裡想說的寫下來..." maxlength="300" oninput="updateFbCount()"></textarea>
+      <div class="fb-count" id="fb-count">0 / 300</div>
+
+      <button class="green-btn" onclick="submitFeedback()">📜 送出曠野呼聲</button>
+    </div>
+
+    <div id="fb-thanks" style="display:none;text-align:center;padding:16px 0 8px;">
+      <div style="font-size:56px;margin-bottom:10px;">🕊️</div>
+      <div class="sheet-title" style="text-align:center;">感謝你的聲音！</div>
+      <p style="font-size:14px;color:var(--text-soft);line-height:1.8;margin:10px 0 0;">你的回饋已送出，<br>我們會認真閱讀每一則留言 🙏</p>
+      <div id="fb-verse" class="fb-verse-box"></div>
+      <button class="sky-btn" onclick="closeOverlay('feedback-overlay')">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Feedback: guest needs login prompt -->
+<div class="overlay center" id="feedback-login-prompt">
   <div class="modal">
-    <div style="font-size:36px;margin-bottom:10px;">🏜️</div>
-    <div class="sheet-title">曠野呼聲</div>
-    <p style="font-size:13px;color:var(--text-soft);line-height:1.7;margin:10px 0 18px;">你的聲音對我們很重要，<br>幫助靈修冒險變得更好 🙏</p>
-    <button class="green-btn" onclick="openFeedbackForm()">📜 前往填寫回饋</button>
-    <button class="sky-btn" onclick="closeOverlay('feedback-overlay')">關閉</button>
+    <div style="font-size:36px;margin-bottom:10px;">🆔</div>
+    <div class="sheet-title">具名留言需要先登入</div>
+    <p style="font-size:13px;color:var(--text-soft);line-height:1.7;margin:10px 0 18px;">你目前是訪客模式。<br>登入後才能具名留言，是否前往登入？</p>
+    <button class="green-btn" onclick="goToLoginFromFeedback()">前往登入</button>
+    <button class="sky-btn" onclick="switchToAnonFeedback()">改為匿名留言</button>
   </div>
 </div>
 
@@ -467,10 +543,15 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div class="topbar-right">
       <button class="auth-btn" id="auth-btn" onclick="handleAuthClick()" title="Google 登入">🔑 登入</button>
       <button class="auth-btn line-auth-btn" id="line-btn" onclick="handleLineLoginClick()" title="LINE 登入">LINE 登入</button>
-      <button class="icon-btn" onclick="openOverlay('tut-overlay')" title="說明">❓</button>
-      <button class="icon-btn" onclick="openOverlay('reset-overlay')" title="重置">🔄</button>
-      <button class="icon-btn" onclick="openOverlay('feedback-overlay')" title="曠野呼聲">🏜️</button>
-      <button class="icon-btn" onclick="switchPage('changelog')" title="更新">📢</button>
+      <div class="more-wrap">
+        <button class="icon-btn" id="more-menu-btn" onclick="toggleMoreMenu(event)" title="更多">⋯</button>
+        <div class="more-menu" id="more-menu">
+          <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
+          <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
+          <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
+          <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
+        </div>
+      </div>
       <div class="streak-pill" onclick="devModeClick()">🔥 <span id="streak-num">0</span></div>
     </div>
   </div>
@@ -2125,9 +2206,105 @@ function closeTut() {
   closeOverlay('tut-overlay');
 }
 
-function openFeedbackForm() {
-  window.open('https://docs.google.com/forms/d/e/1FAIpQLSdsIyDRe4ASBnizEkSeVYdm-Rc8XSgpVINjVXdR-CaZ6pxGQw/viewform', '_blank', 'noopener');
+// ── Topbar ⋯ menu ─────────────────────────────────────────
+function toggleMoreMenu(e) {
+  e.stopPropagation();
+  document.getElementById('more-menu').classList.toggle('show');
+}
+function closeMoreMenu() {
+  document.getElementById('more-menu').classList.remove('show');
+}
+document.addEventListener('click', () => {
+  const m = document.getElementById('more-menu');
+  if (m) m.classList.remove('show');
+});
+
+// ── Feedback (曠野呼聲) ───────────────────────────────────
+let feedbackState = { mood: null, identity: null, category: null };
+const FEEDBACK_VERSES = [
+  { t: '「你們要將一切的憂慮卸給神，因為他顧念你們。」', r: '—— 彼得前書 5:7' },
+  { t: '「我靠著那加給我力量的，凡事都能做。」', r: '—— 腓立比書 4:13' },
+  { t: '「你的話是我腳前的燈，是我路上的光。」', r: '—— 詩篇 119:105' },
+  { t: '「我的恩典夠你用的，因為我的能力是在人的軟弱上顯得完全。」', r: '—— 哥林多後書 12:9' },
+];
+
+function openFeedback() {
+  resetFeedbackForm();
+  openOverlay('feedback-overlay');
+}
+
+function resetFeedbackForm() {
+  feedbackState = { mood: null, identity: null, category: null };
+  document.querySelectorAll('#feedback-overlay .fb-opt.sel').forEach(el => el.classList.remove('sel'));
+  document.getElementById('fb-message').value = '';
+  updateFbCount();
+  document.getElementById('fb-form').style.display = 'block';
+  document.getElementById('fb-thanks').style.display = 'none';
+}
+
+function selectFbOption(groupId, field, btn) {
+  document.querySelectorAll('#' + groupId + ' .fb-opt').forEach(x => x.classList.remove('sel'));
+  btn.classList.add('sel');
+  feedbackState[field] = btn.dataset.val;
+}
+
+function updateFbCount() {
+  const v = document.getElementById('fb-message').value;
+  document.getElementById('fb-count').textContent = `${v.length} / 300`;
+}
+
+async function submitFeedback() {
+  if (!feedbackState.mood) { showToast('請先選今天的感覺'); return; }
+  if (!feedbackState.identity) { showToast('請選擇身份'); return; }
+  if (!feedbackState.category) { showToast('請選擇分類'); return; }
+
+  // Guest wanting named comment → prompt to login
+  if (feedbackState.identity === 'named' && !currentUser) {
+    openOverlay('feedback-login-prompt');
+    return;
+  }
+
+  const isAnonymous = feedbackState.identity === 'anon';
+  const doc = {
+    mood: feedbackState.mood,
+    category: feedbackState.category,
+    message: document.getElementById('fb-message').value.trim(),
+    isAnonymous,
+    uid: (!isAnonymous && currentUser) ? currentUser.uid : null,
+    displayName: (!isAnonymous && currentUser) ? (currentUser.displayName || null) : null,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    chapter: selectedChapter || null,
+  };
+
+  try {
+    await db.collection('feedback').add(doc);
+    showFeedbackThanks();
+  } catch (e) {
+    console.error('Feedback submit error:', e);
+    showToast('送出失敗，請再試一次');
+  }
+}
+
+function showFeedbackThanks() {
+  document.getElementById('fb-form').style.display = 'none';
+  document.getElementById('fb-thanks').style.display = 'block';
+  const v = FEEDBACK_VERSES[Math.floor(Math.random() * FEEDBACK_VERSES.length)];
+  document.getElementById('fb-verse').innerHTML =
+    `<div>${v.t}</div><div style="font-size:12px;color:var(--text-soft);margin-top:6px;text-align:right;font-family:'Noto Sans TC',sans-serif;">${v.r}</div>`;
+}
+
+function goToLoginFromFeedback() {
+  closeOverlay('feedback-login-prompt');
   closeOverlay('feedback-overlay');
+  handleLineLoginClick();
+}
+
+function switchToAnonFeedback() {
+  feedbackState.identity = 'anon';
+  document.querySelectorAll('#fb-ident .fb-opt').forEach(el => {
+    el.classList.toggle('sel', el.dataset.val === 'anon');
+  });
+  closeOverlay('feedback-login-prompt');
 }
 
 function showConfirm(icon, title, msg, okLabel, cancelLabel) {
