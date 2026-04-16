@@ -840,7 +840,7 @@ function handleAuthClick() {
 
 // ── LINE Login ────────────────────────────────────────────
 const LINE_CLIENT_ID = '2009801861';
-const LINE_REDIRECT_URI = 'https://st00777.github.io/Bible-game/bible-game-v2.html';
+const LINE_REDIRECT_URI = location.origin + location.pathname;
 const LINE_FUNCTION_URL = 'https://linelogin-kvjdptgk7q-uc.a.run.app';
 
 function handleLineLoginClick() {
