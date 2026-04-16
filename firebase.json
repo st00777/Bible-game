@@ -12,5 +12,18 @@
         "*.local"
       ]
     }
-  ]
+  ],
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**",
+      "CLAUDE.md",
+      "README.md",
+      "claude_output.log",
+      "*.log"
+    ]
+  }
 }
