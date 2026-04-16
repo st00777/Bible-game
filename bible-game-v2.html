@@ -545,12 +545,6 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <button class="auth-btn line-auth-btn" id="line-btn" onclick="handleLineLoginClick()" title="LINE 登入">LINE 登入</button>
       <div class="more-wrap">
         <button class="icon-btn" id="more-menu-btn" onclick="toggleMoreMenu(event)" title="更多">⋯</button>
-        <div class="more-menu" id="more-menu">
-          <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
-          <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
-          <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
-          <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
-        </div>
       </div>
       <div class="streak-pill" onclick="devModeClick()">🔥 <span id="streak-num">0</span></div>
     </div>
@@ -2387,5 +2381,13 @@ function closeVersionNotice() {
   }
 }
 </script>
+
+<!-- more-menu lives at body level to escape topbar's animation containing block -->
+<div class="more-menu" id="more-menu">
+  <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
+  <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
+  <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
+  <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
+</div>
 </body>
 </html>
