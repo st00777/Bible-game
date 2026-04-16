@@ -308,6 +308,31 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 <div class="cloud c1"></div>
 <div class="cloud c2"></div>
 
+<!-- ══ WELCOME (LOGIN CHOICE) SCREEN ══ -->
+<div id="welcome-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;">
+  <div class="setup-wrap" style="max-width:340px;">
+    <div style="font-size:60px;margin-bottom:14px;">✝️</div>
+    <div class="setup-title">靈修冒險</div>
+    <div class="setup-sub">每天 3–5 分鐘<br>讓信仰成為習慣</div>
+
+    <button class="green-btn" style="background:linear-gradient(135deg,#06C755,#05B34D);box-shadow:0 5px 18px rgba(6,199,85,.4);" onclick="chooseLineLogin()">
+      💬 使用 LINE 登入
+    </button>
+
+    <button class="green-btn" style="background:linear-gradient(135deg,#4285F4,#1A73E8);box-shadow:0 5px 18px rgba(66,133,244,.4);margin-bottom:16px;" onclick="chooseGoogleLogin()">
+      🔑 使用 Google 登入
+    </button>
+
+    <button class="sky-btn" onclick="chooseGuestMode()" style="font-size:13px;">
+      暫不登入，以訪客模式試玩
+    </button>
+
+    <div style="font-size:12px;color:var(--text-soft);line-height:1.75;margin-top:10px;padding:11px 13px;background:rgba(255,255,255,.55);border-radius:11px;border-left:3px solid var(--sand-dark);text-align:left;">
+      ⚠️ 訪客模式的進度只存在這個瀏覽器，換手機或清除快取後進度會消失。建議使用 LINE 或 Google 登入保存進度。
+    </div>
+  </div>
+</div>
+
 <!-- ══ SETUP SCREEN ══ -->
 <div id="setup-screen" style="display:none;min-height:100vh;display:none;align-items:center;justify-content:center;">
   <div class="setup-wrap">
@@ -1040,15 +1065,36 @@ async function incrementShareCount() {
   } catch(e) { console.warn('Share count error:', e); }
 }
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   currentUser = user;
   updateAuthUI();
-  if (user && typeof state !== 'undefined' && state.setup) {
+  if (!user || typeof state === 'undefined') return;
+
+  if (state.setup) {
+    // Already set up locally — sync in-place, stay on current screen
     loadFromFirestore(user.uid);
-    // Only call updateProfile for Google users; LINE profile is handled by updateLineProfile
-    if (!user.uid.startsWith('line:')) updateProfile();
-    initAchievements();
+  } else {
+    // Logged in from welcome flow — check cloud for existing progress
+    try {
+      const doc = await db.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data().setup) {
+        const data = doc.data();
+        SYNC_FIELDS.forEach(f => { if (data[f] !== undefined) state[f] = data[f]; });
+        localStorage.setItem('bible_state', JSON.stringify(state));
+        showMainAppScreen();
+        showToast('☁️ 已從雲端載入進度');
+      } else {
+        // No cloud progress yet — advance to character setup
+        showSetupScreen();
+      }
+    } catch(e) {
+      console.warn('Post-auth Firestore load error:', e);
+      showSetupScreen();
+    }
   }
+  // Only call updateProfile for Google users; LINE profile is handled by updateLineProfile
+  if (!user.uid.startsWith('line:')) updateProfile();
+  initAchievements();
 });
 
 // Handle LINE OAuth callback on page load
@@ -1163,6 +1209,45 @@ function finishSetup() {
   document.getElementById('main-app').style.display = 'block';
   initApp();
   if (!localStorage.getItem('tut_done')) openOverlay('tut-overlay');
+}
+
+// ── Screen routing ────────────────────────────────────────
+function showWelcomeScreen() {
+  document.getElementById('welcome-screen').style.display = 'flex';
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'none';
+}
+function showSetupScreen() {
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  selectGender('n');
+}
+function showMainAppScreen() {
+  document.getElementById('welcome-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  giveGenderItems(state.gender || 'n');
+  saveState();
+  initApp();
+}
+
+// ── Welcome screen button handlers ────────────────────────
+function chooseLineLogin() {
+  localStorage.setItem('login_choice_made', '1');
+  handleLineLoginClick();
+}
+function chooseGoogleLogin() {
+  localStorage.setItem('login_choice_made', '1');
+  auth.signInWithPopup(googleProvider).catch(e => {
+    console.warn('Google login error:', e);
+    showToast('登入失敗，請再試一次');
+    localStorage.removeItem('login_choice_made');
+  });
+}
+function chooseGuestMode() {
+  localStorage.setItem('login_choice_made', '1');
+  showSetupScreen();
 }
 
 // ══ SCHEDULE (loaded from content.js) ═══════════════════
@@ -2074,16 +2159,8 @@ function switchPage(name) {
 
 // ══ BOOT ════════════════════════════════════════════════
 
-if (!state.setup) {
-  document.getElementById('setup-screen').style.display = 'flex';
-  document.getElementById('main-app').style.display = 'none';
-  selectGender('n');
-} else {
-  document.getElementById('setup-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
-  giveGenderItems(state.gender || 'n');
-  saveState();
-  initApp();
+if (state.setup) {
+  showMainAppScreen();
   // Version update notice
   const lastSeen = localStorage.getItem('last_seen_version');
   if (lastSeen !== GAME_VERSION) {
@@ -2091,6 +2168,12 @@ if (!state.setup) {
   } else if (!localStorage.getItem('tut_done')) {
     setTimeout(() => openOverlay('tut-overlay'), 500);
   }
+} else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
+  // Returning from LINE redirect OR previously chose login/guest — show setup
+  // (post-auth onAuthStateChanged may still advance to main app if cloud has setup)
+  showSetupScreen();
+} else {
+  showWelcomeScreen();
 }
 
 function showVersionNotice() {
