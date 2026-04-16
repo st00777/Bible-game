@@ -32,7 +32,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .icon-btn:hover{transform:scale(1.1);}
 .streak-pill{background:var(--warm);color:white;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(255,138,101,.4);}
 .more-wrap{position:relative;z-index:999;}
-.more-menu{position:fixed;top:60px;right:16px;background:white;border-radius:13px;box-shadow:0 6px 22px var(--shadow);padding:6px;display:none;z-index:9999;min-width:160px;}
+.more-menu{position:fixed;background:white;border-radius:13px;box-shadow:0 6px 22px var(--shadow);padding:6px;display:none;z-index:9999;min-width:160px;}
 .more-menu.show{display:block;animation:popIn .2s ease;}
 .more-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;border-radius:8px;transition:background .15s;white-space:nowrap;}
 .more-menu button:hover{background:var(--sky);}
@@ -44,7 +44,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .fb-opt{flex:1 1 calc(33% - 6px);min-width:72px;background:white;border:2px solid var(--sky-deep);border-radius:12px;padding:10px 6px;cursor:pointer;font-family:inherit;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .15s;font-size:22px;line-height:1;}
 .fb-opt span{font-size:12px;font-weight:700;}
 .fb-opt.sel{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);}
-.fb-opt-row{flex-direction:row !important;align-items:flex-start;text-align:left;padding:12px 14px;flex:1 1 100%;font-size:22px;gap:10px;}
+.fb-opt-row{flex-direction:row !important;align-items:flex-start;text-align:left;padding:12px 10px;flex:1 1 calc(50% - 4px);font-size:22px;gap:8px;}
 .fb-opt-row>span:first-child{flex-shrink:0;}
 .fb-opt-row>span:last-child{flex:1;font-size:13px;font-weight:700;}
 .fb-opt-row small{color:var(--text-soft);font-weight:normal;font-size:11px;display:block;margin-top:2px;}
@@ -437,7 +437,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       </div>
 
       <div class="fb-label">身份</div>
-      <div class="fb-opts fb-opts-col" id="fb-ident">
+      <div class="fb-opts" id="fb-ident">
         <button class="fb-opt fb-opt-row" data-val="anon" onclick="selectFbOption('fb-ident','identity',this)">
           <span>🫥</span><span>匿名填寫<small>安心暢所欲言</small></span>
         </button>
@@ -2203,7 +2203,19 @@ function closeTut() {
 // ── Topbar ⋯ menu ─────────────────────────────────────────
 function toggleMoreMenu(e) {
   e.stopPropagation();
-  document.getElementById('more-menu').classList.toggle('show');
+  const menu = document.getElementById('more-menu');
+  if (menu.classList.contains('show')) {
+    menu.classList.remove('show');
+    return;
+  }
+  // Anchor the menu's top-right to just below the button's bottom-right,
+  // so it tracks the centered game layout on desktop instead of pinning to
+  // the viewport edge.
+  const rect = document.getElementById('more-menu-btn').getBoundingClientRect();
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  menu.style.left = 'auto';
+  menu.classList.add('show');
 }
 function closeMoreMenu() {
   document.getElementById('more-menu').classList.remove('show');
