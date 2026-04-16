@@ -6,10 +6,13 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Feedback (曠野呼聲): anyone can submit (guests included);
-    // only authenticated users can read.
+    // Feedback (曠野呼聲): anyone can submit (guests included) but only
+    // with a well-formed document; only authenticated users can read.
     match /feedback/{docId} {
-      allow write: if true;
+      allow write: if request.resource.data.keys().hasOnly(['mood','category','message','isAnonymous','uid','displayName','createdAt','chapter'])
+                && request.resource.data.message.size() <= 300
+                && request.resource.data.mood in ['平靜','有動力','有點累','經文太難','其他']
+                && request.resource.data.category in ['靈性感受','遊戲體驗','我的異象','其他'];
       allow read: if request.auth != null;
     }
   }
