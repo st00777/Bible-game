@@ -395,6 +395,17 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   </div>
 </div>
 
+<!-- Feedback (曠野呼聲) modal -->
+<div class="overlay center" id="feedback-overlay">
+  <div class="modal">
+    <div style="font-size:36px;margin-bottom:10px;">🏜️</div>
+    <div class="sheet-title">曠野呼聲</div>
+    <p style="font-size:13px;color:var(--text-soft);line-height:1.7;margin:10px 0 18px;">你的聲音對我們很重要，<br>幫助靈修冒險變得更好 🙏</p>
+    <button class="green-btn" onclick="openFeedbackForm()">📜 前往填寫回饋</button>
+    <button class="sky-btn" onclick="closeOverlay('feedback-overlay')">關閉</button>
+  </div>
+</div>
+
 <!-- Wardrobe -->
 <div class="overlay center" id="ward-overlay">
   <div class="modal" style="max-width:400px;">
@@ -458,6 +469,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <button class="auth-btn line-auth-btn" id="line-btn" onclick="handleLineLoginClick()" title="LINE 登入">LINE 登入</button>
       <button class="icon-btn" onclick="openOverlay('tut-overlay')" title="說明">❓</button>
       <button class="icon-btn" onclick="openOverlay('reset-overlay')" title="重置">🔄</button>
+      <button class="icon-btn" onclick="openOverlay('feedback-overlay')" title="曠野呼聲">🏜️</button>
       <button class="icon-btn" onclick="switchPage('changelog')" title="更新">📢</button>
       <div class="streak-pill" onclick="devModeClick()">🔥 <span id="streak-num">0</span></div>
     </div>
@@ -2111,6 +2123,11 @@ function closeOverlay(id) {
 function closeTut() {
   if (document.getElementById('tut-no-repeat').checked) localStorage.setItem('tut_done','1');
   closeOverlay('tut-overlay');
+}
+
+function openFeedbackForm() {
+  window.open('https://docs.google.com/forms/d/e/1FAIpQLSdsIyDRe4ASBnizEkSeVYdm-Rc8XSgpVINjVXdR-CaZ6pxGQw/viewform', '_blank', 'noopener');
+  closeOverlay('feedback-overlay');
 }
 
 function showConfirm(icon, title, msg, okLabel, cancelLabel) {
