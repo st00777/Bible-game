@@ -9,12 +9,15 @@ admin.initializeApp();
 
 const lineChannelSecret = defineSecret('LINE_CHANNEL_SECRET');
 const LINE_CHANNEL_ID = '2009801861';
-const ALLOWED_ORIGIN = 'https://st00777.github.io';
+const ALLOWED_ORIGINS = [
+  'https://st00777.github.io',                        // prod (GitHub Pages)
+  'https://bible-game-bcb84--dev-01luz2yz.web.app',   // dev preview (Firebase Hosting channel)
+];
 
 exports.lineLogin = onRequest(
   {
     secrets: [lineChannelSecret],
-    cors: [ALLOWED_ORIGIN],
+    cors: ALLOWED_ORIGINS,
     invoker: 'public',
   },
   async (req, res) => {
