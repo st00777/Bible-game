@@ -285,6 +285,63 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 ---
 
+## 分支策略
+
+**`main` 分支 — 正式版**
+- 對外公開,部署在 `https://st00777.github.io/Bible-game/bible-game-v2.html`
+- 每次 commit 會立即反映到玩家看到的版本
+- 只接受「已在 dev 測過、確認沒問題」的變更
+
+**`dev` 分支 — 測試版**
+- 內部測試用,不對玩家公開網址
+- 新功能、重構、實驗性改動都先進 dev
+- 預覽網址方案見下一節
+
+**工作流程**
+```
+1. 從 main 切出(或 rebase)dev:  git checkout dev && git rebase main
+2. 在 dev 開發 + 推到遠端觀察預覽:git push origin dev
+3. 確認 OK 後 fast-forward merge 回 main:
+     git checkout main && git merge --ff-only dev && git push
+4. 上線後若要繼續開發,dev 重新 rebase 到 main
+```
+
+**什麼變更可以直接進 main(跳過 dev)**
+- 只改 `content.js` 的每日靈修內容(低風險、無程式邏輯)
+- 緊急 hotfix(修好後回頭把 dev rebase 對齊)
+
+---
+
+## 預覽網址方案(dev 分支)
+
+GitHub Pages 免費版只能部署一個分支(= main)。dev 分支要有獨立預覽網址,以下**由易到難**:
+
+**① Firebase Hosting Preview Channels(推薦)**
+- 已經在用 Firebase,不必再申請新服務
+- 指令:`firebase hosting:channel:deploy dev --expires 30d`
+- 每次 deploy 拿到類似 `https://bible-game-bcb84--dev-xxxxxx.web.app` 的臨時網址
+- 預設 7 天過期,可加 `--expires` 延長,最長 30 天
+- 成本:Blaze 方案免費額度內不收費
+- **注意事項**:
+  - 需在 `firebase.json` 加 Hosting 設定
+  - LINE Callback URL 要在 LINE Console 加入 dev 網址(支援多個)
+  - Firebase Auth 授權網域也要加入新網域
+
+**② Netlify / Cloudflare Pages(獨立服務,免費)**
+- 綁 GitHub repo,指定 dev 分支自動部署
+- 拿到固定網址 `<project>-dev.netlify.app` / `.pages.dev`
+- 優點:每次 push 自動部署,不用手動指令
+- 缺點:多一個服務要管,LINE / Firebase Auth 授權網域一樣要加
+
+**③ 本機預覽(最陽春)**
+- `python3 -m http.server 8080` 在 `localhost:8080` 測
+- 只有自己看得到,無法手機測試
+- Firebase Auth 需把 `localhost` 加入授權網域
+
+**建議**:短期用 ① Firebase Hosting Preview Channels,長期如果想要 push 就自動預覽,改 ② Cloudflare Pages。
+
+---
+
 ## 開發規範
 
 **版本號規則**
