@@ -63,12 +63,7 @@ exports.lineLogin = onRequest(
         console.error('LINE token error — status:', tokenRes.status, 'body:', errText);
         console.error('LINE token error (parsed):', JSON.stringify(lineError));
         console.error('LINE token error — redirect_uri used:', redirect_uri);
-        res.status(400).json({
-          error: 'Failed to exchange LINE token',
-          status: tokenRes.status,
-          detail: lineError,
-          redirect_uri_used: redirect_uri,
-        });
+        res.status(400).json({ error: 'login_failed' });
         return;
       }
 
@@ -83,11 +78,7 @@ exports.lineLogin = onRequest(
       if (!profileRes.ok) {
         const profErrText = await profileRes.text();
         console.error('LINE profile fetch error — status:', profileRes.status, 'body:', profErrText);
-        res.status(400).json({
-          error: 'Failed to get LINE profile',
-          status: profileRes.status,
-          detail: profErrText,
-        });
+        res.status(400).json({ error: 'login_failed' });
         return;
       }
 

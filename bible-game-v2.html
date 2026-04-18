@@ -977,7 +977,9 @@ function handleLineLoginClick() {
     }
     return;
   }
-  const state = Math.random().toString(36).slice(2);
+  const stateArr = new Uint8Array(16);
+  crypto.getRandomValues(stateArr);
+  const state = Array.from(stateArr).map(b => b.toString(16).padStart(2, '0')).join('');
   sessionStorage.setItem('line_state', state);
   const params = new URLSearchParams({
     response_type: 'code',
