@@ -27,9 +27,18 @@ exports.lineLogin = onRequest(
       return;
     }
 
+    const VALID_REDIRECTS = [
+      'https://st00777.github.io/Bible-game/bible-game-v2.html',
+      'https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html',
+    ];
+
     const { code, redirect_uri } = req.body;
     if (!code || !redirect_uri) {
       res.status(400).json({ error: 'Missing code or redirect_uri' });
+      return;
+    }
+    if (!VALID_REDIRECTS.includes(redirect_uri)) {
+      res.status(400).json({ error: 'invalid_redirect_uri' });
       return;
     }
 

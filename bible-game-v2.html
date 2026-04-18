@@ -893,6 +893,16 @@ async function loadFromFirestore(uid) {
   }
 }
 
+function safeAvatarImg(url, fallbackEmoji) {
+  if (url && /^https:\/\//.test(url)) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    return img;
+  }
+  return document.createTextNode(fallbackEmoji);
+}
+
 function updateAuthUI() {
   const btn = document.getElementById('auth-btn');
   const lineBtn = document.getElementById('line-btn');
@@ -908,8 +918,10 @@ function updateAuthUI() {
       btn.title = 'Google 登入，同步靈修進度';
       btn.style.display = 'none';
       if (lineBtn) {
-        lineBtn.innerHTML = (photo ? `<img src="${photo}" alt="">` : '💬') +
-          `<span class="auth-btn-name">${name}</span>`;
+        lineBtn.textContent = '';
+        lineBtn.appendChild(safeAvatarImg(photo, '💬'));
+        const sp = document.createElement('span'); sp.className = 'auth-btn-name'; sp.textContent = name;
+        lineBtn.appendChild(sp);
         lineBtn.classList.add('logged-in');
         lineBtn.title = `LINE 已登入：${currentUser.displayName || 'LINE用戶'}\n點擊登出`;
         lineBtn.style.display = '';
@@ -918,8 +930,10 @@ function updateAuthUI() {
       // Google user logged in — show Google button as active, hide LINE button
       const name = (currentUser.displayName || '').split(' ')[0] || '玩家';
       const photo = currentUser.photoURL;
-      btn.innerHTML = (photo ? `<img src="${photo}" alt="">` : '👤') +
-        `<span class="auth-btn-name">${name}</span>`;
+      btn.textContent = '';
+      btn.appendChild(safeAvatarImg(photo, '👤'));
+      const sp2 = document.createElement('span'); sp2.className = 'auth-btn-name'; sp2.textContent = name;
+      btn.appendChild(sp2);
       btn.classList.add('logged-in');
       btn.title = `已登入：${currentUser.displayName || currentUser.email}\n點擊登出`;
       btn.style.display = '';
