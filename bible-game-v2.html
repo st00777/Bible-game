@@ -1923,6 +1923,12 @@ async function submitReflection() {
 
 // ══ COMPLETE ══════════════════════════════════════════════
 
+function resolveItem(itemData, gender) {
+  if (!itemData) return null;
+  if (itemData.default) return itemData[gender] || itemData.default;
+  return itemData;
+}
+
 async function completeDevotional() {
   if (isChapterDone(selectedChapter)) return;
 
@@ -1944,8 +1950,9 @@ async function completeDevotional() {
 
   const hasBonus = reflText.length > 0;
   const data = CHAPTERS.find(c => c.chapter === selectedChapter);
-  const newItem = {...data.baseItem, chapter: selectedChapter};
-  const bonusItem = hasBonus ? {...data.bonusItem, chapter: selectedChapter} : null;
+  const gender = state.gender || 'n';
+  const newItem = {...resolveItem(data.baseItem, gender), chapter: selectedChapter};
+  const bonusItem = hasBonus ? {...resolveItem(data.bonusItem, gender), chapter: selectedChapter} : null;
 
   // Apply to avatar slots
   const applyItem = (item) => {
@@ -2166,9 +2173,10 @@ function openDevMode() {
 
 function unlockAllItems() {
   const allItems = [];
+  const g = state.gender || 'n';
   CHAPTERS.forEach(ch => {
-    allItems.push({...ch.baseItem, chapter: ch.chapter});
-    allItems.push({...ch.bonusItem, chapter: ch.chapter});
+    allItems.push({...resolveItem(ch.baseItem, g), chapter: ch.chapter});
+    allItems.push({...resolveItem(ch.bonusItem, g), chapter: ch.chapter});
   });
   allItems.push({emoji:'🩱', name:'腓立比的囚衣', desc:'「保羅和西拉在監獄裡讚美神」', slot:'body', chapter:16});
   // All gender items
