@@ -1,0 +1,7 @@
+{
+  "name": "bible-game",
+  "private": true,
+  "scripts": {
+    "analyze": "node scripts/analyze-feedback.js"
+  }
+}
