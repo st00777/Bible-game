@@ -19,7 +19,11 @@
   --sky:#E8F4FD; --sky-deep:#B8D9F0; --green:#7BC67E; --green-dark:#4CAF50;
   --sand:#F5E6C8; --sand-dark:#E8D0A0; --warm:#FF8A65; --purple:#9C7BB5;
   --text:#3D2B1F; --text-soft:#7A6050; --card:#FFFDF8; --shadow:rgba(61,43,31,0.12);
+  --fs-body:16px;
 }
+.fs-sm{--fs-body:14px;}
+.fs-md{--fs-body:16px;}
+.fs-lg{--fs-body:19px;}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-height:100vh;min-height:-webkit-fill-available;font-family:'Noto Sans TC',sans-serif;color:var(--text);overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);}
 .cloud{position:fixed;background:white;border-radius:50px;opacity:.6;pointer-events:none;z-index:0;}
@@ -62,6 +66,15 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .fb-textarea:focus{border-color:var(--purple);}
 .fb-count{font-size:11px;color:var(--text-soft);text-align:right;margin:4px 0 12px;}
 .fb-verse-box{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px 16px;margin:14px 0 18px;font-size:14px;line-height:1.85;font-family:'Noto Serif TC',serif;}
+
+/* Font size picker */
+.fs-picker{display:flex;gap:8px;justify-content:center;margin:14px 0;}
+.fs-pick-btn{flex:1;background:white;border:2px solid var(--sky-deep);border-radius:12px;padding:12px 8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:var(--text);text-align:center;transition:all .15s;}
+.fs-pick-btn.sel{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);color:var(--green-dark);}
+.fs-pick-btn .fs-sample{display:block;margin-top:4px;font-weight:400;color:var(--text-soft);}
+.fs-pick-sm .fs-sample{font-size:14px;}
+.fs-pick-md .fs-sample{font-size:16px;}
+.fs-pick-lg .fs-sample{font-size:19px;}
 
 /* Avatar card */
 .avatar-card{background:var(--card);border-radius:24px;padding:18px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);display:flex;align-items:center;gap:14px;opacity:0;animation:popIn .5s ease forwards .2s;}
@@ -146,7 +159,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .verse-card{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border-radius:20px;padding:18px;margin-bottom:14px;border:2px solid var(--sand-dark);box-shadow:0 4px 16px rgba(232,208,160,.4);opacity:0;animation:popIn .5s ease forwards .32s;}
 .verse-lbl-row{margin-bottom:9px;}
 .verse-lbl-text{font-size:11px;font-weight:700;color:var(--warm);letter-spacing:.15em;}
-.verse-text{font-family:'Noto Serif TC',serif;font-size:15px;line-height:1.85;margin-bottom:9px;}
+.verse-text{font-family:'Noto Serif TC',serif;font-size:var(--fs-body);line-height:1.85;margin-bottom:9px;}
 .verse-ref{font-size:12px;color:var(--text-soft);text-align:right;font-style:italic;}
 /* Reading steps */
 .reading-steps{margin-top:14px;}
@@ -166,15 +179,15 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .step-content-area.open{max-height:2000px;opacity:1;}
 /* Guide inner */
 .guide-inner-wrap{padding:10px 0 4px;}
-.guide-intro-text{font-size:13px;line-height:1.8;color:var(--text);margin-bottom:10px;}
+.guide-intro-text{font-size:var(--fs-body);line-height:1.8;color:var(--text);margin-bottom:10px;}
 .guide-outline-box{background:rgba(255,255,255,.55);border-radius:11px;padding:11px 13px;margin-bottom:9px;}
 .guide-outline-lbl{font-size:10px;font-weight:700;color:var(--text-soft);letter-spacing:.12em;margin-bottom:7px;}
-.guide-ol-row{display:flex;gap:8px;font-size:12px;line-height:1.7;padding:3px 0;border-bottom:1px solid rgba(61,43,31,.06);}
+.guide-ol-row{display:flex;gap:8px;font-size:calc(var(--fs-body) - 2px);line-height:1.7;padding:3px 0;border-bottom:1px solid rgba(61,43,31,.06);}
 .guide-ol-row:last-child{border-bottom:none;}
 .guide-ol-nodes{font-weight:700;color:var(--warm);flex-shrink:0;min-width:34px;}
-.guide-focus-box{background:rgba(156,123,181,.09);border-left:3px solid var(--purple);border-radius:0 9px 9px 0;padding:9px 12px;font-size:12px;color:var(--text-soft);line-height:1.7;}
+.guide-focus-box{background:rgba(156,123,181,.09);border-left:3px solid var(--purple);border-radius:0 9px 9px 0;padding:9px 12px;font-size:calc(var(--fs-body) - 2px);color:var(--text-soft);line-height:1.7;}
 /* Read step */
-.read-encourage-box{font-size:12px;color:var(--text-soft);line-height:1.75;padding:10px 12px;background:rgba(255,255,255,.5);border-radius:11px;margin:10px 0 10px;}
+.read-encourage-box{font-size:calc(var(--fs-body) - 2px);color:var(--text-soft);line-height:1.75;padding:10px 12px;background:rgba(255,255,255,.5);border-radius:11px;margin:10px 0 10px;}
 .read-encourage-box strong{color:var(--green-dark);}
 .read-or-skip{color:var(--text-soft);font-size:11px;}
 .read-full-btn{display:flex;align-items:center;justify-content:space-between;width:100%;background:linear-gradient(135deg,var(--purple),#7B5EA7);border:none;border-radius:13px;padding:13px 16px;color:white;font-family:'Noto Sans TC',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(156,123,181,.4);transition:all .2s;margin-bottom:8px;text-decoration:none;}
@@ -190,28 +203,28 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
 /* Scenario */
 .scenario-card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .5s ease forwards .4s;}
-.scene-box{background:linear-gradient(135deg,#E8F4FD,#EBF5E8);border-radius:13px;padding:15px;margin-bottom:14px;font-size:14px;line-height:1.8;border-left:4px solid var(--green);}
+.scene-box{background:linear-gradient(135deg,#E8F4FD,#EBF5E8);border-radius:13px;padding:15px;margin-bottom:14px;font-size:var(--fs-body);line-height:1.8;border-left:4px solid var(--green);}
 .scene-emoji{font-size:26px;display:block;margin-bottom:7px;}
-.scenario-q{font-size:15px;font-weight:700;margin-bottom:13px;line-height:1.6;}
-.choice-btn{width:100%;background:white;border:2px solid var(--sky-deep);border-radius:13px;padding:13px 15px;margin-bottom:9px;text-align:left;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:14px;color:var(--text);line-height:1.6;transition:all .2s;display:flex;align-items:flex-start;gap:10px;}
+.scenario-q{font-size:calc(var(--fs-body) + 1px);font-weight:700;margin-bottom:13px;line-height:1.6;}
+.choice-btn{width:100%;background:white;border:2px solid var(--sky-deep);border-radius:13px;padding:13px 15px;margin-bottom:9px;text-align:left;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:var(--fs-body);color:var(--text);line-height:1.6;transition:all .2s;display:flex;align-items:flex-start;gap:10px;}
 .choice-btn:hover:not(:disabled){border-color:var(--green);background:#F0FAF0;transform:translateY(-2px);box-shadow:0 4px 12px rgba(123,198,126,.3);}
 .choice-btn.previewing{border-color:var(--warm);background:linear-gradient(135deg,#FFF8E7,#FFF3D4);box-shadow:0 4px 14px rgba(255,138,101,.25);transform:translateY(-2px);}
 .choice-btn.previewing .ch-letter{background:var(--warm);color:white;}
 .choice-btn.selected{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);box-shadow:0 4px 14px rgba(76,175,80,.25);}
 .choice-btn.selected .ch-letter{background:var(--green-dark);color:white;}
 .ch-letter{width:25px;height:25px;border-radius:50%;background:var(--sky-deep);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;}
-.choice-feedback{margin-top:12px;padding:13px 15px;background:#F0FAF0;border-radius:11px;font-size:13px;line-height:1.8;border-left:3px solid var(--green-dark);display:none;animation:popIn .4s ease;}
+.choice-feedback{margin-top:12px;padding:13px 15px;background:#F0FAF0;border-radius:11px;font-size:var(--fs-body);line-height:1.8;border-left:3px solid var(--green-dark);display:none;animation:popIn .4s ease;}
 
 /* Reflection */
 .refl-card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .5s ease forwards .5s;}
 .refl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
 .refl-title{font-size:14px;font-weight:700;}
 .bonus-badge{background:linear-gradient(135deg,#FFD54F,#FFA726);color:white;font-size:11px;font-weight:700;padding:4px 10px;border-radius:9px;}
-.refl-q{font-size:14px;color:var(--text-soft);line-height:1.7;margin-bottom:11px;padding:11px 13px;background:#FFF8E7;border-radius:11px;border-left:3px solid var(--warm);}
-.refl-input{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:12px;font-family:'Noto Sans TC',sans-serif;font-size:14px;color:var(--text);resize:none;min-height:80px;transition:border-color .2s;line-height:1.7;}
+.refl-q{font-size:var(--fs-body);color:var(--text-soft);line-height:1.7;margin-bottom:11px;padding:11px 13px;background:#FFF8E7;border-radius:11px;border-left:3px solid var(--warm);}
+.refl-input{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:12px;font-family:'Noto Sans TC',sans-serif;font-size:var(--fs-body);color:var(--text);resize:none;min-height:80px;transition:border-color .2s;line-height:1.7;}
 .refl-input:focus{outline:none;border-color:var(--purple);}
 .refl-input::placeholder{color:rgba(122,96,80,.4);}
-.ai-resp{margin-top:11px;background:linear-gradient(135deg,#F3E8FF,#EDE0FF);border-radius:11px;padding:13px;font-size:13px;line-height:1.8;border-left:3px solid var(--purple);display:none;}
+.ai-resp{margin-top:11px;background:linear-gradient(135deg,#F3E8FF,#EDE0FF);border-radius:11px;padding:13px;font-size:var(--fs-body);line-height:1.8;border-left:3px solid var(--purple);display:none;}
 .ai-resp.show{display:block;animation:popIn .4s ease;}
 .ai-lbl{font-size:10px;font-weight:700;color:var(--purple);margin-bottom:5px;letter-spacing:.1em;}
 
@@ -489,6 +502,21 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <p style="font-size:13px;color:var(--text-soft);line-height:1.7;margin:10px 0 18px;">你目前是訪客模式。<br>登入後才能具名留言，是否前往登入？</p>
     <button class="green-btn" onclick="goToLoginFromFeedback()">前往登入</button>
     <button class="sky-btn" onclick="switchToAnonFeedback()">改為匿名留言</button>
+  </div>
+</div>
+
+<!-- Font size picker -->
+<div class="overlay center" id="fontsize-overlay">
+  <div class="modal">
+    <div style="font-size:36px;margin-bottom:10px;">🔤</div>
+    <div class="sheet-title">字體大小</div>
+    <p style="font-size:13px;color:var(--text-soft);line-height:1.7;margin:8px 0 4px;">選擇適合你的閱讀大小</p>
+    <div class="fs-picker">
+      <button class="fs-pick-btn fs-pick-sm" onclick="setFontSize('sm')">小<span class="fs-sample">經文</span></button>
+      <button class="fs-pick-btn fs-pick-md" onclick="setFontSize('md')">中<span class="fs-sample">經文</span></button>
+      <button class="fs-pick-btn fs-pick-lg" onclick="setFontSize('lg')">大<span class="fs-sample">經文</span></button>
+    </div>
+    <button class="sky-btn" onclick="closeOverlay('fontsize-overlay')">關閉</button>
   </div>
 </div>
 
@@ -899,6 +927,11 @@ async function loadFromFirestore(uid) {
       const data = doc.data();
       SYNC_FIELDS.forEach(f => { if (data[f] !== undefined) state[f] = data[f]; });
       localStorage.setItem('bible_state', JSON.stringify(state));
+      // Sync font size from cloud (cloud wins)
+      if (data.fontSize) {
+        localStorage.setItem('fontSize', data.fontSize);
+        applyFontSize(data.fontSize);
+      }
       if (typeof renderAvatar === 'function') renderAvatar();
       if (typeof renderChapterGrid === 'function') renderChapterGrid();
       if (typeof renderCalendar === 'function') renderCalendar();
@@ -2257,6 +2290,35 @@ function closeTut() {
   closeOverlay('tut-overlay');
 }
 
+// ── Font size ─────────────────────────────────────────────
+function applyFontSize(size) {
+  document.documentElement.classList.remove('fs-sm', 'fs-md', 'fs-lg');
+  document.documentElement.classList.add('fs-' + size);
+  document.querySelectorAll('.fs-pick-btn').forEach(btn => {
+    btn.classList.toggle('sel', btn.classList.contains('fs-pick-' + size));
+  });
+}
+
+function setFontSize(size) {
+  applyFontSize(size);
+  localStorage.setItem('fontSize', size);
+  if (currentUser) {
+    db.collection('users').doc(currentUser.uid).set({ fontSize: size }, { merge: true }).catch(() => {});
+  }
+}
+
+function openFontSizePicker() {
+  const current = localStorage.getItem('fontSize') || 'md';
+  applyFontSize(current);
+  openOverlay('fontsize-overlay');
+}
+
+// Apply saved font size on load
+(function() {
+  const saved = localStorage.getItem('fontSize');
+  if (saved) applyFontSize(saved);
+})();
+
 // ── Topbar ⋯ menu ─────────────────────────────────────────
 function toggleMoreMenu(e) {
   e.stopPropagation();
@@ -2464,6 +2526,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
+  <button onclick="openFontSizePicker(); closeMoreMenu()">🔤 字體大小</button>
   <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
 </div>
 </body>
