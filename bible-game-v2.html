@@ -83,11 +83,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .av-body{font-size:32px;margin-top:8px;}
 .av-item{font-size:14px;position:absolute;bottom:4px;right:4px;}
 .av-info{flex:1;}
-.av-name{font-size:15px;font-weight:900;margin-bottom:3px;}
-.av-level{font-size:12px;color:var(--text-soft);margin-bottom:7px;}
+.av-name{font-size:var(--fs-body);font-weight:900;margin-bottom:3px;}
+.av-level{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);margin-bottom:7px;}
 .xp-bg{background:var(--sky-deep);border-radius:8px;height:7px;overflow:hidden;}
 .xp-fill{background:linear-gradient(90deg,var(--green),var(--green-dark));height:100%;border-radius:8px;transition:width .8s ease;}
-.xp-lbl{font-size:11px;color:var(--text-soft);margin-top:3px;}
+.xp-lbl{font-size:calc(var(--fs-body) - 4px);color:var(--text-soft);margin-top:3px;}
 .wardrobe-btn{margin-top:7px;background:linear-gradient(135deg,var(--purple),#7B5EA7);border:none;border-radius:9px;padding:5px 12px;color:white;font-family:'Noto Sans TC',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:none;box-shadow:0 2px 8px rgba(156,123,181,.35);transition:all .2s;}
 .wardrobe-btn.show{display:inline-block;}
 
@@ -127,8 +127,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .cal-day.cal-selected{background:var(--purple)!important;border-color:var(--purple)!important;}
 .cal-day.cal-selected .cal-day-num,.cal-day.cal-selected .cal-day-ch{color:white!important;}
 .cal-day.cal-selected .cal-dot{background:rgba(255,255,255,.6)!important;}
-.cal-day-num{font-size:12px;font-weight:900;color:var(--text);line-height:1;}
-.cal-day-ch{font-size:9px;font-weight:700;color:var(--text-soft);margin-top:1px;line-height:1;}
+.cal-day-num{font-size:calc(var(--fs-body) - 3px);font-weight:900;color:var(--text);line-height:1;}
+.cal-day-ch{font-size:calc(var(--fs-body) - 6px);font-weight:700;color:var(--text-soft);margin-top:1px;line-height:1;}
 .cal-day.cal-done .cal-day-ch{color:var(--green-dark);}
 .cal-day.cal-today .cal-day-ch{color:var(--purple);}
 .cal-dot{width:5px;height:5px;border-radius:50%;margin-top:2px;background:var(--sky-deep);}
@@ -137,9 +137,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .today-tag{position:absolute;top:-6px;left:50%;transform:translateX(-50%);background:var(--warm);color:white;font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;}
 .day-info-bar{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:16px;padding:13px 15px;margin-bottom:14px;display:flex;align-items:center;gap:11px;opacity:0;animation:popIn .5s ease forwards .35s;}
 .day-info-icon{font-size:26px;flex-shrink:0;}
-.day-info-date{font-size:11px;color:var(--text-soft);margin-bottom:3px;}
-.day-info-chapter{font-size:15px;font-weight:900;}
-.day-info-status{font-size:11px;margin-top:3px;}
+.day-info-date{font-size:calc(var(--fs-body) - 4px);color:var(--text-soft);margin-bottom:3px;}
+.day-info-chapter{font-size:var(--fs-body);font-weight:900;}
+.day-info-status{font-size:calc(var(--fs-body) - 4px);margin-top:3px;}
 .day-info-status.done{color:var(--green-dark);}
 .day-info-status.todo{color:var(--warm);}
 .day-info-status.preview{color:var(--purple);}
@@ -313,7 +313,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .log-entry{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 10px var(--shadow);}
 .log-ver{font-size:13px;font-weight:700;color:var(--purple);margin-bottom:4px;}
 .log-date{font-size:11px;color:var(--text-soft);margin-bottom:10px;}
-.log-item{font-size:13px;line-height:1.7;padding:6px 0;border-bottom:1px solid rgba(61,43,31,.07);display:flex;gap:8px;align-items:flex-start;}
+.log-item{font-size:var(--fs-body);line-height:1.7;padding:6px 0;border-bottom:1px solid rgba(61,43,31,.07);display:flex;gap:8px;align-items:flex-start;}
 .log-item:last-child{border-bottom:none;}
 .log-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;flex-shrink:0;margin-top:2px;}
 .tag-new{background:#E8F5E9;color:var(--green-dark);}
