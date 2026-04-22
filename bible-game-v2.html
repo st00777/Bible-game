@@ -378,14 +378,14 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .shelf-row{display:flex;gap:8px;justify-content:center;padding-bottom:10px;margin-bottom:10px;border-bottom:6px solid #5A3E22;box-shadow:0 4px 6px rgba(0,0,0,.2);position:relative;}
 .shelf-row:last-child{margin-bottom:0;}
 .shelf-row::after{content:'';position:absolute;bottom:-6px;left:0;right:0;height:3px;background:linear-gradient(180deg,rgba(0,0,0,.15),transparent);}
-.book-spine{width:56px;min-height:80px;border-radius:3px 6px 6px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;transition:all .2s;position:relative;box-shadow:2px 0 4px rgba(0,0,0,.2);}
+.book-spine{width:80px;min-height:110px;border-radius:4px 8px 8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;cursor:pointer;transition:all .2s;position:relative;box-shadow:2px 0 4px rgba(0,0,0,.2);}
 .book-spine:hover{transform:translateY(-4px);}
 .book-spine.lit{background:linear-gradient(135deg,#FFD54F,#FFB300);border:1px solid #F9A825;color:#5D4037;}
 .book-spine.progress{background:linear-gradient(135deg,#B8D9F0,#90CAF9);border:1px solid #64B5F6;color:var(--text);}
 .book-spine.locked{background:linear-gradient(135deg,#D7CCC8,#BCAAA4);border:1px solid #A1887F;color:#8D6E63;}
-.book-spine-emoji{font-size:20px;margin-bottom:2px;}
-.book-spine-name{font-size:9px;font-weight:900;line-height:1.2;text-align:center;writing-mode:horizontal-tb;}
-.book-spine-pct{font-size:8px;font-weight:700;margin-top:2px;opacity:.8;}
+.book-spine-emoji{font-size:30px;margin-bottom:4px;}
+.book-spine-name{font-size:13px;font-weight:900;line-height:1.2;text-align:center;writing-mode:horizontal-tb;}
+.book-spine-pct{font-size:11px;font-weight:700;margin-top:3px;opacity:.8;}
 .book-spine.lit .book-spine-pct{color:#5D4037;}
 .book-spine-bar{width:80%;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin-top:3px;overflow:hidden;}
 .book-spine-bar-fill{height:100%;background:white;border-radius:2px;transition:width .6s ease;}
@@ -574,7 +574,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
     <div class="ach-tabs">
       <button class="ach-tab active" id="ach-tab-badges" onclick="switchAchTab('badges')">🏅 徽章</button>
-      <button class="ach-tab" id="ach-tab-library" onclick="switchAchTab('library')">📚 書架</button>
+      <button class="ach-tab" id="ach-tab-library" onclick="switchAchTab('library')">📚 書卷</button>
     </div>
     <div id="ach-badges-page"></div>
     <div id="ach-library-page" style="display:none;"></div>
@@ -1445,6 +1445,9 @@ function switchAchTab(tab) {
   document.getElementById('ach-tab-library').classList.toggle('active', tab === 'library');
   document.getElementById('ach-badges-page').style.display = tab === 'badges' ? '' : 'none';
   document.getElementById('ach-library-page').style.display = tab === 'library' ? '' : 'none';
+  // Scroll sheet to top so content doesn't appear from the bottom
+  const sheet = document.querySelector('#ach-overlay .sheet');
+  if (sheet) sheet.scrollTop = 0;
 }
 
 function openAchievements() {
@@ -1503,7 +1506,7 @@ function renderLibraryPage() {
     html += `<div class="book-spine ${cls}">
       <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
       <div class="book-spine-name">${book.name}</div>
-      <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${pct}%` : '🔒')}</div>
+      <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
       ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="width:${pct}%"></div></div>` : ''}
     </div>`;
   }
