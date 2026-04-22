@@ -373,7 +373,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .ach-unlock-verse{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px;margin:0 0 18px;font-size:14px;line-height:1.85;font-family:'Noto Serif TC',serif;text-align:left;}
 .ach-unlock-verse-ref{font-size:12px;color:var(--text-soft);text-align:right;margin-top:6px;font-family:'Noto Sans TC',sans-serif;}
 
-#ach-badges-page,#ach-library-page{min-height:50vh;}
+.ach-body{height:55vh;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
 
 /* Bookshelf */
 .bookshelf{background:linear-gradient(180deg,#8B6F47 0%,#6B4F2F 100%);border-radius:16px;padding:16px 12px 8px;box-shadow:inset 0 2px 8px rgba(0,0,0,.25),0 4px 12px rgba(107,79,47,.4);}
@@ -578,8 +578,10 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <button class="ach-tab active" id="ach-tab-badges" onclick="switchAchTab('badges')">🏅 徽章</button>
       <button class="ach-tab" id="ach-tab-library" onclick="switchAchTab('library')">📚 書卷</button>
     </div>
-    <div id="ach-badges-page"></div>
-    <div id="ach-library-page" style="display:none;"></div>
+    <div class="ach-body">
+      <div id="ach-badges-page"></div>
+      <div id="ach-library-page" style="display:none;"></div>
+    </div>
   </div>
 </div>
 
@@ -1292,17 +1294,26 @@ async function initAchievements() {
 // ── 成就系統 ──────────────────────────────────────────────────
 
 const BOOKS = [
-  { key:'ACT', name:'使徒行傳', emoji:'🏛️', chapters:[10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27] },
-  { key:'ROM', name:'羅馬書', emoji:'📜', chapters:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM12','ROM13','ROM14','ROM15','ROM16'] },
-  { key:'COR1', name:'哥林多前書', emoji:'✉️', chapters:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10'] },
+  { key:'ACT', name:'使徒行傳', emoji:'🏛️', totalChapters:18,
+    entries:[10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27],
+    merged:{14:2} },
+  { key:'ROM', name:'羅馬書', emoji:'📜', totalChapters:16,
+    entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM12','ROM13','ROM14','ROM15','ROM16'],
+    merged:{} },
+  { key:'COR1', name:'哥林多前書', emoji:'✉️', totalChapters:16,
+    entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10'],
+    merged:{'COR1_9':2} },
 ];
 
-function booksCompleted() {
-  return BOOKS.filter(b => b.chapters.every(ch => state.completed[chapterKey(ch)])).length;
-}
 function getBookProgress(book) {
-  const done = book.chapters.filter(ch => state.completed[chapterKey(ch)]).length;
-  return { done, total: book.chapters.length, complete: done === book.chapters.length };
+  let doneChapters = 0;
+  book.entries.forEach(ch => {
+    if (state.completed[chapterKey(ch)]) doneChapters += (book.merged[ch] || book.merged[String(ch)] || 1);
+  });
+  return { done: doneChapters, total: book.totalChapters, complete: doneChapters >= book.totalChapters };
+}
+function booksCompleted() {
+  return BOOKS.filter(b => getBookProgress(b).complete).length;
 }
 function itemCount() { return (state.items || []).length; }
 function completedCount() { return Object.keys(state.completed || {}).length; }
@@ -1447,11 +1458,9 @@ function switchAchTab(tab) {
   document.getElementById('ach-tab-library').classList.toggle('active', tab === 'library');
   document.getElementById('ach-badges-page').style.display = tab === 'badges' ? '' : 'none';
   document.getElementById('ach-library-page').style.display = tab === 'library' ? '' : 'none';
-  // Scroll sheet to top after DOM settles so content starts at the top.
-  // requestAnimationFrame ensures layout is recalculated before scrolling.
   requestAnimationFrame(() => {
-    const sheet = document.querySelector('#ach-overlay .sheet');
-    if (sheet) sheet.scrollTo(0, 0);
+    const body = document.querySelector('.ach-body');
+    if (body) body.scrollTo(0, 0);
   });
 }
 
