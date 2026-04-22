@@ -2301,6 +2301,7 @@ function applyFontSize(size) {
 
 function setFontSize(size) {
   applyFontSize(size);
+  track('change_font_size', { size });
   localStorage.setItem('fontSize', size);
   if (currentUser) {
     db.collection('users').doc(currentUser.uid).set({ fontSize: size }, { merge: true }).catch(() => {});
