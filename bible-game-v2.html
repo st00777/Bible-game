@@ -346,6 +346,50 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .line-auth-btn{background:#06C755;border-color:#06C755;color:white;}
 .line-auth-btn:hover{background:#05b34d;border-color:#05b34d;color:white;}
 .line-auth-btn.logged-in{background:linear-gradient(135deg,#c8f7d4,#a0f0be);border-color:#06C755;color:#027836;}
+
+/* Achievement system */
+.ach-tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--sky-deep);}
+.ach-tab{flex:1;background:none;border:none;padding:10px 8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--text-soft);cursor:pointer;transition:all .15s;border-bottom:3px solid transparent;margin-bottom:-2px;}
+.ach-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ach-card{background:white;border:2px solid var(--sky-deep);border-radius:14px;padding:12px 8px;text-align:center;transition:all .15s;position:relative;}
+.ach-card.unlocked{border-color:var(--green-dark);background:linear-gradient(135deg,#F0FAF0,#E8F5E9);}
+.ach-card.hidden{background:var(--sky);border-color:var(--sky-deep);}
+.ach-emoji{font-size:28px;display:block;margin-bottom:4px;filter:grayscale(1) opacity(.4);}
+.ach-card.unlocked .ach-emoji{filter:none;}
+.ach-card.hidden .ach-emoji{font-size:22px;}
+.ach-name{font-size:11px;font-weight:700;color:var(--text);line-height:1.3;}
+.ach-card.hidden .ach-name{color:var(--text-soft);}
+.ach-desc{font-size:9px;color:var(--text-soft);margin-top:2px;line-height:1.3;}
+.ach-tier{position:absolute;top:4px;right:4px;font-size:10px;}
+.ach-date{font-size:8px;color:var(--green-dark);margin-top:3px;}
+.ach-progress{font-size:9px;color:var(--warm);margin-top:3px;font-weight:700;}
+
+/* Achievement unlock overlay */
+.ach-unlock-emoji{font-size:64px;margin-bottom:8px;animation:bounce .6s ease infinite alternate;}
+.ach-unlock-tier{font-size:14px;font-weight:700;margin-bottom:4px;}
+.ach-unlock-name{font-size:22px;font-weight:900;margin-bottom:4px;}
+.ach-unlock-desc{font-size:13px;color:var(--text-soft);margin-bottom:14px;}
+.ach-unlock-verse{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px;margin:0 0 18px;font-size:14px;line-height:1.85;font-family:'Noto Serif TC',serif;text-align:left;}
+.ach-unlock-verse-ref{font-size:12px;color:var(--text-soft);text-align:right;margin-top:6px;font-family:'Noto Sans TC',sans-serif;}
+
+/* Bookshelf */
+.bookshelf{background:linear-gradient(180deg,#8B6F47 0%,#6B4F2F 100%);border-radius:16px;padding:16px 12px 8px;box-shadow:inset 0 2px 8px rgba(0,0,0,.25),0 4px 12px rgba(107,79,47,.4);}
+.shelf-row{display:flex;gap:8px;justify-content:center;padding-bottom:10px;margin-bottom:10px;border-bottom:6px solid #5A3E22;box-shadow:0 4px 6px rgba(0,0,0,.2);position:relative;}
+.shelf-row:last-child{margin-bottom:0;}
+.shelf-row::after{content:'';position:absolute;bottom:-6px;left:0;right:0;height:3px;background:linear-gradient(180deg,rgba(0,0,0,.15),transparent);}
+.book-spine{width:56px;min-height:80px;border-radius:3px 6px 6px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;cursor:pointer;transition:all .2s;position:relative;box-shadow:2px 0 4px rgba(0,0,0,.2);}
+.book-spine:hover{transform:translateY(-4px);}
+.book-spine.lit{background:linear-gradient(135deg,#FFD54F,#FFB300);border:1px solid #F9A825;color:#5D4037;}
+.book-spine.progress{background:linear-gradient(135deg,#B8D9F0,#90CAF9);border:1px solid #64B5F6;color:var(--text);}
+.book-spine.locked{background:linear-gradient(135deg,#D7CCC8,#BCAAA4);border:1px solid #A1887F;color:#8D6E63;}
+.book-spine-emoji{font-size:20px;margin-bottom:2px;}
+.book-spine-name{font-size:9px;font-weight:900;line-height:1.2;text-align:center;writing-mode:horizontal-tb;}
+.book-spine-pct{font-size:8px;font-weight:700;margin-top:2px;opacity:.8;}
+.book-spine.lit .book-spine-pct{color:#5D4037;}
+.book-spine-bar{width:80%;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin-top:3px;overflow:hidden;}
+.book-spine-bar-fill{height:100%;background:white;border-radius:2px;transition:width .6s ease;}
+.shelf-summary{text-align:center;color:#D7CCC8;font-size:12px;font-weight:700;margin-top:8px;padding-top:6px;}
 </style>
 </head>
 <body>
@@ -517,6 +561,31 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <button class="fs-pick-btn fs-pick-lg" onclick="setFontSize('lg')">大<span class="fs-sample">經文</span></button>
     </div>
     <button class="sky-btn" onclick="closeOverlay('fontsize-overlay')">關閉</button>
+  </div>
+</div>
+
+<!-- Achievement page -->
+<div class="overlay" id="ach-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="sheet-title">🏆 成就</div>
+      <button onclick="closeOverlay('ach-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
+    </div>
+    <div class="ach-tabs">
+      <button class="ach-tab active" id="ach-tab-badges" onclick="switchAchTab('badges')">🏅 徽章</button>
+      <button class="ach-tab" id="ach-tab-library" onclick="switchAchTab('library')">📚 書架</button>
+    </div>
+    <div id="ach-badges-page"></div>
+    <div id="ach-library-page" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Achievement unlock ceremony -->
+<div class="overlay center" id="ach-unlock-overlay">
+  <div class="modal">
+    <div id="ach-unlock-content"></div>
+    <button class="green-btn" onclick="closeOverlay('ach-unlock-overlay')">繼續靈修旅程 →</button>
   </div>
 </div>
 
@@ -1205,10 +1274,244 @@ async function initAchievements() {
     const ref = db.collection('users').doc(currentUser.uid)
       .collection('achievements').doc('data');
     const doc = await ref.get();
-    if (!doc.exists) {
-      await ref.set({ unlockedAt: {}, progress: {} });
+    if (doc.exists && doc.data().unlockedAt) {
+      // Merge cloud → local (cloud wins for timestamps)
+      const cloud = doc.data().unlockedAt;
+      Object.keys(cloud).forEach(k => { if (cloud[k]) unlockedAchievements[k] = cloud[k]; });
+      localStorage.setItem('ach_unlocked', JSON.stringify(unlockedAchievements));
+    } else {
+      await ref.set({ unlockedAt: unlockedAchievements, progress: {} }, { merge: true });
     }
   } catch(e) { console.warn('Achievements init error:', e); }
+  // Check for any newly achievable badges
+  checkAchievements();
+}
+
+// ── 成就系統 ──────────────────────────────────────────────────
+
+const BOOKS = [
+  { key:'ACT', name:'使徒行傳', emoji:'🏛️', chapters:[10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27] },
+  { key:'ROM', name:'羅馬書', emoji:'📜', chapters:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM12','ROM13','ROM14','ROM15','ROM16'] },
+  { key:'COR1', name:'哥林多前書', emoji:'✉️', chapters:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10'] },
+];
+
+function booksCompleted() {
+  return BOOKS.filter(b => b.chapters.every(ch => state.completed[chapterKey(ch)])).length;
+}
+function getBookProgress(book) {
+  const done = book.chapters.filter(ch => state.completed[chapterKey(ch)]).length;
+  return { done, total: book.chapters.length, complete: done === book.chapters.length };
+}
+function itemCount() { return (state.items || []).length; }
+function completedCount() { return Object.keys(state.completed || {}).length; }
+
+// Stats cache (filled from Firestore for logged-in users)
+let cachedStats = {};
+async function loadStats() {
+  if (!currentUser) return;
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).collection('stats').doc('data').get();
+    if (doc.exists) cachedStats = doc.data();
+  } catch(e) {}
+}
+
+const ACHIEVEMENTS = [
+  // ── 恆心 ──
+  {key:'first_step',name:'踏上旅程',desc:'完成第1次靈修',emoji:'👣',tier:'bronze',verse:'「你們要行道，不要單單聽道。」',verseRef:'—— 雅各書 1:22',
+   check:()=>completedCount()>=1,progress:()=>`${Math.min(completedCount(),1)}/1`},
+  {key:'streak_3',name:'三日不間斷',desc:'連續靈修3天',emoji:'🔥',tier:'bronze',verse:'「因為他的怒氣不過是轉眼之間，他的恩典乃是一生之久。」',verseRef:'—— 詩篇 30:5',
+   check:()=>state.streak>=3,progress:()=>`${Math.min(state.streak,3)}/3`},
+  {key:'total_10',name:'十日旅人',desc:'累計完成10天靈修',emoji:'🗺️',tier:'bronze',verse:'「你的話是我腳前的燈，是我路上的光。」',verseRef:'—— 詩篇 119:105',
+   check:()=>completedCount()>=10,progress:()=>`${Math.min(completedCount(),10)}/10`},
+  {key:'streak_7',name:'一週堅持',desc:'連續靈修7天',emoji:'🌟',tier:'silver',verse:'「你們要在所信的道上恆心，根基穩固，堅定不移。」',verseRef:'—— 歌羅西書 1:23',
+   check:()=>state.streak>=7,progress:()=>`${Math.min(state.streak,7)}/7`},
+  {key:'streak_14',name:'兩週同行',desc:'連續靈修14天',emoji:'🌈',tier:'silver',verse:'「我們行善不可喪志，若不灰心，到了時候就要收成。」',verseRef:'—— 加拉太書 6:9',
+   check:()=>state.streak>=14,progress:()=>`${Math.min(state.streak,14)}/14`},
+  {key:'total_30',name:'月行者',desc:'累計完成30天靈修',emoji:'⛰️',tier:'silver',verse:'「耶和華是我的牧者，我必不至缺乏。」',verseRef:'—— 詩篇 23:1',
+   check:()=>completedCount()>=30,progress:()=>`${Math.min(completedCount(),30)}/30`},
+  {key:'streak_30',name:'三十日挑戰',desc:'連續靈修30天',emoji:'💎',tier:'gold',verse:'「忍耐也當成功，使你們成全完備，毫無缺欠。」',verseRef:'—— 雅各書 1:4',
+   check:()=>state.streak>=30,progress:()=>`${Math.min(state.streak,30)}/30`},
+  {key:'total_100',name:'百日門徒',desc:'累計完成100天靈修',emoji:'👑',tier:'gold',verse:'「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了。」',verseRef:'—— 提摩太後書 4:7',
+   check:()=>completedCount()>=100,progress:()=>`${Math.min(completedCount(),100)}/100`},
+  {key:'comeback',name:'重回羊圈',desc:'第1次補讀',emoji:'🐑',tier:'bronze',verse:'「一百隻羊裡失去一隻，豈不把這九十九隻撇在曠野，去找那失去的羊，直到找著呢？」',verseRef:'—— 路加福音 15:4',
+   check:()=>(cachedStats.makeupCount||0)>=1},
+  // ── 深度 ──
+  {key:'first_read',name:'認真讀經',desc:'第1次點閱讀完整章節',emoji:'📖',tier:'bronze',verse:'「你們查考聖經，因你們以為內中有永生。」',verseRef:'—— 約翰福音 5:39',
+   check:()=>(cachedStats.readCount||0)>=1},
+  {key:'first_reflection',name:'初次默想',desc:'第1次填寫默想',emoji:'💭',tier:'bronze',verse:'「惟喜愛耶和華的律法，晝夜思想，這人便為有福。」',verseRef:'—— 詩篇 1:2',
+   check:()=>(cachedStats.reflectionCount||0)>=1},
+  {key:'read_10',name:'讀經達人',desc:'累計閱讀完整章節10次',emoji:'📚',tier:'silver',verse:'「聖經都是神所默示的，於教訓、督責、使人歸正、教導人學義都是有益的。」',verseRef:'—— 提摩太後書 3:16',
+   check:()=>(cachedStats.readCount||0)>=10,progress:()=>`${Math.min(cachedStats.readCount||0,10)}/10`},
+  {key:'reflect_10',name:'默想成習',desc:'累計填寫默想10次',emoji:'🙏',tier:'silver',verse:'「你要默想這些事，專心做這些事，使眾人看出你的長進來。」',verseRef:'—— 提摩太前書 4:15',
+   check:()=>(cachedStats.reflectionCount||0)>=10,progress:()=>`${Math.min(cachedStats.reflectionCount||0,10)}/10`},
+  {key:'read_30',name:'聖經行者',desc:'累計閱讀完整章節30次',emoji:'🏅',tier:'gold',verse:'「少年人用什麼潔淨他的行為呢？是要遵行你的話。」',verseRef:'—— 詩篇 119:9',
+   check:()=>(cachedStats.readCount||0)>=30,progress:()=>`${Math.min(cachedStats.readCount||0,30)}/30`},
+  {key:'reflect_30',name:'默想深耕',desc:'累計填寫默想30次',emoji:'🌾',tier:'gold',verse:'「耶和華啊，我仰望你；主啊，你是我的盼望。」',verseRef:'—— 詩篇 38:15',
+   check:()=>(cachedStats.reflectionCount||0)>=30,progress:()=>`${Math.min(cachedStats.reflectionCount||0,30)}/30`},
+  // ── 時段 ──
+  {key:'early_bird',name:'晨間靈修',desc:'累計5次清晨靈修',emoji:'🌅',tier:'silver',verse:'「我趁天未亮呼求，我仰望了你的言語。」',verseRef:'—— 詩篇 119:147',
+   check:()=>(cachedStats.morningCount||0)>=5,progress:()=>`${Math.min(cachedStats.morningCount||0,5)}/5`},
+  {key:'night_owl',name:'夜間守望',desc:'累計5次深夜靈修',emoji:'🌙',tier:'silver',verse:'「我夜間的歌曲，我心裡也要默想。」',verseRef:'—— 詩篇 77:6',
+   check:()=>(cachedStats.nightCount||0)>=5,progress:()=>`${Math.min(cachedStats.nightCount||0,5)}/5`},
+  // ── 收集 ──
+  {key:'full_outfit',name:'全副武裝',desc:'同時裝備帽衣手背4部位',emoji:'🛡️',tier:'bronze',verse:'「所以要站穩了，用真理當作帶子束腰。」',verseRef:'—— 以弗所書 6:14',
+   check:()=>!!(state.hat&&state.body&&state.item&&state.bg)},
+  {key:'wardrobe_20',name:'裝備收集家',desc:'收集20件裝備',emoji:'🎒',tier:'silver',verse:'「你開恩賜給他，超過他所求的。」',verseRef:'—— 詩篇 21:2',
+   check:()=>itemCount()>=20,progress:()=>`${Math.min(itemCount(),20)}/20`},
+  {key:'wardrobe_50',name:'聖經博物館',desc:'收集50件裝備',emoji:'🏛️',tier:'gold',verse:'「神的豐富何等深奧。」',verseRef:'—— 羅馬書 11:33',
+   check:()=>itemCount()>=50,progress:()=>`${Math.min(itemCount(),50)}/50`},
+  {key:'wardrobe_80',name:'全裝甲勇士',desc:'收集80件裝備',emoji:'⚔️',tier:'gold',verse:'「你們要穿戴神所賜的全副軍裝，就能抵擋魔鬼的詭計。」',verseRef:'—— 以弗所書 6:11',
+   check:()=>itemCount()>=80,progress:()=>`${Math.min(itemCount(),80)}/80`},
+  // ── 社群 ──
+  {key:'first_share',name:'分享祝福',desc:'第1次分享給小組',emoji:'📤',tier:'bronze',verse:'「你們的光也當這樣照在人前，叫他們看見你們的好行為。」',verseRef:'—— 馬太福音 5:16',
+   check:()=>(cachedStats.shareCount||0)>=1},
+  {key:'share_10',name:'福音使者',desc:'累計分享10次',emoji:'📢',tier:'silver',verse:'「報福音傳喜信的人，他們的腳蹤何等佳美。」',verseRef:'—— 羅馬書 10:15',
+   check:()=>(cachedStats.shareCount||0)>=10,progress:()=>`${Math.min(cachedStats.shareCount||0,10)}/10`},
+  {key:'first_feedback',name:'曠野之聲',desc:'第1次填寫回饋',emoji:'🏜️',tier:'bronze',verse:'「在曠野有人聲喊著說：預備主的道，修直他的路。」',verseRef:'—— 馬可福音 1:3',
+   check:()=>!!localStorage.getItem('has_submitted_feedback')},
+  // ── 書架 ──
+  {key:'library_1',name:'書架初亮',desc:'完走第1本書卷',emoji:'📕',tier:'silver',verse:'「都是照著山上指示你的樣式做。」',verseRef:'—— 出埃及記 25:40',
+   check:()=>booksCompleted()>=1,progress:()=>`${Math.min(booksCompleted(),1)}/1`},
+  {key:'library_3',name:'三卷行者',desc:'完走3本書卷',emoji:'📚',tier:'gold',verse:'「少年人哪，我曾寫信給你們，因為你們剛強，神的道常存在你們心裡。」',verseRef:'—— 約翰一書 2:14',
+   check:()=>booksCompleted()>=3,progress:()=>`${Math.min(booksCompleted(),3)}/3`},
+];
+
+// Local unlocked state (merged with Firestore on login)
+let unlockedAchievements = JSON.parse(localStorage.getItem('ach_unlocked') || '{}');
+
+function saveUnlocked() {
+  localStorage.setItem('ach_unlocked', JSON.stringify(unlockedAchievements));
+  if (currentUser) {
+    db.collection('users').doc(currentUser.uid)
+      .collection('achievements').doc('data')
+      .set({ unlockedAt: unlockedAchievements }, { merge: true }).catch(() => {});
+  }
+}
+
+let achievementQueue = [];
+let showingAchievement = false;
+
+async function checkAchievements() {
+  if (currentUser) await loadStats();
+  const newlyUnlocked = [];
+  for (const a of ACHIEVEMENTS) {
+    if (unlockedAchievements[a.key]) continue;
+    if (a.tier === 'gold') {
+      // Gold hidden until all silver of same category unlocked? No, just check
+    }
+    try {
+      if (a.check()) {
+        unlockedAchievements[a.key] = new Date().toISOString();
+        newlyUnlocked.push(a);
+      }
+    } catch(e) {}
+  }
+  if (newlyUnlocked.length > 0) {
+    saveUnlocked();
+    achievementQueue.push(...newlyUnlocked);
+    if (!showingAchievement) showNextAchievement();
+  }
+}
+
+function showNextAchievement() {
+  if (achievementQueue.length === 0) { showingAchievement = false; return; }
+  showingAchievement = true;
+  const a = achievementQueue.shift();
+  const tierLabel = { bronze:'🥉 銅級', silver:'🥈 銀級', gold:'🥇 金級' }[a.tier];
+  document.getElementById('ach-unlock-content').innerHTML = `
+    <div class="ach-unlock-emoji">${a.emoji}</div>
+    <div class="ach-unlock-tier">${tierLabel}</div>
+    <div class="ach-unlock-name">${a.name}</div>
+    <div class="ach-unlock-desc">${a.desc}</div>
+    <div class="ach-unlock-verse">${a.verse}<div class="ach-unlock-verse-ref">${a.verseRef}</div></div>
+  `;
+  openOverlay('ach-unlock-overlay');
+  track('achievement_unlocked', { key: a.key, tier: a.tier });
+  if (typeof showConfetti === 'function') showConfetti();
+  // When this overlay closes, show next
+  const observer = new MutationObserver(() => {
+    if (!document.getElementById('ach-unlock-overlay').classList.contains('show')) {
+      observer.disconnect();
+      setTimeout(showNextAchievement, 400);
+    }
+  });
+  observer.observe(document.getElementById('ach-unlock-overlay'), { attributes: true, attributeFilter: ['class'] });
+}
+
+// ── Achievement page rendering ──
+
+function switchAchTab(tab) {
+  document.getElementById('ach-tab-badges').classList.toggle('active', tab === 'badges');
+  document.getElementById('ach-tab-library').classList.toggle('active', tab === 'library');
+  document.getElementById('ach-badges-page').style.display = tab === 'badges' ? '' : 'none';
+  document.getElementById('ach-library-page').style.display = tab === 'library' ? '' : 'none';
+}
+
+function openAchievements() {
+  renderBadgesPage();
+  renderLibraryPage();
+  switchAchTab('badges');
+  openOverlay('ach-overlay');
+}
+
+function renderBadgesPage() {
+  const el = document.getElementById('ach-badges-page');
+  const tiers = ['bronze','silver','gold'];
+  const tierNames = { bronze:'🥉 銅級成就', silver:'🥈 銀級成就', gold:'🥇 金級成就' };
+  let html = '';
+  for (const tier of tiers) {
+    const items = ACHIEVEMENTS.filter(a => a.tier === tier);
+    html += `<div style="font-size:13px;font-weight:700;color:var(--text-soft);margin:12px 0 8px;">${tierNames[tier]}</div>`;
+    html += '<div class="ach-grid">';
+    for (const a of items) {
+      const unlocked = !!unlockedAchievements[a.key];
+      const isGoldHidden = tier === 'gold' && !unlocked && !tiers.slice(0,2).every(t => ACHIEVEMENTS.filter(x=>x.tier===t).every(x=>unlockedAchievements[x.key]));
+      // Gold: show if any gold is unlocked OR all silver done; otherwise hide individual golds only if none unlocked
+      const showHidden = tier === 'gold' && !unlocked;
+      const cls = unlocked ? 'unlocked' : (showHidden ? 'hidden' : '');
+      const date = unlocked ? new Date(unlockedAchievements[a.key]) : null;
+      const dateStr = date ? `${date.getMonth()+1}/${date.getDate()}` : '';
+      let progressHtml = '';
+      if (!unlocked && !showHidden && a.progress) {
+        try { progressHtml = `<div class="ach-progress">${a.progress()}</div>`; } catch(e) {}
+      }
+      html += `<div class="ach-card ${cls}" title="${a.desc}">
+        <div class="ach-emoji">${showHidden ? '❓' : a.emoji}</div>
+        <div class="ach-name">${showHidden ? '???' : a.name}</div>
+        ${showHidden ? '' : `<div class="ach-desc">${a.desc}</div>`}
+        ${unlocked ? `<div class="ach-date">${dateStr} ✅</div>` : progressHtml}
+      </div>`;
+    }
+    html += '</div>';
+  }
+  // Summary
+  const total = ACHIEVEMENTS.length;
+  const done = ACHIEVEMENTS.filter(a => unlockedAchievements[a.key]).length;
+  html = `<div style="text-align:center;font-size:13px;color:var(--text-soft);margin-bottom:6px;">已解鎖 ${done} / ${total}</div>` + html;
+  el.innerHTML = html;
+}
+
+function renderLibraryPage() {
+  const el = document.getElementById('ach-library-page');
+  let html = '<div class="bookshelf">';
+  // Single shelf row for now
+  html += '<div class="shelf-row">';
+  for (const book of BOOKS) {
+    const prog = getBookProgress(book);
+    const pct = Math.round(prog.done / prog.total * 100);
+    const cls = prog.complete ? 'lit' : (prog.done > 0 ? 'progress' : 'locked');
+    html += `<div class="book-spine ${cls}">
+      <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
+      <div class="book-spine-name">${book.name}</div>
+      <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${pct}%` : '🔒')}</div>
+      ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="width:${pct}%"></div></div>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  const done = BOOKS.filter(b => getBookProgress(b).complete).length;
+  html += `<div class="shelf-summary">📖 已完走 ${done} / ${BOOKS.length} 卷</div>`;
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ── 分享次數 +1 ──────────────────────────────────────────────
@@ -2030,6 +2333,7 @@ async function completeDevotional() {
   renderChapterGrid();
   showReward(newItem, bonusItem, hasBonus);
   track('complete_devotional', { chapter: selectedChapter });
+  setTimeout(() => checkAchievements(), 1500);
 
   btn.textContent = '✅ 已完成此章靈修';
   btn.classList.add('done');
@@ -2405,7 +2709,9 @@ async function submitFeedback() {
   try {
     await db.collection('feedback').add(doc);
     track('submit_feedback', { mood: feedbackState.mood, category: feedbackState.category });
+    localStorage.setItem('has_submitted_feedback', '1');
     showFeedbackThanks();
+    setTimeout(() => checkAchievements(), 1000);
   } catch (e) {
     console.error('Feedback submit error:', e);
     showToast('送出失敗，請再試一次');
@@ -2524,6 +2830,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
 
 <!-- more-menu lives at body level to escape topbar's animation containing block -->
 <div class="more-menu" id="more-menu">
+  <button onclick="openAchievements(); closeMoreMenu()">🏆 成就</button>
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
