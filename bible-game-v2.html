@@ -1569,11 +1569,13 @@ function calWeeksInMonth(y, m) {
 }
 function chapterLabel(ch) {
   if (typeof ch === 'number') return `徒${ch}`;
+  if (typeof ch === 'string' && ch.startsWith('COR1_')) return `林前${ch.slice(5)}`;
   if (typeof ch === 'string' && ch.startsWith('ROM')) return `羅${ch.slice(3)}`;
   return ch;
 }
 function chapterFull(ch) {
   if (typeof ch === 'number') return `使徒行傳 第${ch}章`;
+  if (typeof ch === 'string' && ch.startsWith('COR1_')) return `哥林多前書 第${ch.slice(5)}章`;
   if (typeof ch === 'string' && ch.startsWith('ROM')) return `羅馬書 第${ch.slice(3)}章`;
   return ch;
 }
@@ -1910,7 +1912,7 @@ async function submitReflection() {
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:1000,
-        system:`你是一位溫暖的靈修同伴，用繁體中文回應。使用者正在讀使徒行傳第${selectedChapter}章，主題是「${data?.reflectionTitle}」。請用2-3句溫暖有洞見的話回應他，像朋友同行，不說教。`,
+        system:`你是一位溫暖的靈修同伴，用繁體中文回應。使用者正在讀${chapterFull(selectedChapter)}，主題是「${data?.reflectionTitle}」。請用2-3句溫暖有洞見的話回應他，像朋友同行，不說教。`,
         messages:[{role:'user',content:text}]
       })
     });
@@ -2008,7 +2010,7 @@ function showReward(item, bonus, hasBonus) {
   }
 
   document.getElementById('share-text').innerHTML =
-    `📖 使徒行傳第${selectedChapter}章 完成<br>今日裝備：${item.emoji} ${item.name}${bonus?`<br>稀有：${bonus.emoji} ${bonus.name}`:''}<br>連續 ${state.streak} 天靈修中 🔥`;
+    `📖 ${chapterFull(selectedChapter)} 完成<br>今日裝備：${item.emoji} ${item.name}${bonus?`<br>稀有：${bonus.emoji} ${bonus.name}`:''}<br>連續 ${state.streak} 天靈修中 🔥`;
 
   launchConfetti();
   setTimeout(() => openOverlay('reward-overlay'), 300);
