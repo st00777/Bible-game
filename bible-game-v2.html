@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>靈修冒險 v2.8 · 使徒行傳・羅馬書</title>
+<!-- Google Analytics GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HZ3EGYB8BB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-HZ3EGYB8BB');
+  function track(name, params) { if (typeof gtag === 'function') gtag('event', name, params || {}); }
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -965,7 +974,9 @@ function handleAuthClick() {
       auth.signOut();
     }
   } else {
-    auth.signInWithPopup(googleProvider).catch(e => {
+    auth.signInWithPopup(googleProvider).then(() => {
+      track('login', { method: 'google' });
+    }).catch(e => {
       console.warn('Login error:', e);
       showToast('登入失敗，請再試一次');
     });
@@ -1045,6 +1056,7 @@ async function handleLineCallback() {
     }
 
     showToast('✅ LINE 登入成功');
+    track('login', { method: 'line' });
   } catch (e) {
     console.error('LINE login error:', e);
     showToast('LINE 登入失敗，請再試一次');
@@ -1350,7 +1362,9 @@ function chooseLineLogin() {
 }
 function chooseGoogleLogin() {
   localStorage.setItem('login_choice_made', '1');
-  auth.signInWithPopup(googleProvider).catch(e => {
+  auth.signInWithPopup(googleProvider).then(() => {
+    track('login', { method: 'google' });
+  }).catch(e => {
     console.warn('Google login error:', e);
     showToast('登入失敗，請再試一次');
     localStorage.removeItem('login_choice_made');
@@ -1358,6 +1372,7 @@ function chooseGoogleLogin() {
 }
 function chooseGuestMode() {
   localStorage.setItem('login_choice_made', '1');
+  track('login', { method: 'guest' });
   showSetupScreen();
 }
 
@@ -1480,6 +1495,7 @@ function toggleReadStep() {
 function markAsRead() {
   if (chapterReadDone) return;
   sessionHasRead = true;
+  track('read_chapter', { chapter: selectedChapter });
   // Give bonus XP
   state.xp = Math.min(state.xp + 15, 100);
   if (state.xp >= 100) { state.level++; state.xp = 10; }
@@ -1898,6 +1914,7 @@ async function submitReflection() {
   const text = document.getElementById('refl-text').value.trim();
   if (!text || reflSubmitted) return;
   reflSubmitted = true;
+  track('submit_reflection', { chapter: selectedChapter });
 
   const aiDiv = document.getElementById('ai-resp');
   const aiText = document.getElementById('ai-resp-text');
@@ -1979,6 +1996,7 @@ async function completeDevotional() {
   renderAvatar();
   renderChapterGrid();
   showReward(newItem, bonusItem, hasBonus);
+  track('complete_devotional', { chapter: selectedChapter });
 
   btn.textContent = '✅ 已完成此章靈修';
   btn.classList.add('done');
@@ -2024,6 +2042,7 @@ function closeReward() {
 
 function copyShare() {
   incrementShareCount();
+  track('share', { chapter: selectedChapter });
   const text = document.getElementById('share-text').innerText;
   const btn = document.querySelector('#reward-overlay .green-btn');
   const ok = () => { btn.textContent='✅ 已複製！貼到Line群組吧'; setTimeout(()=>btn.textContent='📋 複製分享給小組',2500); };
@@ -2322,6 +2341,7 @@ async function submitFeedback() {
 
   try {
     await db.collection('feedback').add(doc);
+    track('submit_feedback', { mood: feedbackState.mood, category: feedbackState.category });
     showFeedbackThanks();
   } catch (e) {
     console.error('Feedback submit error:', e);
