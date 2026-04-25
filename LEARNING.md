@@ -217,5 +217,56 @@ firebase hosting:channel:deploy dev --expires 30d
 
 ---
 
+## 2026-04-25
+
+### AI 靈修回應
+**✅ 學到的**
+- Gemma 4 31B 透過 Google AI Studio API 呼叫是免費的，但會輸出 chain-of-thought 推理過程（英文的思考+草稿），需要後處理過濾
+- 解法：在 Cloud Function 裡用正則過濾非中文內容，只保留最後的中文回應
+- Gemini 2.5 Flash 不會輸出推理過程，回應直接乾淨，但免費額度較低（1,500 RPD vs Gemma 幾乎無限）
+- 同一把 Google AI API key 可以同時呼叫 Gemma 和 Gemini 不同模型
+- maxOutputTokens 設太低（300-500）會導致回應被截斷在句子中間，建議設 1000
+
+**⚠️ 往後注意**
+- 選模型時不只看品質，也要看免費額度——擴展到更多用戶時額度會是瓶頸
+- Gemma 系列的 chain-of-thought 行為可能在不同版本間改變，後處理邏輯需要維護
+- API Key 一律存 Secret Manager，不進程式碼（跟 LINE Secret 同樣做法）
+
+### Cloud Function 設計
+**✅ 學到的**
+- 雙模型 A/B 測試可以用 `Promise.all` 平行呼叫，不增加回應時間
+- 在 dev 環境顯示兩個回應供比較，正式版只顯示一個——用 `location.hostname` 判斷
+- Cloud Function 的 `invoker: 'public'` 要記得設（Gen 2 預設不允許公開呼叫，之前 LINE 登入踩過同樣的坑）
+
+**⚠️ 往後注意**
+- 新的 Cloud Function 部署後要等容器冷啟動完成才能測試（可能需要 15-30 秒）
+- `console.error` 的日誌在 `firebase functions:log` 裡可能有延遲（Gen 2 已知問題）
+
+### 靈修日記設計
+**✅ 學到的**
+- 資料設計原則：不重複存儲已有的資料。`choiceText`、`reflectionPrompt` 不需要存 Firestore，顯示時從 `content.js` 的 CHAPTERS 即時查即可
+- 只需新增一個 Firestore 欄位（`reflectionText`），其他資訊都能從已有的 `choiceSelected` + content.js 組出來
+- UX 重點：AI 回應出來後不能立刻被裝備視窗蓋住——改為手動觸發（加一個「完成靈修，領取裝備」按鈕）
+
+### 內容生成與審查
+**✅ 學到的**
+- 批次生成內容（一次 12 章）時用 sub-agent 平行查經文，主流程同時寫內容，效率大幅提升
+- 審查流程中發現的新規則：**經文引用不可跨章**（baseItem.desc 必須跟 chapter key 在同一章）
+- 哥林多後書 5+6 合併日選第 5 章（5:17「新造的人」比第 6 章更有靈修價值）
+- 全部 59 章經文已透過 Bible.com CUNP 逐字驗證，發現 8 處經文錯誤 + 14 個 responses 缺「小步」
+
+### 數據分析擴充
+- `npm run analyze` 從原本 2 個區塊擴充到 4 個區塊
+- 新增：連續天數分布、等級分布、章節完成排行、裝備收集排行、靈修行為統計（默想率 95%！）、時段分布（深夜 57%）、成就解鎖統計
+- 關鍵發現：深夜靈修佔 57%，代表大部分玩家在晚上 22 點後使用遊戲
+- 關鍵發現：默想填寫率 95%，代表遊戲機制設計成功（稀有裝備是好的激勵）
+
+### 待追蹤
+- Gemma 4 偶爾 fallback 到預設回應（API 不穩定，需進一步排查）
+- Gemini vs Gemma 品質比較（等 A/B 測試數據累積後決定正式版用哪個）
+- 靈修日記 v2：前後比對功能（「X 天前的你寫了這些」）
+
+---
+
 > 最後更新：2026年4月
 > 有新的學習心得請持續更新這份文件

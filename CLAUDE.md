@@ -75,6 +75,9 @@ users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM
   choiceSelected: 'A'                    // 玩家選的選項
   hasReflection:  true                   // 是否填寫默想
   hasRead:        false                  // 是否點閱讀完整章節
+  reflectionText: '...'                  // 玩家寫的默想文字（v2.9 新增）
+  aiResponseGemma: '...'                 // Gemma 4 31B 的 AI 回應（v2.9 新增）
+  aiResponseGemini: '...'                // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
 
 users/{userId}/stats/data                ← 累計統計
   totalDays:       12                    // 累計完成天數
@@ -85,8 +88,8 @@ users/{userId}/stats/data                ← 累計統計
   morningCount:    4                     // 清晨靈修次數（05:00-08:59）
   nightCount:      1                     // 深夜靈修次數（22:00-04:59）
 
-users/{userId}/achievements/data         ← 成就預備（結構已建立，待實作）
-  unlockedAt: {}                         // 解鎖成就時間戳記（成就key → Timestamp）
+users/{userId}/achievements/data         ← 成就系統（已實作）
+  unlockedAt: { 'first_step': '2026-04-25T...' }  // 成就key → 解鎖時間
   progress:   {}                         // 成就進度數值（成就key → number）
 
 feedback/{docId}                         ← 曠野呼聲回饋（頂層集合）
@@ -152,11 +155,21 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 - Firebase UID 格式：`line:{lineUserId}`（與 Google 帳號 UID 空間隔離）
 - 流程：接收 `code` + `redirect_uri` → 換 access token → 取 LINE profile → 建立 custom token → 回傳 token + 姓名 + 頭像
 
+**aiReflection**（us-central1，2nd Gen）
+- 功能：AI 靈修默想回應（雙模型 A/B 測試）
+- URL：`https://aireflection-kvjdptgk7q-uc.a.run.app`
+- CORS：允許 prod + dev
+- 模型：Gemma 4 31B (`gemma-4-31b-it`) + Gemini 2.5 Flash (`gemini-2.5-flash`)
+- API Key：存放於 Firebase Secret Manager（`GOOGLE_AI_API_KEY`）
+- 流程：接收 `chapter` + `reflectionTitle` + `playerText` → 同時呼叫兩個模型 → 回傳 `{ gemma, gemini }`
+- Gemma 後處理：自動過濾 chain-of-thought 推理文字，只保留中文回應
+- dev 版前端顯示兩個回應供比較，正式版只顯示一個
+
 ---
 
 **content.js 結構**：
 ```javascript
-const GAME_VERSION = '2.7';        // 版本號
+const GAME_VERSION = '2.8';        // 版本號
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
 const SCHEDULE = {...};            // 日期→章節對應表
 const BIBLE_LINKS = {...};         // Bible.com 連結
@@ -363,27 +376,37 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 ## 近期待開發功能
 
-**優先（後端已就緒，可直接開始）**
-- [ ] 成就系統（連續7/14/30天、書卷完成徽章）← 後端已就緒，可開始實作
-- [ ] 靈修日記（每天默想自動存檔，可回顧）← 後端已就緒，可開始實作
-- [ ] 默想 AI 個人化回應 ← 需要在後端安全存放 API Key（目前直接呼叫有暴露風險）
-- [ ] 時段成就統計（晨間/午間/晚間靈修）← 現在可以收集玩家靈修時段資料
-- [ ] 先讀經文提醒（輕量彈窗＋閱讀勳章）
-
-**中期**
-- [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）
-- [x] Firebase 雲端存檔＋Google 登入（已完成，v2.6）
-- [x] LINE 登入（已完成，v2.7）
+**已完成**
+- [x] Firebase 雲端存檔＋Google 登入（v2.6）
+- [x] LINE 登入（v2.7）
 - [x] 歡迎登入畫面（先選登入方式再建角色，v2.7）
 - [x] 頂部按鈕整理（收進 ⋯ 選單，v2.7）
 - [x] 曠野呼聲回饋系統（遊戲內填寫，存 Firestore，v2.7）
-- [ ] 5月起羅馬書後續書卷內容
+- [x] 先讀經文提醒（透過步驟式導讀 + 閱讀勳章實作，v2.5-2.6）
+- [x] Google Analytics GA4 追蹤（G-HZ3EGYB8BB，9 個自訂事件，v2.8）
+- [x] 安全性強化（photoURL XSS、redirect_uri 白名單、CORS、OAuth crypto state，v2.8）
+- [x] iOS Safari 全面相容性修復（v2.8）
+- [x] 三階段字體大小切換（小14px/中16px/大19px，v2.9 dev）
+- [x] 成就系統（28 個徽章，6 維度，銅/銀/金三級，解鎖儀式，v2.9 dev）
+- [x] 書卷進度書架（木紋書櫃風格，進度條 + 章數，v2.9 dev）
+- [x] 靈修日記（默想文字存檔 + 回顧 + 搜尋 + 詳情頁，v2.9 dev）
+- [x] AI 靈修回應（Cloud Function + Gemma 4 / Gemini Flash 雙模型，v2.9 dev）
+- [x] 裝備支援性別差異（resolveItem，v2.9 dev）
+- [x] 5月靈修內容（羅馬書15-16 + 哥林多前書全卷 + 哥林多後書全卷，到5/29）
+
+**待開發**
+- [ ] 時段成就統計 UI（資料已在收集）
+- [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）
+- [ ] 靈修日記 v2：前後比對功能（「X 天前的你寫了這些」）
+- [ ] AI 回應模型選定（Gemma vs Gemini A/B 測試完成後）
+- [ ] 6月起加拉太書～提多書內容
 
 **長期願景**
-- [ ] 書卷完成里程碑
+- [ ] 書卷完走儀式（Phase 3，專屬 overlay + 代表經文）
 - [ ] 季節/節期活動（復活節、聖誕節限定）
 - [ ] 小組排行榜、朋友動態
 - [ ] 合作關卡（需要即時系統）
+- [ ] LINE 官方帳號每日推送靈修提醒
 
 ---
 
