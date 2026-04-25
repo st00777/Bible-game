@@ -2375,7 +2375,6 @@ async function completeDevotional() {
 
   if (reflText && !reflSubmitted) {
     await submitReflection();
-    await new Promise(r => setTimeout(r,1200));
   }
 
   const hasBonus = reflText.length > 0;
@@ -2407,9 +2406,27 @@ async function completeDevotional() {
 
   renderAvatar();
   renderChapterGrid();
-  showReward(newItem, bonusItem, hasBonus);
   track('complete_devotional', { chapter: selectedChapter });
-  setTimeout(() => checkAchievements(), 1500);
+
+  if (reflSubmitted) {
+    // Player wrote a reflection → show "claim reward" button below AI response
+    // so they can read the AI response first before the reward overlay appears
+    const aiDiv = document.getElementById('ai-resp');
+    const claimBtn = document.createElement('button');
+    claimBtn.className = 'green-btn';
+    claimBtn.style.marginTop = '12px';
+    claimBtn.textContent = '✅ 完成靈修，領取裝備';
+    claimBtn.onclick = () => {
+      claimBtn.remove();
+      showReward(newItem, bonusItem, hasBonus);
+      setTimeout(() => checkAchievements(), 1500);
+    };
+    aiDiv.appendChild(claimBtn);
+  } else {
+    // No reflection → show reward immediately
+    showReward(newItem, bonusItem, hasBonus);
+    setTimeout(() => checkAchievements(), 1500);
+  }
 
   btn.textContent = '✅ 已完成此章靈修';
   btn.classList.add('done');
