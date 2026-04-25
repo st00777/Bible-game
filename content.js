@@ -2202,7 +2202,7 @@ const CHAPTERS = [
     },
     reflectionTitle:'誇軟弱',
     reflection:'保羅說「我若必須自誇，就誇那關乎我軟弱的事」——世界說強者才值得被聽見，保羅說軟弱的人才讓神的能力被看見。\n\n你生命裡最不想讓人知道的軟弱是什麼？如果那個軟弱成為神彰顯能力的地方，你會怎麼看待它？',
-    baseItem:{emoji:'💪',name:'軟弱的力量',desc:'「所以我更喜歡誇自己的軟弱，好叫基督的能力覆庇我。」',slot:'hand'},
+    baseItem:{emoji:'💪',name:'軟弱的力量',desc:'「有誰軟弱，我不軟弱呢？有誰跌倒，我不焦急呢？」',slot:'hand'},
     bonusItem:{emoji:'🩹',name:'苦難的印記',desc:'「我比他們多受勞苦，多下監牢，受鞭打是過重的，冒死是屢次有的。」',slot:'body'}
   },
 
