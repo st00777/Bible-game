@@ -112,6 +112,9 @@
 ─── D. 裝備設計 ───
 □ baseItem 名稱和 desc 是否同神學層次
 □ bonusItem 名稱和 desc 是否同神學層次
+□ baseItem.desc 引用的經文是否在本章範圍內（不可跨章引用）
+□ bonusItem.desc 引用的經文是否在本章範圍內（不可跨章引用）
+□ verse 引用的經文是否在本章範圍內（不可跨章引用）
 
 ─── E. 人話自檢 ───
 □ choices 的文字是真實的人會說出口的嗎
