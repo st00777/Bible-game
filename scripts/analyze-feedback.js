@@ -59,6 +59,16 @@ function parseFirestoreValue(v) {
   if (v.doubleValue !== undefined) return v.doubleValue;
   if (v.timestampValue !== undefined) return v.timestampValue;
   if (v.nullValue !== undefined) return null;
+  if (v.mapValue) {
+    const obj = {};
+    for (const [k, mv] of Object.entries(v.mapValue.fields || {})) {
+      obj[k] = parseFirestoreValue(mv);
+    }
+    return obj;
+  }
+  if (v.arrayValue) {
+    return (v.arrayValue.values || []).map(parseFirestoreValue);
+  }
   return null;
 }
 
@@ -240,6 +250,145 @@ function analyzeUsers(users) {
   });
 }
 
+// ── Firestore subcollection fetch ────────────────────────
+
+async function fetchSubDoc(token, userId, subcol, docId) {
+  const url = `${FIRESTORE_BASE}/users/${userId}/${subcol}/${docId}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const body = await res.json();
+  if (body.fields) return parseDoc(body);
+  return null;
+}
+
+// ── Player progress analysis ────────────────────────────
+
+async function analyzeProgress(token, users) {
+  console.log('\n╔══════════════════════════════════════════╗');
+  console.log('║       📊  靈修進度分析                   ║');
+  console.log('╚══════════════════════════════════════════╝\n');
+
+  // Fetch all user main docs
+  const userDocs = await fetchCollection(token, 'users');
+  const players = userDocs.map(d => {
+    const data = parseDoc(d);
+    const uid = d.name.split('/').pop();
+    return { uid, ...data };
+  }).filter(p => p.setup);
+
+  console.log(`已建立角色的玩家: ${players.length} 人\n`);
+
+  // Streak distribution
+  console.log('── 連續天數分布 ──');
+  const streaks = players.map(p => p.streak || 0).sort((a,b) => b-a);
+  const streakBuckets = { '0天': 0, '1-2天': 0, '3-6天': 0, '7-13天': 0, '14-29天': 0, '30天+': 0 };
+  streaks.forEach(s => {
+    if (s === 0) streakBuckets['0天']++;
+    else if (s <= 2) streakBuckets['1-2天']++;
+    else if (s <= 6) streakBuckets['3-6天']++;
+    else if (s <= 13) streakBuckets['7-13天']++;
+    else if (s <= 29) streakBuckets['14-29天']++;
+    else streakBuckets['30天+']++;
+  });
+  const maxBucket = Math.max(...Object.values(streakBuckets), 1);
+  Object.entries(streakBuckets).forEach(([k, v]) => {
+    console.log(`  ${k.padEnd(7)} ${bar(v, maxBucket).padEnd(20)} ${v} 人`);
+  });
+
+  // Level distribution
+  console.log('\n── 等級分布 ──');
+  const levels = {};
+  players.forEach(p => { const lv = p.level || 1; levels[lv] = (levels[lv] || 0) + 1; });
+  const maxLv = Math.max(...Object.values(levels), 1);
+  Object.entries(levels).sort((a,b) => Number(a[0]) - Number(b[0])).forEach(([lv, n]) => {
+    console.log(`  Lv.${lv.padEnd(3)} ${bar(n, maxLv).padEnd(20)} ${n} 人`);
+  });
+
+  // Chapter completion ranking
+  console.log('\n── 章節完成排行（最多人完成的章節）──');
+  const chapterCount = {};
+  players.forEach(p => {
+    if (p.completed && typeof p.completed === 'object') {
+      Object.keys(p.completed).forEach(ch => { chapterCount[ch] = (chapterCount[ch] || 0) + 1; });
+    }
+  });
+  const sortedChapters = Object.entries(chapterCount).sort((a,b) => b[1] - a[1]);
+  const maxCh = sortedChapters.length > 0 ? sortedChapters[0][1] : 1;
+  sortedChapters.slice(0, 15).forEach(([ch, n]) => {
+    console.log(`  ${ch.padEnd(10)} ${bar(n, maxCh).padEnd(20)} ${n} 人`);
+  });
+  if (sortedChapters.length > 15) console.log(`  ...（共 ${sortedChapters.length} 章有人完成）`);
+
+  // Equipment count
+  console.log('\n── 裝備收集排行（前10名）──');
+  const itemRank = players.map(p => ({
+    name: p.name || '?',
+    count: Array.isArray(p.items) ? p.items.length : 0,
+    level: p.level || 1,
+    streak: p.streak || 0,
+  })).sort((a,b) => b.count - a.count);
+  itemRank.slice(0, 10).forEach((p, i) => {
+    console.log(`  ${String(i+1).padStart(2)}. ${p.name.padEnd(12)} ${p.count} 件  Lv.${p.level}  🔥${p.streak}天`);
+  });
+
+  // Fetch stats for each user
+  console.log('\n── 靈修行為統計 ──');
+  let totalReflections = 0, totalReads = 0, totalShares = 0, totalMakeups = 0;
+  let totalMornings = 0, totalNights = 0, totalDaysAll = 0;
+  let statsCount = 0;
+
+  for (const p of players) {
+    const stats = await fetchSubDoc(token, p.uid, 'stats', 'data');
+    if (stats) {
+      statsCount++;
+      totalReflections += stats.reflectionCount || 0;
+      totalReads += stats.readCount || 0;
+      totalShares += stats.shareCount || 0;
+      totalMakeups += stats.makeupCount || 0;
+      totalMornings += stats.morningCount || 0;
+      totalNights += stats.nightCount || 0;
+      totalDaysAll += stats.totalDays || 0;
+    }
+  }
+
+  if (statsCount > 0 && totalDaysAll > 0) {
+    console.log(`  已登入玩家數據: ${statsCount} 人`);
+    console.log(`  累計靈修天數:   ${totalDaysAll}`);
+    console.log(`  默想填寫率:     ${totalReflections}/${totalDaysAll} (${pct(totalReflections, totalDaysAll)})`);
+    console.log(`  完整閱讀率:     ${totalReads}/${totalDaysAll} (${pct(totalReads, totalDaysAll)})`);
+    console.log(`  分享次數:       ${totalShares}`);
+    console.log(`  補讀次數:       ${totalMakeups}`);
+    console.log(`\n── 靈修時段分布 ──`);
+    const timeTotal = totalMornings + totalNights;
+    const otherTime = totalDaysAll - timeTotal;
+    console.log(`  🌅 清晨(05-09)  ${bar(totalMornings, totalDaysAll).padEnd(20)} ${totalMornings} 次`);
+    console.log(`  ☀️ 日間(09-22)  ${bar(otherTime, totalDaysAll).padEnd(20)} ${otherTime} 次`);
+    console.log(`  🌙 深夜(22-05)  ${bar(totalNights, totalDaysAll).padEnd(20)} ${totalNights} 次`);
+  }
+
+  // Achievement stats
+  console.log('\n── 成就解鎖統計 ──');
+  const achCount = {};
+  let achPlayersChecked = 0;
+  for (const p of players) {
+    const ach = await fetchSubDoc(token, p.uid, 'achievements', 'data');
+    if (ach && ach.unlockedAt && typeof ach.unlockedAt === 'object') {
+      achPlayersChecked++;
+      Object.keys(ach.unlockedAt).forEach(key => {
+        if (ach.unlockedAt[key]) achCount[key] = (achCount[key] || 0) + 1;
+      });
+    }
+  }
+  if (Object.keys(achCount).length > 0) {
+    const sortedAch = Object.entries(achCount).sort((a,b) => b[1] - a[1]);
+    const maxAch = sortedAch[0][1];
+    sortedAch.forEach(([key, n]) => {
+      console.log(`  ${key.padEnd(18)} ${bar(n, maxAch).padEnd(20)} ${n}/${achPlayersChecked} 人`);
+    });
+  } else {
+    console.log('  （尚無成就解鎖紀錄）');
+  }
+}
+
 // ── Main ─────────────────────────────────────────────────
 
 async function main() {
@@ -253,6 +402,9 @@ async function main() {
   console.log('\n正在讀取 Firebase Authentication 用戶...');
   const users = await fetchAllUsers(token);
   analyzeUsers(users);
+
+  console.log('\n正在讀取玩家進度與統計...');
+  await analyzeProgress(token, users);
 
   console.log('\n✅ 分析完成\n');
 }
