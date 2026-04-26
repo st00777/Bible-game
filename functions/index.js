@@ -105,7 +105,6 @@ exports.lineLogin = onRequest(
 
 // ── AI Reflection ────────────────────────────────────────
 
-const GEMMA_MODEL = 'gemma-4-31b-it';
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GOOGLE_AI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -125,24 +124,7 @@ async function callGoogleAI(model, systemPrompt, userText, apiKey) {
     return null;
   }
   const data = await res.json();
-  let text = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  // Gemma 4 outputs chain-of-thought reasoning. Extract only the final Chinese response.
-  if (text && model.includes('gemma')) {
-    // Split into lines and keep only lines that are primarily Chinese
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    const chineseLines = lines.filter(l => {
-      // Skip lines with English reasoning markers or bullet points
-      if (/^\s*\*/.test(l)) return false;
-      if (/^[A-Za-z]/.test(l)) return false;
-      if (/Draft|Option|Rejected|Revised|Selection|Refining|Wait|Polish|Let's|Final|Rule/i.test(l)) return false;
-      // Must have substantial Chinese
-      return (l.match(/[\u4e00-\u9fff]/g) || []).length > 5;
-    });
-    if (chineseLines.length > 0) {
-      text = chineseLines.join('').replace(/^["「]|["」]$/g, '').trim();
-    }
-  }
-  return text;
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
 }
 
 exports.aiReflection = onRequest(
@@ -175,15 +157,10 @@ exports.aiReflection = onRequest(
 
     try {
       const apiKey = googleAiApiKey.value();
-      // Call both models in parallel
-      const [gemmaResp, geminiResp] = await Promise.all([
-        callGoogleAI(GEMMA_MODEL, systemPrompt, playerText, apiKey),
-        callGoogleAI(GEMINI_MODEL, systemPrompt, playerText, apiKey),
-      ]);
+      const aiResponse = await callGoogleAI(GEMINI_MODEL, systemPrompt, playerText, apiKey);
 
       res.json({
-        gemma: gemmaResp || '謝謝你願意把心裡的話帶到神面前。祂看見了。',
-        gemini: geminiResp || '謝謝你願意把心裡的話帶到神面前。祂看見了。',
+        aiResponse: aiResponse || '謝謝你願意把心裡的話帶到神面前。祂看見了。',
       });
     } catch (e) {
       console.error('aiReflection error:', e);

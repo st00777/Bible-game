@@ -856,7 +856,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <div class="refl-q" id="refl-q"></div>
       <textarea class="refl-input" id="refl-text" placeholder="想到什麼就寫什麼，幾句話就好…"></textarea>
       <div class="ai-resp" id="ai-resp">
-        <div class="ai-lbl">✦ 靈修回應</div>
+        <div class="ai-lbl">✨ 靈修回應</div>
         <span id="ai-resp-text"></span>
       </div>
     </div>
@@ -1296,8 +1296,7 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
       hasRead: !!hasRead,
     };
     if (reflectionText) record.reflectionText = reflectionText;
-    if (lastAiResponse.gemma) record.aiResponseGemma = lastAiResponse.gemma;
-    if (lastAiResponse.gemini) record.aiResponseGemini = lastAiResponse.gemini;
+    if (lastAiResponse) record.aiResponse = lastAiResponse;
     await db.collection('users').doc(currentUser.uid)
       .collection('chapters').doc(key).set(record);
     // 累計統計
@@ -2312,7 +2311,7 @@ function selectChoice(btn, choice) {
 // ══ REFLECTION ══════════════════════════════════════════
 // AI response only triggers on complete, not auto-submit while typing
 
-let lastAiResponse = { gemma: '', gemini: '' };
+let lastAiResponse = '';
 
 async function submitReflection() {
   const text = document.getElementById('refl-text').value.trim();
@@ -2326,6 +2325,7 @@ async function submitReflection() {
   aiText.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
 
   const data = CHAPTERS.find(c => c.chapter === selectedChapter);
+  const fallback = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   try {
     const res = await fetch(AI_FUNCTION_URL, {
       method: 'POST',
@@ -2337,17 +2337,11 @@ async function submitReflection() {
       }),
     });
     const d = await res.json();
-    lastAiResponse = { gemma: d.gemma || '', gemini: d.gemini || '' };
-    // Show Gemma response as primary; dev preview shows both
-    const isDevPreview = location.hostname.includes('web.app');
-    if (isDevPreview && d.gemini) {
-      aiText.innerHTML = `<div style="margin-bottom:10px;"><div style="font-size:10px;color:var(--purple);font-weight:700;margin-bottom:4px;">🅰️ Gemma 4</div>${d.gemma}</div><div style="border-top:1px solid rgba(156,123,181,.2);padding-top:10px;"><div style="font-size:10px;color:var(--green-dark);font-weight:700;margin-bottom:4px;">🅱️ Gemini Flash</div>${d.gemini}</div>`;
-    } else {
-      aiText.textContent = d.gemma || '謝謝你願意把心裡的話帶到神面前。祂看見了。';
-    }
+    lastAiResponse = d.aiResponse || fallback;
+    aiText.textContent = lastAiResponse;
   } catch(e) {
-    lastAiResponse = { gemma: '', gemini: '' };
-    aiText.textContent = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+    lastAiResponse = '';
+    aiText.textContent = fallback;
   }
 }
 
@@ -2956,10 +2950,10 @@ function showDiaryDetail(key) {
       <div class="diary-detail-text">${entry.reflectionText}</div>
     </div>`;
   }
-  if (entry.aiResponseGemma || entry.aiResponseGemini) {
-    const aiText = entry.aiResponseGemma || entry.aiResponseGemini || '';
+  const aiText = entry.aiResponse || entry.aiResponseGemma || entry.aiResponseGemini || '';
+  if (aiText) {
     html += `<div class="diary-detail-section">
-      <div class="diary-detail-label">🤖 AI 靈修夥伴回應</div>
+      <div class="diary-detail-label">✨ 靈修回應</div>
       <div class="diary-detail-ai">${aiText}</div>
     </div>`;
   }

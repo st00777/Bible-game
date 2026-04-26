@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code 和共同開發者閱讀的專案說明
-> 最後更新：2026年4月
+> 最後更新：2026-04-27
 
 ---
 
@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.7
+**目前版本**：main = v2.8 / dev = v2.9（待測試完成後合併發布）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -21,10 +21,17 @@
 
 ```
 Bible-game/
-├── bible-game-v2.html   # 遊戲主體（機制、介面、邏輯）
-├── content.js           # 靈修內容（每週更新這個）
-├── CLAUDE.md            # 本文件
-└── README.md            # GitHub 說明頁
+├── bible-game-v2.html             # 遊戲主體（機制、介面、邏輯）
+├── content.js                     # 靈修內容（每週更新這個）
+├── CLAUDE.md                      # 本文件 — 專案記憶
+├── LEARNING.md                    # 開發學習筆記（踩坑紀錄）
+├── claude-code-agent-prompts.md   # 內容生成 prompts + 審查清單
+├── README.md                      # GitHub 說明頁
+├── firebase.json                  # Firebase 設定（Functions/Firestore/Hosting）
+├── firestore.rules                # Firestore 安全規則
+├── functions/index.js             # Cloud Functions（lineLogin, aiReflection）
+├── scripts/analyze-feedback.js    # 數據分析腳本（npm run analyze）
+└── package.json                   # npm scripts
 ```
 
 **重要原則**：
@@ -38,11 +45,13 @@ Bible-game/
 
 **前端**：HTML + CSS + JavaScript（單一 HTML 檔案 + content.js）
 **部署**：GitHub Pages（HTTPS，免費）
-**後端**：Firebase（Firestore Database + Authentication）
+**後端**：Firebase（Firestore Database + Authentication + Cloud Functions Gen 2）
 **登入方式**：Google 登入、LINE 登入（未登入可繼續使用訪客模式）
 **資料同步**：登入後進度自動同步 Firestore；未登入使用 localStorage
 **Firebase 專案**：`bible-game-bcb84`
-**AI 回應**：Anthropic API（`claude-sonnet-4-20250514`），只在 HTTPS 環境下有效
+**AI 回應**：Google AI Studio（Gemini 2.5 Flash），透過 Cloud Function `aiReflection` 代理呼叫
+**追蹤**：Google Analytics GA4（`G-HZ3EGYB8BB`）
+**數據分析**：`npm run analyze` 執行 `scripts/analyze-feedback.js`，4 區塊報告（feedback / users / 靈修進度 / 成就）
 
 ---
 
@@ -76,8 +85,7 @@ users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM
   hasReflection:  true                   // 是否填寫默想
   hasRead:        false                  // 是否點閱讀完整章節
   reflectionText: '...'                  // 玩家寫的默想文字（v2.9 新增）
-  aiResponseGemma: '...'                 // Gemma 4 31B 的 AI 回應（v2.9 新增）
-  aiResponseGemini: '...'                // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
+  aiResponse:     '...'                  // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
 
 users/{userId}/stats/data                ← 累計統計
   totalDays:       12                    // 累計完成天數
@@ -156,14 +164,12 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 - 流程：接收 `code` + `redirect_uri` → 換 access token → 取 LINE profile → 建立 custom token → 回傳 token + 姓名 + 頭像
 
 **aiReflection**（us-central1，2nd Gen）
-- 功能：AI 靈修默想回應（雙模型 A/B 測試）
+- 功能：AI 靈修默想回應
 - URL：`https://aireflection-kvjdptgk7q-uc.a.run.app`
 - CORS：允許 prod + dev
-- 模型：Gemma 4 31B (`gemma-4-31b-it`) + Gemini 2.5 Flash (`gemini-2.5-flash`)
+- 模型：Gemini 2.5 Flash (`gemini-2.5-flash`)
 - API Key：存放於 Firebase Secret Manager（`GOOGLE_AI_API_KEY`）
-- 流程：接收 `chapter` + `reflectionTitle` + `playerText` → 同時呼叫兩個模型 → 回傳 `{ gemma, gemini }`
-- Gemma 後處理：自動過濾 chain-of-thought 推理文字，只保留中文回應
-- dev 版前端顯示兩個回應供比較，正式版只顯示一個
+- 流程：接收 `chapter` + `reflectionTitle` + `playerText` → 呼叫 Gemini → 回傳 `{ aiResponse }`
 
 ---
 
@@ -390,7 +396,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [x] 成就系統（28 個徽章，6 維度，銅/銀/金三級，解鎖儀式，v2.9 dev）
 - [x] 書卷進度書架（木紋書櫃風格，進度條 + 章數，v2.9 dev）
 - [x] 靈修日記（默想文字存檔 + 回顧 + 搜尋 + 詳情頁，v2.9 dev）
-- [x] AI 靈修回應（Cloud Function + Gemma 4 / Gemini Flash 雙模型，v2.9 dev）
+- [x] AI 靈修回應（Cloud Function + Gemini 2.5 Flash，v2.9 dev）
 - [x] 裝備支援性別差異（resolveItem，v2.9 dev）
 - [x] 5月靈修內容（羅馬書15-16 + 哥林多前書全卷 + 哥林多後書全卷，到5/29）
 
@@ -398,7 +404,6 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [ ] 時段成就統計 UI（資料已在收集）
 - [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）
 - [ ] 靈修日記 v2：前後比對功能（「X 天前的你寫了這些」）
-- [ ] AI 回應模型選定（Gemma vs Gemini A/B 測試完成後）
 - [ ] 6月起加拉太書～提多書內容
 
 **長期願景**
