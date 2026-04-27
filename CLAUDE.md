@@ -91,6 +91,13 @@ users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM
   hasRead:        false                  // 是否點閱讀完整章節
   reflectionText: '...'                  // 玩家寫的默想文字（v2.9 新增）
   aiResponse:     '...'                  // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
+  // 注意：本文件用 .set() 寫入會覆蓋；保留最後一次默想用，歷史請查 reflections 子集合
+
+users/{userId}/chapters/{chapterKey}/reflections/{timestampId}   ← 默想歷史（v2.9.x 新增）
+  reflectionText: '...'                  // 該次寫的默想文字
+  aiResponse:     '...'                  // 該次 AI 回應
+  completedAt:    Timestamp              // 此次寫入時間
+  // doc id 用 Date.now() 字串，以時間排序；玩家每次完成靈修並寫默想都會新增一筆，不會覆蓋
 
 users/{userId}/stats/data                ← 累計統計
   totalDays:       12                    // 累計完成天數
@@ -440,6 +447,12 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [x] 裝備支援性別差異（resolveItem，v2.9）
 - [x] 5月靈修內容（羅馬書15-16 + 哥林多前書全卷 + 哥林多後書全卷，到5/29）
 - [x] AI 503 retry 機制 + 成功率監控腳本 `npm run logs`（v2.9 hotfix，2026-04-28）
+- [x] 默想歷史保留（chapters/{key}/reflections sub-collection，v2.9.x，2026-04-28）── 玩家同章節改寫不再覆蓋舊默想
+
+**A 級數據缺漏（2026-04-28 盤點，產品決策必需）**
+- [ ] 客戶端錯誤事件追蹤 ── 玩家拿到 AI fallback、Firestore 寫入失敗、登入超時，目前完全看不到
+- [ ] 放棄事件流失分析 ── 玩家在哪一步退出（讀經文／情境題／默想）不知道，無法優化漏斗
+- [x] 默想歷史保留 ── 已修，見已完成清單最後一項
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）
@@ -448,12 +461,25 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [ ] localStorage 暫存默想 ── Firestore 寫入失敗時的最後一道防線（v3.0 候選）
 - [ ] 6月起加拉太書～提多書內容
 
+**v3.0 候選短期（2026-04-28 盤點）**
+- [ ] 曠野呼聲雙向回覆 ── 待團隊討論，傾向 B+C 方案：具名玩家走個人 reply，匿名玩家通過「📣 開發者回應」公告區去識別後集體回應
+- [ ] 管理後台 ── Firebase Hosting 部署 admin web app：dashboard + feedback reply + SCHEDULE 管理（取代手動開 Firebase Console）
+- [ ] Cloud Messaging 推播 ── 每日定時推「今日章節：羅 10」，遊戲內訂閱即可（可考慮取代或並行下方長期願景的「LINE 官方帳號每日推送」）
+- [ ] 每月精華 PDF ── Cloud Function scheduled，月底把當月默想 + AI 回應整理寄給玩家，留存武器
+
+**v3.0 候選中期**
+- [ ] 小組功能 ── `groups/{groupId}` 集合 + 邀請碼，「我們小組這週有 N 人靈修」（涵蓋下方「小組排行榜、朋友動態」）
+- [ ] 語音默想 ── Cloud Storage，對不擅打字的長者友善，可能解鎖目前完全沒在寫默想的族群
+- [ ] 小組共讀模式 ── 兩人互相看默想，需具名授權（教會夫妻、同小組成員一起靈修場景）
+
 **長期願景**
 - [ ] 書卷完走儀式（Phase 3，專屬 overlay + 代表經文）
 - [ ] 季節/節期活動（復活節、聖誕節限定）
-- [ ] 小組排行榜、朋友動態
+- [ ] 小組排行榜、朋友動態（已被 v3.0 中期「小組功能」涵蓋）
 - [ ] 合作關卡（需要即時系統）
-- [ ] LINE 官方帳號每日推送靈修提醒
+- [ ] LINE 官方帳號每日推送靈修提醒（v3.0 短期 Cloud Messaging 為替代方案）
+- [ ] 個人成長報告（半年／一年，NLP 分析默想內容找重複主題）
+- [ ] 匿名群體鏡像（「你的回應跟 X% 的玩家相同」，集合查詢產生共鳴）
 
 ---
 

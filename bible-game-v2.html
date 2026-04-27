@@ -1313,6 +1313,17 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
     if (lastAiResponse) record.aiResponse = lastAiResponse;
     await db.collection('users').doc(currentUser.uid)
       .collection('chapters').doc(key).set(record);
+    // 默想歷史保留：每次寫入都新增一筆，避免改寫時覆蓋舊默想
+    if (reflectionText) {
+      await db.collection('users').doc(currentUser.uid)
+        .collection('chapters').doc(key)
+        .collection('reflections').doc(String(Date.now()))
+        .set({
+          reflectionText,
+          aiResponse: lastAiResponse || '',
+          completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    }
     // 累計統計
     const statsUpdates = { totalDays: inc(1) };
     if (hasReflection) statsUpdates.reflectionCount = inc(1);
