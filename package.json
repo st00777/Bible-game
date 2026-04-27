@@ -2,6 +2,7 @@
   "name": "bible-game",
   "private": true,
   "scripts": {
-    "analyze": "node scripts/analyze-feedback.js"
+    "analyze": "node scripts/analyze-feedback.js",
+    "logs": "node scripts/check-ai-logs.js"
   }
 }

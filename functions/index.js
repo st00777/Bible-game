@@ -108,7 +108,7 @@ exports.lineLogin = onRequest(
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GOOGLE_AI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-async function callGoogleAI(model, systemPrompt, userText, apiKey) {
+async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 1) {
   const url = `${GOOGLE_AI_BASE}/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
@@ -119,6 +119,12 @@ async function callGoogleAI(model, systemPrompt, userText, apiKey) {
     }),
   });
   if (!res.ok) {
+    // 503 = Gemini 過載 spike，等 1.5 秒重試一次（spike 通常 1-2 秒）
+    if (res.status === 503 && retries > 0) {
+      console.warn(`${model} 503 retry (remaining=${retries})`);
+      await new Promise(r => setTimeout(r, 1500));
+      return callGoogleAI(model, systemPrompt, userText, apiKey, retries - 1);
+    }
     const err = await res.text();
     console.error(`${model} error:`, err);
     return null;
