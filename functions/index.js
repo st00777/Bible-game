@@ -145,11 +145,14 @@ exports.aiReflection = onRequest(
       return;
     }
 
-    const { chapter, reflectionTitle, playerText } = req.body;
+    const { chapter, reflectionTitle, playerText, uid } = req.body;
     if (!playerText) {
       res.status(400).json({ error: 'Missing playerText' });
       return;
     }
+    // 紀錄玩家身份（不是必填，訪客 / 未登入時為 'anonymous'），讓 logs 能 cross reference 玩家行為與 bug 回報
+    const callerId = uid || 'anonymous';
+    console.log(`aiReflection call: uid=${callerId} chapter=${chapter || ''} title=${reflectionTitle || ''} textLen=${playerText.length}`);
 
     const systemPrompt = `你是一位溫暖的靈修同伴。使用者正在讀${chapter || '聖經'}，默想主題是「${reflectionTitle || '靈修'}」。
 
@@ -164,12 +167,13 @@ exports.aiReflection = onRequest(
     try {
       const apiKey = googleAiApiKey.value();
       const aiResponse = await callGoogleAI(GEMINI_MODEL, systemPrompt, playerText, apiKey);
-
+      const isFallback = !aiResponse;
+      console.log(`aiReflection result: uid=${callerId} chapter=${chapter || ''} fallback=${isFallback}`);
       res.json({
         aiResponse: aiResponse || '謝謝你願意把心裡的話帶到神面前。祂看見了。',
       });
     } catch (e) {
-      console.error('aiReflection error:', e);
+      console.error(`aiReflection error: uid=${callerId} chapter=${chapter || ''}`, e);
       res.status(500).json({ error: 'AI response failed' });
     }
   }

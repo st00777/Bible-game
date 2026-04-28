@@ -2359,6 +2359,7 @@ async function submitReflection() {
         chapter: chapterFull(selectedChapter),
         reflectionTitle: data?.reflectionTitle || '',
         playerText: text,
+        uid: currentUser?.uid || null,
       }),
     });
     const d = await res.json();
