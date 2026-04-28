@@ -1701,8 +1701,8 @@ function todayStr() {
 }
 
 function chapterKey(ch) {
-  if (typeof ch === 'string' && ch.startsWith('ROM')) return ch;
-  return `ACT${ch}`;
+  if (typeof ch === 'string') return ch;  // ROM / COR1_ / COR2_ / GAL 等字串 key 直接返回
+  return `ACT${ch}`;                       // 數字 = 使徒行傳
 }
 
 function isChapterDone(ch) {
@@ -2012,13 +2012,17 @@ function calWeeksInMonth(y, m) {
 function chapterLabel(ch) {
   if (typeof ch === 'number') return `徒${ch}`;
   if (typeof ch === 'string' && ch.startsWith('COR1_')) return `林前${ch.slice(5)}`;
-  if (typeof ch === 'string' && ch.startsWith('ROM')) return `羅${ch.slice(3)}`;
+  if (typeof ch === 'string' && ch.startsWith('COR2_')) return `林後${ch.slice(5)}`;
+  if (typeof ch === 'string' && ch.startsWith('ROM'))   return `羅${ch.slice(3)}`;
+  if (typeof ch === 'string' && ch.startsWith('GAL'))   return `加${ch.slice(3)}`;
   return ch;
 }
 function chapterFull(ch) {
   if (typeof ch === 'number') return `使徒行傳 第${ch}章`;
   if (typeof ch === 'string' && ch.startsWith('COR1_')) return `哥林多前書 第${ch.slice(5)}章`;
-  if (typeof ch === 'string' && ch.startsWith('ROM')) return `羅馬書 第${ch.slice(3)}章`;
+  if (typeof ch === 'string' && ch.startsWith('COR2_')) return `哥林多後書 第${ch.slice(5)}章`;
+  if (typeof ch === 'string' && ch.startsWith('ROM'))   return `羅馬書 第${ch.slice(3)}章`;
+  if (typeof ch === 'string' && ch.startsWith('GAL'))   return `加拉太書 第${ch.slice(3)}章`;
   return ch;
 }
 
