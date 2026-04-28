@@ -129,9 +129,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .cal-day.cal-selected .cal-dot{background:rgba(255,255,255,.6)!important;}
 .cal-day-num{font-size:calc(var(--fs-body) - 3px);font-weight:900;color:var(--text);line-height:1;max-width:100%;overflow:hidden;}
 .cal-day-ch{font-size:calc(var(--fs-body) - 6px);font-weight:700;color:var(--text-soft);margin-top:1px;line-height:1;white-space:nowrap;overflow:hidden;max-width:100%;}
+.cal-day-ch.long{font-size:calc(var(--fs-body) - 7px);letter-spacing:-0.3px;}
 @media (max-width:400px){
   .cal-day{padding:1px;}
   .cal-day-ch{font-size:calc(var(--fs-body) - 7px);}
+  .cal-day-ch.long{font-size:calc(var(--fs-body) - 8px);letter-spacing:-0.5px;}
 }
 .cal-day.cal-done .cal-day-ch{color:var(--green-dark);}
 .cal-day.cal-today .cal-day-ch{color:var(--purple);}
@@ -2092,7 +2094,8 @@ function renderCalGrid() {
       let inner = todayFlag && !sel ? '<div class="today-tag">今日</div>' : '';
       inner += `<div class="cal-day-num">${d}</div>`;
       if (ch && hasContent) {
-        inner += `<div class="cal-day-ch">${chapterLabel(ch)}</div>`;
+        const lbl = chapterLabel(ch);
+        inner += `<div class="cal-day-ch${lbl.length > 3 ? ' long' : ''}">${lbl}</div>`;
       } else if (ch && !hasContent) {
         inner += `<div class="cal-day-ch" style="color:var(--text-soft);opacity:.5;">🔜</div>`;
       }
