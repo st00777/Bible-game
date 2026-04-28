@@ -441,7 +441,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 | **客戶端錯誤事件追蹤** ── AI fallback、Firestore 寫入失敗、登入超時 | 需新增 | 2-3 小時（獨立做）／30 分鐘（搭事件流） | 建議搭事件流 |
 | **放棄事件流失分析** ── 玩家停在哪步（讀經文／情境題／默想） | 需新增 | 1-2 小時（獨立）／可從事件流推導 | 建議搭事件流 |
 | **AI 失敗後玩家後續行為** ── 拿 fallback 後是再送還是放棄 | 需新增 | 1 小時（獨立）／可從事件流推導 | 建議搭事件流 |
-| **章節完成 vs 默想填寫關聯** ── 142 完成 - 134 默想 = 8 次缺寫，是哪些人？ | **資料已有**（chapters.hasReflection + .aiResponse） | 半天（寫分析腳本） | 純擴充 `npm run analyze` |
+| **章節完成 vs 默想填寫關聯** ── 142 完成 - 134 默想 = 8 次缺寫，是哪些人？ | ✅ 已加入 `npm run analyze` 區塊 ①（2026-04-28） | — | — |
 | **事件流 session timeline** ── `users/{uid}/events/{eventId}` 紀錄 open_app／select_chapter／read_verse／answer_question／submit_reflection／claim_reward／leave_session | 需新增 | **3-5 小時** | A 級資料骨幹，做了之後上方 3 項都能推導 |
 | **默想歷史保留** | ✅ 已完成 (2026-04-28) | — | — |
 
@@ -468,10 +468,11 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 | 項目 | 現況 | 估時 |
 |---|---|---|
-| 情境題選項分布（哪個選項最多／最少人選） | **資料已有**（chapters.choiceSelected） | 半天（分析腳本） |
+| 情境題選項分布（哪個選項最多／最少人選） | ✅ 已加入 `npm run analyze` 區塊 ②（2026-04-28） | — |
 | AI 回應停留時間 | 需新增 | 30 分鐘（dwell time 子項） |
-| 章節參與深度（哪些 reflectionTitle 引發較多默想） | **資料已有**（chapters.hasReflection by chapter） | 1 小時（分析腳本） |
-| 裝備收集偏好 | **資料已有**（users.items 陣列） | 1 小時（分析腳本） |
+| 章節參與深度（哪些 reflectionTitle 引發較多默想） | ✅ 已加入 `npm run analyze` 區塊 ③（2026-04-28） | — |
+| AI 回應品質（fallback 集中章節） | ✅ 已加入 `npm run analyze` 區塊 ④（2026-04-28，盤點外加碼） | — |
+| 裝備收集偏好 | ✅ 已加入 `npm run analyze` 區塊 ⑤（2026-04-28） | — |
 
 ### 管理面
 

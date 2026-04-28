@@ -387,6 +387,122 @@ async function analyzeProgress(token, users) {
   } else {
     console.log('  （尚無成就解鎖紀錄）');
   }
+
+  // ── 拉所有玩家的 chapters 子集合，給後續內容品質分析用 ──
+  console.log('\n正在讀取每章記錄（給內容分析用）...');
+  const allChapters = [];
+  for (const p of players) {
+    const docs = await fetchCollection(token, `users/${p.uid}/chapters`);
+    docs.forEach(d => {
+      const data = parseDoc(d);
+      const key = d.name.split('/').pop();
+      allChapters.push({ uid: p.uid, name: p.name, key, ...data });
+    });
+  }
+
+  console.log('\n╔══════════════════════════════════════════╗');
+  console.log('║       📚  內容品質與行為深度分析         ║');
+  console.log('╚══════════════════════════════════════════╝');
+
+  // ── 1. 章節完成 vs 默想填寫缺口 ──────────────────────
+  console.log('\n── ① 章節完成 vs 默想填寫缺口 ──');
+  const totalChapters = allChapters.length;
+  const withReflection = allChapters.filter(c => c.hasReflection).length;
+  const noReflection = totalChapters - withReflection;
+  console.log(`  總完成章節數:    ${totalChapters}`);
+  console.log(`  寫了默想的:      ${withReflection} (${pct(withReflection, totalChapters)})`);
+  console.log(`  沒寫默想的:      ${noReflection} (${pct(noReflection, totalChapters)})`);
+  if (noReflection > 0) {
+    const noReflByCh = {};
+    allChapters.filter(c => !c.hasReflection).forEach(c => {
+      noReflByCh[c.key] = (noReflByCh[c.key] || 0) + 1;
+    });
+    const sorted = Object.entries(noReflByCh).sort((a,b) => b[1]-a[1]).slice(0, 5);
+    console.log(`  沒寫默想的章節分布（前 5）：`);
+    sorted.forEach(([k, n]) => console.log(`    ${k.padEnd(10)} ${n} 次`));
+  }
+
+  // ── 2. 情境題選項分布 ──────────────────────────────
+  console.log('\n── ② 情境題選項分布（≥3 人，前 12 章）──');
+  const choiceStats = {};
+  allChapters.forEach(c => {
+    if (!['A','B','C','D'].includes(c.choiceSelected)) return;
+    choiceStats[c.key] = choiceStats[c.key] || { A:0, B:0, C:0, D:0, total:0 };
+    choiceStats[c.key][c.choiceSelected]++;
+    choiceStats[c.key].total++;
+  });
+  const sortedChoice = Object.entries(choiceStats)
+    .filter(([k, s]) => s.total >= 3)
+    .sort((a, b) => b[1].total - a[1].total).slice(0, 12);
+  sortedChoice.forEach(([k, s]) => {
+    const dist = ['A','B','C','D'].map(opt => `${opt}:${String(s[opt]).padStart(2)}`).join('  ');
+    console.log(`  ${k.padEnd(10)} 共 ${String(s.total).padStart(2)} 人  ${dist}`);
+  });
+
+  // ── 3. 章節參與深度（默想填寫率排行）──────────────────
+  console.log('\n── ③ 章節參與深度（默想填寫率，至少 3 人完成才列入）──');
+  const participation = {};
+  allChapters.forEach(c => {
+    participation[c.key] = participation[c.key] || { completed: 0, withReflection: 0 };
+    participation[c.key].completed++;
+    if (c.hasReflection) participation[c.key].withReflection++;
+  });
+  const sortedPart = Object.entries(participation)
+    .filter(([k, s]) => s.completed >= 3)
+    .sort((a, b) => (b[1].withReflection / b[1].completed) - (a[1].withReflection / a[1].completed))
+    .slice(0, 12);
+  sortedPart.forEach(([k, s]) => {
+    const rate = Math.round(s.withReflection / s.completed * 100);
+    console.log(`  ${k.padEnd(10)} ${s.withReflection}/${s.completed}  (${rate}%)`);
+  });
+
+  // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
+  const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+  console.log('\n── ④ AI 回應品質（fallback 集中章節）──');
+  const withAi = allChapters.filter(c => c.aiResponse);
+  if (withAi.length === 0) {
+    console.log('  （尚無 AI 回應紀錄）');
+  } else {
+    const fallbackByCh = {};
+    let totalFallback = 0;
+    withAi.forEach(c => {
+      if (c.aiResponse === FALLBACK_TEXT) {
+        fallbackByCh[c.key] = (fallbackByCh[c.key] || 0) + 1;
+        totalFallback++;
+      }
+    });
+    console.log(`  AI 回應紀錄總數:  ${withAi.length}`);
+    console.log(`  收到 fallback:    ${totalFallback} (${pct(totalFallback, withAi.length)})`);
+    if (totalFallback > 0) {
+      const sortedFb = Object.entries(fallbackByCh).sort((a,b) => b[1]-a[1]).slice(0, 8);
+      console.log(`  fallback 章節分布（前 8）：`);
+      sortedFb.forEach(([k, n]) => console.log(`    ${k.padEnd(10)} ${n} 次`));
+    } else {
+      console.log(`  ✨ 沒有任何 fallback 紀錄`);
+    }
+    console.log(`  注意：本指標僅看 chapters/{key}.aiResponse 最後一次寫入，無法看歷史改寫`);
+  }
+
+  // ── 5. 裝備收集偏好（前 15 件） ──────────────────────
+  console.log('\n── ⑤ 裝備收集偏好（前 15 件最多人擁有）──');
+  const itemCount = {};
+  players.forEach(p => {
+    if (!Array.isArray(p.items)) return;
+    p.items.forEach(item => {
+      if (!item || typeof item !== 'object') return;
+      const id = `${item.emoji || ''} ${item.name || ''}`.trim();
+      if (id) itemCount[id] = (itemCount[id] || 0) + 1;
+    });
+  });
+  const sortedItems = Object.entries(itemCount).sort((a,b) => b[1]-a[1]).slice(0, 15);
+  if (sortedItems.length === 0) {
+    console.log('  （尚無裝備資料）');
+  } else {
+    const maxItem = sortedItems[0][1];
+    sortedItems.forEach(([id, n]) => {
+      console.log(`  ${id.padEnd(20)} ${bar(n, maxItem).padEnd(15)} ${n} 人`);
+    });
+  }
 }
 
 // ── Main ─────────────────────────────────────────────────
