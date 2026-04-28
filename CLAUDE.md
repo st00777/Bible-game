@@ -442,7 +442,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 | **放棄事件流失分析** ── 玩家停在哪步（讀經文／情境題／默想） | 需新增 | 1-2 小時（獨立）／可從事件流推導 | 建議搭事件流 |
 | **AI 失敗後玩家後續行為** ── 拿 fallback 後是再送還是放棄 | 需新增 | 1 小時（獨立）／可從事件流推導 | 建議搭事件流 |
 | **章節完成 vs 默想填寫關聯** ── 142 完成 - 134 默想 = 8 次缺寫，是哪些人？ | ✅ 已加入 `npm run analyze` 區塊 ①（2026-04-28） | — | — |
-| **事件流 session timeline** ── `users/{uid}/events/{eventId}` 紀錄 open_app／select_chapter／read_verse／answer_question／submit_reflection／claim_reward／leave_session | 需新增 | **3-5 小時** | A 級資料骨幹，做了之後上方 3 項都能推導 |
+| **事件流 session timeline** | 📋 設計方案 2026-04-28 通過（見章節末尾「事件流設計方案」），啟動條件：玩家數破百 | 3-5 小時實作 | A 級資料骨幹，做了之後上方 3 項都能推導 |
 | **默想歷史保留** | ✅ 已完成 (2026-04-28) | — | — |
 
 ### B 級 ── 中期有用
@@ -496,6 +496,62 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 **最小可行投資**：步驟 1+2+3 ≈ **1.5-2 個工作天**，能解決 80% 的數據盲點。
 
+### 事件流設計方案（2026-04-28 通過，啟動條件：玩家數破百）
+
+> 啟動 v3.0 中期實作前，這份方案是已通過的設計骨幹，可直接進開發。
+> **目前玩家 49 人**，到達 100 人時觸發實作。
+
+**Collection 結構**：`users/{uid}/events/{eventId}`（重用既有 `users/{userId}/{document=**}` 安全規則，無需修改 firestore.rules）
+
+**核心事件 9 種**（必紀錄，靈修主流程必經）：
+```
+app_open               進入遊戲
+chapter_select         選了章節
+read_verse_view        看到金句
+question_view          看到情境題
+choice_confirm         第二下確認選了某選項
+reflection_submit      送出默想
+ai_response_received   收到 AI 回應（含 isFallback 標記）
+complete_devotional    領裝備
+app_leave              離開（visibilitychange hidden）
+```
+
+**次要事件 7 種**（行為觀察用，可分批加）：
+```
+read_full_chapter_click / choice_first_tap / reflection_focus
+equipment_change / diary_open / chapter_share / feedback_submit
+```
+
+**Document 結構**：
+```js
+{
+  type: 'reflection_submit',
+  ts: serverTimestamp(),
+  sessionId: 'abc123',                   // 前端 uuid，同 session 共用
+  chapter: 'ROM10',                      // optional，跟章節有關時填
+  metadata: { textLength: 87, editDuration: 145, isFallback: false }
+}
+```
+- doc id 用 `${Date.now()}-${random4}` 避免同毫秒衝突
+- uid 不存進 document（已在 path）
+
+**寫入策略**：
+- fire-and-forget（不 await，不擋 UI）
+- 失敗 `console.warn` 不影響玩家流程
+- **訪客（未登入）不記錄** ── 保持簡單，未來要追訪客再設計 deviceId
+
+**Session 識別**：`app_open` 時 `generateUUID()`，存記憶體；`visibilitychange` 進 hidden 超過 30 分鐘換新 sessionId
+
+**資料保留**：先永久，一年後若 collection 過大再寫 cleanup function 砍 90 天前資料
+
+**成本估算**：50 玩家規模 ~45,000 events/月 ≈ $0.10/月（免費額度內）
+
+**實作步驟**（啟動後預估 3-5 小時）：
+1. 寫 `track(type, metadata)` helper + sessionId 管理（30 min）
+2. 9 個核心事件對應位置插入呼叫（2-3 hr）
+3. 擴充 `npm run analyze` 加漏斗分析區塊（30 min）
+4. 部署 + 自測（30 min）
+
 ---
 
 ## 近期待開發功能
@@ -534,6 +590,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [ ] 每月精華 PDF ── Cloud Function scheduled，月底把當月默想 + AI 回應整理寄給玩家，留存武器
 
 **v3.0 候選中期**
+- [ ] **事件流 session timeline** ── 設計方案已就緒（見「資料缺漏盤點」末尾），啟動條件：玩家數破百（目前 49）；做了之後解鎖客戶端錯誤、放棄事件、AI 失敗行為、dwell time 等多項 A/B 級分析
 - [ ] 小組功能 ── `groups/{groupId}` 集合 + 邀請碼，「我們小組這週有 N 人靈修」（涵蓋下方「小組排行榜、朋友動態」）
 - [ ] 語音默想 ── Cloud Storage，對不擅打字的長者友善，可能解鎖目前完全沒在寫默想的族群
 - [ ] 小組共讀模式 ── 兩人互相看默想，需具名授權（教會夫妻、同小組成員一起靈修場景）
