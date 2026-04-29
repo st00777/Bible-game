@@ -171,6 +171,7 @@ exports.aiReflection = onRequest(
       console.log(`aiReflection result: uid=${callerId} chapter=${chapter || ''} fallback=${isFallback}`);
       res.json({
         aiResponse: aiResponse || '謝謝你願意把心裡的話帶到神面前。祂看見了。',
+        isFallback,
       });
     } catch (e) {
       console.error(`aiReflection error: uid=${callerId} chapter=${chapter || ''}`, e);

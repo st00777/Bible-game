@@ -457,6 +457,7 @@ async function analyzeProgress(token, users) {
   });
 
   // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
+  // 新資料用 aiIsFallback 欄位；舊資料 fallback 到文字比對
   const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   console.log('\n── ④ AI 回應品質（fallback 集中章節）──');
   const withAi = allChapters.filter(c => c.aiResponse);
@@ -466,7 +467,9 @@ async function analyzeProgress(token, users) {
     const fallbackByCh = {};
     let totalFallback = 0;
     withAi.forEach(c => {
-      if (c.aiResponse === FALLBACK_TEXT) {
+      const isFb = c.aiIsFallback === true
+        || (c.aiIsFallback === undefined && c.aiResponse === FALLBACK_TEXT);
+      if (isFb) {
         fallbackByCh[c.key] = (fallbackByCh[c.key] || 0) + 1;
         totalFallback++;
       }
