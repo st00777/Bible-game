@@ -474,6 +474,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 | AI 回應停留時間 | 需新增 | 30 分鐘（dwell time 子項） |
 | 章節參與深度（哪些 reflectionTitle 引發較多默想） | ✅ 已加入 `npm run analyze` 區塊 ③（2026-04-28） | — |
 | AI 回應品質（fallback 集中章節） | ✅ 已加入 `npm run analyze` 區塊 ④（2026-04-28，盤點外加碼） | — |
+| AI fallback 顯式標記（aiIsFallback 欄位，取代文字比對） | ✅ 已實作（2026-04-29）── aiReflection 回傳 isFallback；client 寫入 chapter doc 與 reflections 子集合；analyze 區塊 ④ 優先讀欄位、舊資料 fallback 到文字比對 | — |
 | 裝備收集偏好 | ✅ 已加入 `npm run analyze` 區塊 ⑤（2026-04-28） | — |
 
 ### 管理面
