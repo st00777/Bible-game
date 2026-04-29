@@ -91,11 +91,13 @@ users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM
   hasRead:        false                  // 是否點閱讀完整章節
   reflectionText: '...'                  // 玩家寫的默想文字（v2.9 新增）
   aiResponse:     '...'                  // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
+  aiIsFallback:   false                  // AI 是否回 fallback（v2.9.x，2026-04-29 新增）
   // 注意：本文件用 .set() 寫入會覆蓋；保留最後一次默想用，歷史請查 reflections 子集合
 
 users/{userId}/chapters/{chapterKey}/reflections/{timestampId}   ← 默想歷史（v2.9.x 新增）
   reflectionText: '...'                  // 該次寫的默想文字
   aiResponse:     '...'                  // 該次 AI 回應
+  aiIsFallback:   false                  // AI 是否回 fallback（v2.9.x，2026-04-29 新增）
   completedAt:    Timestamp              // 此次寫入時間
   // doc id 用 Date.now() 字串，以時間排序；玩家每次完成靈修並寫默想都會新增一筆，不會覆蓋
 
@@ -437,7 +439,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 | 項目 | 現況 | 估時 | 依賴 |
 |---|---|---|---|
-| **AI 呼叫綁 uid** ── functions logs 加入玩家身份，bug 可重現 | 需新增 | **30 分鐘** | 無，最高 ROI |
+| **AI 呼叫綁 uid** ── functions logs 加入玩家身份，bug 可重現 | ✅ 已完成（functions/index.js:148-176，client 傳 uid） | — | — |
 | **客戶端錯誤事件追蹤** ── AI fallback、Firestore 寫入失敗、登入超時 | 需新增 | 2-3 小時（獨立做）／30 分鐘（搭事件流） | 建議搭事件流 |
 | **放棄事件流失分析** ── 玩家停在哪步（讀經文／情境題／默想） | 需新增 | 1-2 小時（獨立）／可從事件流推導 | 建議搭事件流 |
 | **AI 失敗後玩家後續行為** ── 拿 fallback 後是再送還是放棄 | 需新增 | 1 小時（獨立）／可從事件流推導 | 建議搭事件流 |
@@ -575,6 +577,7 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [x] 5月靈修內容（羅馬書15-16 + 哥林多前書全卷 + 哥林多後書全卷，到5/29）
 - [x] AI 503 retry 機制 + 成功率監控腳本 `npm run logs`（v2.9 hotfix，2026-04-28）
 - [x] 默想歷史保留（chapters/{key}/reflections sub-collection，v2.9.x，2026-04-28）── 玩家同章節改寫不再覆蓋舊默想
+- [x] AI fallback 顯式標記（aiReflection 回傳 isFallback；chapter / reflections doc 寫入 aiIsFallback；analyze 區塊 ④ 優先讀欄位、文字比對僅用於舊資料）（v2.9.x，2026-04-29）
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）

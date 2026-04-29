@@ -1316,7 +1316,10 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
       hasRead: !!hasRead,
     };
     if (reflectionText) record.reflectionText = reflectionText;
-    if (lastAiResponse) record.aiResponse = lastAiResponse;
+    if (lastAiResponse) {
+      record.aiResponse = lastAiResponse;
+      record.aiIsFallback = lastAiIsFallback;
+    }
     await db.collection('users').doc(currentUser.uid)
       .collection('chapters').doc(key).set(record);
     // 默想歷史保留：每次寫入都新增一筆，避免改寫時覆蓋舊默想
@@ -1327,6 +1330,7 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
         .set({
           reflectionText,
           aiResponse: lastAiResponse || '',
+          aiIsFallback: lastAiIsFallback,
           completedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
     }
@@ -2351,6 +2355,7 @@ function selectChoice(btn, choice) {
 // AI response only triggers on complete, not auto-submit while typing
 
 let lastAiResponse = '';
+let lastAiIsFallback = false;
 
 async function submitReflection() {
   const text = document.getElementById('refl-text').value.trim();
@@ -2378,9 +2383,11 @@ async function submitReflection() {
     });
     const d = await res.json();
     lastAiResponse = d.aiResponse || fallback;
+    lastAiIsFallback = d.isFallback === true || !d.aiResponse;
     aiText.textContent = lastAiResponse;
   } catch(e) {
-    lastAiResponse = '';
+    lastAiResponse = fallback;
+    lastAiIsFallback = true;
     aiText.textContent = fallback;
   }
 }
