@@ -53,10 +53,11 @@ Bible-game/
 **AI 回應**：Google AI Studio（Gemini 2.5 Flash），透過 Cloud Function `aiReflection` 代理呼叫
 **追蹤**：Google Analytics GA4（`G-HZ3EGYB8BB`）
 **數據分析**：
-- `npm run analyze` ── Firestore 4 區塊報告（feedback / users / 靈修進度 / 成就）
+- `npm run analyze` ── Firestore 6 區塊報告（feedback / users / 靈修進度 / 成就 / 章節品質 ①-④ / 裝備 ⑤ / 默想歷史 ⑥）
 - `npm run logs [天數]` ── aiReflection 呼叫量、AI 真實回應比、錯誤類型分布（預設過去 1 天）
+- `npm run line-logs [天數]` ── lineLogin 成功率、HTTP 失敗分布、錯誤類型、失敗時段（預設過去 1 天）
 
-兩個腳本都用 Firebase CLI refresh token 直接打 Cloud REST API，不需額外安裝 SDK。
+三個腳本都用 Firebase CLI refresh token 直接打 Cloud REST API，不需額外安裝 SDK。
 
 ---
 
@@ -453,7 +454,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 |---|---|---|
 | 章節停留時長（dwell time） | 需新增 | 1 小時（依賴事件流） |
 | 選項猶豫軌跡（選 A 又改 C） | 需新增 | 1 小時 |
-| 默想字數分布／編輯時長 | 需新增 | 30 分鐘 |
+| 默想字數分布／編輯時長 | ✅ 字數分布已加入 `npm run analyze` 區塊 ⑥（2026-05-01）；編輯時長尚未做 | — |
 | 重複登入計數（同日進遊戲幾次） | 需新增 | 15 分鐘（profile/data 加 sessionCount counter） |
 | 完成靈修後逗留行為 | 需新增 | 1 小時（依賴事件流） |
 | 裝備換裝行為時點 | 需新增 | 30 分鐘 |
@@ -463,7 +464,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 | 項目 | 現況 | 估時 |
 |---|---|---|
 | 頁面跳轉路徑 | 需新增 | 1-2 小時（依賴事件流） |
-| 登入失敗／中斷（client 端取消授權、網路斷） | 需新增 | 1 小時 |
+| 登入失敗／中斷（client 端取消授權、網路斷） | 🟡 server 端 lineLogin 已加入 `npm run line-logs`（2026-05-01）；client 端取消／網路斷仍看不到 | 30 分鐘（client） |
 | 部署事件影響（哪天部署什麼導致什麼變化） | **資料已有**（git tag + GA4 timestamp） | 0 小時 |
 
 ### 內容品質維度
