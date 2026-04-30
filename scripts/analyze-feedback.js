@@ -457,13 +457,15 @@ async function analyzeProgress(token, users) {
   });
 
   // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
-  // 新資料用 aiIsFallback 欄位；舊資料 fallback 到文字比對
+  // 「全部歷史」= 包含 4/28 retry 部署前的舊失敗，會被拖累
+  // 「部署後」= 有 aiIsFallback 欄位的記錄（4/29 後寫入），反映真實當下品質
   const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   console.log('\n── ④ AI 回應品質（fallback 集中章節）──');
   const withAi = allChapters.filter(c => c.aiResponse);
   if (withAi.length === 0) {
     console.log('  （尚無 AI 回應紀錄）');
   } else {
+    // 全部歷史
     const fallbackByCh = {};
     let totalFallback = 0;
     withAi.forEach(c => {
@@ -474,12 +476,31 @@ async function analyzeProgress(token, users) {
         totalFallback++;
       }
     });
-    console.log(`  AI 回應紀錄總數:  ${withAi.length}`);
-    console.log(`  收到 fallback:    ${totalFallback} (${pct(totalFallback, withAi.length)})`);
+    // 部署後（有 aiIsFallback 欄位才算）
+    const postDeploy = withAi.filter(c => c.aiIsFallback !== undefined);
+    const postFb = postDeploy.filter(c => c.aiIsFallback === true);
+
+    console.log(`  全部歷史:        ${String(withAi.length).padStart(3)} 筆，fallback ${String(totalFallback).padStart(2)} (${pct(totalFallback, withAi.length)})`);
+    if (postDeploy.length > 0) {
+      console.log(`  部署後 (4/29+):  ${String(postDeploy.length).padStart(3)} 筆，fallback ${String(postFb.length).padStart(2)} (${pct(postFb.length, postDeploy.length)}) ⭐ 真實當下品質`);
+    } else {
+      console.log(`  部署後 (4/29+):  尚無資料`);
+    }
+
     if (totalFallback > 0) {
       const sortedFb = Object.entries(fallbackByCh).sort((a,b) => b[1]-a[1]).slice(0, 8);
-      console.log(`  fallback 章節分布（前 8）：`);
+      console.log(`\n  fallback 章節分布（含歷史，前 8）：`);
       sortedFb.forEach(([k, n]) => console.log(`    ${k.padEnd(10)} ${n} 次`));
+
+      const postFbByCh = {};
+      postFb.forEach(c => { postFbByCh[c.key] = (postFbByCh[c.key] || 0) + 1; });
+      if (Object.keys(postFbByCh).length > 0) {
+        console.log(`  fallback 章節分布（僅部署後）：`);
+        Object.entries(postFbByCh).sort((a,b) => b[1]-a[1]).slice(0, 8)
+          .forEach(([k, n]) => console.log(`    ${k.padEnd(10)} ${n} 次`));
+      } else if (postDeploy.length > 0) {
+        console.log(`  ✨ 部署後沒有任何 fallback`);
+      }
     } else {
       console.log(`  ✨ 沒有任何 fallback 紀錄`);
     }
@@ -505,6 +526,107 @@ async function analyzeProgress(token, users) {
     sortedItems.forEach(([id, n]) => {
       console.log(`  ${id.padEnd(20)} ${bar(n, maxItem).padEnd(15)} ${n} 人`);
     });
+  }
+
+  // ── 6. 默想歷史（reflections 子集合，4/28 起累積） ─────
+  // 對每個 chapter doc 拉它的 reflections 子集合（每次寫默想會新增一筆，不覆蓋）
+  console.log('\n── ⑥ 默想歷史分析（reflections 子集合，4/28 起累積） ──');
+  const allReflections = [];
+  const batchSize = 10;
+  for (let i = 0; i < allChapters.length; i += batchSize) {
+    const batch = allChapters.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(c => fetchCollection(token, `users/${c.uid}/chapters/${c.key}/reflections`))
+    );
+    results.forEach((docs, idx) => {
+      const c = batch[idx];
+      docs.forEach(d => {
+        allReflections.push({ uid: c.uid, name: c.name, chKey: c.key, ...parseDoc(d) });
+      });
+    });
+  }
+
+  if (allReflections.length === 0) {
+    console.log('  （尚無 reflections 子集合資料 — 4/28 後才開始累積）');
+  } else {
+    // 每章節改寫次數
+    const reflByChapter = {}; // key = uid|chKey
+    allReflections.forEach(r => {
+      const k = `${r.uid}|${r.chKey}`;
+      reflByChapter[k] = (reflByChapter[k] || 0) + 1;
+    });
+    const writeCounts = Object.values(reflByChapter);
+    const totalWrites = allReflections.length;
+    const uniqueChapterUsers = writeCounts.length;
+    const rewroteEntries = writeCounts.filter(n => n >= 2).length;
+    const rewriteRate = uniqueChapterUsers > 0
+      ? (rewroteEntries / uniqueChapterUsers * 100).toFixed(1) : '0';
+
+    console.log(`  總默想次數:         ${totalWrites}`);
+    console.log(`  unique (玩家×章節): ${uniqueChapterUsers}`);
+    console.log(`  曾改寫過:           ${rewroteEntries} (${rewriteRate}% 的玩家對該章寫過 ≥2 次)`);
+
+    // 字數分布
+    const lengths = allReflections.map(r => (r.reflectionText || '').length);
+    const avgLen = Math.round(lengths.reduce((a,b)=>a+b,0) / lengths.length);
+    const sortedLens = [...lengths].sort((a,b)=>a-b);
+    const median = sortedLens[Math.floor(sortedLens.length/2)];
+    const p90 = sortedLens[Math.floor(sortedLens.length * 0.9)];
+    console.log(`\n  默想字數:`);
+    console.log(`    最短 ${sortedLens[0]}　中位 ${median}　平均 ${avgLen}　p90 ${p90}　最長 ${sortedLens[sortedLens.length-1]}`);
+
+    // 字數區間分布
+    const buckets = { '1-20': 0, '21-50': 0, '51-100': 0, '101-200': 0, '201+': 0 };
+    lengths.forEach(L => {
+      if (L <= 20) buckets['1-20']++;
+      else if (L <= 50) buckets['21-50']++;
+      else if (L <= 100) buckets['51-100']++;
+      else if (L <= 200) buckets['101-200']++;
+      else buckets['201+']++;
+    });
+    const maxBucket = Math.max(...Object.values(buckets), 1);
+    console.log(`\n  字數區間分布:`);
+    Object.entries(buckets).forEach(([k, n]) => {
+      console.log(`    ${k.padEnd(8)} ${bar(n, maxBucket).padEnd(20)} ${n} 次`);
+    });
+
+    // 改寫章節 top 排行（哪些章節最容易引發重寫）
+    if (rewroteEntries > 0) {
+      const rewriteCh = {};
+      for (const [k, count] of Object.entries(reflByChapter)) {
+        if (count >= 2) {
+          const chKey = k.split('|')[1];
+          rewriteCh[chKey] = (rewriteCh[chKey] || 0) + 1;
+        }
+      }
+      const sortedRw = Object.entries(rewriteCh).sort((a,b) => b[1]-a[1]).slice(0, 8);
+      console.log(`\n  改寫章節分布（哪些章節玩家最常重寫）:`);
+      sortedRw.forEach(([k, n]) => console.log(`    ${k.padEnd(10)} ${n} 位玩家改寫過`));
+    }
+
+    // 字數變化趨勢（同一玩家同一章，後寫的 vs 第一次的字數）
+    const lengthDiff = [];
+    for (const [k, count] of Object.entries(reflByChapter)) {
+      if (count < 2) continue;
+      const list = allReflections
+        .filter(r => `${r.uid}|${r.chKey}` === k)
+        .sort((a, b) => {
+          const aT = a.completedAt || '';
+          const bT = b.completedAt || '';
+          return aT.localeCompare(bT);
+        });
+      const firstLen = (list[0].reflectionText || '').length;
+      const lastLen = (list[list.length-1].reflectionText || '').length;
+      lengthDiff.push(lastLen - firstLen);
+    }
+    if (lengthDiff.length > 0) {
+      const longer = lengthDiff.filter(d => d > 0).length;
+      const shorter = lengthDiff.filter(d => d < 0).length;
+      const same = lengthDiff.filter(d => d === 0).length;
+      const avgDiff = Math.round(lengthDiff.reduce((a,b)=>a+b,0) / lengthDiff.length);
+      console.log(`\n  改寫後字數變化（last - first）:`);
+      console.log(`    寫更長: ${longer}　寫更短: ${shorter}　不變: ${same}　平均差: ${avgDiff > 0 ? '+' : ''}${avgDiff} 字`);
+    }
   }
 }
 
