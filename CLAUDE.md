@@ -185,7 +185,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 - API Key：存放於 Firebase Secret Manager（`GOOGLE_AI_API_KEY`）
 - 流程：接收 `chapter` + `reflectionTitle` + `playerText` → 呼叫 Gemini → 回傳 `{ aiResponse }`
 - generationConfig：`maxOutputTokens: 1000, temperature: 0.7`
-- **失敗處理**（2026-04-28 加入）：Gemini 回 503 過載時等 1.5 秒自動重試一次；其餘錯誤回傳 fallback 文字「謝謝你願意把心裡的話帶到神面前。祂看見了。」（玩家不會看到錯誤，只是少了個性化回應）
+- **失敗處理**（2026-04-28 加入，2026-04-30 升級）：Gemini 回 503 過載時最多重試 2 次，每次等待 1-2 秒（1.5±0.5 jitter，避免群體同時重試撞牆）；其餘錯誤回傳 fallback 文字「謝謝你願意把心裡的話帶到神面前。祂看見了。」（玩家不會看到錯誤，只是少了個性化回應）
 - 監控：`npm run logs` 看當天呼叫成功率，目標 90% 以上；若 fallback 持續 >10% 考慮升級到 2 次 retry 或加 Gemini Pro 備援
 
 ---
