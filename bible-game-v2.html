@@ -24,6 +24,50 @@
 .fs-sm{--fs-body:14px;}
 .fs-md{--fs-body:16px;}
 .fs-lg{--fs-body:19px;}
+
+/* ── 裝備容器稀有度系統（dev only 實驗，2026-05-01） ── */
+.equip-frame {
+  background: linear-gradient(135deg, var(--card), var(--sand));
+  border: 2px solid var(--sand-dark);
+  border-radius: 14px;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.6),
+              0 2px 8px var(--shadow);
+}
+.equip-frame-bronze, .ach-card.bronze.unlocked {
+  background: linear-gradient(135deg, #FFFDF8, #E8D5B0);
+  border-color: #A0875F;
+}
+.equip-frame-silver, .ach-card.silver.unlocked {
+  background: linear-gradient(135deg, #FFFDF8, #E0E8F0);
+  border-color: #90A4B5;
+}
+.equip-frame-gold, .ach-card.gold.unlocked {
+  background: linear-gradient(135deg, #FFF8E7, #FFE082);
+  border-color: #FFB300;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.7),
+              0 4px 12px rgba(255,179,0,0.35);
+  position: relative;
+}
+.equip-frame-gold::before, .ach-card.gold.unlocked::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 16px;
+  background: conic-gradient(from 0deg, #FFD54F, #FFA726, #FFD54F, #FFA726);
+  z-index: -1;
+  opacity: 0.4;
+}
+/* 統一 emoji 染色濾鏡 */
+.equip-emoji, .ach-emoji {
+  filter: sepia(0.18) saturate(0.85)
+          drop-shadow(0 1px 2px rgba(61,43,31,0.18));
+}
+/* 金級 emoji 不要濾鏡，保持原始亮度 */
+.equip-frame-gold .ach-emoji,
+.ach-card.gold.unlocked .ach-emoji {
+  filter: drop-shadow(0 2px 3px rgba(184,115,5,0.3));
+}
+
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-height:100vh;min-height:-webkit-fill-available;font-family:'Noto Sans TC',sans-serif;color:var(--text);overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom, 0px);}
 .cloud{position:fixed;background:white;border-radius:50px;opacity:.6;pointer-events:none;z-index:0;}
@@ -303,7 +347,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .slot-tab{flex-shrink:0;background:var(--sky);border:2px solid var(--sky-deep);border-radius:10px;padding:7px 13px;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;color:var(--text-soft);cursor:pointer;transition:all .2s;}
 .slot-tab.active{background:var(--purple);border-color:var(--purple);color:white;}
 .equip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
-.equip-item{aspect-ratio:1;background:var(--sky);border:2px solid var(--sky-deep);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:5px;position:relative;}
+.equip-item{aspect-ratio:1;background:linear-gradient(135deg,var(--card),var(--sand));border:2px solid var(--sand-dark);border-radius:14px;box-shadow:inset 0 2px 4px rgba(255,255,255,0.6),0 2px 8px var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:5px;position:relative;}
 .equip-item:hover{border-color:var(--purple);transform:scale(1.05);}
 .equip-item.equipped{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);}
 .equip-emoji{font-size:24px;line-height:1;margin-bottom:3px;}
@@ -1571,7 +1615,7 @@ function renderBadgesPage() {
       const isGoldHidden = tier === 'gold' && !unlocked && !tiers.slice(0,2).every(t => ACHIEVEMENTS.filter(x=>x.tier===t).every(x=>unlockedAchievements[x.key]));
       // Gold: show if any gold is unlocked OR all silver done; otherwise hide individual golds only if none unlocked
       const showHidden = tier === 'gold' && !unlocked;
-      const cls = unlocked ? 'unlocked' : (showHidden ? 'hidden' : '');
+      const cls = `${a.tier} ${unlocked ? 'unlocked' : (showHidden ? 'hidden' : '')}`.trim();
       const date = unlocked ? new Date(unlockedAchievements[a.key]) : null;
       const dateStr = date ? `${date.getMonth()+1}/${date.getDate()}` : '';
       let progressHtml = '';
