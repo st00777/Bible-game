@@ -17,6 +17,32 @@
 
 ---
 
+### Sheet 動畫破圖（2026-05-01）
+**症狀**：手機版開啟任何 .overlay sheet（成就 / 日記 / 衣櫃 / 教學）時，畫面上方瞬間破圖閃爍後恢復；iOS、Android 都有；電腦版正常。曠野呼聲卻**不破圖**。
+
+**走過的歪路（記錄避免重蹈）**
+- ❌ 改 `min-height: -webkit-fill-available` → `100dvh`：以為是 iOS viewport 跳動，無效
+- ❌ 對 `.cloud` 跟 `.overlay` 加 `will-change`：方向錯（真正動 transform 的不是這兩個）
+- ❌ 想動 `body.overflow:hidden` 邏輯 / 弱化 backdrop-filter：根本不是元凶
+
+**真因**：`.sheet` 用 `transform: translateY(100%) → 0` 動畫進場。瀏覽器在動畫**觸發瞬間才建立 GPU 合成 layer**，第一幀 layer 還沒就緒就開始繪製 → 破圖閃。
+
+**為什麼曠野呼聲不破**：它的 sheet 用「預設 sheet（內容自然撐高）」，layer 結構單純。而成就 / 日記用 `display:flex + height:90vh + 內部 child overflow-scroll` 創額外子 layer，合成順序差更明顯。其實兩者都應該會閃，只是視覺差異程度不同。
+
+**解法**：對 `.sheet` 加 `will-change: transform`，提示瀏覽器**在 idle 時就預建 GPU layer**，動畫觸發時 layer 已就緒（commit `5fcf449` / `3eb6e83`）。
+
+**✅ 學到的**
+- 「畫面上方破圖」不一定是 viewport / fixed 元素位置問題，可能是 GPU layer 合成時序
+- 診斷時先找「**反例**」（哪個沒問題）能快速定位差異點
+- `will-change` 是**最後保底的 GPU hint**，但要用在「真正會動畫的元素」上才有效
+
+**⚠️ 往後注意**
+- `will-change` 不要濫用（會吃 GPU memory）。只加在已知會動畫且看到效能問題的元素
+- 新增 sheet/modal 動畫時，預設先評估「要不要加 will-change」── 預防破圖
+- 診斷渲染問題時，先列出所有相關元素的 z-index、position、transform、opacity，才能找到 layer 結構差異
+
+---
+
 ### JavaScript 安全
 **✅ 學到的**
 - `innerHTML` 插入用戶提供的資料（如 photoURL）會造成 XSS 漏洞
