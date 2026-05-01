@@ -1556,12 +1556,11 @@ async function checkAchievements() {
   }
 }
 
-function showNextAchievement() {
-  if (achievementQueue.length === 0) { showingAchievement = false; return; }
-  showingAchievement = true;
-  const a = achievementQueue.shift();
+function renderAchievementCard(a, isReview) {
   const tierLabel = { bronze:'🥉 銅級', silver:'🥈 銀級', gold:'🥇 金級' }[a.tier];
+  const reviewTag = isReview ? '<div style="font-size:11px;color:var(--text-soft);margin-bottom:8px;letter-spacing:0.1em;">✨ 回顧解鎖時刻</div>' : '';
   document.getElementById('ach-unlock-content').innerHTML = `
+    ${reviewTag}
     <div class="ach-unlock-emoji">${a.emoji}</div>
     <div class="ach-unlock-tier">${tierLabel}</div>
     <div class="ach-unlock-name">${a.name}</div>
@@ -1569,6 +1568,13 @@ function showNextAchievement() {
     <div class="ach-unlock-verse">${a.verse}<div class="ach-unlock-verse-ref">${a.verseRef}</div></div>
   `;
   openOverlay('ach-unlock-overlay');
+}
+
+function showNextAchievement() {
+  if (achievementQueue.length === 0) { showingAchievement = false; return; }
+  showingAchievement = true;
+  const a = achievementQueue.shift();
+  renderAchievementCard(a, false);
   track('achievement_unlocked', { key: a.key, tier: a.tier });
   if (typeof showConfetti === 'function') showConfetti();
   // When this overlay closes, show next
@@ -1579,6 +1585,12 @@ function showNextAchievement() {
     }
   });
   observer.observe(document.getElementById('ach-unlock-overlay'), { attributes: true, attributeFilter: ['class'] });
+}
+
+function reviewAchievement(key) {
+  const a = ACHIEVEMENTS.find(x => x.key === key);
+  if (!a || !unlockedAchievements[key]) return;
+  renderAchievementCard(a, true);
 }
 
 // ── Achievement page rendering ──
@@ -1622,7 +1634,8 @@ function renderBadgesPage() {
       if (!unlocked && !showHidden && a.progress) {
         try { progressHtml = `<div class="ach-progress">${a.progress()}</div>`; } catch(e) {}
       }
-      html += `<div class="ach-card ${cls}" title="${a.desc}">
+      const clickAttr = unlocked ? ` onclick="reviewAchievement('${a.key}')" style="cursor:pointer;"` : '';
+      html += `<div class="ach-card ${cls}" title="${a.desc}"${clickAttr}>
         <div class="ach-emoji">${showHidden ? '❓' : a.emoji}</div>
         <div class="ach-name">${showHidden ? '???' : a.name}</div>
         ${showHidden ? '' : `<div class="ach-desc">${a.desc}</div>`}
