@@ -67,3 +67,11 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
+
+# GA4 / Firebase 匯出資料（含玩家城市分布等敏感統計，不公開到 repo）
+*.csv
+*.xlsx
