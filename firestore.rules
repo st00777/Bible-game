@@ -1,19 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['st00777@hotmail.com'];
+    }
+
     // Each player can only read/write their own user documents.
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Feedback (曠野呼聲): anyone can submit (guests included) but only
-    // with a well-formed document; only authenticated users can read.
+    // Feedback (曠野呼聲)
+    // - 任何人（含訪客）可送，但格式必須對
+    // - 讀取限制：玩家只能讀自己的（uid 比對）；admin 可讀所有
+    //   匿名留言 (isAnonymous=true) 因為 uid=null，玩家端永遠讀不到
     match /feedback/{docId} {
       allow write: if request.resource.data.keys().hasOnly(['mood','category','message','isAnonymous','uid','displayName','createdAt','chapter'])
                 && request.resource.data.message.size() <= 300
                 && request.resource.data.mood in ['平靜','有動力','有點累','經文太難','其他']
                 && request.resource.data.category in ['靈性感受','遊戲體驗','我的異象','其他'];
-      allow read: if request.auth != null;
+      allow read: if request.auth != null
+                && (resource.data.uid == request.auth.uid || isAdmin());
     }
   }
 }
