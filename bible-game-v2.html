@@ -1590,12 +1590,7 @@ function showNextAchievement() {
 function reviewAchievement(key) {
   const a = ACHIEVEMENTS.find(x => x.key === key);
   if (!a || !unlockedAchievements[key]) return;
-  // 防閃屏：先重置 modal scroll + 強制 reflow，避免內容變化造成位置跳動
-  const modal = document.querySelector('#ach-unlock-overlay .modal');
-  if (modal) modal.scrollTop = 0;
   renderAchievementCard(a, true);
-  // 同步觸發一次 layout 計算，確保 transform 動畫從正確初始狀態起跑
-  if (modal) void modal.offsetHeight;
 }
 
 // ── Achievement page rendering ──
