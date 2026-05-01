@@ -115,7 +115,7 @@ async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 2) 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n玩家的默想：${userText}` }] }],
-      generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+      generationConfig: { maxOutputTokens: 1500, temperature: 0.9 },
     }),
   });
   if (!res.ok) {
