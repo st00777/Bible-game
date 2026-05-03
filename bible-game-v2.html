@@ -25,8 +25,9 @@
 .fs-md{--fs-body:16px;}
 .fs-lg{--fs-body:19px;}
 
-/* ── 裝備容器稀有度系統（dev only 實驗，2026-05-01） ── */
-.equip-frame {
+/* ── 裝備容器稀有度系統 ── */
+/* base 樣式：成就頁的 .equip-frame 與衣櫃的 .equip-item 共用同一套底色/邊框/陰影 */
+.equip-frame, .equip-item {
   background: linear-gradient(135deg, var(--card), var(--sand));
   border: 2px solid var(--sand-dark);
   border-radius: 14px;
@@ -351,7 +352,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .slot-tab{flex-shrink:0;background:var(--sky);border:2px solid var(--sky-deep);border-radius:10px;padding:7px 13px;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;color:var(--text-soft);cursor:pointer;transition:all .2s;}
 .slot-tab.active{background:var(--purple);border-color:var(--purple);color:white;}
 .equip-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
-.equip-item{aspect-ratio:1;background:linear-gradient(135deg,var(--card),var(--sand));border:2px solid var(--sand-dark);border-radius:14px;box-shadow:inset 0 2px 4px rgba(255,255,255,0.6),0 2px 8px var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:5px;position:relative;}
+/* base 樣式（背景/邊框/陰影）已在 .equip-frame, .equip-item 合併規則內，這裡只補 layout 與互動屬性 */
+.equip-item{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;padding:5px;position:relative;}
 .equip-item:hover{border-color:var(--purple);transform:scale(1.05);}
 .equip-item.equipped{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);}
 .equip-emoji{font-size:24px;line-height:1;margin-bottom:3px;}
@@ -420,7 +422,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .ach-progress{font-size:9px;color:var(--warm);margin-top:3px;font-weight:700;}
 
 /* Achievement unlock overlay */
-.ach-unlock-emoji{font-size:64px;margin-bottom:8px;animation:bounce .6s ease infinite alternate;}
+/* 方案 A 測試中：暫時拿掉 emoji 的 bounce 跳動動畫，驗證閃爍是否真的來自這個動畫干擾 modal 進場 */
+.ach-unlock-emoji{font-size:64px;margin-bottom:8px;}
 .ach-unlock-tier{font-size:14px;font-weight:700;margin-bottom:4px;}
 .ach-unlock-name{font-size:22px;font-weight:900;margin-bottom:4px;}
 .ach-unlock-desc{font-size:13px;color:var(--text-soft);margin-bottom:14px;}
@@ -1575,7 +1578,16 @@ function renderAchievementCard(a, isReview) {
     <div class="ach-unlock-desc">${a.desc}</div>
     <div class="ach-unlock-verse">${a.verse}<div class="ach-unlock-verse-ref">${a.verseRef}</div></div>
   `;
-  openOverlay('ach-unlock-overlay');
+  // 步驟 1（上面 innerHTML）：把卡片內容寫進 modal — 此時 DOM 已改但瀏覽器還沒算 layout
+  // 步驟 2：讀 offsetHeight 強制瀏覽器立刻同步算 layout，讓 modal 在新內容高度下被 align-items:center 重新置中
+  // 沒這一步的話，下一步 .show 觸發的 transform 動畫會在「modal 還是舊高度的舊置中位置」起跑，動畫途中又被重新置中 → 看起來像跳動 / 閃爍 / 看到底下圖層
+  const overlay = document.getElementById('ach-unlock-overlay');
+  const modal = overlay.querySelector('.modal');
+  void modal.offsetHeight;
+  // 步驟 3：內聯 openOverlay 的兩件事（加 .show + 鎖 body 滾動），避免透過 helper 引入額外副作用
+  // 此刻 modal 已在正確置中位置，動畫從 scale(.85) translateY(20px) 平滑跑到 scale(1) translateY(0)
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
 function showNextAchievement() {
