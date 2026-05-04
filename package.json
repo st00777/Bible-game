@@ -4,6 +4,8 @@
   "scripts": {
     "analyze": "node scripts/analyze-feedback.js",
     "logs": "node scripts/check-ai-logs.js",
-    "line-logs": "node scripts/check-line-logs.js"
+    "line-logs": "node scripts/check-line-logs.js",
+    "migrate:feedback-v2": "node scripts/migrate-feedback-v2.js",
+    "migrate:feedback-v2:apply": "node scripts/migrate-feedback-v2.js --apply"
   }
 }
