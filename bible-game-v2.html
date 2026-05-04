@@ -1628,6 +1628,8 @@ function showNextAchievement() {
 function reviewAchievement(key) {
   const a = ACHIEVEMENTS.find(x => x.key === key);
   if (!a || !unlockedAchievements[key]) return;
+  // 追蹤：玩家主動回顧已解鎖徽章 — 用來驗證「儀式感」是否被使用
+  track('achievement_review', { key: a.key, tier: a.tier });
   renderAchievementCard(a, true);
 }
 
@@ -2984,6 +2986,8 @@ async function openDiary() {
     showToast('登入後可保存和回顧靈修日記');
     return;
   }
+  // 追蹤：玩家主動打開日記 — 跟 achievement_review 同樣是儀式感類動作
+  track('diary_open');
   document.getElementById('diary-search').value = '';
   document.getElementById('diary-list').innerHTML = '<div class="diary-empty"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 載入中</div>';
   openOverlay('diary-overlay');
@@ -3061,6 +3065,8 @@ function filterDiary() {
 function showDiaryDetail(key) {
   const entry = diaryData.find(e => e.key === key);
   if (!entry) return;
+  // 追蹤：玩家點某筆日記看詳情（含當天 AI 回應）— 比 diary_open 更深一層的回顧行為
+  track('diary_detail', { chapter: key });
   const ch = CHAPTERS.find(c => chapterKey(c.chapter) === key);
   const chLabel = chapterFull(ch?.chapter || key);
   const title = ch?.reflectionTitle || '';
