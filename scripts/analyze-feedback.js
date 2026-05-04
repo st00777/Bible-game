@@ -522,11 +522,13 @@ async function analyzeProgress(token, users) {
   if (allReflections.length === 0) {
     console.log('  （尚無 reflections 子集合資料 — 4/28 後才開始累積）');
   } else {
-    // 每章節改寫次數
-    const reflByChapter = {}; // key = uid|chKey
+    // 每章節改寫次數 + 同步建立分組查表（給後面字數變化趨勢用，避免 O(N×M) 重複 filter）
+    const reflByChapter = {}; // key = uid|chKey → 改寫次數
+    const reflectionsByKey = {}; // key = uid|chKey → 該玩家該章的所有 reflection 物件
     allReflections.forEach(r => {
       const k = `${r.uid}|${r.chKey}`;
       reflByChapter[k] = (reflByChapter[k] || 0) + 1;
+      (reflectionsByKey[k] ||= []).push(r);
     });
     const writeCounts = Object.values(reflByChapter);
     const totalWrites = allReflections.length;
@@ -578,11 +580,12 @@ async function analyzeProgress(token, users) {
     }
 
     // 字數變化趨勢（同一玩家同一章，後寫的 vs 第一次的字數）
+    // 改用 reflectionsByKey 查表，避免每組都 filter 全表（O(N×M) → O(N + M)）
     const lengthDiff = [];
     for (const [k, count] of Object.entries(reflByChapter)) {
       if (count < 2) continue;
-      const list = allReflections
-        .filter(r => `${r.uid}|${r.chKey}` === k)
+      const list = reflectionsByKey[k]
+        .slice()
         .sort((a, b) => {
           const aT = a.completedAt || '';
           const bT = b.completedAt || '';
