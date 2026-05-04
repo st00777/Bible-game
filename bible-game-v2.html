@@ -301,7 +301,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .overlay.show{opacity:1;pointer-events:all;}
 .sheet{background:var(--card);border-radius:28px 28px 0 0;padding:26px 22px calc(34px + env(safe-area-inset-bottom, 0px));width:100%;max-width:420px;max-height:90vh;overflow-y:scroll;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform .4s cubic-bezier(.34,1.2,.64,1);will-change:transform;}
 .overlay.show .sheet{transform:translateY(0);}
-.modal{background:var(--card);border-radius:24px;padding:28px 22px calc(28px + env(safe-area-inset-bottom, 0px));max-width:380px;width:100%;text-align:center;transform:scale(.85) translateY(20px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);box-shadow:0 20px 60px rgba(61,43,31,.3);max-height:90vh;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
+/* will-change:transform 告訴瀏覽器先準備好 modal 的顯示圖層，避免手機 GPU 在動畫起跑瞬間還在準備而閃爍（同 5/1 .sheet 修法） */
+.modal{background:var(--card);border-radius:24px;padding:28px 22px calc(28px + env(safe-area-inset-bottom, 0px));max-width:380px;width:100%;text-align:center;transform:scale(.85) translateY(20px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);will-change:transform;box-shadow:0 20px 60px rgba(61,43,31,.3);max-height:90vh;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
 .overlay.show .modal{transform:scale(1) translateY(0);}
 .sheet-handle{width:40px;height:4px;background:var(--sky-deep);border-radius:2px;margin:0 auto 18px;}
 .sheet-title{font-size:18px;font-weight:900;margin-bottom:6px;}
@@ -422,8 +423,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .ach-progress{font-size:9px;color:var(--warm);margin-top:3px;font-weight:700;}
 
 /* Achievement unlock overlay */
-/* 方案 A 測試中：暫時拿掉 emoji 的 bounce 跳動動畫，驗證閃爍是否真的來自這個動畫干擾 modal 進場 */
-.ach-unlock-emoji{font-size:64px;margin-bottom:8px;}
+/* emoji 跳動帶來解鎖儀式感；動畫干擾測試已排除（真因是 modal 自身 layer 未預建，由 .modal will-change 解決） */
+.ach-unlock-emoji{font-size:64px;margin-bottom:8px;animation:bounce .6s ease infinite alternate;}
 .ach-unlock-tier{font-size:14px;font-weight:700;margin-bottom:4px;}
 .ach-unlock-name{font-size:22px;font-weight:900;margin-bottom:4px;}
 .ach-unlock-desc{font-size:13px;color:var(--text-soft);margin-bottom:14px;}
