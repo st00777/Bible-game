@@ -1429,20 +1429,23 @@ async function initAchievements() {
 
 // ── 成就系統 ──────────────────────────────────────────────────
 
+// 每本書多了兩個欄位：shortName（中文短名，給日曆/列表用）、prefix（章節 key 字串前綴）
+// 使徒行傳是特例：章節 key 是純數字（10、11、12...），所以沒 prefix 欄位
+// 未來加新書卷只要在這裡多加一個物件，chapterLabel/chapterFull 會自動支援
 const BOOKS = [
-  { key:'ACT', name:'使徒行傳', emoji:'🏛️', totalChapters:18,
+  { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:18,
     entries:[10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27],
     merged:{14:2} },
-  { key:'ROM', name:'羅馬書', emoji:'📜', totalChapters:16,
+  { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
     entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM12','ROM13','ROM14','ROM15','ROM16'],
     merged:{'ROM12':2} },
-  { key:'COR1', name:'哥林多前書', emoji:'✉️', totalChapters:16,
+  { key:'COR1', name:'哥林多前書', shortName:'林前', prefix:'COR1_', emoji:'✉️', totalChapters:16,
     entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
     merged:{'COR1_9':2} },
-  { key:'COR2', name:'哥林多後書', emoji:'💌', totalChapters:13,
+  { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
     entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
     merged:{'COR2_5':2} },
-  { key:'GAL', name:'加拉太書', emoji:'✉️', totalChapters:6,
+  { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
     entries:['GAL1','GAL2','GAL3','GAL4','GAL6'],
     merged:{'GAL6':2} },
 ];
@@ -2100,20 +2103,25 @@ function calWeeksInMonth(y, m) {
   const first = new Date(y,m,1).getDay();
   return Math.ceil((days + first) / 7);
 }
+// 章節短標籤（給日曆方格 / 列表用）— 例如「徒10」、「林前1」、「羅3」
+// 加新書卷時不用動這裡，只要 BOOKS 內加 prefix + shortName 就會自動支援
 function chapterLabel(ch) {
-  if (typeof ch === 'number') return `徒${ch}`;
-  if (typeof ch === 'string' && ch.startsWith('COR1_')) return `林前${ch.slice(5)}`;
-  if (typeof ch === 'string' && ch.startsWith('COR2_')) return `林後${ch.slice(5)}`;
-  if (typeof ch === 'string' && ch.startsWith('ROM'))   return `羅${ch.slice(3)}`;
-  if (typeof ch === 'string' && ch.startsWith('GAL'))   return `加${ch.slice(3)}`;
-  return ch;
+  if (typeof ch === 'number') return `徒${ch}`;  // 使徒行傳：純數字格式
+  for (const book of BOOKS) {
+    if (book.prefix && typeof ch === 'string' && ch.startsWith(book.prefix)) {
+      return `${book.shortName}${ch.slice(book.prefix.length)}`;
+    }
+  }
+  return ch;  // 找不到對應書卷時，原樣回傳避免崩潰
 }
+// 章節完整中文（給標題顯示用）— 例如「使徒行傳 第10章」、「哥林多前書 第1章」
 function chapterFull(ch) {
   if (typeof ch === 'number') return `使徒行傳 第${ch}章`;
-  if (typeof ch === 'string' && ch.startsWith('COR1_')) return `哥林多前書 第${ch.slice(5)}章`;
-  if (typeof ch === 'string' && ch.startsWith('COR2_')) return `哥林多後書 第${ch.slice(5)}章`;
-  if (typeof ch === 'string' && ch.startsWith('ROM'))   return `羅馬書 第${ch.slice(3)}章`;
-  if (typeof ch === 'string' && ch.startsWith('GAL'))   return `加拉太書 第${ch.slice(3)}章`;
+  for (const book of BOOKS) {
+    if (book.prefix && typeof ch === 'string' && ch.startsWith(book.prefix)) {
+      return `${book.name} 第${ch.slice(book.prefix.length)}章`;
+    }
+  }
   return ch;
 }
 
