@@ -8,6 +8,12 @@ service cloud.firestore {
         && request.auth.token.email in ['st00777@hotmail.com'];
     }
 
+    // 曠野呼聲允許的「心情」選項（畫面 bible-game-v2.html mood 按鈕也維護同一份）
+    function moods() { return ['平靜','有動力','有點累','經文太難','其他']; }
+
+    // 曠野呼聲允許的「分類」選項（畫面 bible-game-v2.html category 按鈕也維護同一份）
+    function categories() { return ['靈性感受','遊戲體驗','我的異象','其他']; }
+
     // Each player can only read/write their own user documents.
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -20,8 +26,8 @@ service cloud.firestore {
     match /feedback/{docId} {
       allow write: if request.resource.data.keys().hasOnly(['mood','category','message','isAnonymous','uid','displayName','createdAt','chapter'])
                 && request.resource.data.message.size() <= 300
-                && request.resource.data.mood in ['平靜','有動力','有點累','經文太難','其他']
-                && request.resource.data.category in ['靈性感受','遊戲體驗','我的異象','其他'];
+                && request.resource.data.mood in moods()
+                && request.resource.data.category in categories();
       allow read: if request.auth != null
                 && (resource.data.uid == request.auth.uid || isAdmin());
     }

@@ -579,6 +579,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
     <div id="fb-form">
       <div class="fb-label">今天靈修的感覺如何？</div>
+      <!-- ⚠️ 修改下面 5 個 mood 選項時請同步更新 firestore.rules 的 moods() helper（line 12） -->
       <div class="fb-opts" id="fb-mood">
         <button class="fb-opt" data-val="平靜" onclick="selectFbOption('fb-mood','mood',this)">😇<span>平靜</span></button>
         <button class="fb-opt" data-val="有動力" onclick="selectFbOption('fb-mood','mood',this)">🔥<span>有動力</span></button>
@@ -598,6 +599,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       </div>
 
       <div class="fb-label">分類</div>
+      <!-- ⚠️ 修改下面 4 個 category 選項時請同步更新 firestore.rules 的 categories() helper（line 15） -->
       <div class="fb-opts" id="fb-category">
         <button class="fb-opt" data-val="靈性感受" onclick="selectFbOption('fb-category','category',this)">🙏<span>靈性感受</span></button>
         <button class="fb-opt" data-val="遊戲體驗" onclick="selectFbOption('fb-category','category',this)">🎮<span>遊戲體驗</span></button>
