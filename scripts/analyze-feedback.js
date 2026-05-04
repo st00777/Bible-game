@@ -431,6 +431,7 @@ async function analyzeProgress(token, users) {
   // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
   // 「全部歷史」= 包含 retry 改版前的舊失敗，會被拖累
   // 「部署後」= 有 aiIsFallback 欄位的記錄（改版後寫入），反映真實當下品質
+  // ⚠️ 修改這句要同步：functions/index.js 的 FALLBACK_TEXT + bible-game-v2.html 的 fallback 字串
   const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   console.log('\n── ④ AI 回應品質（fallback 集中章節）──');
   const withAi = allChapters.filter(c => c.aiResponse);
