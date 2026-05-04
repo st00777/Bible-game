@@ -43,6 +43,37 @@
 
 ---
 
+### Modal 點擊回顧閃爍（2026-05-04）
+
+**症狀**：點已解鎖徽章開回顧 modal，手機版閃 + 短暫透出底下成就頁；電腦版正常。日記回顧結構幾乎相同但完全不閃 ── 金線索對照組。
+
+**走過的歪路（記錄避免重蹈）**
+- ❌ 拿掉 `.ach-unlock-emoji` 的 bounce 動畫：以為是 animation 干擾 transform，無效
+- ❌ `requestAnimationFrame` 延後 `openOverlay`：方向是 layout 但對 mobile GPU 合成沒幫到
+- ❌ 第一次試 `.modal` 加 `will-change` 看似無效：實為驗證在電腦版（本來就不閃）+ emoji 動畫干擾觀察 → 誤以為無效而撤回
+
+**真因**：跟 5/1 `.sheet` 破圖**完全同一個機制**。`.modal` 用 transform 動畫進場（`scale(.85) translateY(20px) → scale(1) translateY(0)`），手機 GPU 在動畫觸發瞬間才建合成 layer，第一幀未就緒 → 閃爍 + 透出底下圖層。
+
+**解法（多管齊下）**
+1. `.modal` 加 `will-change: transform`（同 `.sheet` 解法，最關鍵）
+2. `renderAchievementCard` 內聯 `void modal.offsetHeight` 強制 layout + 內聯 `.show` class（避免 helper 函式潛藏副作用，讓動畫從正確置中位置起跑）
+3. 部署到 Firebase Hosting dev channel 用**手機**驗證（不能只在電腦版測）
+
+**結果**：第二次以後完全不閃；首次點擊閃爍率 100% → 約 50%（殘留可能跟不同徽章內容長度造成的首次 paint 差異有關，可接受）。
+
+**✅ 學到的**
+- 看到「手機閃 / 電腦正常」這個模式，第一個假設就是 GPU layer 未預建（同 `.sheet`）
+- 任何用 transform 動畫進場的彈出元素（`.sheet`、`.modal`、未來的 popover）預設加 `will-change: transform`
+- 對照組差異是診斷金線索，但要警惕「對照組其實也有問題只是強度低」的陷阱
+- 驗證環境必須跟症狀環境一致：手機 bug 不能用電腦版驗證；驗證前要清快取或開無痕
+
+**⚠️ 往後注意**
+- dev 改動要 `firebase hosting:channel:deploy dev` 才會更新測試版（push GitHub 不夠 → 參見 memory `project_dev_preview_deploy.md`）
+- 撤回某個修法前先確定它真的無效，不要被環境差異或其他干擾因素誤導
+- 「完美修好」很貴；「明顯改善 + 殘留場景可接受」即可收工，避免邊際遞減
+
+---
+
 ### JavaScript 安全
 **✅ 學到的**
 - `innerHTML` 插入用戶提供的資料（如 photoURL）會造成 XSS 漏洞

@@ -15,6 +15,10 @@ const ALLOWED_ORIGINS = [
   'https://bible-game-bcb84--dev-01luz2yz.web.app',   // dev preview (Firebase Hosting channel)
 ];
 
+// AI 失敗時回給玩家的 fallback 文字。
+// ⚠️ 修改這句要同步：bible-game-v2.html（client-side 備用）+ scripts/analyze-feedback.js（用來辨識 fallback 回應）
+const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+
 exports.lineLogin = onRequest(
   {
     secrets: [lineChannelSecret],
@@ -172,7 +176,7 @@ exports.aiReflection = onRequest(
       const isFallback = !aiResponse;
       console.log(`aiReflection result: uid=${callerId} chapter=${chapter || ''} fallback=${isFallback}`);
       res.json({
-        aiResponse: aiResponse || '謝謝你願意把心裡的話帶到神面前。祂看見了。',
+        aiResponse: aiResponse || FALLBACK_TEXT,
         isFallback,
       });
     } catch (e) {

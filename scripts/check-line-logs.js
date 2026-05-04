@@ -2,62 +2,12 @@
 // 抓 lineLogin Cloud Function 的呼叫量、成功率與錯誤紀錄
 // 用法: npm run line-logs [天數]   例如 npm run line-logs 7 看過去 7 天
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+const { PROJECT, getAccessToken, fetchLogs, printErrorsByDay } = require('./_shared');
 
-const PROJECT = 'bible-game-bcb84';
 const SERVICE = 'linelogin';
 const days = Number(process.argv[2]) || 1;
 
-async function getAccessToken() {
-  const configPath = path.join(os.homedir(), '.config/configstore/firebase-tools.json');
-  if (!fs.existsSync(configPath)) throw new Error('請先 firebase login');
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const refreshToken = config.tokens?.refresh_token;
-  if (!refreshToken) throw new Error('Firebase CLI 沒有 refresh token，請重新 firebase login');
-
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com',
-      client_secret: 'j9iVZfS8kkCEFUPaAeJV0sAi',
-      refresh_token: refreshToken,
-    }),
-  });
-  const data = await res.json();
-  if (!data.access_token) throw new Error('無法取得 access token: ' + JSON.stringify(data));
-  return data.access_token;
-}
-
-async function fetchLogs(token, filter) {
-  const all = [];
-  let pageToken;
-  do {
-    const res = await fetch('https://logging.googleapis.com/v2/entries:list', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        resourceNames: [`projects/${PROJECT}`],
-        filter,
-        orderBy: 'timestamp desc',
-        pageSize: 1000,
-        pageToken,
-      }),
-    });
-    if (!res.ok) {
-      console.error('Logging API error:', res.status, await res.text());
-      process.exit(1);
-    }
-    const data = await res.json();
-    if (data.entries) all.push(...data.entries);
-    pageToken = data.nextPageToken;
-  } while (pageToken && all.length < 5000);
-  return all;
-}
-
+// 把 textPayload 對應成中文錯誤類型，方便看 LINE OAuth 哪段壞掉
 function classifyLineError(textPayload) {
   if (!textPayload) return '其他';
   if (/LINE token error/i.test(textPayload)) return 'LINE token 換取失敗';
@@ -85,7 +35,7 @@ async function main() {
     fetchLogs(token, errFilter),
   ]);
 
-  // HTTP 統計
+  // HTTP 統計（同時收集失敗時間，用來畫失敗時段分布）
   const total = requests.length;
   let http2xx = 0, http4xx = 0, http5xx = 0;
   const failedTimes = [];
@@ -118,7 +68,7 @@ async function main() {
     }
   }
 
-  // 失敗時段分布（台灣時間）
+  // 失敗時段分布（台灣時間 = UTC+8）
   if (failedTimes.length > 0) {
     const byHour = {};
     for (const ts of failedTimes) {
@@ -136,24 +86,9 @@ async function main() {
     return;
   }
 
-  // 錯誤明細
+  // 印每日錯誤明細（共用工具，預設每日前 20 筆）
   if (errors.length > 0) {
-    console.log('\n📋 錯誤明細\n');
-    const byDay = {};
-    for (const e of errors) {
-      const day = e.timestamp.slice(0, 10);
-      (byDay[day] ||= []).push(e);
-    }
-    for (const day of Object.keys(byDay).sort().reverse()) {
-      console.log(`── ${day} (${byDay[day].length} 筆) ──`);
-      for (const e of byDay[day].slice(0, 20)) {
-        const time = e.timestamp.slice(11, 19);
-        const msg = (e.textPayload || JSON.stringify(e.jsonPayload || {})).replace(/\s+/g, ' ').slice(0, 160);
-        console.log(`  ${time}  ${msg}`);
-      }
-      if (byDay[day].length > 20) console.log(`  ... 還有 ${byDay[day].length - 20} 筆`);
-      console.log();
-    }
+    printErrorsByDay(errors);
   }
 }
 

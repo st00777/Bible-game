@@ -3,39 +3,11 @@
 // 用法: npm run analyze
 // 需要 Firebase CLI 已登入 (firebase login)
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-
-// ── Auth: 從 Firebase CLI 取得 access token ──────────────
-
-async function getAccessToken() {
-  const configPath = path.join(os.homedir(), '.config/configstore/firebase-tools.json');
-  if (!fs.existsSync(configPath)) {
-    throw new Error('找不到 Firebase CLI 設定，請先執行 firebase login');
-  }
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const refreshToken = config.tokens?.refresh_token;
-  if (!refreshToken) throw new Error('Firebase CLI 沒有 refresh token，請重新 firebase login');
-
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com',
-      client_secret: 'j9iVZfS8kkCEFUPaAeJV0sAi',
-      refresh_token: refreshToken,
-    }),
-  });
-  const data = await res.json();
-  if (!data.access_token) throw new Error('無法取得 access token: ' + JSON.stringify(data));
-  return data.access_token;
-}
+// PROJECT、getAccessToken 從 _shared.js 共用（三個腳本同一個專案 + 同一套 OAuth 流程）
+const { PROJECT, getAccessToken } = require('./_shared');
 
 // ── Firestore REST helpers ───────────────────────────────
 
-const PROJECT = 'bible-game-bcb84';
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 
 async function fetchCollection(token, collection) {
@@ -457,8 +429,9 @@ async function analyzeProgress(token, users) {
   });
 
   // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
-  // 「全部歷史」= 包含 4/28 retry 部署前的舊失敗，會被拖累
-  // 「部署後」= 有 aiIsFallback 欄位的記錄（4/29 後寫入），反映真實當下品質
+  // 「全部歷史」= 包含 retry 改版前的舊失敗，會被拖累
+  // 「部署後」= 有 aiIsFallback 欄位的記錄（改版後寫入），反映真實當下品質
+  // ⚠️ 修改這句要同步：functions/index.js 的 FALLBACK_TEXT + bible-game-v2.html 的 fallback 字串
   const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   console.log('\n── ④ AI 回應品質（fallback 集中章節）──');
   const withAi = allChapters.filter(c => c.aiResponse);
@@ -549,11 +522,13 @@ async function analyzeProgress(token, users) {
   if (allReflections.length === 0) {
     console.log('  （尚無 reflections 子集合資料 — 4/28 後才開始累積）');
   } else {
-    // 每章節改寫次數
-    const reflByChapter = {}; // key = uid|chKey
+    // 每章節改寫次數 + 同步建立分組查表（給後面字數變化趨勢用，避免 O(N×M) 重複 filter）
+    const reflByChapter = {}; // key = uid|chKey → 改寫次數
+    const reflectionsByKey = {}; // key = uid|chKey → 該玩家該章的所有 reflection 物件
     allReflections.forEach(r => {
       const k = `${r.uid}|${r.chKey}`;
       reflByChapter[k] = (reflByChapter[k] || 0) + 1;
+      (reflectionsByKey[k] ||= []).push(r);
     });
     const writeCounts = Object.values(reflByChapter);
     const totalWrites = allReflections.length;
@@ -605,11 +580,12 @@ async function analyzeProgress(token, users) {
     }
 
     // 字數變化趨勢（同一玩家同一章，後寫的 vs 第一次的字數）
+    // 改用 reflectionsByKey 查表，避免每組都 filter 全表（O(N×M) → O(N + M)）
     const lengthDiff = [];
     for (const [k, count] of Object.entries(reflByChapter)) {
       if (count < 2) continue;
-      const list = allReflections
-        .filter(r => `${r.uid}|${r.chKey}` === k)
+      const list = reflectionsByKey[k]
+        .slice()
         .sort((a, b) => {
           const aT = a.completedAt || '';
           const bT = b.completedAt || '';
