@@ -111,6 +111,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .fb-opt-row>span:first-child{flex-shrink:0;}
 .fb-opt-row>span:last-child{flex:1;font-size:13px;font-weight:700;}
 .fb-opt-row small{color:var(--text-soft);font-weight:normal;font-size:11px;display:block;margin-top:2px;}
+.fb-opt-locked{opacity:0.45;pointer-events:none;filter:grayscale(0.6);}
 .fb-textarea{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);resize:none;min-height:80px;line-height:1.7;outline:none;transition:border-color .2s;box-sizing:border-box;}
 .fb-textarea:focus{border-color:var(--purple);}
 .fb-count{font-size:11px;color:var(--text-soft);text-align:right;margin:4px 0 12px;}
@@ -597,6 +598,18 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
           <span>🆔</span><span>具名留言<small>方便開發團隊進一步追蹤</small></span>
         </button>
       </div>
+
+      <div class="fb-label">希望收到團隊回覆？</div>
+      <!-- v2 多輪對話：匿名留言時兩顆按鈕會被 selectFbOption 鎖成灰色並自動選「不用回覆」 -->
+      <div class="fb-opts" id="fb-want-reply">
+        <button class="fb-opt fb-opt-row" data-val="yes" onclick="selectFbOption('fb-want-reply','wantReply',this)">
+          <span>💬</span><span>我想收到回覆<small>需具名留言</small></span>
+        </button>
+        <button class="fb-opt fb-opt-row" data-val="no" onclick="selectFbOption('fb-want-reply','wantReply',this)">
+          <span>📭</span><span>不用回覆<small>單純分享想法</small></span>
+        </button>
+      </div>
+      <div id="fb-want-reply-hint" style="display:none;font-size:12px;color:#999;line-height:1.6;margin-top:4px;">📌 匿名留言無法收到回覆，如希望收到回覆請改具名</div>
 
       <div class="fb-label">分類</div>
       <!-- ⚠️ 修改下面 4 個 category 選項時請同步更新 firestore.rules 的 categories() helper（line 15） -->
@@ -2887,7 +2900,8 @@ document.addEventListener('click', () => {
 });
 
 // ── Feedback (曠野呼聲) ───────────────────────────────────
-let feedbackState = { mood: null, identity: null, category: null };
+// v2 wantReply：玩家是否希望團隊回覆；匿名身份時 UI 鎖成「不用回覆」
+let feedbackState = { mood: null, identity: null, category: null, wantReply: null };
 const FEEDBACK_VERSES = [
   { t: '「你們要將一切的憂慮卸給神，因為他顧念你們。」', r: '—— 彼得前書 5:7' },
   { t: '「我靠著那加給我力量的，凡事都能做。」', r: '—— 腓立比書 4:13' },
@@ -2901,8 +2915,12 @@ function openFeedback() {
 }
 
 function resetFeedbackForm() {
-  feedbackState = { mood: null, identity: null, category: null };
+  feedbackState = { mood: null, identity: null, category: null, wantReply: null };
   document.querySelectorAll('#feedback-overlay .fb-opt.sel').forEach(el => el.classList.remove('sel'));
+  // 清掉 wantReply 區塊的鎖定狀態與提示
+  document.querySelectorAll('#fb-want-reply .fb-opt-locked').forEach(el => el.classList.remove('fb-opt-locked'));
+  const wrHint = document.getElementById('fb-want-reply-hint');
+  if (wrHint) wrHint.style.display = 'none';
   document.getElementById('fb-message').value = '';
   updateFbCount();
   document.getElementById('fb-form').style.display = 'block';
@@ -2913,6 +2931,28 @@ function selectFbOption(groupId, field, btn) {
   document.querySelectorAll('#' + groupId + ' .fb-opt').forEach(x => x.classList.remove('sel'));
   btn.classList.add('sel');
   feedbackState[field] = btn.dataset.val;
+  // 切換身份時連動 wantReply 鎖定狀態（匿名 → 鎖；具名 → 解鎖，保留之前的選擇）
+  if (field === 'identity') {
+    applyAnonLockOnWantReply(btn.dataset.val === 'anon');
+  }
+}
+
+// 匿名時：把 wantReply 兩顆按鈕灰掉、自動選「不用回覆」、顯示提示
+// 具名時：解鎖兩顆按鈕、隱藏提示（不清掉 feedbackState.wantReply，讓玩家切回具名仍記得之前的選擇）
+function applyAnonLockOnWantReply(isAnon) {
+  const wrEls = document.querySelectorAll('#fb-want-reply .fb-opt');
+  const hint = document.getElementById('fb-want-reply-hint');
+  if (isAnon) {
+    feedbackState.wantReply = 'no';
+    wrEls.forEach(el => {
+      el.classList.add('fb-opt-locked');
+      el.classList.toggle('sel', el.dataset.val === 'no');
+    });
+    if (hint) hint.style.display = 'block';
+  } else {
+    wrEls.forEach(el => el.classList.remove('fb-opt-locked'));
+    if (hint) hint.style.display = 'none';
+  }
 }
 
 function updateFbCount() {
@@ -2923,6 +2963,7 @@ function updateFbCount() {
 async function submitFeedback() {
   if (!feedbackState.mood) { showToast('請先選今天的感覺'); return; }
   if (!feedbackState.identity) { showToast('請選擇身份'); return; }
+  if (!feedbackState.wantReply) { showToast('請選是否希望收到回覆'); return; }
   if (!feedbackState.category) { showToast('請選擇分類'); return; }
 
   // Guest wanting named comment → prompt to login
@@ -2941,6 +2982,10 @@ async function submitFeedback() {
     displayName: (!isAnonymous && currentUser) ? (currentUser.displayName || null) : null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     chapter: selectedChapter || null,
+    // v2 多輪對話：玩家是否希望團隊回覆（匿名強制 false）
+    // 對話追蹤欄位（status / lastMessageAt / unreadByPlayer / unreadByAdmin / messageCount）
+    // 採 lazy-init：admin 後台回覆或玩家追訊息時才寫；讀取時用 ?? 預設值容錯
+    wantReply: feedbackState.wantReply === 'yes',
   };
 
   try {
@@ -2974,6 +3019,8 @@ function switchToAnonFeedback() {
   document.querySelectorAll('#fb-ident .fb-opt').forEach(el => {
     el.classList.toggle('sel', el.dataset.val === 'anon');
   });
+  // 同步鎖 wantReply 區塊（與直接點「匿名」走一樣的路徑）
+  applyAnonLockOnWantReply(true);
   closeOverlay('feedback-login-prompt');
 }
 
