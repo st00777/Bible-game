@@ -3208,23 +3208,29 @@ function switchPage(name) {
 }
 
 // ══ BOOT ════════════════════════════════════════════════
+// 包進 DOMContentLoaded：content.js 帶 defer（首畫面不被阻塞），
+// 但 inline script 是同步立即執行；BOOT 走 state.setup=true 路徑會經 initApp →
+// renderCalGrid 用 SCHEDULE，cold load 時 SCHEDULE 還沒 ready 就會 race。
+// DOMContentLoaded 在所有 defer scripts 執行完才 fire，保證 SCHEDULE 已定義。
 
-if (state.setup) {
-  showMainAppScreen();
-  // Version update notice
-  const lastSeen = localStorage.getItem('last_seen_version');
-  if (lastSeen !== GAME_VERSION) {
-    setTimeout(() => showVersionNotice(), 600);
-  } else if (!localStorage.getItem('tut_done')) {
-    setTimeout(() => openOverlay('tut-overlay'), 500);
+document.addEventListener('DOMContentLoaded', () => {
+  if (state.setup) {
+    showMainAppScreen();
+    // Version update notice
+    const lastSeen = localStorage.getItem('last_seen_version');
+    if (lastSeen !== GAME_VERSION) {
+      setTimeout(() => showVersionNotice(), 600);
+    } else if (!localStorage.getItem('tut_done')) {
+      setTimeout(() => openOverlay('tut-overlay'), 500);
+    }
+  } else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
+    // Returning from LINE redirect OR previously chose login/guest — show setup
+    // (post-auth onAuthStateChanged may still advance to main app if cloud has setup)
+    showSetupScreen();
+  } else {
+    showWelcomeScreen();
   }
-} else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
-  // Returning from LINE redirect OR previously chose login/guest — show setup
-  // (post-auth onAuthStateChanged may still advance to main app if cloud has setup)
-  showSetupScreen();
-} else {
-  showWelcomeScreen();
-}
+});
 
 function showVersionNotice() {
   document.getElementById('ver-num').textContent = `v${GAME_VERSION}`;
