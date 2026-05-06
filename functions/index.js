@@ -112,7 +112,7 @@ exports.lineLogin = onRequest(
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GOOGLE_AI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 2) {
+async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 3) {
   const url = `${GOOGLE_AI_BASE}/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
@@ -123,7 +123,8 @@ async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 2) 
     }),
   });
   if (!res.ok) {
-    // 503 = Gemini 過載 spike，最多重試 2 次。等待 1.5±0.5 秒加 jitter，
+    // 503 = Gemini 過載 spike，最多重試 3 次（2026-05-07 從 2 升到 3，
+    // 為了把部署後 fallback 率從 14% 壓下來）。等待 1.5±0.5 秒加 jitter，
     // 避免多個玩家同時撞牆又在同一秒重試
     if (res.status === 503 && retries > 0) {
       const waitMs = Math.round(1000 + Math.random() * 1000); // 1000-2000ms
