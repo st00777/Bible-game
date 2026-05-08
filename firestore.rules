@@ -42,14 +42,31 @@ service cloud.firestore {
                 && (resource.data.uid == request.auth.uid || isAdmin());
 
       // admin 可改所有欄位（後台回覆會更新 status / lastMessageAt / unread* / messageCount）
-      // 玩家只能把自己 feedback 的 unreadByPlayer 由 true → false（標記已讀）
+      // 玩家允許兩條互斥路徑（hasOnly 確保不會混合）：
+      //   A. 標記已讀：只動 unreadByPlayer，從 true → false
+      //   B. 追訊息：同時動 lastMessageAt / unreadByAdmin / messageCount / status 4 個欄位，
+      //      每個欄位的值都被強制（避免玩家篡改：messageCount 必 +1、status 必 awaiting_admin、
+      //      unreadByAdmin 必 true、lastMessageAt 必 server time）
       allow update: if isAdmin()
                 || (
                   request.auth != null
                   && resource.data.uid == request.auth.uid
-                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadByPlayer'])
-                  && resource.data.unreadByPlayer == true
-                  && request.resource.data.unreadByPlayer == false
+                  && (
+                    // 路徑 A：標記已讀
+                    (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadByPlayer'])
+                      && resource.data.unreadByPlayer == true
+                      && request.resource.data.unreadByPlayer == false
+                    )
+                    // 路徑 B：玩家追訊息（messages 子集合 add 後同步更新 parent 4 欄位）
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessageAt','unreadByAdmin','messageCount','status'])
+                      && request.resource.data.unreadByAdmin == true
+                      && request.resource.data.status == 'awaiting_admin'
+                      && request.resource.data.messageCount == resource.data.get('messageCount', 0) + 1
+                      && request.resource.data.lastMessageAt == request.time
+                    )
+                  )
                 );
 
       allow delete: if isAdmin();
