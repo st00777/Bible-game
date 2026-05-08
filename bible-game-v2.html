@@ -468,6 +468,32 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .my-msg-badge-replied{background:linear-gradient(135deg,#E8F5E9,#C8E6C9);color:var(--green-dark);border:1px solid #81C784;}
 .my-msg-badge-closed{background:#F0EBE3;color:var(--text-soft);border:1px solid #D7CCC8;}
 
+/* My Message Thread (Phase 2C 多輪對話 thread view) */
+.thread-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.thread-header .sheet-title{flex:1;}
+.thread-body{padding:6px 0 4px;}
+.thread-origin{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px 16px;margin-bottom:18px;}
+.thread-origin-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;align-items:center;}
+.thread-origin-meta .thread-time{color:var(--text-soft);font-weight:normal;margin-left:auto;}
+.thread-origin-text{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.thread-origin-text-empty{color:#bbb;font-style:italic;}
+.thread-msg{margin-bottom:14px;max-width:80%;}
+.thread-msg-left{margin-right:auto;}
+.thread-msg-right{margin-left:auto;text-align:right;}
+.thread-bubble{display:inline-block;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;text-align:left;box-shadow:0 2px 6px var(--shadow);}
+.thread-bubble-player{background:linear-gradient(135deg,var(--purple),#7B5EA7);color:white;border-radius:14px 14px 4px 14px;}
+.thread-bubble-admin{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);color:var(--text);border-radius:14px 14px 14px 4px;border:1px solid #C8E6C9;}
+.thread-time{font-size:10px;color:var(--text-soft);margin-top:2px;padding:0 6px;}
+.thread-msg-right .thread-time{text-align:right;}
+.thread-ai-icon{font-size:14px;margin-right:4px;}
+.thread-input-area{border-top:1px solid var(--sky-deep);padding-top:10px;margin-top:10px;}
+.thread-input-area textarea{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);resize:none;min-height:60px;line-height:1.7;outline:none;transition:border-color .2s;box-sizing:border-box;}
+.thread-input-area textarea:focus{border-color:var(--purple);}
+.thread-input-area textarea[readonly]{background:#F5F0E8;cursor:not-allowed;color:var(--text-soft);}
+.thread-char-count{font-size:11px;color:var(--text-soft);text-align:right;margin:4px 0 8px;}
+.thread-input-area .green-btn:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
+.thread-closed-hint{font-size:12px;color:#999;line-height:1.6;margin-bottom:8px;}
+
 /* Bookshelf */
 .bookshelf{background:linear-gradient(180deg,#8B6F47 0%,#6B4F2F 100%);border-radius:16px;padding:16px 12px 8px;box-shadow:inset 0 2px 8px rgba(0,0,0,.25),0 4px 12px rgba(107,79,47,.4);}
 .shelf-row{display:flex;gap:8px;justify-content:center;padding-bottom:10px;margin-bottom:10px;border-bottom:6px solid #5A3E22;box-shadow:0 4px 6px rgba(0,0,0,.2);position:relative;}
@@ -693,6 +719,25 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
     <div class="sheet-sub">你過往送出的曠野呼聲都收在這裡</div>
     <div style="flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;margin-top:10px;" id="my-msgs-list"></div>
+  </div>
+</div>
+
+<!-- My Message Thread (Phase 2C 多輪對話 thread view) -->
+<div class="overlay" id="my-msg-thread-overlay">
+  <div class="sheet" style="display:flex;flex-direction:column;height:90vh;overflow-y:hidden;">
+    <div class="sheet-handle"></div>
+    <div class="thread-header">
+      <button onclick="closeMyMsgThread()" class="sky-btn" style="width:auto;margin:0;padding:6px 12px;font-size:13px;">← 返回</button>
+      <div class="sheet-title">💬 對話</div>
+      <div id="thread-badge"></div>
+    </div>
+    <div class="thread-body" id="thread-body" style="flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;"></div>
+    <div class="thread-input-area" id="thread-input-area">
+      <textarea id="thread-text" maxlength="300" placeholder="輸入訊息..." oninput="updateThreadCount()"></textarea>
+      <div class="thread-char-count" id="thread-count">0 / 300</div>
+      <div class="thread-closed-hint" id="thread-closed-hint" style="display:none;"></div>
+      <button id="thread-send-btn" class="green-btn" onclick="sendThreadMessage()" disabled>送出</button>
+    </div>
   </div>
 </div>
 
@@ -3302,9 +3347,237 @@ function escapeHtmlMyMsg(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function openMyMessageThread(docId) {
-  // Phase 2C 才實作真正的 thread view（讀 messages 子集合 + 玩家追訊息 UI + 標已讀）
-  console.log('[Phase 2C todo] openMyMessageThread:', docId);
+// ── My Message Thread (Phase 2C 多輪對話 thread view) ────
+// rules Path B（commit b2abc6a）允許玩家寫一筆 messages doc + 同步 update parent 4 欄位
+// 用 batch write 確保原子性。closed 對話 client 端 UI readonly（rules 寬鬆 client 嚴格）
+let currentThreadDocId = null;
+let currentThreadData = null;     // parent feedback doc 快照
+let currentThreadMessages = [];   // messages 子集合按 createdAt 升序
+let isThreadSending = false;
+
+async function openMyMessageThread(docId) {
+  if (!currentUser) {
+    showToast('登入後可查看對話');
+    return;
+  }
+  currentThreadDocId = docId;
+  isThreadSending = false;
+
+  // 先開 overlay 顯示載入中
+  document.getElementById('thread-body').innerHTML = '<div class="diary-empty"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 載入中</div>';
+  document.getElementById('thread-text').value = '';
+  document.getElementById('thread-count').textContent = '0 / 300';
+  document.getElementById('thread-closed-hint').style.display = 'none';
+  document.getElementById('thread-send-btn').disabled = true;
+  openOverlay('my-msg-thread-overlay');
+
+  try {
+    const feedbackRef = db.collection('feedback').doc(docId);
+    const [parentSnap, messagesSnap] = await Promise.all([
+      feedbackRef.get(),
+      feedbackRef.collection('messages').orderBy('createdAt', 'asc').get(),
+    ]);
+    if (!parentSnap.exists) {
+      document.getElementById('thread-body').innerHTML = '<div class="diary-empty">⚠️ 留言不存在或已被刪除</div>';
+      return;
+    }
+    currentThreadData = { id: docId, ...parentSnap.data() };
+    currentThreadMessages = [];
+    messagesSnap.forEach(d => currentThreadMessages.push({ id: d.id, ...d.data() }));
+    renderThreadView();
+
+    // Fire-and-forget 標記已讀（容錯後 unreadByPlayer=true 才寫，避免無謂 update）
+    if (normalizeUnread(currentThreadData, 'player')) {
+      feedbackRef.update({ unreadByPlayer: false })
+        .catch(e => console.warn('Mark as read failed:', e));
+    }
+  } catch (e) {
+    console.warn('Thread load error:', e);
+    if (String(e.message || '').includes('requires an index')) {
+      document.getElementById('thread-body').innerHTML = '<div class="diary-empty">⚠️ 需建立 Firestore 索引<br><br>請聯絡管理員（看 console 取得建立連結）</div>';
+      console.error('Firestore index needed:', e.message);
+    } else {
+      document.getElementById('thread-body').innerHTML = '<div class="diary-empty">載入失敗，請重試<br><br><button class="sky-btn" onclick="retryOpenThread()" style="width:auto;margin:10px 0 0;padding:6px 14px;font-size:13px;">重試</button></div>';
+    }
+  }
+}
+
+function retryOpenThread() {
+  if (currentThreadDocId) openMyMessageThread(currentThreadDocId);
+}
+
+function renderThreadView() {
+  const d = currentThreadData;
+  const status = normalizeFeedbackStatus(d);
+
+  // Badge
+  document.getElementById('thread-badge').innerHTML = renderMyMsgBadge(status);
+
+  const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
+  const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+
+  const ts = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate() : null;
+  const dateStr = ts ? formatThreadTime(ts) : '—';
+  const mood = d.mood ? `${moodEmoji[d.mood] || ''} ${d.mood}` : '';
+  const cat = d.category ? `${catEmoji[d.category] || ''} ${d.category}` : '';
+
+  // 原始留言（特殊樣式，非泡泡）
+  let html = `<div class="thread-origin">
+    <div class="thread-origin-meta"><span>${mood}</span><span>${cat}</span><span class="thread-time">${dateStr}</span></div>
+    <div class="thread-origin-text">${d.message ? escapeHtmlMyMsg(d.message) : '<span class="thread-origin-text-empty">（沒有文字內容）</span>'}</div>
+  </div>`;
+
+  // messages 子集合泡泡
+  currentThreadMessages.forEach(m => {
+    const mTs = m.createdAt && typeof m.createdAt.toDate === 'function' ? m.createdAt.toDate() : null;
+    const mTime = mTs ? formatThreadTime(mTs) : '—';
+    const isPlayer = m.role === 'player';
+    const isAi = m.authorType === 'ai';
+    const bubbleClass = isPlayer ? 'thread-bubble-player' : 'thread-bubble-admin';
+    const aiPrefix = (!isPlayer && isAi) ? '<span class="thread-ai-icon">🤖</span>' : '';
+    html += `<div class="thread-msg ${isPlayer ? 'thread-msg-right' : 'thread-msg-left'}">
+      <div class="thread-bubble ${bubbleClass}">${aiPrefix}${escapeHtmlMyMsg(m.text || '')}</div>
+      <div class="thread-time">${mTime}</div>
+    </div>`;
+  });
+
+  document.getElementById('thread-body').innerHTML = html;
+
+  // 自動滾到底（最新訊息在底部）
+  const body = document.getElementById('thread-body');
+  body.scrollTop = body.scrollHeight;
+
+  // 設定輸入區狀態（closed → readonly + 提示）
+  if (status === 'closed') {
+    setThreadInputClosed(true, '這個對話已結束。如有新事項，請另外送一筆曠野呼聲。');
+  } else {
+    setThreadInputClosed(false, '');
+  }
+}
+
+function setThreadInputClosed(closed, hint) {
+  const ta = document.getElementById('thread-text');
+  const btn = document.getElementById('thread-send-btn');
+  const hintEl = document.getElementById('thread-closed-hint');
+  if (closed) {
+    ta.readOnly = true;
+    ta.placeholder = '對話已結束';
+    btn.disabled = true;
+    hintEl.textContent = hint;
+    hintEl.style.display = 'block';
+  } else {
+    ta.readOnly = false;
+    ta.placeholder = '輸入訊息...';
+    hintEl.style.display = 'none';
+    btn.disabled = ta.value.trim().length === 0 || isThreadSending;
+  }
+}
+
+function updateThreadCount() {
+  const v = document.getElementById('thread-text').value;
+  document.getElementById('thread-count').textContent = `${v.length} / 300`;
+  // closed 永遠 disabled，不被 textarea 內容影響
+  const status = currentThreadData ? normalizeFeedbackStatus(currentThreadData) : null;
+  if (status !== 'closed') {
+    document.getElementById('thread-send-btn').disabled = v.trim().length === 0 || isThreadSending;
+  }
+}
+
+function formatThreadTime(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function sendThreadMessage() {
+  if (isThreadSending) return;
+  if (!currentUser || !currentThreadDocId) return;
+
+  const ta = document.getElementById('thread-text');
+  const text = ta.value.trim();
+  if (text.length === 0) return;
+
+  // closed safety check（雙重防護，雖然 button 已 disabled）
+  const status = currentThreadData ? normalizeFeedbackStatus(currentThreadData) : null;
+  if (status === 'closed') {
+    showToast('對話已結束，無法追訊息');
+    return;
+  }
+
+  isThreadSending = true;
+  ta.disabled = true;
+  document.getElementById('thread-send-btn').disabled = true;
+
+  try {
+    // Batch write：messages 子集合 add + parent 4 欄位 update（原子性，符合 rules Path B）
+    const feedbackRef = db.collection('feedback').doc(currentThreadDocId);
+    const msgRef = feedbackRef.collection('messages').doc();
+    const ts = firebase.firestore.FieldValue.serverTimestamp();
+
+    const batch = db.batch();
+    batch.set(msgRef, {
+      role: 'player',
+      text,
+      createdAt: ts,
+      authorUid: currentUser.uid,
+      authorType: 'human',
+    });
+    batch.update(feedbackRef, {
+      lastMessageAt: ts,
+      unreadByAdmin: true,
+      messageCount: firebase.firestore.FieldValue.increment(1),
+      status: 'awaiting_admin',
+    });
+    await batch.commit();
+
+    // 重讀完整資料（保證 local state 跟 server 一致，serverTimestamp / increment 真正值才回得來）
+    const [parentSnap, messagesSnap] = await Promise.all([
+      feedbackRef.get(),
+      feedbackRef.collection('messages').orderBy('createdAt', 'asc').get(),
+    ]);
+    currentThreadData = { id: currentThreadDocId, ...parentSnap.data() };
+    currentThreadMessages = [];
+    messagesSnap.forEach(d => currentThreadMessages.push({ id: d.id, ...d.data() }));
+
+    // 清空 textarea + 重新渲染（自動滾到底）
+    ta.value = '';
+    document.getElementById('thread-count').textContent = '0 / 300';
+    isThreadSending = false;
+    ta.disabled = false;
+    renderThreadView();
+  } catch (e) {
+    console.warn('Send message error:', e);
+    showToast('送出失敗，請稍後再試');
+    isThreadSending = false;
+    ta.disabled = false;
+    // 保留 textarea 內容（玩家文字不丟失），button disabled 依文字內容
+    document.getElementById('thread-send-btn').disabled = ta.value.trim().length === 0;
+  }
+}
+
+function closeMyMsgThread() {
+  closeOverlay('my-msg-thread-overlay');
+  currentThreadDocId = null;
+  currentThreadData = null;
+  currentThreadMessages = [];
+  // 返回 list 時 refresh：剛才追訊息過的卡片狀態（badge / 預覽）會更新
+  if (currentUser) {
+    refreshMyMessagesList();
+  }
+}
+
+async function refreshMyMessagesList() {
+  // 跟 openMyMessages 同 query，但不開 overlay 不顯示載入動畫（避免閃爍）
+  try {
+    const snapshot = await db.collection('feedback')
+      .where('uid', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .get();
+    myMessagesData = [];
+    snapshot.forEach(doc => myMessagesData.push({ id: doc.id, ...doc.data() }));
+    renderMyMessagesList(myMessagesData);
+  } catch (e) {
+    console.warn('My messages refresh error:', e);
+  }
 }
 
 function showConfirm(icon, title, msg, okLabel, cancelLabel) {
