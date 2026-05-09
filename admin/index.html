@@ -130,6 +130,24 @@ body{
   line-height:1.7;
 }
 .placeholder-card strong{color:var(--text);font-weight:700;}
+.action-card{
+  display:block;
+  background:linear-gradient(135deg,#F3E8FF,#EDE0FF);
+  border:2px solid var(--purple);
+  border-radius:13px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  font-size:14px;
+  color:var(--text);
+  font-weight:700;
+  line-height:1.7;
+  text-decoration:none;
+  cursor:pointer;
+  transition:all .15s;
+  box-shadow:0 2px 10px var(--shadow);
+}
+.action-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow);}
+.action-card-arrow{float:right;color:var(--purple);font-weight:900;}
 
 /* 拒絕畫面（Screen C）*/
 .deny-card{
@@ -194,17 +212,18 @@ body{
       <div class="user-email" id="user-email">—</div>
     </div>
     <div class="placeholder-list">
-      <div class="placeholder-card">
-        <strong>📬 留言列表</strong><br>
-        Phase 3B 即將上線
-      </div>
+      <a class="action-card" href="./list.html">
+        <span class="action-card-arrow">→</span>
+        <strong>📬 進入留言列表</strong><br>
+        查看玩家曠野呼聲、篩選未回覆訊息
+      </a>
       <div class="placeholder-card">
         <strong>💬 回覆對話</strong><br>
         Phase 3C 即將上線
       </div>
     </div>
     <button class="btn btn-secondary" onclick="handleLogout()">登出</button>
-    <div class="foot">v3.0 admin · Phase 3A baseline</div>
+    <div class="foot">v3.0 admin · Phase 3B</div>
   </div>
 
   <!-- Screen C：已登入但不在白名單 -->
