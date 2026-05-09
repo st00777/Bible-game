@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "bible-game-bcb84"
-  }
+  },
+  "targets": {
+    "bible-game-bcb84": {
+      "hosting": {
+        "main": [
+          "bible-game-bcb84"
+        ],
+        "admin": [
+          "bible-game-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#9C7BB5">
+<title>靈修冒險 · 管理後台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens（沿用主站 design-system.md 主調）─────── */
+:root{
+  --sky:#E8F4FD;
+  --sky-deep:#B8D9F0;
+  --green:#7BC67E;
+  --green-dark:#4CAF50;
+  --sand:#F5E6C8;
+  --sand-dark:#E8D0A0;
+  --warm:#FF8A65;
+  --purple:#9C7BB5;
+  --text:#3D2B1F;
+  --text-soft:#7A6050;
+  --card:#FFFDF8;
+  --shadow:rgba(61,43,31,0.12);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans TC',sans-serif;
+  background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);
+  min-height:100vh;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 16px;
+  -webkit-font-smoothing:antialiased;
+}
+
+.container{
+  width:100%;
+  max-width:480px;
+  background:var(--card);
+  border-radius:24px;
+  box-shadow:0 8px 32px var(--shadow);
+  padding:32px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+  position:relative;
+}
+
+/* 頂部圖示 + 標題 */
+.head{text-align:center;margin-bottom:20px;}
+.head-icon{font-size:48px;margin-bottom:8px;}
+.head-title{font-size:22px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.head-sub{font-size:13px;color:var(--text-soft);line-height:1.7;}
+
+/* 共用按鈕（仿主站 .green-btn / .sky-btn）*/
+.btn{
+  display:block;
+  width:100%;
+  padding:14px 18px;
+  border:none;
+  border-radius:14px;
+  font-family:inherit;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .15s;
+  margin-top:14px;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  color:white;
+  box-shadow:0 6px 20px rgba(76,175,80,.4);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(76,175,80,.5);}
+.btn-primary:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
+.btn-secondary{
+  background:var(--sky);
+  color:var(--text);
+  border:2px solid var(--sky-deep);
+  box-shadow:0 2px 8px var(--shadow);
+}
+.btn-secondary:hover{background:var(--sky-deep);}
+
+/* Google logo（按鈕內）*/
+.btn-primary .google-logo{
+  display:inline-block;
+  width:18px;height:18px;
+  background:white;
+  border-radius:50%;
+  margin-right:8px;
+  vertical-align:middle;
+  position:relative;
+  top:-1px;
+  font-size:13px;
+  line-height:18px;
+  color:#4285F4;
+  font-weight:900;
+}
+
+/* 載入中 dot */
+.loading{text-align:center;padding:20px 0;color:var(--text-soft);font-size:14px;}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin:0 2px;animation:dot-blink 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}
+.dot:nth-child(3){animation-delay:.4s;}
+@keyframes dot-blink{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1.2);}}
+
+/* 已登入畫面（Screen B）*/
+.user-card{
+  background:linear-gradient(135deg,#F3E8FF,#EDE0FF);
+  border:2px solid var(--purple);
+  border-radius:16px;
+  padding:16px 18px;
+  margin-bottom:16px;
+}
+.user-name{font-size:16px;font-weight:900;color:var(--text);margin-bottom:4px;}
+.user-email{font-size:12px;color:var(--text-soft);}
+.placeholder-list{margin:18px 0;}
+.placeholder-card{
+  background:var(--sky);
+  border:2px dashed var(--sky-deep);
+  border-radius:13px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  font-size:14px;
+  color:var(--text-soft);
+  line-height:1.7;
+}
+.placeholder-card strong{color:var(--text);font-weight:700;}
+
+/* 拒絕畫面（Screen C）*/
+.deny-card{
+  background:linear-gradient(135deg,#FFE0B2,#FFCC80);
+  border:2px solid #FFB74D;
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:16px;
+  text-align:center;
+}
+.deny-icon{font-size:36px;margin-bottom:8px;}
+.deny-title{font-size:16px;font-weight:900;color:#E65100;margin-bottom:6px;}
+.deny-msg{font-size:13px;color:var(--text);line-height:1.7;}
+
+/* Footer 小字 */
+.foot{
+  text-align:center;
+  font-size:11px;
+  color:var(--text-soft);
+  margin-top:18px;
+  letter-spacing:.05em;
+}
+
+/* 桌面尺寸微調 */
+@media (min-width:600px){
+  .container{padding:40px 32px;}
+  .head-icon{font-size:56px;}
+  .head-title{font-size:24px;}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 載入中（auth state 還沒判斷出來）-->
+  <div id="screen-loading" class="loading">
+    <div class="head"><div class="head-icon">📬</div><div class="head-title">靈修冒險 · 管理後台</div></div>
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+  </div>
+
+  <!-- Screen A：未登入 -->
+  <div id="screen-login" style="display:none;">
+    <div class="head">
+      <div class="head-icon">📬</div>
+      <div class="head-title">靈修冒險 · 管理後台</div>
+      <div class="head-sub">請用授權的 admin email 登入</div>
+    </div>
+    <button id="btn-login" class="btn btn-primary" onclick="handleLogin()">
+      <span class="google-logo">G</span>使用 Google 登入
+    </button>
+    <div class="foot">僅限教會團隊管理員使用</div>
+  </div>
+
+  <!-- Screen B：已登入 + 在白名單 -->
+  <div id="screen-authorized" style="display:none;">
+    <div class="head">
+      <div class="head-icon">✨</div>
+      <div class="head-title">歡迎，<span id="user-name">—</span></div>
+    </div>
+    <div class="user-card">
+      <div class="user-name" id="user-name-2">—</div>
+      <div class="user-email" id="user-email">—</div>
+    </div>
+    <div class="placeholder-list">
+      <div class="placeholder-card">
+        <strong>📬 留言列表</strong><br>
+        Phase 3B 即將上線
+      </div>
+      <div class="placeholder-card">
+        <strong>💬 回覆對話</strong><br>
+        Phase 3C 即將上線
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="handleLogout()">登出</button>
+    <div class="foot">v3.0 admin · Phase 3A baseline</div>
+  </div>
+
+  <!-- Screen C：已登入但不在白名單 -->
+  <div id="screen-denied" style="display:none;">
+    <div class="head">
+      <div class="head-icon">🚫</div>
+      <div class="head-title">靈修冒險 · 管理後台</div>
+    </div>
+    <div class="deny-card">
+      <div class="deny-icon">⚠️</div>
+      <div class="deny-title">此帳號未獲授權</div>
+      <div class="deny-msg">
+        登入帳號 <strong id="deny-email">—</strong><br>
+        如需開通，請聯絡教會團隊
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="handleLogout()">登出（換帳號）</button>
+  </div>
+</div>
+
+<!-- Firebase SDK（用跟主站同樣的 9.22.2 compat 版本）-->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+<script>
+// ── Firebase init（同主站 firebaseConfig）───────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
+  authDomain: "bible-game-bcb84.firebaseapp.com",
+  projectId: "bible-game-bcb84",
+  storageBucket: "bible-game-bcb84.firebasestorage.app",
+  messagingSenderId: "998309781226",
+  appId: "1:998309781226:web:3393ab62963940ef720193"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+// ── 白名單（跟 firestore.rules 的 isAdmin() 同步）───────
+// 注意：前端寫死的白名單只是 UX 第一道防線，真正的安全靠 firestore.rules
+const ADMIN_EMAILS = ['st00777@hotmail.com'];
+
+// ── Screen 切換 ─────────────────────────────────────────
+function showScreen(name) {
+  ['loading', 'login', 'authorized', 'denied'].forEach(s => {
+    document.getElementById('screen-' + s).style.display = (s === name) ? 'block' : 'none';
+  });
+}
+
+// ── 登入 / 登出 handlers ────────────────────────────────
+async function handleLogin() {
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true;
+  btn.textContent = '登入中…';
+  try {
+    await auth.signInWithPopup(googleProvider);
+    // onAuthStateChanged 會接手畫面切換
+  } catch (e) {
+    console.warn('Login failed:', e);
+    btn.disabled = false;
+    btn.innerHTML = '<span class="google-logo">G</span>使用 Google 登入';
+    alert('登入失敗：' + (e.message || '請再試一次'));
+  }
+}
+
+async function handleLogout() {
+  try {
+    await auth.signOut();
+    // onAuthStateChanged 會把畫面切回 login
+  } catch (e) {
+    console.warn('Logout failed:', e);
+  }
+}
+
+// ── Auth state monitor（決定顯示哪個畫面）──────────────
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    // 重置登入按鈕狀態：登出後（或首次未登入）回到 A 畫面時，
+    // 確保按鈕不會卡在 handleLogin 設的 disabled / 「登入中…」狀態
+    const btn = document.getElementById('btn-login');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="google-logo">G</span>使用 Google 登入';
+    }
+    showScreen('login');
+    return;
+  }
+  const email = (user.email || '').toLowerCase();
+  if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+    // 白名單通過
+    document.getElementById('user-name').textContent = user.displayName || email;
+    document.getElementById('user-name-2').textContent = user.displayName || '(未設定名稱)';
+    document.getElementById('user-email').textContent = email;
+    showScreen('authorized');
+  } else {
+    // 不在白名單
+    console.warn('Unauthorized admin login attempt:', email, 'uid=', user.uid);
+    document.getElementById('deny-email').textContent = email || '(無 email)';
+    showScreen('denied');
+    // 注意：不自動 logout，讓使用者看清楚拒絕訊息再自己決定
+  }
+});
+</script>
+
+</body>
+</html>
