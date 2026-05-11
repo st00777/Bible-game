@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>靈修冒險 v2.9 · 使徒行傳・羅馬書・哥林多前後書</title>
+<title>靈修冒險 v2.11 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
 <!-- Google Analytics GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZ3EGYB8BB"></script>
 <script>
@@ -174,6 +174,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .cal-day:hover:not(.empty){background:rgba(156,123,181,.1);border-color:rgba(156,123,181,.25);}
 .cal-day.cal-today{background:linear-gradient(135deg,#F3E8FF,#EDE0FF);border-color:var(--purple);}
 .cal-day.cal-done{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border-color:var(--green-dark);}
+.cal-day.cal-partial{background:linear-gradient(135deg,#F1F8E9,#F9FCF4);border-color:#A5D6A7;}
+.cal-day.cal-partial .cal-day-ch{color:#558B2F;}
+.cal-day.cal-partial .cal-dot{background:#A5D6A7;}
+.cal-partial-badge{position:absolute;top:2px;right:3px;font-size:9px;font-weight:900;color:#558B2F;background:#FFF;border-radius:8px;padding:1px 4px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.cal-day.cal-selected .cal-partial-badge{color:var(--purple);background:rgba(255,255,255,.95);}
 .cal-day.cal-selected{background:var(--purple)!important;border-color:var(--purple)!important;}
 .cal-day.cal-selected .cal-day-num,.cal-day.cal-selected .cal-day-ch{color:white!important;}
 .cal-day.cal-selected .cal-dot{background:rgba(255,255,255,.6)!important;}
@@ -202,6 +207,18 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .day-info-btn{flex-shrink:0;background:linear-gradient(135deg,var(--green),var(--green-dark));border:none;border-radius:11px;padding:9px 14px;color:white;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(76,175,80,.4);transition:all .2s;}
 .day-info-btn:hover{transform:translateY(-2px);}
 .day-info-btn:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
+.day-info-bar.merged{flex-direction:column;align-items:stretch;gap:10px;padding:14px 15px;}
+.merged-day-header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.merged-day-header .day-info-date{font-size:calc(var(--fs-body) - 4px);color:var(--text-soft);}
+.merged-day-hint{font-size:calc(var(--fs-body) - 4px);color:var(--purple);font-weight:700;}
+.merged-day-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.merged-day-card{background:white;border:2px solid var(--sand-dark);border-radius:13px;padding:11px 9px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;}
+.merged-day-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(76,175,80,.2);border-color:var(--green);}
+.merged-day-card.done{background:linear-gradient(135deg,#F0FAF0,#E8F5E9);border-color:var(--green-dark);}
+.merged-day-card-emoji{font-size:26px;line-height:1;}
+.merged-day-card-name{font-size:calc(var(--fs-body) - 1px);font-weight:900;color:var(--text);}
+.merged-day-card-status{font-size:calc(var(--fs-body) - 5px);color:var(--text-soft);font-weight:700;letter-spacing:.05em;}
+.merged-day-card.done .merged-day-card-status{color:var(--green-dark);}
 .month-picker-overlay{position:fixed;inset:0;background:rgba(61,43,31,.7);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px);}
 .month-picker-overlay.show{opacity:1;pointer-events:all;}
 .month-picker-modal{background:var(--card);border-radius:20px;padding:22px;max-width:300px;width:100%;box-shadow:0 16px 50px rgba(61,43,31,.25);}
@@ -1024,6 +1041,16 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">v2.11 · 合併日雙章機制</div>
+      <div class="log-date">2026年5月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>合併日雙章機制：5/22 林後 5+6 兩章完整呈現，任一章開始皆可，雙章獨立計算完成狀態與獎勵</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>哥林多後書第 6 章（合併日新增章節）</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>日曆新增「部分完成」狀態：合併日完成其中一章後顯示淺綠 + N/M 徽章</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>林後書卷完走計算升級：從 12 章變 13 章（廢除 merged 倍數，章節誠實顯示）</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>使徒行傳 4/17（徒 27+28）合併日進度計算（完成徒 27 現在正確抵 2 章）</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">v2.10 · 成就回顧＋加拉太書＋穩定性提升</div>
       <div class="log-date">2026年5月</div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>成就解鎖回顧（點已解鎖徽章可重看儀式）</span></div>
@@ -1426,10 +1453,9 @@ function getTimeOfDay() {
 function isMakeupChapter(ch) {
   const key = chapterKey(ch);
   const today = todayStr();
-  const scheduledDate = Object.keys(SCHEDULE).find(d => {
-    const k = typeof SCHEDULE[d] === 'string' ? SCHEDULE[d] : `ACT${SCHEDULE[d]}`;
-    return k === key;
-  });
+  const scheduledDate = Object.keys(SCHEDULE).find(d =>
+    (SCHEDULE[d] || []).some(c => chapterKey(c) === key)
+  );
   return scheduledDate ? scheduledDate < today : false;
 }
 
@@ -1542,17 +1568,23 @@ const BOOKS = [
     entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
     merged:{'COR1_9':2} },
   { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
-    entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
-    merged:{'COR2_5':2} },
+    entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
+    merged:{}, mergedActive:false },
   { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
     entries:['GAL1','GAL2','GAL3','GAL4','GAL6'],
     merged:{'GAL6':2} },
 ];
 
 function getBookProgress(book) {
+  // mergedActive:false 的書卷（entries 已補滿、廢除 merged 倍數）：用 entries.length 當分母
+  // 預設（mergedActive 未設定或 true）：保留舊邏輯 — entries × merged 倍數 vs totalChapters
+  if (book.mergedActive === false) {
+    const doneEntries = book.entries.filter(ch => state.completed[chapterKey(ch)]).length;
+    return { done: doneEntries, total: book.entries.length, complete: doneEntries >= book.entries.length };
+  }
   let doneChapters = 0;
   book.entries.forEach(ch => {
-    if (state.completed[chapterKey(ch)]) doneChapters += (book.merged[ch] || book.merged[String(ch)] || 1);
+    if (state.completed[chapterKey(ch)]) doneChapters += ((book.merged && (book.merged[ch] || book.merged[String(ch)])) || 1);
   });
   return { done: doneChapters, total: book.totalChapters, complete: doneChapters >= book.totalChapters };
 }
@@ -1999,19 +2031,39 @@ function chooseGuestMode() {
 
 // ══ SCHEDULE (loaded from content.js) ═══════════════════
 
+// SCHEDULE 統一陣列：合併日 length>=2、單章日 length==1
+// helper：拿某日的章節陣列，找不到回空陣列（避免 null/undefined check）
+function getScheduleChapters(date) {
+  return SCHEDULE[date] || [];
+}
+
+// 反查章節所在的 SCHEDULE 日期；找不到回 null（譬如未排程的補讀章節）
+function findScheduleDate(ch) {
+  return Object.keys(SCHEDULE).find(d => getScheduleChapters(d).some(c => c === ch)) || null;
+}
+
+// 預設章節挑選：合併日優先挑「第一個未完成」，全完成則回第一個（重讀模式）
+function pickDefaultChapter(chapters) {
+  if (!chapters || chapters.length === 0) return null;
+  const undone = chapters.find(c => !isChapterDone(c) && CHAPTERS.find(d => d.chapter === c));
+  if (undone) return undone;
+  const firstAvail = chapters.find(c => CHAPTERS.find(d => d.chapter === c));
+  return firstAvail || null;
+}
+
 function getTodayChapter() {
   const today = todayStr();
-  const ch = SCHEDULE[today];
-  if (ch) {
-    const found = CHAPTERS.find(c => c.chapter === ch);
-    if (found) return ch;
-  }
+  const todays = getScheduleChapters(today).filter(c => CHAPTERS.find(d => d.chapter === c));
+  const pick = pickDefaultChapter(todays);
+  if (pick) return pick;
   // Fallback: find the latest past date with available content
   const availableDates = Object.keys(SCHEDULE)
-    .filter(d => d <= today && CHAPTERS.find(c => c.chapter === SCHEDULE[d]))
+    .filter(d => d <= today && getScheduleChapters(d).some(c => CHAPTERS.find(x => x.chapter === c)))
     .sort();
   if (availableDates.length > 0) {
-    return SCHEDULE[availableDates[availableDates.length - 1]];
+    const lastChapters = getScheduleChapters(availableDates[availableDates.length - 1])
+      .filter(c => CHAPTERS.find(x => x.chapter === c));
+    return pickDefaultChapter(lastChapters) || CHAPTERS[0].chapter;
   }
   return CHAPTERS[0].chapter;
 }
@@ -2273,24 +2325,33 @@ function renderCalGrid() {
       cell.className = 'cal-day empty';
     } else {
       const ds = calDateStr(calYear, calMonth, d);
-      const ch = SCHEDULE[ds];
-      const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
-      const hasContent = !!chapterData;
-      const done = hasContent ? isChapterDone(ch) : false;
+      const chapters = getScheduleChapters(ds);
+      const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+      const hasContent = availChapters.length > 0;
+      const doneCount = availChapters.filter(c => isChapterDone(c)).length;
+      const allDone = hasContent && doneCount === availChapters.length;
+      const partialDone = hasContent && doneCount > 0 && doneCount < availChapters.length;
       const todayFlag = calIsToday(calYear, calMonth, d);
       const sel = calSelectedDate === ds;
       let cls = 'cal-day';
       if (sel) cls += ' cal-selected';
-      else if (done) cls += ' cal-done';
+      else if (allDone) cls += ' cal-done';
+      else if (partialDone) cls += ' cal-partial';
       else if (todayFlag) cls += ' cal-today';
       cell.className = cls;
       cell.onclick = () => calSelectDay(ds, d);
       let inner = todayFlag && !sel ? '<div class="today-tag">今日</div>' : '';
+      // 合併日格右上角徽章：未完成 N/M、完成則隱藏（既有 cal-done 已表達完成）
+      if (availChapters.length >= 2 && !allDone) {
+        inner += `<div class="cal-partial-badge">${doneCount}/${availChapters.length}</div>`;
+      }
       inner += `<div class="cal-day-num">${d}</div>`;
-      if (ch && hasContent) {
-        const lbl = chapterLabel(ch);
+      if (chapters.length > 0 && hasContent) {
+        // 合併日顯示首章 label，後綴 +N 表示還有 N 章；單章日顯示完整 label
+        const firstLbl = chapterLabel(availChapters[0]);
+        const lbl = availChapters.length >= 2 ? `${firstLbl}+${availChapters.length - 1}` : firstLbl;
         inner += `<div class="cal-day-ch${lbl.length > 3 ? ' long' : ''}">${lbl}</div>`;
-      } else if (ch && !hasContent) {
+      } else if (chapters.length > 0 && !hasContent) {
         inner += `<div class="cal-day-ch" style="color:var(--text-soft);opacity:.5;">🔜</div>`;
       }
       inner += '<div class="cal-dot"></div>';
@@ -2306,22 +2367,65 @@ function calSelectDay(ds, d) {
   updateDayInfoBar(ds, d);
 }
 
+// 單章模式：恢復 day-info-bar 既有單章 DOM 結構
+const SINGLE_DAY_BAR_HTML = `
+  <div class="day-info-icon" id="day-info-icon">📖</div>
+  <div style="flex:1;">
+    <div class="day-info-date" id="day-info-date"></div>
+    <div class="day-info-chapter" id="day-info-chapter"></div>
+    <div class="day-info-status" id="day-info-status"></div>
+  </div>
+  <button class="day-info-btn" id="day-info-btn" onclick="confirmDaySelection()">開始靈修</button>
+`;
+
 function updateDayInfoBar(ds, d) {
-  const ch = SCHEDULE[ds];
-  const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
-  const hasContent = !!chapterData;
-  const done = hasContent ? isChapterDone(ch) : false;
+  const bar = document.getElementById('day-info-bar');
+  const chapters = getScheduleChapters(ds);
+  const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
   const todayFlag = calIsToday(calYear, calMonth, d);
   const isFuture = new Date(calYear, calMonth, d) > new Date(calToday.getFullYear(), calToday.getMonth(), calToday.getDate());
   const weekdays = ['日','一','二','三','四','五','六'];
   const wd = new Date(calYear, calMonth, d).getDay();
   const dateLabel = todayFlag ? `今天 · ${calMonth+1}月${d}日（${weekdays[wd]}）` : `${calMonth+1}月${d}日（${weekdays[wd]}）`;
 
+  // ── 合併日模式：兩章可玩家自選 ──
+  if (availChapters.length >= 2) {
+    bar.classList.add('merged');
+    const cardsHtml = availChapters.map(c => {
+      const data = CHAPTERS.find(x => x.chapter === c);
+      const done = isChapterDone(c);
+      return `
+        <div class="merged-day-card ${done ? 'done' : ''}" onclick="selectMergedDayChapter('${c}')">
+          <div class="merged-day-card-emoji">${data.sceneEmoji}</div>
+          <div class="merged-day-card-name">${chapterFull(c)}</div>
+          <div class="merged-day-card-status">${done ? '✅ 已完成' : (isFuture ? '📖 提前' : '未完成')}</div>
+        </div>`;
+    }).join('');
+    bar.innerHTML = `
+      <div class="merged-day-header">
+        <div class="day-info-date">${dateLabel}</div>
+        <div class="merged-day-hint">📖 合併日 · 任一章開始都可以</div>
+      </div>
+      <div class="merged-day-cards">${cardsHtml}</div>
+    `;
+    return;
+  }
+
+  // ── 單章模式：恢復原始 DOM 結構（若 bar 之前是合併模式則重建）──
+  if (bar.classList.contains('merged')) {
+    bar.classList.remove('merged');
+    bar.innerHTML = SINGLE_DAY_BAR_HTML;
+  }
+  const ch = availChapters[0] || chapters[0];
+  const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
+  const hasContent = !!chapterData;
+  const done = hasContent ? isChapterDone(ch) : false;
+
   document.getElementById('day-info-date').textContent = dateLabel;
   const btn = document.getElementById('day-info-btn');
   const statusEl = document.getElementById('day-info-status');
 
-  if (!ch) {
+  if (chapters.length === 0) {
     // 無讀經進度的日子（例如週日休息）
     document.getElementById('day-info-icon').textContent = '—';
     document.getElementById('day-info-chapter').textContent = '本日無讀經進度';
@@ -2373,11 +2477,24 @@ function updateDayInfoBar(ds, d) {
   }
 }
 
+// 合併日：玩家從雙卡選一章 → 載入該章 + 滾動到 verse-card
+function selectMergedDayChapter(ch) {
+  selectChapter(ch);
+  setTimeout(() => {
+    document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 200);
+}
+
 function confirmDaySelection() {
   if (!calSelectedDate) return;
-  const ch = SCHEDULE[calSelectedDate];
-  if (!ch) return;
-  selectChapter(ch);
+  const chapters = getScheduleChapters(calSelectedDate);
+  const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+  if (availChapters.length === 0) return;
+  // 單章日：直接載入；合併日：載入預設章（第一個未完成 / 第一可用）
+  // 合併日玩家通常從雙卡點，這條 fallback 給「日曆框被點 → confirmDaySelection 間接觸發」場景
+  const pick = pickDefaultChapter(availChapters);
+  if (!pick) return;
+  selectChapter(pick);
   setTimeout(() => {
     document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
   }, 200);
@@ -2627,8 +2744,19 @@ async function completeDevotional() {
   if (bonusItem) state.items.push(bonusItem);
   state.xp = Math.min(state.xp + (hasBonus?35:20), 100);
   if (state.xp >= 100) { state.level++; state.xp = 10; }
-  state.streak++;
-  state.completed[chapterKey(selectedChapter)] = todayStr();
+  // streak 計算：合併日同日內若已完成另一章，第二章不重複 +streak（今日仍算一次靈修）
+  const myScheduleDate = findScheduleDate(selectedChapter);
+  const sameDayOtherChapters = myScheduleDate
+    ? getScheduleChapters(myScheduleDate).filter(c => c !== selectedChapter)
+    : [];
+  const today = todayStr();
+  const sameDayAlreadyDoneToday = sameDayOtherChapters.some(c => state.completed[chapterKey(c)] === today);
+  if (!sameDayAlreadyDoneToday) state.streak++;
+  state.completed[chapterKey(selectedChapter)] = today;
+  // 合併日完成第二章判定：本章 + 同日其他章全完成 + 該日章數 >= 2
+  const isMergedDayAllDone = myScheduleDate
+    && getScheduleChapters(myScheduleDate).length >= 2
+    && getScheduleChapters(myScheduleDate).every(c => state.completed[chapterKey(c)]);
   saveState();
   const reflText2 = document.getElementById('refl-text').value.trim();
   saveChapterRecord(selectedChapter, sessionChoice, hasBonus, sessionHasRead, reflText2);
@@ -2637,6 +2765,12 @@ async function completeDevotional() {
   renderChapterGrid();
   track('complete_devotional', { chapter: selectedChapter });
 
+  // 合併日完成第二章 toast：在 reward overlay open 後 1.8s 觸發，等 confetti 收尾再出現
+  const afterReward = () => {
+    if (isMergedDayAllDone) {
+      setTimeout(() => showToast('兩章都讀完了，今天教會的進度走完了 ✨'), 1800);
+    }
+  };
   if (reflSubmitted) {
     // Player wrote a reflection → show "claim reward" button below AI response
     // so they can read the AI response first before the reward overlay appears
@@ -2649,12 +2783,14 @@ async function completeDevotional() {
       claimBtn.remove();
       showReward(newItem, bonusItem, hasBonus);
       setTimeout(() => checkAchievements(), 1500);
+      afterReward();
     };
     aiDiv.appendChild(claimBtn);
   } else {
     // No reflection → show reward immediately
     showReward(newItem, bonusItem, hasBonus);
     setTimeout(() => checkAchievements(), 1500);
+    afterReward();
   }
 
   btn.textContent = '✅ 已完成此章靈修';
@@ -2695,6 +2831,23 @@ function showReward(item, bonus, hasBonus) {
 
 function closeReward() {
   closeOverlay('reward-overlay');
+  // 合併日完成單章後：刷新日曆 + day-info-bar（讓剛完成的卡片變綠 ✅），並滾回 day-info-bar
+  const myScheduleDate = findScheduleDate(selectedChapter);
+  if (!myScheduleDate) return;
+  const sameDayChapters = getScheduleChapters(myScheduleDate);
+  if (sameDayChapters.length < 2) return;
+  // 該日仍有未完成章節 → 引導玩家回 day-info-bar 看下一章
+  const allDone = sameDayChapters.every(c => state.completed[chapterKey(c)]);
+  if (allDone) return;
+  if (calSelectedDate === myScheduleDate) {
+    const d = parseInt(myScheduleDate.split('-')[2], 10);
+    renderCalGrid();
+    updateDayInfoBar(myScheduleDate, d);
+    setTimeout(() => {
+      const bar = document.getElementById('day-info-bar');
+      if (bar) bar.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 250);
+  }
 }
 
 // ══ COPY SHARE ══════════════════════════════════════════
