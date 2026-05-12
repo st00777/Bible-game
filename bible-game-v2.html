@@ -2347,9 +2347,8 @@ function renderCalGrid() {
       }
       inner += `<div class="cal-day-num">${d}</div>`;
       if (chapters.length > 0 && hasContent) {
-        // 合併日顯示首章 label，後綴 +N 表示還有 N 章；單章日顯示完整 label
-        const firstLbl = chapterLabel(availChapters[0]);
-        const lbl = availChapters.length >= 2 ? `${firstLbl}+${availChapters.length - 1}` : firstLbl;
+        // 合併日統一顯示「合併日」三字（取代「林後 5+1」避免擠壓截斷）；單章日顯示完整縮寫
+        const lbl = availChapters.length >= 2 ? '合併日' : chapterLabel(availChapters[0]);
         inner += `<div class="cal-day-ch${lbl.length > 3 ? ' long' : ''}">${lbl}</div>`;
       } else if (chapters.length > 0 && !hasContent) {
         inner += `<div class="cal-day-ch" style="color:var(--text-soft);opacity:.5;">🔜</div>`;
