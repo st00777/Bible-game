@@ -656,9 +656,10 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
         </button>
       </div>
 
-      <div class="fb-label">希望收到團隊回覆？</div>
+      <div class="fb-label" data-v2-only="wantReply">希望收到團隊回覆？</div>
       <!-- v2 多輪對話：匿名留言時兩顆按鈕會被 selectFbOption 鎖成灰色並自動選「不用回覆」 -->
-      <div class="fb-opts" id="fb-want-reply">
+      <!-- FEATURE_FEEDBACK_V2=false 時整個 wantReply 區塊（label + opts + hint）會被 init 階段移除 -->
+      <div class="fb-opts" id="fb-want-reply" data-v2-only="wantReply">
         <button class="fb-opt fb-opt-row" data-val="yes" onclick="selectFbOption('fb-want-reply','wantReply',this)">
           <span>💬</span><span>我想收到回覆<small>需具名留言</small></span>
         </button>
@@ -666,7 +667,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
           <span>📭</span><span>不用回覆<small>單純分享想法</small></span>
         </button>
       </div>
-      <div id="fb-want-reply-hint" style="display:none;font-size:12px;color:#999;line-height:1.6;margin-top:4px;">📌 匿名留言無法收到回覆，如希望收到回覆請改具名</div>
+      <div id="fb-want-reply-hint" data-v2-only="wantReply" style="display:none;font-size:12px;color:#999;line-height:1.6;margin-top:4px;">📌 匿名留言無法收到回覆，如希望收到回覆請改具名</div>
 
       <div class="fb-label">分類</div>
       <!-- ⚠️ 修改下面 4 個 category 選項時請同步更新 firestore.rules 的 categories() helper（line 15） -->
@@ -3190,7 +3191,8 @@ function updateFbCount() {
 async function submitFeedback() {
   if (!feedbackState.mood) { showToast('請先選今天的感覺'); return; }
   if (!feedbackState.identity) { showToast('請選擇身份'); return; }
-  if (!feedbackState.wantReply) { showToast('請選是否希望收到回覆'); return; }
+  // FEATURE_FEEDBACK_V2=false 時 wantReply 區塊不存在，跳過驗證
+  if (FEATURE_FEEDBACK_V2 && !feedbackState.wantReply) { showToast('請選是否希望收到回覆'); return; }
   if (!feedbackState.category) { showToast('請選擇分類'); return; }
 
   // Guest wanting named comment → prompt to login
@@ -3212,7 +3214,8 @@ async function submitFeedback() {
     // v2 多輪對話：玩家是否希望團隊回覆（匿名強制 false）
     // 對話追蹤欄位（status / lastMessageAt / unreadByPlayer / unreadByAdmin / messageCount）
     // 採 lazy-init：admin 後台回覆或玩家追訊息時才寫；讀取時用 ?? 預設值容錯
-    wantReply: feedbackState.wantReply === 'yes',
+    // FEATURE_FEEDBACK_V2=false 時永遠寫 false，flag 開啟後依玩家勾選
+    wantReply: FEATURE_FEEDBACK_V2 && feedbackState.wantReply === 'yes',
   };
 
   try {
@@ -3417,6 +3420,8 @@ function normalizeLastMessageAt(d) {
 let myMessagesData = [];
 
 async function openMyMessages() {
+  // FEATURE_FEEDBACK_V2=false 時防護：拒絕從 console / 殘留路徑進入
+  if (!FEATURE_FEEDBACK_V2) return;
   if (!currentUser) {
     showToast('登入後可查看自己的留言');
     return;
@@ -3782,7 +3787,15 @@ function switchPage(name) {
 // renderCalGrid 用 SCHEDULE，cold load 時 SCHEDULE 還沒 ready 就會 race。
 // DOMContentLoaded 在所有 defer scripts 執行完才 fire，保證 SCHEDULE 已定義。
 
+// 套用 feature flag：移除尚未啟用的 v2 入口元素（DOM 樹真實移除，等同條件渲染）
+function applyFeatureFlags() {
+  if (typeof FEATURE_FEEDBACK_V2 !== 'undefined' && !FEATURE_FEEDBACK_V2) {
+    document.querySelectorAll('[data-v2-only]').forEach(el => el.remove());
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  applyFeatureFlags();
   if (state.setup) {
     showMainAppScreen();
     // Version update notice
@@ -3833,7 +3846,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
-  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" style="display:none;">📨 我的留言</button>
+  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言</button>
   <button onclick="openFontSizePicker(); closeMoreMenu()">🔤 字體大小</button>
   <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
 </div>

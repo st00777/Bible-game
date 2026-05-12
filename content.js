@@ -2,6 +2,12 @@
 // 版本號：每次更新內容或機制時修改
 const GAME_VERSION = '2.11';
 
+// ── Feature flags ──────────────────────────────────────────
+// 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
+// 完整前先隱藏所有 v2 玩家入口，避免玩家送出有「希望收到回覆」期待後沒人能回。
+// flag=false 時：玩家走 v1 流程（mood + category + message + isAnonymous）；後端資料層仍保持 v2 schema
+const FEATURE_FEEDBACK_V2 = false;
+
 const VERSION_NOTES = [
   '📖 合併日雙章機制上線：5/22 林後 5+6 兩章完整呈現，任一章開始皆可',
   '📚 林後書卷完走計算升級（從 12 章變 13 章，含 COR2_6）',
