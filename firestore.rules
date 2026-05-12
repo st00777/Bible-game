@@ -23,13 +23,91 @@ service cloud.firestore {
     // - 任何人（含訪客）可送，但格式必須對
     // - 讀取限制：玩家只能讀自己的（uid 比對）；admin 可讀所有
     //   匿名留言 (isAnonymous=true) 因為 uid=null，玩家端永遠讀不到
+    // - v2 多輪對話：admin 可改所有欄位；玩家只能把自己留言的 unreadByPlayer 從 true 改成 false
     match /feedback/{docId} {
-      allow write: if request.resource.data.keys().hasOnly(['mood','category','message','isAnonymous','uid','displayName','createdAt','chapter'])
+      // v1 client 欄位 + v2 新增 wantReply（選填 boolean）
+      // 不檢查 v2 對話追蹤欄位（status / lastMessageAt / unread* / messageCount）
+      // → client 不應主動寫，由 admin 後台或 Cloud Function 補
+      allow create: if request.resource.data.keys().hasOnly(['mood','category','message','isAnonymous','uid','displayName','createdAt','chapter','wantReply'])
                 && request.resource.data.message.size() <= 300
                 && request.resource.data.mood in moods()
-                && request.resource.data.category in categories();
+                && request.resource.data.category in categories()
+                && (!('wantReply' in request.resource.data) || request.resource.data.wantReply is bool)
+                // 匿名留言禁止 wantReply=true（無法追蹤回覆）
+                && (request.resource.data.isAnonymous != true
+                    || !('wantReply' in request.resource.data)
+                    || request.resource.data.wantReply == false);
+
       allow read: if request.auth != null
                 && (resource.data.uid == request.auth.uid || isAdmin());
+
+      // admin 可改所有欄位（後台回覆會更新 status / lastMessageAt / unread* / messageCount）
+      // 玩家允許兩條互斥路徑（hasOnly 確保不會混合）：
+      //   A. 標記已讀：只動 unreadByPlayer，從 true → false
+      //   B. 追訊息：同時動 lastMessageAt / unreadByAdmin / messageCount / status 4 個欄位，
+      //      每個欄位的值都被強制（避免玩家篡改：messageCount 必 +1、status 必 awaiting_admin、
+      //      unreadByAdmin 必 true、lastMessageAt 必 server time）
+      allow update: if isAdmin()
+                || (
+                  request.auth != null
+                  && resource.data.uid == request.auth.uid
+                  && (
+                    // 路徑 A：標記已讀
+                    (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadByPlayer'])
+                      && resource.data.unreadByPlayer == true
+                      && request.resource.data.unreadByPlayer == false
+                    )
+                    // 路徑 B：玩家追訊息（messages 子集合 add 後同步更新 parent 4 欄位）
+                    || (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessageAt','unreadByAdmin','messageCount','status'])
+                      && request.resource.data.unreadByAdmin == true
+                      && request.resource.data.status == 'awaiting_admin'
+                      && request.resource.data.messageCount == resource.data.get('messageCount', 0) + 1
+                      && request.resource.data.lastMessageAt == request.time
+                    )
+                  )
+                );
+
+      allow delete: if isAdmin();
+
+      // v2 多輪對話子集合（append-only）
+      match /messages/{msgId} {
+        // read：feedback owner（從 parent 文件 uid 比對）或 admin
+        allow read: if request.auth != null
+                  && (
+                    isAdmin()
+                    || get(/databases/$(database)/documents/feedback/$(docId)).data.uid == request.auth.uid
+                  );
+
+        // create：欄位白名單 + role/authorUid 邏輯
+        allow create: if request.resource.data.keys().hasAll(['role','text','createdAt','authorUid','authorType'])
+                  && request.resource.data.keys().hasOnly(['role','text','createdAt','authorUid','authorType'])
+                  && request.resource.data.role in ['player','admin']
+                  && request.resource.data.text is string
+                  && request.resource.data.text.size() > 0
+                  && request.resource.data.text.size() <= 300
+                  && request.resource.data.authorType in ['human','ai']
+                  && request.resource.data.authorUid is string
+                  && (
+                    // 玩家寫：必須是該 feedback 原作者，且 authorUid = 自己 uid
+                    (
+                      request.resource.data.role == 'player'
+                      && request.auth != null
+                      && get(/databases/$(database)/documents/feedback/$(docId)).data.uid == request.auth.uid
+                      && request.resource.data.authorUid == request.auth.uid
+                    )
+                    // admin 寫：必須通過 isAdmin()，authorUid = 自己 uid
+                    || (
+                      request.resource.data.role == 'admin'
+                      && isAdmin()
+                      && request.resource.data.authorUid == request.auth.uid
+                    )
+                  );
+
+        // append-only：禁止改寫與刪除
+        allow update, delete: if false;
+      }
     }
   }
 }

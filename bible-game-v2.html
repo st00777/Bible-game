@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>靈修冒險 v2.9 · 使徒行傳・羅馬書・哥林多前後書</title>
+<title>靈修冒險 v2.11 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
 <!-- Google Analytics GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZ3EGYB8BB"></script>
 <script>
@@ -111,6 +111,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .fb-opt-row>span:first-child{flex-shrink:0;}
 .fb-opt-row>span:last-child{flex:1;font-size:13px;font-weight:700;}
 .fb-opt-row small{color:var(--text-soft);font-weight:normal;font-size:11px;display:block;margin-top:2px;}
+.fb-opt-locked{opacity:0.45;pointer-events:none;filter:grayscale(0.6);}
 .fb-textarea{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);resize:none;min-height:80px;line-height:1.7;outline:none;transition:border-color .2s;box-sizing:border-box;}
 .fb-textarea:focus{border-color:var(--purple);}
 .fb-count{font-size:11px;color:var(--text-soft);text-align:right;margin:4px 0 12px;}
@@ -173,6 +174,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .cal-day:hover:not(.empty){background:rgba(156,123,181,.1);border-color:rgba(156,123,181,.25);}
 .cal-day.cal-today{background:linear-gradient(135deg,#F3E8FF,#EDE0FF);border-color:var(--purple);}
 .cal-day.cal-done{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border-color:var(--green-dark);}
+.cal-day.cal-partial{background:linear-gradient(135deg,#F1F8E9,#F9FCF4);border-color:#A5D6A7;}
+.cal-day.cal-partial .cal-day-ch{color:#558B2F;}
+.cal-day.cal-partial .cal-dot{background:#A5D6A7;}
+.cal-partial-badge{position:absolute;top:2px;right:3px;font-size:9px;font-weight:900;color:#558B2F;background:#FFF;border-radius:8px;padding:1px 4px;line-height:1;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.cal-day.cal-selected .cal-partial-badge{color:var(--purple);background:rgba(255,255,255,.95);}
 .cal-day.cal-selected{background:var(--purple)!important;border-color:var(--purple)!important;}
 .cal-day.cal-selected .cal-day-num,.cal-day.cal-selected .cal-day-ch{color:white!important;}
 .cal-day.cal-selected .cal-dot{background:rgba(255,255,255,.6)!important;}
@@ -201,6 +207,18 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .day-info-btn{flex-shrink:0;background:linear-gradient(135deg,var(--green),var(--green-dark));border:none;border-radius:11px;padding:9px 14px;color:white;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 3px 10px rgba(76,175,80,.4);transition:all .2s;}
 .day-info-btn:hover{transform:translateY(-2px);}
 .day-info-btn:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
+.day-info-bar.merged{flex-direction:column;align-items:stretch;gap:10px;padding:14px 15px;}
+.merged-day-header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.merged-day-header .day-info-date{font-size:calc(var(--fs-body) - 4px);color:var(--text-soft);}
+.merged-day-hint{font-size:calc(var(--fs-body) - 4px);color:var(--purple);font-weight:700;}
+.merged-day-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.merged-day-card{background:white;border:2px solid var(--sand-dark);border-radius:13px;padding:11px 9px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;}
+.merged-day-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(76,175,80,.2);border-color:var(--green);}
+.merged-day-card.done{background:linear-gradient(135deg,#F0FAF0,#E8F5E9);border-color:var(--green-dark);}
+.merged-day-card-emoji{font-size:26px;line-height:1;}
+.merged-day-card-name{font-size:calc(var(--fs-body) - 1px);font-weight:900;color:var(--text);}
+.merged-day-card-status{font-size:calc(var(--fs-body) - 5px);color:var(--text-soft);font-weight:700;letter-spacing:.05em;}
+.merged-day-card.done .merged-day-card-status{color:var(--green-dark);}
 .month-picker-overlay{position:fixed;inset:0;background:rgba(61,43,31,.7);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px);}
 .month-picker-overlay.show{opacity:1;pointer-events:all;}
 .month-picker-modal{background:var(--card);border-radius:20px;padding:22px;max-width:300px;width:100%;box-shadow:0 16px 50px rgba(61,43,31,.25);}
@@ -453,6 +471,46 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .diary-detail-ai{background:linear-gradient(135deg,#F3E8FF,#EDE0FF);border-left:3px solid var(--purple);border-radius:0 11px 11px 0;padding:10px 12px;font-size:13px;line-height:1.7;}
 .diary-empty{text-align:center;color:var(--text-soft);padding:40px 20px;font-size:14px;line-height:1.7;}
 
+/* My Messages (曠野呼聲 v2 — 玩家自己過往留言列表) */
+.my-msg-card{background:var(--card);border:2px solid var(--sky-deep);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;box-shadow:0 2px 10px var(--shadow);}
+.my-msg-card:hover{border-color:var(--purple);transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow);}
+.my-msg-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px;}
+.my-msg-date{font-size:11px;color:var(--text-soft);font-weight:700;}
+.my-msg-meta{font-size:12px;color:var(--text);font-weight:700;margin-bottom:6px;}
+.my-msg-meta span{margin-right:10px;}
+.my-msg-preview{font-size:13px;color:var(--text-soft);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.my-msg-preview-empty{font-size:12px;color:#bbb;font-style:italic;}
+.my-msg-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:11px;white-space:nowrap;flex-shrink:0;}
+.my-msg-badge-wait{background:linear-gradient(135deg,#FFE0B2,#FFCC80);color:#E65100;border:1px solid #FFB74D;}
+.my-msg-badge-replied{background:linear-gradient(135deg,#E8F5E9,#C8E6C9);color:var(--green-dark);border:1px solid #81C784;}
+.my-msg-badge-closed{background:#F0EBE3;color:var(--text-soft);border:1px solid #D7CCC8;}
+
+/* My Message Thread (Phase 2C 多輪對話 thread view) */
+.thread-header{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.thread-header .sheet-title{flex:1;}
+.thread-body{padding:6px 0 4px;}
+.thread-origin{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px 16px;margin-bottom:18px;}
+.thread-origin-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;align-items:center;}
+.thread-origin-meta .thread-time{color:var(--text-soft);font-weight:normal;margin-left:auto;}
+.thread-origin-text{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;}
+.thread-origin-text-empty{color:#bbb;font-style:italic;}
+.thread-msg{margin-bottom:14px;max-width:80%;}
+.thread-msg-left{margin-right:auto;}
+.thread-msg-right{margin-left:auto;text-align:right;}
+.thread-bubble{display:inline-block;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;text-align:left;box-shadow:0 2px 6px var(--shadow);}
+.thread-bubble-player{background:linear-gradient(135deg,var(--purple),#7B5EA7);color:white;border-radius:14px 14px 4px 14px;}
+.thread-bubble-admin{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);color:var(--text);border-radius:14px 14px 14px 4px;border:1px solid #C8E6C9;}
+.thread-time{font-size:10px;color:var(--text-soft);margin-top:2px;padding:0 6px;}
+.thread-msg-right .thread-time{text-align:right;}
+.thread-ai-icon{font-size:14px;margin-right:4px;}
+.thread-input-area{border-top:1px solid var(--sky-deep);padding-top:10px;margin-top:10px;}
+.thread-input-area textarea{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);resize:none;min-height:60px;line-height:1.7;outline:none;transition:border-color .2s;box-sizing:border-box;}
+.thread-input-area textarea:focus{border-color:var(--purple);}
+.thread-input-area textarea[readonly]{background:#F5F0E8;cursor:not-allowed;color:var(--text-soft);}
+.thread-char-count{font-size:11px;color:var(--text-soft);text-align:right;margin:4px 0 8px;}
+.thread-input-area .green-btn:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
+.thread-closed-hint{font-size:12px;color:#999;line-height:1.6;margin-bottom:8px;}
+
 /* Bookshelf */
 .bookshelf{background:linear-gradient(180deg,#8B6F47 0%,#6B4F2F 100%);border-radius:16px;padding:16px 12px 8px;box-shadow:inset 0 2px 8px rgba(0,0,0,.25),0 4px 12px rgba(107,79,47,.4);}
 .shelf-row{display:flex;gap:8px;justify-content:center;padding-bottom:10px;margin-bottom:10px;border-bottom:6px solid #5A3E22;box-shadow:0 4px 6px rgba(0,0,0,.2);position:relative;}
@@ -598,6 +656,19 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
         </button>
       </div>
 
+      <div class="fb-label" data-v2-only="wantReply">希望收到團隊回覆？</div>
+      <!-- v2 多輪對話：匿名留言時兩顆按鈕會被 selectFbOption 鎖成灰色並自動選「不用回覆」 -->
+      <!-- FEATURE_FEEDBACK_V2=false 時整個 wantReply 區塊（label + opts + hint）會被 init 階段移除 -->
+      <div class="fb-opts" id="fb-want-reply" data-v2-only="wantReply">
+        <button class="fb-opt fb-opt-row" data-val="yes" onclick="selectFbOption('fb-want-reply','wantReply',this)">
+          <span>💬</span><span>我想收到回覆<small>需具名留言</small></span>
+        </button>
+        <button class="fb-opt fb-opt-row" data-val="no" onclick="selectFbOption('fb-want-reply','wantReply',this)">
+          <span>📭</span><span>不用回覆<small>單純分享想法</small></span>
+        </button>
+      </div>
+      <div id="fb-want-reply-hint" data-v2-only="wantReply" style="display:none;font-size:12px;color:#999;line-height:1.6;margin-top:4px;">📌 匿名留言無法收到回覆，如希望收到回覆請改具名</div>
+
       <div class="fb-label">分類</div>
       <!-- ⚠️ 修改下面 4 個 category 選項時請同步更新 firestore.rules 的 categories() helper（line 15） -->
       <div class="fb-opts" id="fb-category">
@@ -653,6 +724,38 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   <div class="modal" style="max-width:400px;text-align:left;max-height:85vh;overflow-y:scroll;">
     <div id="diary-detail-content"></div>
     <button class="sky-btn" onclick="closeOverlay('diary-detail-overlay')">關閉</button>
+  </div>
+</div>
+
+<!-- My Messages overview (曠野呼聲 v2 多輪對話) -->
+<div class="overlay" id="my-msgs-overlay">
+  <div class="sheet" style="display:flex;flex-direction:column;height:90vh;overflow-y:hidden;">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="sheet-title">📨 我的留言</div>
+      <button onclick="closeOverlay('my-msgs-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
+    </div>
+    <div class="sheet-sub">你過往送出的曠野呼聲都收在這裡</div>
+    <div style="flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;margin-top:10px;" id="my-msgs-list"></div>
+  </div>
+</div>
+
+<!-- My Message Thread (Phase 2C 多輪對話 thread view) -->
+<div class="overlay" id="my-msg-thread-overlay">
+  <div class="sheet" style="display:flex;flex-direction:column;height:90vh;overflow-y:hidden;">
+    <div class="sheet-handle"></div>
+    <div class="thread-header">
+      <button onclick="closeMyMsgThread()" class="sky-btn" style="width:auto;margin:0;padding:6px 12px;font-size:13px;">← 返回</button>
+      <div class="sheet-title">💬 對話</div>
+      <div id="thread-badge"></div>
+    </div>
+    <div class="thread-body" id="thread-body" style="flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;"></div>
+    <div class="thread-input-area" id="thread-input-area">
+      <textarea id="thread-text" maxlength="300" placeholder="輸入訊息..." oninput="updateThreadCount()"></textarea>
+      <div class="thread-char-count" id="thread-count">0 / 300</div>
+      <div class="thread-closed-hint" id="thread-closed-hint" style="display:none;"></div>
+      <button id="thread-send-btn" class="green-btn" onclick="sendThreadMessage()" disabled>送出</button>
+    </div>
   </div>
 </div>
 
@@ -936,6 +1039,16 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">v2.11 · 合併日雙章機制</div>
+      <div class="log-date">2026年5月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>合併日雙章機制：5/22 林後 5+6 兩章完整呈現，任一章開始皆可，雙章獨立計算完成狀態與獎勵</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>哥林多後書第 6 章（合併日新增章節）</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>日曆新增「部分完成」狀態：合併日完成其中一章後顯示淺綠 + N/M 徽章</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>林後書卷完走計算升級：從 12 章變 13 章（廢除 merged 倍數，章節誠實顯示）</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>使徒行傳 4/17（徒 27+28）合併日進度計算（完成徒 27 現在正確抵 2 章）</span></div>
     </div>
 
     <div class="log-entry">
@@ -1341,10 +1454,9 @@ function getTimeOfDay() {
 function isMakeupChapter(ch) {
   const key = chapterKey(ch);
   const today = todayStr();
-  const scheduledDate = Object.keys(SCHEDULE).find(d => {
-    const k = typeof SCHEDULE[d] === 'string' ? SCHEDULE[d] : `ACT${SCHEDULE[d]}`;
-    return k === key;
-  });
+  const scheduledDate = Object.keys(SCHEDULE).find(d =>
+    (SCHEDULE[d] || []).some(c => chapterKey(c) === key)
+  );
   return scheduledDate ? scheduledDate < today : false;
 }
 
@@ -1449,7 +1561,7 @@ async function initAchievements() {
 const BOOKS = [
   { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:18,
     entries:[10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27],
-    merged:{14:2} },
+    merged:{14:2, 27:2} },
   { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
     entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM12','ROM13','ROM14','ROM15','ROM16'],
     merged:{'ROM12':2} },
@@ -1457,17 +1569,23 @@ const BOOKS = [
     entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
     merged:{'COR1_9':2} },
   { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
-    entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
-    merged:{'COR2_5':2} },
+    entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
+    merged:{}, mergedActive:false },
   { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
     entries:['GAL1','GAL2','GAL3','GAL4','GAL6'],
     merged:{'GAL6':2} },
 ];
 
 function getBookProgress(book) {
+  // mergedActive:false 的書卷（entries 已補滿、廢除 merged 倍數）：用 entries.length 當分母
+  // 預設（mergedActive 未設定或 true）：保留舊邏輯 — entries × merged 倍數 vs totalChapters
+  if (book.mergedActive === false) {
+    const doneEntries = book.entries.filter(ch => state.completed[chapterKey(ch)]).length;
+    return { done: doneEntries, total: book.entries.length, complete: doneEntries >= book.entries.length };
+  }
   let doneChapters = 0;
   book.entries.forEach(ch => {
-    if (state.completed[chapterKey(ch)]) doneChapters += (book.merged[ch] || book.merged[String(ch)] || 1);
+    if (state.completed[chapterKey(ch)]) doneChapters += ((book.merged && (book.merged[ch] || book.merged[String(ch)])) || 1);
   });
   return { done: doneChapters, total: book.totalChapters, complete: doneChapters >= book.totalChapters };
 }
@@ -1914,19 +2032,39 @@ function chooseGuestMode() {
 
 // ══ SCHEDULE (loaded from content.js) ═══════════════════
 
+// SCHEDULE 統一陣列：合併日 length>=2、單章日 length==1
+// helper：拿某日的章節陣列，找不到回空陣列（避免 null/undefined check）
+function getScheduleChapters(date) {
+  return SCHEDULE[date] || [];
+}
+
+// 反查章節所在的 SCHEDULE 日期；找不到回 null（譬如未排程的補讀章節）
+function findScheduleDate(ch) {
+  return Object.keys(SCHEDULE).find(d => getScheduleChapters(d).some(c => c === ch)) || null;
+}
+
+// 預設章節挑選：合併日優先挑「第一個未完成」，全完成則回第一個（重讀模式）
+function pickDefaultChapter(chapters) {
+  if (!chapters || chapters.length === 0) return null;
+  const undone = chapters.find(c => !isChapterDone(c) && CHAPTERS.find(d => d.chapter === c));
+  if (undone) return undone;
+  const firstAvail = chapters.find(c => CHAPTERS.find(d => d.chapter === c));
+  return firstAvail || null;
+}
+
 function getTodayChapter() {
   const today = todayStr();
-  const ch = SCHEDULE[today];
-  if (ch) {
-    const found = CHAPTERS.find(c => c.chapter === ch);
-    if (found) return ch;
-  }
+  const todays = getScheduleChapters(today).filter(c => CHAPTERS.find(d => d.chapter === c));
+  const pick = pickDefaultChapter(todays);
+  if (pick) return pick;
   // Fallback: find the latest past date with available content
   const availableDates = Object.keys(SCHEDULE)
-    .filter(d => d <= today && CHAPTERS.find(c => c.chapter === SCHEDULE[d]))
+    .filter(d => d <= today && getScheduleChapters(d).some(c => CHAPTERS.find(x => x.chapter === c)))
     .sort();
   if (availableDates.length > 0) {
-    return SCHEDULE[availableDates[availableDates.length - 1]];
+    const lastChapters = getScheduleChapters(availableDates[availableDates.length - 1])
+      .filter(c => CHAPTERS.find(x => x.chapter === c));
+    return pickDefaultChapter(lastChapters) || CHAPTERS[0].chapter;
   }
   return CHAPTERS[0].chapter;
 }
@@ -2188,24 +2326,32 @@ function renderCalGrid() {
       cell.className = 'cal-day empty';
     } else {
       const ds = calDateStr(calYear, calMonth, d);
-      const ch = SCHEDULE[ds];
-      const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
-      const hasContent = !!chapterData;
-      const done = hasContent ? isChapterDone(ch) : false;
+      const chapters = getScheduleChapters(ds);
+      const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+      const hasContent = availChapters.length > 0;
+      const doneCount = availChapters.filter(c => isChapterDone(c)).length;
+      const allDone = hasContent && doneCount === availChapters.length;
+      const partialDone = hasContent && doneCount > 0 && doneCount < availChapters.length;
       const todayFlag = calIsToday(calYear, calMonth, d);
       const sel = calSelectedDate === ds;
       let cls = 'cal-day';
       if (sel) cls += ' cal-selected';
-      else if (done) cls += ' cal-done';
+      else if (allDone) cls += ' cal-done';
+      else if (partialDone) cls += ' cal-partial';
       else if (todayFlag) cls += ' cal-today';
       cell.className = cls;
       cell.onclick = () => calSelectDay(ds, d);
       let inner = todayFlag && !sel ? '<div class="today-tag">今日</div>' : '';
+      // 合併日格右上角徽章：未完成 N/M、完成則隱藏（既有 cal-done 已表達完成）
+      if (availChapters.length >= 2 && !allDone) {
+        inner += `<div class="cal-partial-badge">${doneCount}/${availChapters.length}</div>`;
+      }
       inner += `<div class="cal-day-num">${d}</div>`;
-      if (ch && hasContent) {
-        const lbl = chapterLabel(ch);
+      if (chapters.length > 0 && hasContent) {
+        // 合併日統一顯示「合併日」三字（取代「林後 5+1」避免擠壓截斷）；單章日顯示完整縮寫
+        const lbl = availChapters.length >= 2 ? '合併日' : chapterLabel(availChapters[0]);
         inner += `<div class="cal-day-ch${lbl.length > 3 ? ' long' : ''}">${lbl}</div>`;
-      } else if (ch && !hasContent) {
+      } else if (chapters.length > 0 && !hasContent) {
         inner += `<div class="cal-day-ch" style="color:var(--text-soft);opacity:.5;">🔜</div>`;
       }
       inner += '<div class="cal-dot"></div>';
@@ -2221,22 +2367,65 @@ function calSelectDay(ds, d) {
   updateDayInfoBar(ds, d);
 }
 
+// 單章模式：恢復 day-info-bar 既有單章 DOM 結構
+const SINGLE_DAY_BAR_HTML = `
+  <div class="day-info-icon" id="day-info-icon">📖</div>
+  <div style="flex:1;">
+    <div class="day-info-date" id="day-info-date"></div>
+    <div class="day-info-chapter" id="day-info-chapter"></div>
+    <div class="day-info-status" id="day-info-status"></div>
+  </div>
+  <button class="day-info-btn" id="day-info-btn" onclick="confirmDaySelection()">開始靈修</button>
+`;
+
 function updateDayInfoBar(ds, d) {
-  const ch = SCHEDULE[ds];
-  const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
-  const hasContent = !!chapterData;
-  const done = hasContent ? isChapterDone(ch) : false;
+  const bar = document.getElementById('day-info-bar');
+  const chapters = getScheduleChapters(ds);
+  const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
   const todayFlag = calIsToday(calYear, calMonth, d);
   const isFuture = new Date(calYear, calMonth, d) > new Date(calToday.getFullYear(), calToday.getMonth(), calToday.getDate());
   const weekdays = ['日','一','二','三','四','五','六'];
   const wd = new Date(calYear, calMonth, d).getDay();
   const dateLabel = todayFlag ? `今天 · ${calMonth+1}月${d}日（${weekdays[wd]}）` : `${calMonth+1}月${d}日（${weekdays[wd]}）`;
 
+  // ── 合併日模式：兩章可玩家自選 ──
+  if (availChapters.length >= 2) {
+    bar.classList.add('merged');
+    const cardsHtml = availChapters.map(c => {
+      const data = CHAPTERS.find(x => x.chapter === c);
+      const done = isChapterDone(c);
+      return `
+        <div class="merged-day-card ${done ? 'done' : ''}" onclick="selectMergedDayChapter('${c}')">
+          <div class="merged-day-card-emoji">${data.sceneEmoji}</div>
+          <div class="merged-day-card-name">${chapterFull(c)}</div>
+          <div class="merged-day-card-status">${done ? '✅ 已完成' : (isFuture ? '📖 提前' : '未完成')}</div>
+        </div>`;
+    }).join('');
+    bar.innerHTML = `
+      <div class="merged-day-header">
+        <div class="day-info-date">${dateLabel}</div>
+        <div class="merged-day-hint">📖 合併日 · 任一章開始都可以</div>
+      </div>
+      <div class="merged-day-cards">${cardsHtml}</div>
+    `;
+    return;
+  }
+
+  // ── 單章模式：恢復原始 DOM 結構（若 bar 之前是合併模式則重建）──
+  if (bar.classList.contains('merged')) {
+    bar.classList.remove('merged');
+    bar.innerHTML = SINGLE_DAY_BAR_HTML;
+  }
+  const ch = availChapters[0] || chapters[0];
+  const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
+  const hasContent = !!chapterData;
+  const done = hasContent ? isChapterDone(ch) : false;
+
   document.getElementById('day-info-date').textContent = dateLabel;
   const btn = document.getElementById('day-info-btn');
   const statusEl = document.getElementById('day-info-status');
 
-  if (!ch) {
+  if (chapters.length === 0) {
     // 無讀經進度的日子（例如週日休息）
     document.getElementById('day-info-icon').textContent = '—';
     document.getElementById('day-info-chapter').textContent = '本日無讀經進度';
@@ -2288,11 +2477,24 @@ function updateDayInfoBar(ds, d) {
   }
 }
 
+// 合併日：玩家從雙卡選一章 → 載入該章 + 滾動到 verse-card
+function selectMergedDayChapter(ch) {
+  selectChapter(ch);
+  setTimeout(() => {
+    document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 200);
+}
+
 function confirmDaySelection() {
   if (!calSelectedDate) return;
-  const ch = SCHEDULE[calSelectedDate];
-  if (!ch) return;
-  selectChapter(ch);
+  const chapters = getScheduleChapters(calSelectedDate);
+  const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+  if (availChapters.length === 0) return;
+  // 單章日：直接載入；合併日：載入預設章（第一個未完成 / 第一可用）
+  // 合併日玩家通常從雙卡點，這條 fallback 給「日曆框被點 → confirmDaySelection 間接觸發」場景
+  const pick = pickDefaultChapter(availChapters);
+  if (!pick) return;
+  selectChapter(pick);
   setTimeout(() => {
     document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
   }, 200);
@@ -2542,8 +2744,19 @@ async function completeDevotional() {
   if (bonusItem) state.items.push(bonusItem);
   state.xp = Math.min(state.xp + (hasBonus?35:20), 100);
   if (state.xp >= 100) { state.level++; state.xp = 10; }
-  state.streak++;
-  state.completed[chapterKey(selectedChapter)] = todayStr();
+  // streak 計算：合併日同日內若已完成另一章，第二章不重複 +streak（今日仍算一次靈修）
+  const myScheduleDate = findScheduleDate(selectedChapter);
+  const sameDayOtherChapters = myScheduleDate
+    ? getScheduleChapters(myScheduleDate).filter(c => c !== selectedChapter)
+    : [];
+  const today = todayStr();
+  const sameDayAlreadyDoneToday = sameDayOtherChapters.some(c => state.completed[chapterKey(c)] === today);
+  if (!sameDayAlreadyDoneToday) state.streak++;
+  state.completed[chapterKey(selectedChapter)] = today;
+  // 合併日完成第二章判定：本章 + 同日其他章全完成 + 該日章數 >= 2
+  const isMergedDayAllDone = myScheduleDate
+    && getScheduleChapters(myScheduleDate).length >= 2
+    && getScheduleChapters(myScheduleDate).every(c => state.completed[chapterKey(c)]);
   saveState();
   const reflText2 = document.getElementById('refl-text').value.trim();
   saveChapterRecord(selectedChapter, sessionChoice, hasBonus, sessionHasRead, reflText2);
@@ -2552,6 +2765,12 @@ async function completeDevotional() {
   renderChapterGrid();
   track('complete_devotional', { chapter: selectedChapter });
 
+  // 合併日完成第二章 toast：在 reward overlay open 後 1.8s 觸發，等 confetti 收尾再出現
+  const afterReward = () => {
+    if (isMergedDayAllDone) {
+      setTimeout(() => showToast('兩章都讀完了，今天教會的進度走完了 ✨'), 1800);
+    }
+  };
   if (reflSubmitted) {
     // Player wrote a reflection → show "claim reward" button below AI response
     // so they can read the AI response first before the reward overlay appears
@@ -2564,12 +2783,14 @@ async function completeDevotional() {
       claimBtn.remove();
       showReward(newItem, bonusItem, hasBonus);
       setTimeout(() => checkAchievements(), 1500);
+      afterReward();
     };
     aiDiv.appendChild(claimBtn);
   } else {
     // No reflection → show reward immediately
     showReward(newItem, bonusItem, hasBonus);
     setTimeout(() => checkAchievements(), 1500);
+    afterReward();
   }
 
   btn.textContent = '✅ 已完成此章靈修';
@@ -2610,6 +2831,23 @@ function showReward(item, bonus, hasBonus) {
 
 function closeReward() {
   closeOverlay('reward-overlay');
+  // 合併日完成單章後：刷新日曆 + day-info-bar（讓剛完成的卡片變綠 ✅），並滾回 day-info-bar
+  const myScheduleDate = findScheduleDate(selectedChapter);
+  if (!myScheduleDate) return;
+  const sameDayChapters = getScheduleChapters(myScheduleDate);
+  if (sameDayChapters.length < 2) return;
+  // 該日仍有未完成章節 → 引導玩家回 day-info-bar 看下一章
+  const allDone = sameDayChapters.every(c => state.completed[chapterKey(c)]);
+  if (allDone) return;
+  if (calSelectedDate === myScheduleDate) {
+    const d = parseInt(myScheduleDate.split('-')[2], 10);
+    renderCalGrid();
+    updateDayInfoBar(myScheduleDate, d);
+    setTimeout(() => {
+      const bar = document.getElementById('day-info-bar');
+      if (bar) bar.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 250);
+  }
 }
 
 // ══ COPY SHARE ══════════════════════════════════════════
@@ -2869,6 +3107,9 @@ function toggleMoreMenu(e) {
     menu.classList.remove('show');
     return;
   }
+  // 「我的留言」只給已登入玩家看（含只送過匿名的，因為他們有 uid）
+  const myMsgsBtn = document.getElementById('more-menu-my-msgs');
+  if (myMsgsBtn) myMsgsBtn.style.display = currentUser ? 'block' : 'none';
   // Anchor the menu's top-right to just below the button's bottom-right,
   // so it tracks the centered game layout on desktop instead of pinning to
   // the viewport edge.
@@ -2887,7 +3128,8 @@ document.addEventListener('click', () => {
 });
 
 // ── Feedback (曠野呼聲) ───────────────────────────────────
-let feedbackState = { mood: null, identity: null, category: null };
+// v2 wantReply：玩家是否希望團隊回覆；匿名身份時 UI 鎖成「不用回覆」
+let feedbackState = { mood: null, identity: null, category: null, wantReply: null };
 const FEEDBACK_VERSES = [
   { t: '「你們要將一切的憂慮卸給神，因為他顧念你們。」', r: '—— 彼得前書 5:7' },
   { t: '「我靠著那加給我力量的，凡事都能做。」', r: '—— 腓立比書 4:13' },
@@ -2901,8 +3143,12 @@ function openFeedback() {
 }
 
 function resetFeedbackForm() {
-  feedbackState = { mood: null, identity: null, category: null };
+  feedbackState = { mood: null, identity: null, category: null, wantReply: null };
   document.querySelectorAll('#feedback-overlay .fb-opt.sel').forEach(el => el.classList.remove('sel'));
+  // 清掉 wantReply 區塊的鎖定狀態與提示
+  document.querySelectorAll('#fb-want-reply .fb-opt-locked').forEach(el => el.classList.remove('fb-opt-locked'));
+  const wrHint = document.getElementById('fb-want-reply-hint');
+  if (wrHint) wrHint.style.display = 'none';
   document.getElementById('fb-message').value = '';
   updateFbCount();
   document.getElementById('fb-form').style.display = 'block';
@@ -2913,6 +3159,28 @@ function selectFbOption(groupId, field, btn) {
   document.querySelectorAll('#' + groupId + ' .fb-opt').forEach(x => x.classList.remove('sel'));
   btn.classList.add('sel');
   feedbackState[field] = btn.dataset.val;
+  // 切換身份時連動 wantReply 鎖定狀態（匿名 → 鎖；具名 → 解鎖，保留之前的選擇）
+  if (field === 'identity') {
+    applyAnonLockOnWantReply(btn.dataset.val === 'anon');
+  }
+}
+
+// 匿名時：把 wantReply 兩顆按鈕灰掉、自動選「不用回覆」、顯示提示
+// 具名時：解鎖兩顆按鈕、隱藏提示（不清掉 feedbackState.wantReply，讓玩家切回具名仍記得之前的選擇）
+function applyAnonLockOnWantReply(isAnon) {
+  const wrEls = document.querySelectorAll('#fb-want-reply .fb-opt');
+  const hint = document.getElementById('fb-want-reply-hint');
+  if (isAnon) {
+    feedbackState.wantReply = 'no';
+    wrEls.forEach(el => {
+      el.classList.add('fb-opt-locked');
+      el.classList.toggle('sel', el.dataset.val === 'no');
+    });
+    if (hint) hint.style.display = 'block';
+  } else {
+    wrEls.forEach(el => el.classList.remove('fb-opt-locked'));
+    if (hint) hint.style.display = 'none';
+  }
 }
 
 function updateFbCount() {
@@ -2923,6 +3191,8 @@ function updateFbCount() {
 async function submitFeedback() {
   if (!feedbackState.mood) { showToast('請先選今天的感覺'); return; }
   if (!feedbackState.identity) { showToast('請選擇身份'); return; }
+  // FEATURE_FEEDBACK_V2=false 時 wantReply 區塊不存在，跳過驗證
+  if (FEATURE_FEEDBACK_V2 && !feedbackState.wantReply) { showToast('請選是否希望收到回覆'); return; }
   if (!feedbackState.category) { showToast('請選擇分類'); return; }
 
   // Guest wanting named comment → prompt to login
@@ -2941,6 +3211,11 @@ async function submitFeedback() {
     displayName: (!isAnonymous && currentUser) ? (currentUser.displayName || null) : null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     chapter: selectedChapter || null,
+    // v2 多輪對話：玩家是否希望團隊回覆（匿名強制 false）
+    // 對話追蹤欄位（status / lastMessageAt / unreadByPlayer / unreadByAdmin / messageCount）
+    // 採 lazy-init：admin 後台回覆或玩家追訊息時才寫；讀取時用 ?? 預設值容錯
+    // FEATURE_FEEDBACK_V2=false 時永遠寫 false，flag 開啟後依玩家勾選
+    wantReply: FEATURE_FEEDBACK_V2 && feedbackState.wantReply === 'yes',
   };
 
   try {
@@ -2974,6 +3249,8 @@ function switchToAnonFeedback() {
   document.querySelectorAll('#fb-ident .fb-opt').forEach(el => {
     el.classList.toggle('sel', el.dataset.val === 'anon');
   });
+  // 同步鎖 wantReply 區塊（與直接點「匿名」走一樣的路徑）
+  applyAnonLockOnWantReply(true);
   closeOverlay('feedback-login-prompt');
 }
 
@@ -3116,6 +3393,350 @@ function showDiaryDetail(key) {
   openOverlay('diary-detail-overlay');
 }
 
+// ── My Messages (曠野呼聲 v2 多輪對話) ────────────────────
+// 容錯讀取：v1 殘留 / Phase 1 migrate 過 / Phase 2A 之後送的新留言共用一套規則
+// 設計選擇：client 不主動寫對話追蹤欄位（status / lastMessageAt / unread* / messageCount）
+// admin 後台或玩家追訊息時才寫；缺欄位由下面這幾個 helper 推導預設值
+
+function normalizeFeedbackStatus(d) {
+  if (d.status) return d.status;
+  // 沒 status：靠 wantReply 分流
+  if (d.wantReply === true) return 'awaiting_admin'; // 想要回覆但還沒回 → 等待中
+  return 'closed'; // wantReply=false 或 v1 殘留沒這欄位 → 視為已結束
+}
+function normalizeUnread(d, side) {
+  // side: 'player' | 'admin'，缺欄位都當 false（沒訊息就沒未讀）
+  const key = side === 'player' ? 'unreadByPlayer' : 'unreadByAdmin';
+  return d[key] === true;
+}
+function normalizeMessageCount(d) {
+  return typeof d.messageCount === 'number' ? d.messageCount : 0;
+}
+function normalizeLastMessageAt(d) {
+  // 缺欄位用 createdAt（兩者都是 Firestore Timestamp）
+  return d.lastMessageAt || d.createdAt || null;
+}
+
+let myMessagesData = [];
+
+async function openMyMessages() {
+  // FEATURE_FEEDBACK_V2=false 時防護：拒絕從 console / 殘留路徑進入
+  if (!FEATURE_FEEDBACK_V2) return;
+  if (!currentUser) {
+    showToast('登入後可查看自己的留言');
+    return;
+  }
+  document.getElementById('my-msgs-list').innerHTML = '<div class="diary-empty"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 載入中</div>';
+  openOverlay('my-msgs-overlay');
+
+  try {
+    const snapshot = await db.collection('feedback')
+      .where('uid', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .get();
+    myMessagesData = [];
+    snapshot.forEach(doc => {
+      myMessagesData.push({ id: doc.id, ...doc.data() });
+    });
+    renderMyMessagesList(myMessagesData);
+  } catch (e) {
+    console.warn('My messages load error:', e);
+    // Firestore 對 where + orderBy 複合查詢需要先建索引；缺索引會帶建立連結到 e.message
+    if (String(e.message || '').includes('requires an index')) {
+      document.getElementById('my-msgs-list').innerHTML = '<div class="diary-empty">⚠️ 需建立 Firestore 索引<br><br>請聯絡管理員（看 console 取得建立連結）</div>';
+      console.error('Firestore index needed:', e.message);
+    } else {
+      document.getElementById('my-msgs-list').innerHTML = '<div class="diary-empty">載入失敗，請重試</div>';
+    }
+  }
+}
+
+function renderMyMessagesList(entries) {
+  const el = document.getElementById('my-msgs-list');
+  if (entries.length === 0) {
+    el.innerHTML = '<div class="diary-empty">📭 還沒有留言<br><br>下次想跟團隊說點什麼，<br>記得在曠野呼聲選「具名」就會收進這裡。</div>';
+    return;
+  }
+
+  const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
+  const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+
+  let html = `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px;">共 ${entries.length} 則</div>`;
+  entries.forEach(d => {
+    const status = normalizeFeedbackStatus(d);
+    const badge = renderMyMsgBadge(status);
+    // createdAt 可能是 Firestore Timestamp（已 round-trip）也可能還是 serverTimestamp sentinel（剛 add 還沒 sync）
+    const ts = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate() : null;
+    const date = ts ? `${ts.getFullYear()}/${String(ts.getMonth()+1).padStart(2,'0')}/${String(ts.getDate()).padStart(2,'0')}` : '—';
+    const mood = d.mood ? `${moodEmoji[d.mood] || ''} ${d.mood}` : '';
+    const cat = d.category ? `${catEmoji[d.category] || ''} ${d.category}` : '';
+    const msg = (d.message || '').trim();
+    const preview = msg
+      ? `<div class="my-msg-preview">${escapeHtmlMyMsg(msg.slice(0, 40))}${msg.length > 40 ? '…' : ''}</div>`
+      : '<div class="my-msg-preview-empty">（沒有文字內容）</div>';
+    html += `<div class="my-msg-card" onclick="openMyMessageThread('${d.id}')">
+      <div class="my-msg-row">
+        <span class="my-msg-date">${date}</span>
+        ${badge}
+      </div>
+      <div class="my-msg-meta"><span>${mood}</span><span>${cat}</span></div>
+      ${preview}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function renderMyMsgBadge(status) {
+  // 玩家友善文案：內部狀態 → 顯示文字 + 顏色（療癒紙張感主調）
+  if (status === 'awaiting_admin' || status === 'new') {
+    return '<span class="my-msg-badge my-msg-badge-wait">🕊️ 等待回覆</span>';
+  }
+  if (status === 'awaiting_player') {
+    return '<span class="my-msg-badge my-msg-badge-replied">💬 已回覆</span>';
+  }
+  return '<span class="my-msg-badge my-msg-badge-closed">✓ 已結束</span>';
+}
+
+// 玩家留言內容預覽用，避免 < & 之類字元打壞 HTML
+function escapeHtmlMyMsg(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── My Message Thread (Phase 2C 多輪對話 thread view) ────
+// rules Path B（commit b2abc6a）允許玩家寫一筆 messages doc + 同步 update parent 4 欄位
+// 用 batch write 確保原子性。closed 對話 client 端 UI readonly（rules 寬鬆 client 嚴格）
+let currentThreadDocId = null;
+let currentThreadData = null;     // parent feedback doc 快照
+let currentThreadMessages = [];   // messages 子集合按 createdAt 升序
+let isThreadSending = false;
+
+async function openMyMessageThread(docId) {
+  if (!currentUser) {
+    showToast('登入後可查看對話');
+    return;
+  }
+  currentThreadDocId = docId;
+  isThreadSending = false;
+
+  // 先開 overlay 顯示載入中
+  document.getElementById('thread-body').innerHTML = '<div class="diary-empty"><span class="dot"></span><span class="dot"></span><span class="dot"></span> 載入中</div>';
+  document.getElementById('thread-text').value = '';
+  document.getElementById('thread-count').textContent = '0 / 300';
+  document.getElementById('thread-closed-hint').style.display = 'none';
+  document.getElementById('thread-send-btn').disabled = true;
+  openOverlay('my-msg-thread-overlay');
+
+  try {
+    const feedbackRef = db.collection('feedback').doc(docId);
+    const [parentSnap, messagesSnap] = await Promise.all([
+      feedbackRef.get(),
+      feedbackRef.collection('messages').orderBy('createdAt', 'asc').get(),
+    ]);
+    if (!parentSnap.exists) {
+      document.getElementById('thread-body').innerHTML = '<div class="diary-empty">⚠️ 留言不存在或已被刪除</div>';
+      return;
+    }
+    currentThreadData = { id: docId, ...parentSnap.data() };
+    currentThreadMessages = [];
+    messagesSnap.forEach(d => currentThreadMessages.push({ id: d.id, ...d.data() }));
+    renderThreadView();
+
+    // Fire-and-forget 標記已讀（容錯後 unreadByPlayer=true 才寫，避免無謂 update）
+    if (normalizeUnread(currentThreadData, 'player')) {
+      feedbackRef.update({ unreadByPlayer: false })
+        .catch(e => console.warn('Mark as read failed:', e));
+    }
+  } catch (e) {
+    console.warn('Thread load error:', e);
+    if (String(e.message || '').includes('requires an index')) {
+      document.getElementById('thread-body').innerHTML = '<div class="diary-empty">⚠️ 需建立 Firestore 索引<br><br>請聯絡管理員（看 console 取得建立連結）</div>';
+      console.error('Firestore index needed:', e.message);
+    } else {
+      document.getElementById('thread-body').innerHTML = '<div class="diary-empty">載入失敗，請重試<br><br><button class="sky-btn" onclick="retryOpenThread()" style="width:auto;margin:10px 0 0;padding:6px 14px;font-size:13px;">重試</button></div>';
+    }
+  }
+}
+
+function retryOpenThread() {
+  if (currentThreadDocId) openMyMessageThread(currentThreadDocId);
+}
+
+function renderThreadView() {
+  const d = currentThreadData;
+  const status = normalizeFeedbackStatus(d);
+
+  // Badge
+  document.getElementById('thread-badge').innerHTML = renderMyMsgBadge(status);
+
+  const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
+  const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+
+  const ts = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate() : null;
+  const dateStr = ts ? formatThreadTime(ts) : '—';
+  const mood = d.mood ? `${moodEmoji[d.mood] || ''} ${d.mood}` : '';
+  const cat = d.category ? `${catEmoji[d.category] || ''} ${d.category}` : '';
+
+  // 原始留言（特殊樣式，非泡泡）
+  let html = `<div class="thread-origin">
+    <div class="thread-origin-meta"><span>${mood}</span><span>${cat}</span><span class="thread-time">${dateStr}</span></div>
+    <div class="thread-origin-text">${d.message ? escapeHtmlMyMsg(d.message) : '<span class="thread-origin-text-empty">（沒有文字內容）</span>'}</div>
+  </div>`;
+
+  // messages 子集合泡泡
+  currentThreadMessages.forEach(m => {
+    const mTs = m.createdAt && typeof m.createdAt.toDate === 'function' ? m.createdAt.toDate() : null;
+    const mTime = mTs ? formatThreadTime(mTs) : '—';
+    const isPlayer = m.role === 'player';
+    const isAi = m.authorType === 'ai';
+    const bubbleClass = isPlayer ? 'thread-bubble-player' : 'thread-bubble-admin';
+    const aiPrefix = (!isPlayer && isAi) ? '<span class="thread-ai-icon">🤖</span>' : '';
+    html += `<div class="thread-msg ${isPlayer ? 'thread-msg-right' : 'thread-msg-left'}">
+      <div class="thread-bubble ${bubbleClass}">${aiPrefix}${escapeHtmlMyMsg(m.text || '')}</div>
+      <div class="thread-time">${mTime}</div>
+    </div>`;
+  });
+
+  document.getElementById('thread-body').innerHTML = html;
+
+  // 自動滾到底（最新訊息在底部）
+  const body = document.getElementById('thread-body');
+  body.scrollTop = body.scrollHeight;
+
+  // 設定輸入區狀態（closed → readonly + 提示）
+  if (status === 'closed') {
+    setThreadInputClosed(true, '這個對話已結束。如有新事項，請另外送一筆曠野呼聲。');
+  } else {
+    setThreadInputClosed(false, '');
+  }
+}
+
+function setThreadInputClosed(closed, hint) {
+  const ta = document.getElementById('thread-text');
+  const btn = document.getElementById('thread-send-btn');
+  const hintEl = document.getElementById('thread-closed-hint');
+  if (closed) {
+    ta.readOnly = true;
+    ta.placeholder = '對話已結束';
+    btn.disabled = true;
+    hintEl.textContent = hint;
+    hintEl.style.display = 'block';
+  } else {
+    ta.readOnly = false;
+    ta.placeholder = '輸入訊息...';
+    hintEl.style.display = 'none';
+    btn.disabled = ta.value.trim().length === 0 || isThreadSending;
+  }
+}
+
+function updateThreadCount() {
+  const v = document.getElementById('thread-text').value;
+  document.getElementById('thread-count').textContent = `${v.length} / 300`;
+  // closed 永遠 disabled，不被 textarea 內容影響
+  const status = currentThreadData ? normalizeFeedbackStatus(currentThreadData) : null;
+  if (status !== 'closed') {
+    document.getElementById('thread-send-btn').disabled = v.trim().length === 0 || isThreadSending;
+  }
+}
+
+function formatThreadTime(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+async function sendThreadMessage() {
+  if (isThreadSending) return;
+  if (!currentUser || !currentThreadDocId) return;
+
+  const ta = document.getElementById('thread-text');
+  const text = ta.value.trim();
+  if (text.length === 0) return;
+
+  // closed safety check（雙重防護，雖然 button 已 disabled）
+  const status = currentThreadData ? normalizeFeedbackStatus(currentThreadData) : null;
+  if (status === 'closed') {
+    showToast('對話已結束，無法追訊息');
+    return;
+  }
+
+  isThreadSending = true;
+  ta.disabled = true;
+  document.getElementById('thread-send-btn').disabled = true;
+
+  try {
+    // Batch write：messages 子集合 add + parent 4 欄位 update（原子性，符合 rules Path B）
+    const feedbackRef = db.collection('feedback').doc(currentThreadDocId);
+    const msgRef = feedbackRef.collection('messages').doc();
+    const ts = firebase.firestore.FieldValue.serverTimestamp();
+
+    const batch = db.batch();
+    batch.set(msgRef, {
+      role: 'player',
+      text,
+      createdAt: ts,
+      authorUid: currentUser.uid,
+      authorType: 'human',
+    });
+    batch.update(feedbackRef, {
+      lastMessageAt: ts,
+      unreadByAdmin: true,
+      messageCount: firebase.firestore.FieldValue.increment(1),
+      status: 'awaiting_admin',
+    });
+    await batch.commit();
+
+    // 重讀完整資料（保證 local state 跟 server 一致，serverTimestamp / increment 真正值才回得來）
+    const [parentSnap, messagesSnap] = await Promise.all([
+      feedbackRef.get(),
+      feedbackRef.collection('messages').orderBy('createdAt', 'asc').get(),
+    ]);
+    currentThreadData = { id: currentThreadDocId, ...parentSnap.data() };
+    currentThreadMessages = [];
+    messagesSnap.forEach(d => currentThreadMessages.push({ id: d.id, ...d.data() }));
+
+    // 清空 textarea + 重新渲染（自動滾到底）
+    ta.value = '';
+    document.getElementById('thread-count').textContent = '0 / 300';
+    isThreadSending = false;
+    ta.disabled = false;
+    renderThreadView();
+  } catch (e) {
+    console.warn('Send message error:', e);
+    showToast('送出失敗，請稍後再試');
+    isThreadSending = false;
+    ta.disabled = false;
+    // 保留 textarea 內容（玩家文字不丟失），button disabled 依文字內容
+    document.getElementById('thread-send-btn').disabled = ta.value.trim().length === 0;
+  }
+}
+
+function closeMyMsgThread() {
+  closeOverlay('my-msg-thread-overlay');
+  currentThreadDocId = null;
+  currentThreadData = null;
+  currentThreadMessages = [];
+  // 返回 list 時 refresh：剛才追訊息過的卡片狀態（badge / 預覽）會更新
+  if (currentUser) {
+    refreshMyMessagesList();
+  }
+}
+
+async function refreshMyMessagesList() {
+  // 跟 openMyMessages 同 query，但不開 overlay 不顯示載入動畫（避免閃爍）
+  try {
+    const snapshot = await db.collection('feedback')
+      .where('uid', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .get();
+    myMessagesData = [];
+    snapshot.forEach(doc => myMessagesData.push({ id: doc.id, ...doc.data() }));
+    renderMyMessagesList(myMessagesData);
+  } catch (e) {
+    console.warn('My messages refresh error:', e);
+  }
+}
+
 function showConfirm(icon, title, msg, okLabel, cancelLabel) {
   return new Promise(resolve => {
     document.getElementById('cp-icon').textContent = icon;
@@ -3161,23 +3782,37 @@ function switchPage(name) {
 }
 
 // ══ BOOT ════════════════════════════════════════════════
+// 包進 DOMContentLoaded：content.js 帶 defer（首畫面不被阻塞），
+// 但 inline script 是同步立即執行；BOOT 走 state.setup=true 路徑會經 initApp →
+// renderCalGrid 用 SCHEDULE，cold load 時 SCHEDULE 還沒 ready 就會 race。
+// DOMContentLoaded 在所有 defer scripts 執行完才 fire，保證 SCHEDULE 已定義。
 
-if (state.setup) {
-  showMainAppScreen();
-  // Version update notice
-  const lastSeen = localStorage.getItem('last_seen_version');
-  if (lastSeen !== GAME_VERSION) {
-    setTimeout(() => showVersionNotice(), 600);
-  } else if (!localStorage.getItem('tut_done')) {
-    setTimeout(() => openOverlay('tut-overlay'), 500);
+// 套用 feature flag：移除尚未啟用的 v2 入口元素（DOM 樹真實移除，等同條件渲染）
+function applyFeatureFlags() {
+  if (typeof FEATURE_FEEDBACK_V2 !== 'undefined' && !FEATURE_FEEDBACK_V2) {
+    document.querySelectorAll('[data-v2-only]').forEach(el => el.remove());
   }
-} else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
-  // Returning from LINE redirect OR previously chose login/guest — show setup
-  // (post-auth onAuthStateChanged may still advance to main app if cloud has setup)
-  showSetupScreen();
-} else {
-  showWelcomeScreen();
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyFeatureFlags();
+  if (state.setup) {
+    showMainAppScreen();
+    // Version update notice
+    const lastSeen = localStorage.getItem('last_seen_version');
+    if (lastSeen !== GAME_VERSION) {
+      setTimeout(() => showVersionNotice(), 600);
+    } else if (!localStorage.getItem('tut_done')) {
+      setTimeout(() => openOverlay('tut-overlay'), 500);
+    }
+  } else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
+    // Returning from LINE redirect OR previously chose login/guest — show setup
+    // (post-auth onAuthStateChanged may still advance to main app if cloud has setup)
+    showSetupScreen();
+  } else {
+    showWelcomeScreen();
+  }
+});
 
 function showVersionNotice() {
   document.getElementById('ver-num').textContent = `v${GAME_VERSION}`;
@@ -3211,6 +3846,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
+  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言</button>
   <button onclick="openFontSizePicker(); closeMoreMenu()">🔤 字體大小</button>
   <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
 </div>

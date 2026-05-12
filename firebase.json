@@ -16,18 +16,39 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**",
-      "functions/**",
-      "CLAUDE.md",
-      "README.md",
-      "claude_output.log",
-      "firestore.rules",
-      "*.log"
-    ]
-  }
+  "hosting": [
+    {
+      "target": "main",
+      "public": ".",
+      "ignore": [
+        "firebase.json",
+        "firebase.json.bak",
+        "**/.*",
+        "**/node_modules/**",
+        "functions/**",
+        "admin/**",
+        "CLAUDE.md",
+        "README.md",
+        "claude_output.log",
+        "firestore.rules",
+        "*.log"
+      ]
+    },
+    {
+      "target": "admin",
+      "public": "admin",
+      "ignore": [
+        "firebase.json",
+        "firebase.json.bak",
+        "**/.*",
+        "**/node_modules/**",
+        "**/*.md",
+        "**/firestore.rules",
+        "**/functions/**",
+        "**/scripts/**",
+        "**/package.json",
+        "**/package-lock.json"
+      ]
+    }
+  ]
 }

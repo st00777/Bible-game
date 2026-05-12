@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#9C7BB5">
+<title>留言列表 · 管理後台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sky:#E8F4FD;
+  --sky-deep:#B8D9F0;
+  --green:#7BC67E;
+  --green-dark:#4CAF50;
+  --sand:#F5E6C8;
+  --sand-dark:#E8D0A0;
+  --warm:#FF8A65;
+  --purple:#9C7BB5;
+  --text:#3D2B1F;
+  --text-soft:#7A6050;
+  --card:#FFFDF8;
+  --shadow:rgba(61,43,31,0.12);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans TC',sans-serif;
+  background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);
+  min-height:100vh;
+  color:var(--text);
+  padding:20px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:720px;margin:0 auto;}
+
+/* Loading */
+.loading{text-align:center;padding:80px 0;color:var(--text-soft);font-size:14px;}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin:0 2px;animation:dot-blink 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}
+.dot:nth-child(3){animation-delay:.4s;}
+@keyframes dot-blink{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1.2);}}
+
+/* Header */
+.page-header{
+  background:var(--card);
+  border-radius:18px;
+  padding:18px 20px;
+  margin-bottom:14px;
+  box-shadow:0 4px 16px var(--shadow);
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.page-title{font-size:18px;font-weight:900;color:var(--text);flex:1;}
+.back-link{
+  font-size:13px;
+  color:var(--purple);
+  text-decoration:none;
+  font-weight:700;
+  padding:6px 12px;
+  border-radius:10px;
+  background:var(--sky);
+  border:2px solid var(--sky-deep);
+  transition:all .15s;
+}
+.back-link:hover{background:var(--sky-deep);}
+.admin-email{
+  width:100%;
+  font-size:11px;
+  color:var(--text-soft);
+  border-top:1px dashed rgba(61,43,31,.1);
+  padding-top:8px;
+  margin-top:4px;
+}
+
+/* Filter area */
+.filter-area{
+  background:var(--card);
+  border-radius:18px;
+  padding:14px 16px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px var(--shadow);
+}
+.filter-row{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.filter-row:last-child{margin-bottom:0;}
+.filter-label{font-size:12px;font-weight:700;color:var(--text-soft);min-width:60px;padding-top:8px;letter-spacing:.05em;}
+.filter-buttons{display:flex;flex-wrap:wrap;gap:6px;flex:1;}
+.filter-btn{
+  background:white;
+  border:2px solid var(--sky-deep);
+  border-radius:11px;
+  padding:6px 12px;
+  font-family:inherit;
+  font-size:12px;
+  font-weight:700;
+  color:var(--text);
+  cursor:pointer;
+  transition:all .15s;
+}
+.filter-btn:hover{border-color:var(--purple);}
+.filter-btn.active{
+  background:linear-gradient(135deg,var(--purple),#7B5EA7);
+  color:white;
+  border-color:var(--purple);
+  box-shadow:0 2px 8px rgba(156,123,181,.4);
+}
+
+/* List */
+.list-count{
+  font-size:13px;
+  color:var(--text-soft);
+  margin-bottom:10px;
+  padding:0 4px;
+}
+.list-empty{
+  text-align:center;
+  color:var(--text-soft);
+  padding:60px 20px;
+  font-size:14px;
+  line-height:1.7;
+  background:var(--card);
+  border-radius:16px;
+  box-shadow:0 2px 10px var(--shadow);
+}
+
+/* Card */
+.fb-card{
+  background:var(--card);
+  border:2px solid var(--sky-deep);
+  border-radius:14px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:all .15s;
+  box-shadow:0 2px 10px var(--shadow);
+}
+.fb-card:hover{border-color:var(--purple);transform:translateY(-2px);box-shadow:0 4px 14px var(--shadow);}
+.fb-card-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.fb-card-time{font-size:11px;color:var(--text-soft);font-weight:700;}
+.fb-card-status{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.fb-card-name{font-size:13px;font-weight:900;color:var(--text);margin-bottom:4px;}
+.fb-card-name-anon{color:var(--text-soft);font-weight:700;}
+.fb-card-meta{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.fb-card-meta span{margin-right:12px;}
+.fb-card-preview{
+  font-size:13px;
+  color:var(--text-soft);
+  line-height:1.55;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  white-space:pre-wrap;
+  word-break:break-word;
+  margin-bottom:8px;
+}
+.fb-card-preview-empty{color:#bbb;font-style:italic;}
+.fb-card-foot{display:flex;gap:14px;align-items:center;font-size:11px;color:var(--text-soft);flex-wrap:wrap;}
+.fb-card-foot strong{color:var(--text);font-weight:700;}
+
+/* Status badge */
+.fb-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:11px;white-space:nowrap;flex-shrink:0;}
+.fb-badge-new{background:linear-gradient(135deg,#BBDEFB,#90CAF9);color:#1565C0;border:1px solid #64B5F6;}
+.fb-badge-wait{background:linear-gradient(135deg,#FFE0B2,#FFCC80);color:#E65100;border:1px solid #FFB74D;}
+.fb-badge-replied{background:linear-gradient(135deg,#E8F5E9,#C8E6C9);color:var(--green-dark);border:1px solid #81C784;}
+.fb-badge-closed{background:#F0EBE3;color:var(--text-soft);border:1px solid #D7CCC8;}
+.fb-unread-dot{
+  display:inline-block;
+  width:9px;height:9px;
+  border-radius:50%;
+  background:#FF5252;
+  box-shadow:0 0 0 2px white, 0 0 6px rgba(255,82,82,.5);
+}
+
+@media (min-width:600px){
+  .page-header{padding:22px 26px;}
+  .page-title{font-size:20px;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- Loading（守衛 + 資料載入中）-->
+  <div id="loading-state" class="loading">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span> 載入中
+  </div>
+
+  <!-- Main area（守衛通過 + 資料載入完）-->
+  <div id="main-area" style="display:none;">
+    <header class="page-header">
+      <div class="page-title">📬 留言列表</div>
+      <a href="./index.html" class="back-link">← 返回</a>
+      <div class="admin-email">登入身份：<span id="header-email">—</span></div>
+    </header>
+
+    <section class="filter-area">
+      <div class="filter-row">
+        <div class="filter-label">狀態</div>
+        <div class="filter-buttons">
+          <button class="filter-btn filter-btn-action" id="status-all-btn" onclick="toggleStatusAll()">全部</button>
+          <button class="filter-btn" data-filter="status" data-val="new">🆕 新留言</button>
+          <button class="filter-btn" data-filter="status" data-val="awaiting_admin">🕊️ 等待回覆</button>
+          <button class="filter-btn" data-filter="status" data-val="awaiting_player">💬 已回覆</button>
+          <button class="filter-btn" data-filter="status" data-val="closed">✓ 已結束</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">想回覆</div>
+        <div class="filter-buttons">
+          <button class="filter-btn" data-filter="wantReply" data-val="all">全部</button>
+          <button class="filter-btn" data-filter="wantReply" data-val="yes">想回覆</button>
+          <button class="filter-btn" data-filter="wantReply" data-val="no">不用回覆</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">時間</div>
+        <div class="filter-buttons">
+          <button class="filter-btn" data-filter="timeRange" data-val="all">全部</button>
+          <button class="filter-btn" data-filter="timeRange" data-val="7d">最近 7 天</button>
+          <button class="filter-btn" data-filter="timeRange" data-val="30d">最近 30 天</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">身份</div>
+        <div class="filter-buttons">
+          <button class="filter-btn" data-filter="named" data-val="all">全部</button>
+          <button class="filter-btn" data-filter="named" data-val="named">具名</button>
+          <button class="filter-btn" data-filter="named" data-val="anon">匿名</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="list-section">
+      <div class="list-count" id="list-count">—</div>
+      <div id="list-container"></div>
+    </section>
+  </div>
+</div>
+
+<!-- Firebase SDK（同 admin/index.html 的 9.22.2 compat 版本，避免版本衝突）-->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+// ── Firebase init（同主站 firebaseConfig）───────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
+  authDomain: "bible-game-bcb84.firebaseapp.com",
+  projectId: "bible-game-bcb84",
+  storageBucket: "bible-game-bcb84.firebasestorage.app",
+  messagingSenderId: "998309781226",
+  appId: "1:998309781226:web:3393ab62963940ef720193"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ── 白名單（同 admin/index.html，重複定義避免架構過早優化）──
+const ADMIN_EMAILS = ['st00777@hotmail.com'];
+
+// ── Filter state（含預設值）─────────────────────────────
+const ALL_STATUSES = ['new', 'awaiting_admin', 'awaiting_player', 'closed'];
+const filterState = {
+  status: ['new', 'awaiting_admin', 'awaiting_player'],  // 預設不勾 closed
+  wantReply: 'all',  // all / yes / no
+  timeRange: '30d',  // 7d / 30d / all
+  named: 'all',      // all / named / anon
+};
+let allFeedback = [];  // 全部 50 筆，client-side filter
+
+// ── normalize helpers（沿用 Phase 2B lazy-init B 方案的容錯邏輯）──
+// 設計選擇：client 不主動寫對話追蹤欄位（status / lastMessageAt / unread* / messageCount）
+// 讀取時用以下 helper 推導預設值，三種 doc 形態（v1 殘留 / Phase 1 migrate / Phase 2A 後）一份邏輯涵蓋
+function normalizeFeedbackStatus(d) {
+  if (d.status) return d.status;
+  if (d.wantReply === true) return 'awaiting_admin';
+  return 'closed';
+}
+function normalizeUnread(d, side) {
+  const key = side === 'player' ? 'unreadByPlayer' : 'unreadByAdmin';
+  return d[key] === true;
+}
+function normalizeMessageCount(d) {
+  return typeof d.messageCount === 'number' ? d.messageCount : 0;
+}
+function normalizeLastMessageAt(d) {
+  return d.lastMessageAt || d.createdAt || null;
+}
+
+// ── HTML escape（同 Phase 2B escapeHtmlMyMsg 風格）─────
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── 時間格式化 ──────────────────────────────────────────
+function formatDateTime(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function relativeTime(d) {
+  const now = Date.now();
+  const diff = now - d.getTime();
+  const min = 60 * 1000;
+  const hour = 60 * min;
+  const day = 24 * hour;
+  if (diff < 5 * min) return '剛剛';
+  if (diff < hour) return Math.floor(diff/min) + ' 分鐘前';
+  if (diff < day) return Math.floor(diff/hour) + ' 小時前';
+  if (diff < 30 * day) return Math.floor(diff/day) + ' 天前';
+  if (diff < 365 * day) return Math.floor(diff/(30*day)) + ' 個月前';
+  return Math.floor(diff/(365*day)) + ' 年前';
+}
+
+// ── Auth state monitor（守衛）──────────────────────────
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.replace('./index.html');
+    return;
+  }
+  const email = (user.email || '').toLowerCase();
+  if (!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+    console.warn('Unauthorized list access:', email);
+    window.location.replace('./index.html');
+    return;
+  }
+  // 守衛通過
+  document.getElementById('header-email').textContent = email;
+  initFilterUI();
+  loadFeedbackList();
+});
+
+// ── Filter UI 初始化 + 點擊處理 ────────────────────────
+// .filter-btn-action（如「全部」捷徑按鈕）走專屬 inline onclick，不掛 generic handler
+function initFilterUI() {
+  document.querySelectorAll('.filter-btn:not(.filter-btn-action)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.filter;
+      const v = btn.dataset.val;
+      if (f === 'status') {
+        // status 可多選 toggle
+        const idx = filterState.status.indexOf(v);
+        if (idx >= 0) filterState.status.splice(idx, 1);
+        else filterState.status.push(v);
+      } else {
+        // 其他三組是單選 radio
+        filterState[f] = v;
+      }
+      syncFilterUI();
+      renderList();
+    });
+  });
+  syncFilterUI();
+}
+function syncFilterUI() {
+  document.querySelectorAll('.filter-btn:not(.filter-btn-action)').forEach(btn => {
+    const f = btn.dataset.filter;
+    const v = btn.dataset.val;
+    let active = false;
+    if (f === 'status') active = filterState.status.includes(v);
+    else active = filterState[f] === v;
+    btn.classList.toggle('active', active);
+  });
+  // 「全部」捷徑按鈕：4 個 status 都勾起來時 active（讓玩家看到目前是「全部」狀態）
+  const allBtn = document.getElementById('status-all-btn');
+  if (allBtn) {
+    allBtn.classList.toggle('active', ALL_STATUSES.every(s => filterState.status.includes(s)));
+  }
+}
+// 「全部」按鈕：一鍵勾選 4 個 status（不是 toggle，純 set）
+function toggleStatusAll() {
+  filterState.status = [...ALL_STATUSES];
+  syncFilterUI();
+  renderList();
+}
+
+// ── 載入 feedback collection（admin rules 已開放讀全部）─
+// Query：orderBy createdAt desc + limit 50
+// 不在 query 階段做 status / wantReply 篩選（避免 composite index 設定）
+// TODO: 資料量上 200+ 才考慮加分頁，目前 ~16 筆遠在範圍內
+async function loadFeedbackList() {
+  try {
+    const snapshot = await db.collection('feedback')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+    allFeedback = [];
+    snapshot.forEach(doc => allFeedback.push({ id: doc.id, ...doc.data() }));
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('main-area').style.display = 'block';
+    renderList();
+  } catch (e) {
+    console.warn('Load feedback list error:', e);
+    document.getElementById('loading-state').innerHTML = '<div class="list-empty">載入失敗，請重試<br><br><button class="back-link" onclick="location.reload()">重新載入</button></div>';
+  }
+}
+
+// ── Apply filter（client-side）+ 渲染列表 ───────────────
+function applyFilter(list) {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const cutoff = filterState.timeRange === '7d' ? now - 7 * day
+              : filterState.timeRange === '30d' ? now - 30 * day
+              : null;
+
+  return list.filter(d => {
+    // status 多選
+    const status = normalizeFeedbackStatus(d);
+    if (!filterState.status.includes(status)) return false;
+
+    // wantReply
+    if (filterState.wantReply === 'yes' && d.wantReply !== true) return false;
+    if (filterState.wantReply === 'no' && d.wantReply === true) return false;
+
+    // 時間區間（用 createdAt，因為 lastMessageAt 在 lazy-init 可能沒值）
+    if (cutoff !== null) {
+      const ts = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate().getTime() : 0;
+      if (ts < cutoff) return false;
+    }
+
+    // 具名 / 匿名
+    if (filterState.named === 'named' && d.isAnonymous === true) return false;
+    if (filterState.named === 'anon' && d.isAnonymous !== true) return false;
+
+    return true;
+  });
+}
+
+const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
+const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+
+function renderList() {
+  // 排序：lastMessageAt 降序（容錯：沒有就用 createdAt）
+  const sorted = [...allFeedback].sort((a, b) => {
+    const aT = normalizeLastMessageAt(a);
+    const bT = normalizeLastMessageAt(b);
+    const aMs = aT && typeof aT.toDate === 'function' ? aT.toDate().getTime() : 0;
+    const bMs = bT && typeof bT.toDate === 'function' ? bT.toDate().getTime() : 0;
+    return bMs - aMs;
+  });
+  const filtered = applyFilter(sorted);
+
+  document.getElementById('list-count').textContent = `共 ${filtered.length} 則`;
+
+  const container = document.getElementById('list-container');
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="list-empty">沒有符合條件的留言 🌿</div>';
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(d => {
+    const status = normalizeFeedbackStatus(d);
+    const unread = normalizeUnread(d, 'admin');
+    const msgCount = normalizeMessageCount(d);
+    const lastTs = normalizeLastMessageAt(d);
+    const lastDate = lastTs && typeof lastTs.toDate === 'function' ? lastTs.toDate() : null;
+
+    // 留言時間（createdAt）
+    const createdTs = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate() : null;
+    const createdStr = createdTs ? formatDateTime(createdTs) : '—';
+
+    // 玩家暱稱
+    let nameHtml;
+    if (d.isAnonymous === true) {
+      nameHtml = '<span class="fb-card-name-anon">🫥 匿名</span>';
+    } else if (d.displayName) {
+      nameHtml = '🆔 ' + escapeHtml(d.displayName);
+    } else if (d.uid) {
+      nameHtml = '🆔 ' + escapeHtml(d.uid.slice(0, 6)) + '…';
+    } else {
+      nameHtml = '<span class="fb-card-name-anon">🆔 未知</span>';
+    }
+
+    const mood = d.mood ? `${moodEmoji[d.mood] || ''} ${d.mood}` : '';
+    const cat = d.category ? `${catEmoji[d.category] || ''} ${d.category}` : '';
+    const msg = (d.message || '').trim();
+    const preview = msg
+      ? `<div class="fb-card-preview">${escapeHtml(msg.slice(0, 50))}${msg.length > 50 ? '…' : ''}</div>`
+      : '<div class="fb-card-preview-empty">（沒有文字內容）</div>';
+
+    // status badge（admin 視角 4 色）
+    const badge = renderAdminBadge(status);
+    const unreadDot = unread ? '<span class="fb-unread-dot" title="未讀"></span>' : '';
+
+    // foot：messageCount + lastMessageAt 相對時間
+    const msgCountHtml = msgCount > 0 ? `<span>💬 <strong>${msgCount}</strong> 則</span>` : '';
+    const lastActivityHtml = lastDate ? `<span>最後活動 <strong>${escapeHtml(relativeTime(lastDate))}</strong></span>` : '';
+
+    html += `<div class="fb-card" data-id="${escapeHtml(d.id)}">
+      <div class="fb-card-row">
+        <span class="fb-card-time">${createdStr}</span>
+        <span class="fb-card-status">${unreadDot}${badge}</span>
+      </div>
+      <div class="fb-card-name">${nameHtml}</div>
+      <div class="fb-card-meta"><span>${mood}</span><span>${cat}</span></div>
+      ${preview}
+      <div class="fb-card-foot">${msgCountHtml}${lastActivityHtml}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderAdminBadge(status) {
+  // admin 視角 4 色：new 藍 / awaiting_admin 橘 / awaiting_player 綠 / closed 灰
+  if (status === 'new') {
+    return '<span class="fb-badge fb-badge-new">🆕 新留言</span>';
+  }
+  if (status === 'awaiting_admin') {
+    return '<span class="fb-badge fb-badge-wait">🕊️ 等待回覆</span>';
+  }
+  if (status === 'awaiting_player') {
+    return '<span class="fb-badge fb-badge-replied">💬 已回覆</span>';
+  }
+  return '<span class="fb-badge fb-badge-closed">✓ 已結束</span>';
+}
+</script>
+
+</body>
+</html>
