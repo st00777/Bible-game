@@ -210,7 +210,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 - 流程：接收 `chapter` + `reflectionTitle` + `playerText` → 呼叫 Gemini → 回傳 `{ aiResponse }`
 - generationConfig：`maxOutputTokens: 1500, temperature: 0.9`（2026-05-01 從 1000/0.7 升級，避免回應被截斷）
 - **失敗處理**（2026-04-28 加入，2026-04-30 升級，2026-05-11 retry 升級）：Gemini 回 503 過載時最多重試 3 次，每次等待 1-2 秒（1.5±0.5 jitter，避免群體同時重試撞牆）；其餘錯誤回傳 fallback 文字「謝謝你願意把心裡的話帶到神面前。祂看見了。」（玩家不會看到錯誤，只是少了個性化回應）
-- 監控：`npm run logs` 看當天呼叫成功率，目標 90% 以上；若 fallback 持續 >10% 考慮升級到 2 次 retry 或加 Gemini Pro 備援
+- 監控：`npm run logs` 看當天呼叫成功率，目標 90% 以上；若 fallback 持續 >10% 考慮加 Gemini Pro 備援，或調整 generationConfig（譬如降 maxOutputTokens / temperature 讓回應更快、減少超時觸發）
 
 ---
 
@@ -254,7 +254,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 **待建入的進度（5月下旬～7月）**：
 ```
 5/18 林後1   5/19 林後2   5/20 林後3   5/21 林後4
-5/22 林後5+6（合併）  5/23 林後7   5/24 林後8   5/25 林後9
+5/22 林後5+6（合併日，雙章呈現）  5/23 林後7   5/24 林後8   5/25 林後9
 5/26 林後10  5/27 林後11  5/28 林後12  5/29 林後13
 5/30 加1    5/31 加2
 6/01 加3    6/02 加4    6/03 加5+6（合併）
@@ -291,15 +291,21 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - 彼得後書：PE2_1 ~ PE2_2
 
 **合併章節（6 處）**：
-- 5/22 林後5+6 → 取更豐富的一章
-- 6/03 加5+6 → 取更豐富的一章
-- 6/14 西1+2 → 取更豐富的一章
-- 6/26 提前2+3 → 取更豐富的一章
-- 7/08 來1+2 → 取更豐富的一章
+- 5/22 林後5+6 → 雙章呈現（v2.11 已上線，COR2_6 章節物件已備齊）
+- 6/03 加5+6 → 雙章呈現（死線前 GAL5 章節物件待補）
+- 6/14 西1+2 → 雙章呈現（COL1 / COL2 章節物件未補，整書卷尚未開始）
+- 6/26 提前2+3 → 雙章呈現（TIM1_2 / TIM1_3 章節物件未補，整書卷尚未開始）
+- 7/08 來1+2 → 雙章呈現（HEB1 / HEB2 章節物件未補，整書卷尚未開始）
 
 **更新節奏**：每週一更新下下週內容，確保玩家永遠有一週緩衝。
 
-**合併章節處理原則**：兩章合一天時，挑戲劇性或靈修素材更豐富的那章設計情境題。
+**合併章節處理原則**（2026-05-11 v2.11 翻轉）：
+- **雙章完整呈現**：合併日的兩章都要寫情境題、默想、裝備，缺一不可。
+- **SCHEDULE 統一陣列格式**：`'YYYY-MM-DD': ['章節1', '章節2', ...]`，單章日 length=1、合併日 length>=2。
+- **雙入口 UI 玩家自選**：日曆點該日進「合併日選擇頁」，玩家選要先讀哪一章。
+- **任一章完成即算今日有靈修**：streak 計算只 +1（不論玩家當天完成幾章），避免合併日 streak 灌水。
+- **兩章各自獨立獎勵**：完成每章都領基本 + 稀有裝備、各自寫默想。
+- **書卷統計依實際章節數**：BOOKS.entries 完整列出所有章節（含合併日的兩章），廢除 merged 倍數機制；其他尚未補章節物件的書卷暫保留 mergedActive flag 過渡。
 
 ---
 
@@ -746,6 +752,12 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
      git checkout main && git merge --ff-only dev && git push
 4. 上線後若要繼續開發,dev 重新 rebase 到 main
 ```
+
+**⚠️ 實際流程與理想脫節（2026-05-11 補註）**
+- 上面是理想流程，但實際 dev 已長期累積（曠野呼聲 v2 Phase 1-3B 跨數週），與 main 分叉超過 15 個 commit，`--ff-only` 已不適用。
+- 最近三次 main 合併（commit `3339fc4` 5/4 release、`2ab2514` v2.10 release、`3bd073d` v2.11 release）都改用 **non-ff merge commit**（`git merge dev --no-ff -m "..."`），讓 dev 的歷史完整保留、main 有清楚的「release commit」標記。
+- **教訓**：dev 應該每完成一個 Phase 就回流 main（merge 或 rebase），長期 feature branch 是反模式——分叉越久，merge 風險越高、回滾範圍越大。
+- **目前建議流程**：dev 完成一批可上線的工作 → 跑 dev preview channel 驗證 → main merge dev --no-ff（含 release notes 的 message）→ push → 部署 functions（若有改）。
 
 **什麼變更可以直接進 main(跳過 dev)**
 - 只改 `content.js` 的每日靈修內容(低風險、無程式邏輯)
