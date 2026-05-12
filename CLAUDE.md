@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-05-05
+> 最後更新：2026-05-11
 
 ---
 
@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.10（main 與 dev 同步，2026-05-04 上線；2026-05-05 加入曠野呼聲 v2 Phase 1）
+**目前版本**：v2.11（main 與 dev 同步，2026-05-11 上線；合併日雙章機制 + 4/17 hotfix + 曠野呼聲 v2 開發中，已用 feature flag 隱藏）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -209,7 +209,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 - API Key：存放於 Firebase Secret Manager（`GOOGLE_AI_API_KEY`）
 - 流程：接收 `chapter` + `reflectionTitle` + `playerText` → 呼叫 Gemini → 回傳 `{ aiResponse }`
 - generationConfig：`maxOutputTokens: 1500, temperature: 0.9`（2026-05-01 從 1000/0.7 升級，避免回應被截斷）
-- **失敗處理**（2026-04-28 加入，2026-04-30 升級）：Gemini 回 503 過載時最多重試 2 次，每次等待 1-2 秒（1.5±0.5 jitter，避免群體同時重試撞牆）；其餘錯誤回傳 fallback 文字「謝謝你願意把心裡的話帶到神面前。祂看見了。」（玩家不會看到錯誤，只是少了個性化回應）
+- **失敗處理**（2026-04-28 加入，2026-04-30 升級，2026-05-11 retry 升級）：Gemini 回 503 過載時最多重試 3 次，每次等待 1-2 秒（1.5±0.5 jitter，避免群體同時重試撞牆）；其餘錯誤回傳 fallback 文字「謝謝你願意把心裡的話帶到神面前。祂看見了。」（玩家不會看到錯誤，只是少了個性化回應）
 - 監控：`npm run logs` 看當天呼叫成功率，目標 90% 以上；若 fallback 持續 >10% 考慮升級到 2 次 retry 或加 Gemini Pro 備援
 
 ---
@@ -610,6 +610,11 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [x] 手機版 sheet 動畫破圖修復（will-change: transform，2026-05-01，v2.10）
 - [x] 手機版成就回顧 modal 閃爍修復（同 sheet 機制，2026-05-04，v2.10）
 - [x] 手機版日曆最後一欄擠壓 / 4 字章節縮寫顯示修復（v2.10）
+- [x] 合併日雙章機制（5/22 林後 5+6 雙入口 UI、任一章完成即算今日有靈修、書架 merged 機制廢除，v2.11，commit 091aa5c）
+- [x] 4/17 使徒行傳完走計算 hotfix（merged map 補 ACT27，v2.11，commit 5a003a4）
+- [x] FEATURE_FEEDBACK_V2 feature flag 機制（隱藏曠野呼聲 v2 入口，v2.11，commit cdb9208）
+- [x] AI retry 升級 2→3 次（降低 fallback 率，v2.11，2026-05-11 部署）
+- [x] 「合併日」日曆標籤 hotfix（v2.11，commit 5f49518）
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）
