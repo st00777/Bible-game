@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>靈修冒險 v2.11 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
+<title>靈修冒險 v2.12 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
 <!-- Google Analytics GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZ3EGYB8BB"></script>
 <script>
@@ -1042,6 +1042,16 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">v2.12 · 4 個歷史合併日補完</div>
+      <div class="log-date">2026年5月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>補做使徒行傳 15（4/05 合併日完整呈現）</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>補做使徒行傳 28（4/17 合併日完整呈現）</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>補做羅馬書 11（4/28 合併日完整呈現）</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>補做哥林多前書 8（5/10 合併日完整呈現）</span></div>
+      <div class="log-item"><span class="log-tag tag-imp">改善</span><span>使徒行傳 / 羅馬書 / 哥林多前書 三書卷廢除 merged 倍數機制，書架統計依實際章節數計算</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">v2.11 · 合併日雙章機制</div>
       <div class="log-date">2026年5月</div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>合併日雙章機制：5/22 林後 5+6 兩章完整呈現，任一章開始皆可，雙章獨立計算完成狀態與獎勵</span></div>
@@ -1560,14 +1570,14 @@ async function initAchievements() {
 // 未來加新書卷只要在這裡多加一個物件，chapterLabel/chapterFull 會自動支援
 const BOOKS = [
   { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:18,
-    entries:[10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27],
-    merged:{14:2, 27:2} },
+    entries:[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
+    merged:{}, mergedActive:false },
   { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
-    entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM12','ROM13','ROM14','ROM15','ROM16'],
-    merged:{'ROM12':2} },
+    entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM11','ROM12','ROM13','ROM14','ROM15','ROM16'],
+    merged:{}, mergedActive:false },
   { key:'COR1', name:'哥林多前書', shortName:'林前', prefix:'COR1_', emoji:'✉️', totalChapters:16,
-    entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
-    merged:{'COR1_9':2} },
+    entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_8','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
+    merged:{}, mergedActive:false },
   { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
     entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
     merged:{}, mergedActive:false },
@@ -3801,7 +3811,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Version update notice
     const lastSeen = localStorage.getItem('last_seen_version');
     if (lastSeen !== GAME_VERSION) {
-      setTimeout(() => showVersionNotice(), 600);
+      // SUPPRESS_VERSION_POPUP=true 走 silent 升級：靜默更新 lastSeen、不彈公告
+      // 避免長期累積（下次釋出時不會補看舊 notes 混淆）
+      if (typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP) {
+        localStorage.setItem('last_seen_version', GAME_VERSION);
+        if (!localStorage.getItem('tut_done')) {
+          setTimeout(() => openOverlay('tut-overlay'), 500);
+        }
+      } else {
+        setTimeout(() => showVersionNotice(), 600);
+      }
     } else if (!localStorage.getItem('tut_done')) {
       setTimeout(() => openOverlay('tut-overlay'), 500);
     }
