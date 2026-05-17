@@ -2855,9 +2855,8 @@ function closeReward() {
   if (!myScheduleDate) return;
   const sameDayChapters = getScheduleChapters(myScheduleDate);
   if (sameDayChapters.length < 2) return;
-  // 該日仍有未完成章節 → 引導玩家回 day-info-bar 看下一章
-  const allDone = sameDayChapters.every(c => state.completed[chapterKey(c)]);
-  if (allDone) return;
+  // 完成合併日任一章後刷新雙卡狀態：第一章完成時引導玩家看第二章；最後一章完成時讓兩卡都顯示已完成
+  // v2.12 hotfix: 移除 allDone early return，讓最後一章完成後雙卡也即時刷新（之前完成第二章後雙卡停在「未完成」舊 DOM，需重整才正確）
   if (calSelectedDate === myScheduleDate) {
     const d = parseInt(myScheduleDate.split('-')[2], 10);
     renderCalGrid();
