@@ -2553,7 +2553,6 @@ function closeMonthPicker() {
 function renderChapterGrid() { renderCalendar(); }
 
 function selectChapter(ch) {
-  selectedChapter = ch;
   pendingChoice = null;
   choiceConfirmed = false;
   reflSubmitted = false;
@@ -2566,6 +2565,11 @@ function selectChapter(ch) {
   // v2.12 hotfix: 寬鬆比對容忍數字/字串 chapter key 混用（使徒行傳用數字、其他書卷用字串）。長期規格統一後可移除。
   const data = CHAPTERS.find(c => String(c.chapter) === String(ch));
   if (!data) return;
+  // v2.12 hotfix 策略 A: 用 data.chapter 而非外部傳入的 ch，從源頭正規化型別。
+  // 解決使徒行傳合併日 onclick HTML 屬性字串化導致下游 19 處 selectedChapter 污染、
+  // 以及 selectChapter 函式體內 chapterFull(ch) 等用區域參數 ch 的位置污染。
+  ch = data.chapter;
+  selectedChapter = ch;
 
   // Update badge
   document.getElementById('book-badge').textContent = `📖 ${chapterFull(ch)}`;
