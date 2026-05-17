@@ -2056,9 +2056,10 @@ function findScheduleDate(ch) {
 // 預設章節挑選：合併日優先挑「第一個未完成」，全完成則回第一個（重讀模式）
 function pickDefaultChapter(chapters) {
   if (!chapters || chapters.length === 0) return null;
-  const undone = chapters.find(c => !isChapterDone(c) && CHAPTERS.find(d => d.chapter === c));
+  // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
+  const undone = chapters.find(c => !isChapterDone(c) && CHAPTERS.find(d => String(d.chapter) === String(c)));
   if (undone) return undone;
-  const firstAvail = chapters.find(c => CHAPTERS.find(d => d.chapter === c));
+  const firstAvail = chapters.find(c => CHAPTERS.find(d => String(d.chapter) === String(c)));
   return firstAvail || null;
 }
 
@@ -2562,7 +2563,8 @@ function selectChapter(ch) {
   document.getElementById('ai-resp').classList.remove('show');
   document.getElementById('choice-feedback').style.display = 'none';
 
-  const data = CHAPTERS.find(c => c.chapter === ch);
+  // v2.12 hotfix: 寬鬆比對容忍數字/字串 chapter key 混用（使徒行傳用數字、其他書卷用字串）。長期規格統一後可移除。
+  const data = CHAPTERS.find(c => String(c.chapter) === String(ch));
   if (!data) return;
 
   // Update badge
@@ -2618,7 +2620,8 @@ function selectChapter(ch) {
 
 function selectChoice(btn, choice) {
   if (choiceConfirmed) return;
-  const data = CHAPTERS.find(c => c.chapter === selectedChapter);
+  // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
+  const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
   if (!data) return;
 
   if (pendingChoice !== choice) {
@@ -2682,7 +2685,8 @@ async function submitReflection() {
   aiDiv.classList.add('show');
   aiText.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
 
-  const data = CHAPTERS.find(c => c.chapter === selectedChapter);
+  // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
+  const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
   // ⚠️ 修改這句要同步：functions/index.js 的 FALLBACK_TEXT + scripts/analyze-feedback.js 的 FALLBACK_TEXT
   const fallback = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   try {
@@ -2734,7 +2738,8 @@ async function completeDevotional() {
   }
 
   const hasBonus = reflText.length > 0;
-  const data = CHAPTERS.find(c => c.chapter === selectedChapter);
+  // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
+  const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
   const gender = state.gender || 'n';
   const newItem = {...resolveItem(data.baseItem, gender), chapter: selectedChapter};
   const bonusItem = hasBonus ? {...resolveItem(data.bonusItem, gender), chapter: selectedChapter} : null;
