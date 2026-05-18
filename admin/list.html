@@ -335,8 +335,24 @@ auth.onAuthStateChanged(user => {
   // 守衛通過
   document.getElementById('header-email').textContent = email;
   initFilterUI();
+  wireCardNavigation();
   loadFeedbackList();
 });
+
+// ── 卡片點擊 → 進入對話詳情頁（Phase 3C）──────────────
+// 事件委派掛在 #list-container（renderList 會重建 innerHTML，委派在父節點才不會掉）
+// 沿用 Phase 3B 卡片既有的 data-id（doc id），不改 renderList 既有邏輯
+function wireCardNavigation() {
+  const container = document.getElementById('list-container');
+  if (!container) return;
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('.fb-card');
+    if (!card) return;
+    const id = card.dataset.id;
+    if (!id) return;
+    window.location.href = './detail.html?id=' + encodeURIComponent(id);
+  });
+}
 
 // ── Filter UI 初始化 + 點擊處理 ────────────────────────
 // .filter-btn-action（如「全部」捷徑按鈕）走專屬 inline onclick，不掛 generic handler

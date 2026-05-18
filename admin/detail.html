@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#9C7BB5">
+<title>對話詳情 · 管理後台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens（沿用 list.html / 主站 design-system.md 主調）──── */
+:root{
+  --sky:#E8F4FD;
+  --sky-deep:#B8D9F0;
+  --green:#7BC67E;
+  --green-dark:#4CAF50;
+  --sand:#F5E6C8;
+  --sand-dark:#E8D0A0;
+  --warm:#FF8A65;
+  --purple:#9C7BB5;
+  --text:#3D2B1F;
+  --text-soft:#7A6050;
+  --card:#FFFDF8;
+  --shadow:rgba(61,43,31,0.12);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans TC',sans-serif;
+  background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);
+  min-height:100vh;
+  color:var(--text);
+  padding:20px 16px calc(40px + env(safe-area-inset-bottom, 0px));
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:720px;margin:0 auto;}
+
+/* Loading（守衛 + 資料載入中）*/
+.loading{text-align:center;padding:80px 0;color:var(--text-soft);font-size:14px;}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin:0 2px;animation:dot-blink 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}
+.dot:nth-child(3){animation-delay:.4s;}
+@keyframes dot-blink{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1.2);}}
+
+/* Header（同 list.html）*/
+.page-header{
+  background:var(--card);
+  border-radius:18px;
+  padding:18px 20px;
+  margin-bottom:14px;
+  box-shadow:0 4px 16px var(--shadow);
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.page-title{font-size:18px;font-weight:900;color:var(--text);flex:1;}
+.back-link{
+  font-size:13px;
+  color:var(--purple);
+  text-decoration:none;
+  font-weight:700;
+  padding:6px 12px;
+  border-radius:10px;
+  background:var(--sky);
+  border:2px solid var(--sky-deep);
+  transition:all .15s;
+}
+.back-link:hover{background:var(--sky-deep);}
+.admin-email{
+  width:100%;
+  font-size:11px;
+  color:var(--text-soft);
+  border-top:1px dashed rgba(61,43,31,.1);
+  padding-top:8px;
+  margin-top:4px;
+}
+
+/* Thread meta（玩家識別 + 章節 context + 狀態）*/
+.thread-meta{
+  background:var(--card);
+  border-radius:18px;
+  padding:16px 18px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px var(--shadow);
+}
+.tm-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.tm-name{font-size:15px;font-weight:900;color:var(--text);}
+.tm-name-anon{color:var(--text-soft);font-weight:700;}
+.tm-meta{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.tm-meta span{margin-right:12px;}
+.tm-sub{font-size:11px;color:var(--text-soft);}
+.tm-sub span{margin-right:14px;}
+
+/* Status badge（沿用 list.html 4 色）*/
+.fb-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:11px;white-space:nowrap;flex-shrink:0;}
+.fb-badge-new{background:linear-gradient(135deg,#BBDEFB,#90CAF9);color:#1565C0;border:1px solid #64B5F6;}
+.fb-badge-wait{background:linear-gradient(135deg,#FFE0B2,#FFCC80);color:#E65100;border:1px solid #FFB74D;}
+.fb-badge-replied{background:linear-gradient(135deg,#E8F5E9,#C8E6C9);color:var(--green-dark);border:1px solid #81C784;}
+.fb-badge-closed{background:#F0EBE3;color:var(--text-soft);border:1px solid #D7CCC8;}
+
+/* 對話串容器 */
+.thread-section{
+  background:var(--card);
+  border-radius:18px;
+  padding:18px 16px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px var(--shadow);
+}
+.thread-section-title{
+  font-size:13px;
+  font-weight:900;
+  color:var(--text-soft);
+  letter-spacing:.05em;
+  margin-bottom:14px;
+  padding-bottom:8px;
+  border-bottom:1px dashed rgba(61,43,31,.12);
+}
+
+/* 訊息泡泡 ── 玩家靠左（sky）、admin 靠右（purple）*/
+.msg{
+  display:flex;
+  flex-direction:column;
+  margin-bottom:14px;
+  max-width:84%;
+}
+.msg-player{align-items:flex-start;margin-right:auto;}
+.msg-admin{align-items:flex-end;margin-left:auto;}
+.msg-who{
+  font-size:11px;
+  font-weight:700;
+  color:var(--text-soft);
+  margin-bottom:4px;
+  padding:0 4px;
+}
+.msg-bubble{
+  border-radius:14px;
+  padding:11px 14px;
+  font-size:14px;
+  line-height:1.6;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.msg-player .msg-bubble{
+  background:var(--sky);
+  border:2px solid var(--sky-deep);
+  color:var(--text);
+  border-bottom-left-radius:5px;
+}
+.msg-admin .msg-bubble{
+  background:linear-gradient(135deg,#F3E8FF,#EDE0FF);
+  border:2px solid var(--purple);
+  color:var(--text);
+  border-bottom-right-radius:5px;
+}
+.msg-time{
+  font-size:10px;
+  color:var(--text-soft);
+  margin-top:4px;
+  padding:0 4px;
+}
+/* 玩家「原始留言」首則：帶 mood / category 標籤的開場泡泡 */
+.msg-origin .msg-bubble{
+  background:var(--sand);
+  border:2px solid var(--sand-dark);
+  border-bottom-left-radius:5px;
+}
+.msg-origin-empty{color:#bbb;font-style:italic;}
+.thread-empty{
+  text-align:center;
+  color:var(--text-soft);
+  font-size:13px;
+  padding:10px 0 2px;
+}
+
+/* 回覆輸入區 */
+.reply-section{
+  background:var(--card);
+  border-radius:18px;
+  padding:16px 18px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px var(--shadow);
+}
+.reply-label{font-size:13px;font-weight:900;color:var(--text);margin-bottom:10px;}
+.reply-input{
+  width:100%;
+  min-height:90px;
+  border:2px solid var(--sky-deep);
+  border-radius:13px;
+  padding:12px 14px;
+  font-family:inherit;
+  font-size:14px;
+  line-height:1.6;
+  color:var(--text);
+  resize:vertical;
+  background:#fff;
+  transition:border-color .15s;
+}
+.reply-input:focus{outline:none;border-color:var(--purple);}
+.reply-foot{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+.reply-count{font-size:11px;color:var(--text-soft);}
+.reply-count.over{color:#D32F2F;font-weight:700;}
+.btn{
+  border:none;
+  border-radius:13px;
+  font-family:inherit;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .15s;
+  padding:11px 22px;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--green),var(--green-dark));
+  color:white;
+  box-shadow:0 4px 14px rgba(76,175,80,.4);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(76,175,80,.5);}
+.btn-primary:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
+.reply-error{
+  font-size:12px;
+  color:#D32F2F;
+  font-weight:700;
+  margin-top:10px;
+  background:#FFEBEE;
+  border:1px solid #FFCDD2;
+  border-radius:10px;
+  padding:8px 12px;
+  display:none;
+}
+
+/* 標記結束區 */
+.close-section{
+  background:var(--card);
+  border-radius:18px;
+  padding:16px 18px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px var(--shadow);
+  text-align:center;
+}
+.btn-close-thread{
+  background:var(--sky);
+  color:var(--text);
+  border:2px solid var(--sky-deep);
+  border-radius:13px;
+  font-family:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .15s;
+  padding:10px 20px;
+}
+.btn-close-thread:hover{background:var(--sky-deep);border-color:var(--purple);}
+.btn-close-thread:disabled{
+  background:#F0EBE3;
+  color:var(--text-soft);
+  border-color:#D7CCC8;
+  cursor:not-allowed;
+}
+.close-done{
+  font-size:13px;
+  color:var(--text-soft);
+  font-weight:700;
+}
+.close-error{
+  font-size:12px;
+  color:#D32F2F;
+  font-weight:700;
+  margin-top:10px;
+  background:#FFEBEE;
+  border:1px solid #FFCDD2;
+  border-radius:10px;
+  padding:8px 12px;
+  display:none;
+}
+
+/* 載入失敗 / 找不到 */
+.state-empty{
+  text-align:center;
+  color:var(--text-soft);
+  padding:60px 20px;
+  font-size:14px;
+  line-height:1.7;
+  background:var(--card);
+  border-radius:16px;
+  box-shadow:0 2px 10px var(--shadow);
+}
+
+@media (min-width:600px){
+  .page-header{padding:22px 26px;}
+  .page-title{font-size:20px;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- Loading（守衛 + 資料載入中）-->
+  <div id="loading-state" class="loading">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span> 載入中
+  </div>
+
+  <!-- Main area（守衛通過 + thread 載入完）-->
+  <div id="main-area" style="display:none;">
+    <header class="page-header">
+      <div class="page-title">💬 對話詳情</div>
+      <a href="./list.html" class="back-link">← 返回列表</a>
+      <div class="admin-email">登入身份：<span id="header-email">—</span></div>
+    </header>
+
+    <section class="thread-meta" id="thread-meta"></section>
+
+    <section class="thread-section">
+      <div class="thread-section-title">對話紀錄</div>
+      <div id="thread-container"></div>
+    </section>
+
+    <!-- 回覆區（status === 'closed' 時隱藏）-->
+    <section class="reply-section" id="reply-section" style="display:none;">
+      <div class="reply-label">✍️ 回覆玩家</div>
+      <textarea id="reply-input" class="reply-input" maxlength="300"
+        placeholder="輸入要回覆給玩家的話（最多 300 字）…"></textarea>
+      <div class="reply-foot">
+        <span class="reply-count" id="reply-count">0 / 300</span>
+        <button class="btn btn-primary" id="reply-submit" onclick="submitReply()">送出回覆</button>
+      </div>
+      <div class="reply-error" id="reply-error"></div>
+    </section>
+
+    <!-- 標記結束區 -->
+    <section class="close-section" id="close-section">
+      <button class="btn-close-thread" id="close-btn" onclick="markClosed()">✓ 標記為已處理</button>
+      <div class="close-error" id="close-error"></div>
+    </section>
+  </div>
+</div>
+
+<!-- Firebase SDK（同 admin/list.html 的 9.22.2 compat 版本，避免版本衝突）-->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+// ── Firebase init（同主站 firebaseConfig）───────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
+  authDomain: "bible-game-bcb84.firebaseapp.com",
+  projectId: "bible-game-bcb84",
+  storageBucket: "bible-game-bcb84.firebasestorage.app",
+  messagingSenderId: "998309781226",
+  appId: "1:998309781226:web:3393ab62963940ef720193"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ── 白名單（同 admin/list.html，重複定義避免架構過早優化）──
+const ADMIN_EMAILS = ['st00777@hotmail.com'];
+
+// ── 從 URL 取 thread id ─────────────────────────────────
+const threadId = new URLSearchParams(window.location.search).get('id');
+
+// ── 當前 admin 身份（onAuthStateChanged 通過後填）────────
+let currentAdminUid = null;
+let currentAdminEmail = null;
+let threadData = null;   // feedback 主文件快取（送出回覆 / 標記結束時更新本地）
+
+// ── normalize helpers（與 list.html 同一份容錯邏輯，沿用 Phase 2B B 方案）──
+// 設計選擇：client 不主動寫對話追蹤欄位；舊 doc（v1 殘留 / migrate）沒 status 欄位時推導
+function normalizeFeedbackStatus(d) {
+  if (d.status) return d.status;
+  if (d.wantReply === true) return 'awaiting_admin';
+  return 'closed';
+}
+function normalizeUnread(d, side) {
+  const key = side === 'player' ? 'unreadByPlayer' : 'unreadByAdmin';
+  return d[key] === true;
+}
+
+// ── HTML escape（同 list.html escapeHtml）───────────────
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── 時間格式化（同 list.html）──────────────────────────
+function formatDateTime(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatDate(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
+}
+// Firestore Timestamp / null 安全轉 Date
+function tsToDate(ts) {
+  return ts && typeof ts.toDate === 'function' ? ts.toDate() : null;
+}
+
+const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
+const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+
+// ── Auth state monitor（守衛，同 list.html）─────────────
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.replace('./index.html');
+    return;
+  }
+  const email = (user.email || '').toLowerCase();
+  if (!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+    console.warn('Unauthorized detail access:', email);
+    window.location.replace('./index.html');
+    return;
+  }
+  // 守衛通過
+  currentAdminUid = user.uid;
+  currentAdminEmail = email;
+  document.getElementById('header-email').textContent = email;
+
+  if (!threadId) {
+    showFatal('缺少留言 ID，請從留言列表點進來');
+    return;
+  }
+  loadThread();
+});
+
+// ── 致命狀態（找不到 / 載入失敗）──────────────────────
+function showFatal(msg) {
+  document.getElementById('loading-state').innerHTML =
+    `<div class="state-empty">${escapeHtml(msg)}<br><br>` +
+    `<a class="back-link" href="./list.html">← 返回留言列表</a></div>`;
+}
+
+// ── 載入 thread（主文件 + messages 子集合）──────────────
+async function loadThread() {
+  try {
+    const docRef = db.collection('feedback').doc(threadId);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      showFatal('找不到這則留言（可能已被刪除）');
+      return;
+    }
+    threadData = { id: snap.id, ...snap.data() };
+
+    // messages 子集合（按 createdAt 升冪）
+    const msgSnap = await docRef.collection('messages')
+      .orderBy('createdAt', 'asc')
+      .get();
+    const messages = [];
+    msgSnap.forEach(m => messages.push({ id: m.id, ...m.data() }));
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('main-area').style.display = 'block';
+
+    renderMeta(threadData);
+    renderThread(threadData, messages);
+    renderControls(threadData);
+
+    // D. 進入詳情頁即清 admin 未讀紅點（對稱玩家端「點開即 unreadByPlayer=false」）
+    // fire-and-forget：這是已讀標記非玩家輸入，失敗只 console.warn 不擋畫面
+    if (normalizeUnread(threadData, 'admin')) {
+      docRef.update({ unreadByAdmin: false })
+        .then(() => { threadData.unreadByAdmin = false; })
+        .catch(e => console.warn('Clear unreadByAdmin failed:', e));
+    }
+  } catch (e) {
+    console.warn('Load thread error:', e);
+    showFatal('載入失敗，請重試');
+  }
+}
+
+// ── 渲染 thread meta（玩家識別 + 章節 context + 狀態）──
+function renderMeta(d) {
+  const status = normalizeFeedbackStatus(d);
+
+  // 玩家識別（沿用 list.html：displayName / 匿名 / uid 縮寫；不顯示 email、不顯示完整 uid）
+  let nameHtml;
+  if (d.isAnonymous === true) {
+    nameHtml = '<span class="tm-name-anon">🫥 匿名玩家</span>';
+  } else if (d.displayName) {
+    nameHtml = '🆔 ' + escapeHtml(d.displayName);
+  } else if (d.uid) {
+    nameHtml = '🆔 ' + escapeHtml(d.uid.slice(0, 6)) + '…';
+  } else {
+    nameHtml = '<span class="tm-name-anon">🆔 未知</span>';
+  }
+
+  const mood = d.mood ? `${moodEmoji[d.mood] || ''} ${d.mood}` : '';
+  const cat = d.category ? `${catEmoji[d.category] || ''} ${d.category}` : '';
+  const chapter = d.chapter ? `📖 ${escapeHtml(d.chapter)}` : '';
+  const createdTs = tsToDate(d.createdAt);
+  const createdStr = createdTs ? formatDateTime(createdTs) : '—';
+  const wantReplyStr = d.wantReply === true ? '🕊️ 想收到回覆' : '不需回覆';
+
+  document.getElementById('thread-meta').innerHTML = `
+    <div class="tm-row">
+      <span class="tm-name">${nameHtml}</span>
+      <span>${renderAdminBadge(status)}</span>
+    </div>
+    <div class="tm-meta"><span>${mood}</span><span>${cat}</span><span>${chapter}</span></div>
+    <div class="tm-sub"><span>留言時間 ${escapeHtml(createdStr)}</span><span>${wantReplyStr}</span></div>`;
+}
+
+function renderAdminBadge(status) {
+  // 沿用 list.html renderAdminBadge：new 藍 / awaiting_admin 橘 / awaiting_player 綠 / closed 灰
+  if (status === 'new') {
+    return '<span class="fb-badge fb-badge-new">🆕 新留言</span>';
+  }
+  if (status === 'awaiting_admin') {
+    return '<span class="fb-badge fb-badge-wait">🕊️ 等待回覆</span>';
+  }
+  if (status === 'awaiting_player') {
+    return '<span class="fb-badge fb-badge-replied">💬 已回覆</span>';
+  }
+  return '<span class="fb-badge fb-badge-closed">✓ 已結束</span>';
+}
+
+// ── 渲染對話串 ──────────────────────────────────────────
+// 結構：第一則固定是玩家「原始留言」（feedback.message，v1 起點），
+//       其後接 messages 子集合（v2 多輪往來），admin / player 左右區分
+function renderThread(d, messages) {
+  let html = '';
+
+  // 玩家原始留言（開場泡泡）
+  const originMsg = (d.message || '').trim();
+  const createdTs = tsToDate(d.createdAt);
+  const originBody = originMsg
+    ? escapeHtml(originMsg)
+    : '<span class="msg-origin-empty">（這則留言沒有文字內容）</span>';
+  html += `<div class="msg msg-player msg-origin">
+    <div class="msg-who">玩家・原始留言</div>
+    <div class="msg-bubble">${originBody}</div>
+    <div class="msg-time">${createdTs ? escapeHtml(formatDateTime(createdTs)) : '—'}</div>
+  </div>`;
+
+  // messages 子集合（後續多輪）
+  if (messages.length === 0) {
+    html += '<div class="thread-empty">尚無後續對話 ── 在下方輸入回覆開始對話 🌿</div>';
+  } else {
+    messages.forEach(m => {
+      const isAdmin = m.role === 'admin';
+      const sideClass = isAdmin ? 'msg-admin' : 'msg-player';
+      const who = isAdmin
+        ? (m.authorType === 'ai' ? '團隊・AI 回覆' : '團隊回覆')
+        : '玩家';
+      const mTs = tsToDate(m.createdAt);
+      const mTime = mTs ? escapeHtml(formatDateTime(mTs)) : '送出中…';
+      html += `<div class="msg ${sideClass}">
+        <div class="msg-who">${escapeHtml(who)}</div>
+        <div class="msg-bubble">${escapeHtml(m.text || '')}</div>
+        <div class="msg-time">${mTime}</div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('thread-container').innerHTML = html;
+}
+
+// ── 依 status 決定回覆區 / 標記結束區的顯示 ──────────────
+function renderControls(d) {
+  const status = normalizeFeedbackStatus(d);
+  const isClosed = status === 'closed';
+
+  // 回覆區：未結束才顯示（status !== 'closed'）
+  document.getElementById('reply-section').style.display = isClosed ? 'none' : 'block';
+
+  // 標記結束區
+  const closeBtn = document.getElementById('close-btn');
+  const closeSection = document.getElementById('close-section');
+  if (isClosed) {
+    // 已結束：按鈕變灰 + 顯示「已於 YYYY/MM/DD 標記結束」
+    const closedTs = tsToDate(d.closedAt);
+    const closedStr = closedTs ? formatDate(closedTs) : null;
+    const by = d.closedBy ? `（${escapeHtml(d.closedBy)}）` : '';
+    closeSection.innerHTML = closedStr
+      ? `<div class="close-done">✓ 已於 ${closedStr} 標記結束 ${by}</div>`
+      : `<div class="close-done">✓ 此對話已標記結束 ${by}</div>`;
+  } else {
+    closeBtn.disabled = false;
+    closeBtn.textContent = '✓ 標記為已處理';
+  }
+}
+
+// ── 回覆字數即時計數 ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('reply-input');
+  const count = document.getElementById('reply-count');
+  if (input && count) {
+    input.addEventListener('input', () => {
+      const n = input.value.length;
+      count.textContent = `${n} / 300`;
+      count.classList.toggle('over', n > 300);
+    });
+  }
+});
+
+// ── B. 送出回覆 ─────────────────────────────────────────
+// 寫入兩處：(1) messages 子集合 add 一則 role='admin' doc
+//           (2) 主文件更新 status / unread* / lastMessageAt / messageCount
+// 玩家輸入是核心資產 → 先確保 message doc 寫入成功，再更新 parent
+async function submitReply() {
+  const input = document.getElementById('reply-input');
+  const btn = document.getElementById('reply-submit');
+  const errBox = document.getElementById('reply-error');
+  errBox.style.display = 'none';
+
+  const text = (input.value || '').trim();
+  if (text.length === 0) {
+    showReplyError('回覆內容不能空白');
+    return;
+  }
+  if (text.length > 300) {
+    showReplyError('回覆超過 300 字，請縮短');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '送出中…';
+
+  try {
+    const docRef = db.collection('feedback').doc(threadId);
+
+    // (1) messages 子集合 add（欄位嚴格對齊 firestore.rules 白名單 5 欄）
+    await docRef.collection('messages').add({
+      role: 'admin',
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      authorUid: currentAdminUid,
+      authorType: 'human'
+    });
+
+    // (2) 主文件對話追蹤欄位更新（admin update 無欄位白名單，rules 已涵蓋）
+    //     status → awaiting_player（換玩家），玩家有未讀，admin 已處理掉自己的未讀
+    await docRef.update({
+      status: 'awaiting_player',
+      unreadByPlayer: true,
+      unreadByAdmin: false,
+      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+      messageCount: firebase.firestore.FieldValue.increment(1)
+    });
+
+    // UI 即時更新（不重整）：append 新泡泡 + 清空輸入 + 重算控制區
+    appendAdminBubble(text);
+    input.value = '';
+    document.getElementById('reply-count').textContent = '0 / 300';
+    document.getElementById('reply-count').classList.remove('over');
+
+    threadData.status = 'awaiting_player';
+    threadData.unreadByPlayer = true;
+    threadData.unreadByAdmin = false;
+    renderMeta(threadData);
+    renderControls(threadData);
+  } catch (e) {
+    console.warn('Submit reply error:', e);
+    showReplyError('送出失敗：' + (e.message || '請再試一次（你的文字還在輸入框）'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送出回覆';
+  }
+}
+
+function appendAdminBubble(text) {
+  // 若目前是「尚無後續對話」提示，先清掉
+  const emptyHint = document.querySelector('.thread-empty');
+  if (emptyHint) emptyHint.remove();
+  const container = document.getElementById('thread-container');
+  const now = formatDateTime(new Date());
+  const div = document.createElement('div');
+  div.className = 'msg msg-admin';
+  div.innerHTML =
+    `<div class="msg-who">團隊回覆</div>` +
+    `<div class="msg-bubble">${escapeHtml(text)}</div>` +
+    `<div class="msg-time">${escapeHtml(now)}</div>`;
+  container.appendChild(div);
+}
+
+function showReplyError(msg) {
+  const errBox = document.getElementById('reply-error');
+  errBox.textContent = msg;
+  errBox.style.display = 'block';
+}
+
+// ── C. 標記結束 ─────────────────────────────────────────
+// 二次確認 → 主文件 status='closed' + closedAt + closedBy（admin email）
+async function markClosed() {
+  const errBox = document.getElementById('close-error');
+  errBox.style.display = 'none';
+
+  if (!window.confirm('確定要把這則對話標記為「已處理」嗎？\n標記後玩家仍看得到對話，但後台不會再列為待處理。')) {
+    return;
+  }
+
+  const btn = document.getElementById('close-btn');
+  btn.disabled = true;
+  btn.textContent = '處理中…';
+
+  try {
+    await db.collection('feedback').doc(threadId).update({
+      status: 'closed',
+      closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      closedBy: currentAdminEmail
+    });
+
+    // 本地更新 + 重繪（closedAt 用本地時間先顯示，刷新後讀 server timestamp）
+    threadData.status = 'closed';
+    threadData.closedAt = { toDate: () => new Date() };
+    threadData.closedBy = currentAdminEmail;
+    renderMeta(threadData);
+    renderControls(threadData);
+  } catch (e) {
+    console.warn('Mark closed error:', e);
+    errBox.textContent = '標記失敗：' + (e.message || '請再試一次');
+    errBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '✓ 標記為已處理';
+  }
+}
+</script>
+
+</body>
+</html>
