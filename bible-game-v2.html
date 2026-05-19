@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>靈修冒險 v2.12 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
+<title>靈修冒險 v2.13 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
 <!-- Google Analytics GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZ3EGYB8BB"></script>
 <script>
@@ -1042,6 +1042,13 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">v2.13 · 新書卷顯示修復</div>
+      <div class="log-date">2026年5月</div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>新書卷章節 key 顯示英文（如 EPH1 → 弗1、以弗所書 第1章）</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">修復</span><span>加拉太書進度計算（GAL5 補入書架 entries，完成 GAL5 正確計入）</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">v2.12 · 4 個歷史合併日補完</div>
       <div class="log-date">2026年5月</div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>補做使徒行傳 15（4/05 合併日完整呈現）</span></div>
@@ -1582,8 +1589,47 @@ const BOOKS = [
     entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
     merged:{}, mergedActive:false },
   { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
-    entries:['GAL1','GAL2','GAL3','GAL4','GAL6'],
-    merged:{'GAL6':2} },
+    entries:['GAL1','GAL2','GAL3','GAL4','GAL5','GAL6'],
+    merged:{}, mergedActive:false },
+  { key:'EPH', name:'以弗所書', shortName:'弗', prefix:'EPH', emoji:'💍', totalChapters:6,
+    entries:['EPH1','EPH2','EPH3','EPH4','EPH5','EPH6'],
+    merged:{}, mergedActive:false },
+  { key:'PHP', name:'腓立比書', shortName:'腓', prefix:'PHP', emoji:'🌅', totalChapters:4,
+    entries:['PHP1','PHP2','PHP3','PHP4'],
+    merged:{}, mergedActive:false },
+  { key:'COL', name:'歌羅西書', shortName:'西', prefix:'COL', emoji:'👑', totalChapters:4,
+    entries:['COL1','COL2','COL3','COL4'],
+    merged:{}, mergedActive:false },
+  { key:'TH1', name:'帖撒羅尼迦前書', shortName:'帖前', prefix:'TH1_', emoji:'⏳', totalChapters:5,
+    entries:['TH1_1','TH1_2','TH1_3','TH1_4','TH1_5'],
+    merged:{}, mergedActive:false },
+  { key:'TH2', name:'帖撒羅尼迦後書', shortName:'帖後', prefix:'TH2_', emoji:'🛡️', totalChapters:3,
+    entries:['TH2_1','TH2_2','TH2_3'],
+    merged:{}, mergedActive:false },
+  { key:'TIM1', name:'提摩太前書', shortName:'提前', prefix:'TIM1_', emoji:'🎓', totalChapters:6,
+    entries:['TIM1_1','TIM1_2','TIM1_3','TIM1_4','TIM1_5','TIM1_6'],
+    merged:{}, mergedActive:false },
+  { key:'TIM2', name:'提摩太後書', shortName:'提後', prefix:'TIM2_', emoji:'🪖', totalChapters:4,
+    entries:['TIM2_1','TIM2_2','TIM2_3','TIM2_4'],
+    merged:{}, mergedActive:false },
+  { key:'TIT', name:'提多書', shortName:'多', prefix:'TIT', emoji:'⚓', totalChapters:3,
+    entries:['TIT1','TIT2','TIT3'],
+    merged:{}, mergedActive:false },
+  { key:'PHM', name:'腓利門書', shortName:'門', prefix:'PHM', emoji:'🤝', totalChapters:1,
+    entries:['PHM1'],
+    merged:{}, mergedActive:false },
+  { key:'HEB', name:'希伯來書', shortName:'來', prefix:'HEB', emoji:'🕊️', totalChapters:13,
+    entries:['HEB1','HEB2','HEB3','HEB4','HEB5','HEB6','HEB7','HEB8','HEB9','HEB10','HEB11','HEB12','HEB13'],
+    merged:{}, mergedActive:false },
+  { key:'JAS', name:'雅各書', shortName:'雅', prefix:'JAS', emoji:'⚖️', totalChapters:5,
+    entries:['JAS1','JAS2','JAS3','JAS4','JAS5'],
+    merged:{}, mergedActive:false },
+  { key:'PE1', name:'彼得前書', shortName:'彼前', prefix:'PE1_', emoji:'🪨', totalChapters:5,
+    entries:['PE1_1','PE1_2','PE1_3','PE1_4','PE1_5'],
+    merged:{}, mergedActive:false },
+  { key:'PE2', name:'彼得後書', shortName:'彼後', prefix:'PE2_', emoji:'📜', totalChapters:2,
+    entries:['PE2_1','PE2_2'],
+    merged:{}, mergedActive:false },
 ];
 
 function getBookProgress(book) {
