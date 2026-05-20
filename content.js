@@ -1,6 +1,6 @@
 // ══ 靈修冒險 content.js ══════════════════════════════════
 // 版本號：每次更新內容或機制時修改
-const GAME_VERSION = '2.13';
+const GAME_VERSION = '2.14';
 
 // ── Feature flags ──────────────────────────────────────────
 // 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
@@ -10,14 +10,13 @@ const FEATURE_FEEDBACK_V2 = false;
 
 // 此 flag 控制版本公告彈窗。true = silent 升級（更新 lastSeen 但不彈），
 // false = 一般行為（不一致就彈）。
-// 2026-05-15：v2.12 為內容補做（4 章歷史合併日 + merged 廢除），
-// 屬「修復歷史欠帳」性質，不打擾玩家，silent 升級。
+// 2026-05-21：v2.14 為玩家端紅點 + Toast 通知（曠野呼聲 v2 玩家可見功能）；
+// 因 FEATURE_FEEDBACK_V2=false 期間玩家看不到差異，silent 升級不打擾。
 // 未來內容副版次升級可沿用這個 flag、機制變更主版次改回 false。
 const SUPPRESS_VERSION_POPUP = true;
 
 const VERSION_NOTES = [
-  '🐛 修復新書卷章節 key 顯示英文（如 EPH1 → 弗1、以弗所書 第1章）',
-  '🐛 修復加拉太書進度計算（GAL5 補入書架 entries）'
+  '🔔 曠野呼聲新增「新回覆」紅點 + Toast 提示（v2 玩家入口開啟後可見）'
 ];
 
 // 大光教會2026每日讀經進度

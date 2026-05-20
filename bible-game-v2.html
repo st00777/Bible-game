@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>靈修冒險 v2.13 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
+<title>靈修冒險 v2.14 · 使徒行傳・羅馬書・哥林多前後書・加拉太書</title>
 <!-- Google Analytics GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZ3EGYB8BB"></script>
 <script>
@@ -94,6 +94,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .icon-btn:hover{transform:scale(1.1);}
 .streak-pill{background:var(--warm);color:white;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(255,138,101,.4);}
 .more-wrap{position:relative;z-index:999;}
+/* 未讀紅點（曠野呼聲 v2 — 玩家有新回覆）；樣式延續 admin Phase 3B .fb-unread-dot */
+.unread-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#FF5252;box-shadow:0 0 0 2px white, 0 0 6px rgba(255,82,82,.5);}
+.unread-dot-corner{position:absolute;top:-2px;right:-2px;pointer-events:none;}
 .more-menu{position:fixed;background:white;border-radius:13px;box-shadow:0 6px 22px var(--shadow);padding:6px;display:none;z-index:9999;min-width:160px;}
 .more-menu.show{display:block;animation:popIn .2s ease;}
 .more-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;border-radius:8px;transition:background .15s;white-space:nowrap;}
@@ -733,7 +736,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div class="sheet-handle"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div class="sheet-title">📨 我的留言</div>
-      <button onclick="closeOverlay('my-msgs-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
+      <button onclick="closeMyMessagesList()" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
     </div>
     <div class="sheet-sub">你過往送出的曠野呼聲都收在這裡</div>
     <div style="flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;margin-top:10px;" id="my-msgs-list"></div>
@@ -864,6 +867,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <button class="auth-btn line-auth-btn" id="line-btn" onclick="handleLineLoginClick()" title="LINE 登入">LINE 登入</button>
       <div class="more-wrap">
         <button class="icon-btn" id="more-menu-btn" onclick="toggleMoreMenu(event)" title="更多">⋯</button>
+        <span class="unread-dot unread-dot-corner" id="more-btn-dot" style="display:none;"></span>
       </div>
       <div class="streak-pill" onclick="devModeClick()">🔥 <span id="streak-num">0</span></div>
     </div>
@@ -1039,6 +1043,13 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">v2.14 · 曠野呼聲新回覆通知</div>
+      <div class="log-date">2026年5月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>收到新回覆時，主畫面 ⋯ 按鈕、「我的留言」入口、對應 thread 卡片三處顯示紅點</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>登入後彈出一次 Toast 提示：「💌 你有新的回覆，到『我的留言』看看」</span></div>
     </div>
 
     <div class="log-entry">
@@ -1932,6 +1943,8 @@ auth.onAuthStateChanged(async user => {
   // Only call updateProfile for Google users; LINE profile is handled by updateLineProfile
   if (!user.uid.startsWith('line:')) updateProfile();
   initAchievements();
+  // Phase 2D：登入後檢查曠野呼聲新回覆，有就亮紅點 + 同 session 彈一次 Toast
+  checkUnreadFeedback({ toast: true });
 });
 
 // Handle LINE OAuth callback on page load
@@ -3533,6 +3546,8 @@ function renderMyMessagesList(entries) {
   entries.forEach(d => {
     const status = normalizeFeedbackStatus(d);
     const badge = renderMyMsgBadge(status);
+    const unread = normalizeUnread(d, 'player');
+    const unreadDot = unread ? '<span class="unread-dot" style="margin-right:6px;vertical-align:middle;" title="新回覆"></span>' : '';
     // createdAt 可能是 Firestore Timestamp（已 round-trip）也可能還是 serverTimestamp sentinel（剛 add 還沒 sync）
     const ts = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate() : null;
     const date = ts ? `${ts.getFullYear()}/${String(ts.getMonth()+1).padStart(2,'0')}/${String(ts.getDate()).padStart(2,'0')}` : '—';
@@ -3545,7 +3560,7 @@ function renderMyMessagesList(entries) {
     html += `<div class="my-msg-card" onclick="openMyMessageThread('${d.id}')">
       <div class="my-msg-row">
         <span class="my-msg-date">${date}</span>
-        ${badge}
+        <span style="display:inline-flex;align-items:center;">${unreadDot}${badge}</span>
       </div>
       <div class="my-msg-meta"><span>${mood}</span><span>${cat}</span></div>
       ${preview}
@@ -3784,9 +3799,11 @@ function closeMyMsgThread() {
   currentThreadDocId = null;
   currentThreadData = null;
   currentThreadMessages = [];
-  // 返回 list 時 refresh：剛才追訊息過的卡片狀態（badge / 預覽）會更新
+  // 返回 list 時 refresh：剛才追訊息過的卡片狀態（badge / 預覽 / 紅點）會更新
   if (currentUser) {
     refreshMyMessagesList();
+    // 同步 refresh 頂層紅點（剛才開啟 thread 時已 unreadByPlayer=false，這時應移除）
+    checkUnreadFeedback({ toast: false });
   }
 }
 
@@ -3802,6 +3819,57 @@ async function refreshMyMessagesList() {
     renderMyMessagesList(myMessagesData);
   } catch (e) {
     console.warn('My messages refresh error:', e);
+  }
+}
+
+// ── Phase 2D 玩家端紅點 + Toast（曠野呼聲 v2 新回覆通知）─────
+// 共用一個 limit(1) query 驅動三處紅點（⋯ 按鈕 / menu item / 列表卡片）+ Toast
+// 列表卡片紅點走 renderMyMessagesList，這裡只負責頂層兩處 + Toast 邏輯
+const UNREAD_TOAST_SESSION_KEY = 'feedback_unread_toast_shown';
+
+function setUnreadDots(visible) {
+  const ids = ['more-btn-dot', 'my-msgs-menu-dot'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? 'inline-block' : 'none';
+  });
+}
+
+async function checkUnreadFeedback({ toast = false } = {}) {
+  // Flag 關閉時直接退場，不查 Firestore
+  if (!FEATURE_FEEDBACK_V2) return;
+  if (!currentUser) {
+    setUnreadDots(false);
+    return;
+  }
+  try {
+    const snap = await db.collection('feedback')
+      .where('uid', '==', currentUser.uid)
+      .where('unreadByPlayer', '==', true)
+      .limit(1)
+      .get();
+    const hasUnread = !snap.empty;
+    setUnreadDots(hasUnread);
+
+    // Toast 同 session 只彈一次（sessionStorage tab 關掉自動清）
+    if (toast && hasUnread && !sessionStorage.getItem(UNREAD_TOAST_SESSION_KEY)) {
+      showToast('💌 你有新的回覆，到「我的留言」看看');
+      sessionStorage.setItem(UNREAD_TOAST_SESSION_KEY, '1');
+    }
+  } catch (e) {
+    console.warn('checkUnreadFeedback error:', e);
+    // 首次跑可能缺索引（uid + unreadByPlayer 複合 query），錯誤訊息會帶 console 建立連結
+    if (String(e.message || '').includes('requires an index')) {
+      console.error('Firestore index needed (uid + unreadByPlayer):', e.message);
+    }
+  }
+}
+
+// 包一層：關閉「我的留言」列表 overlay 後 refresh 頂層紅點
+function closeMyMessagesList() {
+  closeOverlay('my-msgs-overlay');
+  if (FEATURE_FEEDBACK_V2 && currentUser) {
+    checkUnreadFeedback({ toast: false });
   }
 }
 
@@ -3923,7 +3991,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
-  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言</button>
+  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言<span class="unread-dot" id="my-msgs-menu-dot" style="display:none;margin-left:8px;vertical-align:middle;"></span></button>
   <button onclick="openFontSizePicker(); closeMoreMenu()">🔤 字體大小</button>
   <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
 </div>
