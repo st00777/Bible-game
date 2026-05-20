@@ -513,10 +513,10 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
 /* Bookshelf */
 .bookshelf{background:linear-gradient(180deg,#8B6F47 0%,#6B4F2F 100%);border-radius:16px;padding:16px 12px 8px;box-shadow:inset 0 2px 8px rgba(0,0,0,.25),0 4px 12px rgba(107,79,47,.4);}
-.shelf-row{display:flex;gap:8px;justify-content:center;padding-bottom:10px;margin-bottom:10px;border-bottom:6px solid #5A3E22;box-shadow:0 4px 6px rgba(0,0,0,.2);position:relative;}
+.shelf-row{display:flex;gap:6px;justify-content:center;padding-bottom:10px;margin-bottom:10px;border-bottom:6px solid #5A3E22;box-shadow:0 4px 6px rgba(0,0,0,.2);position:relative;}
 .shelf-row:last-child{margin-bottom:0;}
 .shelf-row::after{content:'';position:absolute;bottom:-6px;left:0;right:0;height:3px;background:linear-gradient(180deg,rgba(0,0,0,.15),transparent);}
-.book-spine{width:80px;min-height:110px;border-radius:4px 8px 8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;cursor:pointer;transition:all .2s;position:relative;box-shadow:2px 0 4px rgba(0,0,0,.2);}
+.book-spine{width:60px;min-height:110px;border-radius:4px 8px 8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;cursor:pointer;transition:all .2s;position:relative;box-shadow:2px 0 4px rgba(0,0,0,.2);}
 .book-spine:hover{transform:translateY(-4px);}
 .book-spine.lit{background:linear-gradient(135deg,#FFD54F,#FFB300);border:1px solid #F9A825;color:#5D4037;}
 .book-spine.progress{background:linear-gradient(135deg,#B8D9F0,#90CAF9);border:1px solid #64B5F6;color:var(--text);}
@@ -1868,20 +1868,24 @@ function renderBadgesPage() {
 function renderLibraryPage() {
   const el = document.getElementById('ach-library-page');
   let html = '<div class="bookshelf">';
-  // Single shelf row for now
-  html += '<div class="shelf-row">';
-  for (const book of BOOKS) {
-    const prog = getBookProgress(book);
-    const pct = Math.round(prog.done / prog.total * 100);
-    const cls = prog.complete ? 'lit' : (prog.done > 0 ? 'progress' : 'locked');
-    html += `<div class="book-spine ${cls}">
-      <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
-      <div class="book-spine-name">${book.name}</div>
-      <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
-      ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="width:${pct}%"></div></div>` : ''}
-    </div>`;
+  // 每排 6 卷、自動分組（未來 BOOKS 增減無需改邏輯）
+  const PER_ROW = 6;
+  for (let i = 0; i < BOOKS.length; i += PER_ROW) {
+    const rowBooks = BOOKS.slice(i, i + PER_ROW);
+    html += '<div class="shelf-row">';
+    for (const book of rowBooks) {
+      const prog = getBookProgress(book);
+      const pct = Math.round(prog.done / prog.total * 100);
+      const cls = prog.complete ? 'lit' : (prog.done > 0 ? 'progress' : 'locked');
+      html += `<div class="book-spine ${cls}">
+        <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
+        <div class="book-spine-name">${book.name}</div>
+        <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
+        ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="width:${pct}%"></div></div>` : ''}
+      </div>`;
+    }
+    html += '</div>';
   }
-  html += '</div>';
   const done = BOOKS.filter(b => getBookProgress(b).complete).length;
   html += `<div class="shelf-summary">📖 已完走 ${done} / ${BOOKS.length} 卷</div>`;
   html += '</div>';
