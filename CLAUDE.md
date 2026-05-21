@@ -657,7 +657,7 @@ equipment_change / diary_open / chapter_share / feedback_submit
   - Phase 3A ✅ 完成（commit fbe4705）── admin site 基礎建設（獨立 hosting + 認證）
   - Phase 3B ⏳ 待測 ── admin 列表 + 篩選
   - Phase 3C ⏳ 待開始 ── admin 多輪回覆工具
-  - Phase 3D ⏳ 待開始 ── 結束對話流程（手動標記 + Cloud Function 30 天 auto closed）
+  - Phase 3D ⏳ Cloud Function 已實作待部署（2026-05-21，functions/index.js `autoCloseInactiveThreads`：每天台灣 04:00 把 awaiting_player + lastMessageAt > 30 天的 thread 標記 closed，closedBy='system:auto_30d'）；手動標記功能已含於 Phase 3C
   - **整個 v2 已用 `FEATURE_FEEDBACK_V2 = false` flag 隱藏玩家入口**（commit cdb9208），上線時機按完整度而非日期：Phase 2D + 3B + 3C + 3D 全部完成、實機驗證通過後才改 flag = true 重新部署
 - [ ] 管理後台 ── Firebase Hosting 部署 admin web app：dashboard + feedback reply + SCHEDULE 管理（取代手動開 Firebase Console）
 - [ ] Cloud Messaging 推播 ── 每日定時推「今日章節：羅 10」，遊戲內訂閱即可（可考慮取代或並行下方長期願景的「LINE 官方帳號每日推送」）
@@ -691,7 +691,7 @@ equipment_change / diary_open / chapter_share / feedback_submit
 > - Phase 3A ✅ admin site 基礎建設完成（commit fbe4705）
 > - Phase 3B ⏳ admin 列表 + 篩選待測
 > - Phase 3C ⏳ admin 多輪回覆工具待開始
-> - Phase 3D ⏳ 結束對話流程（手動標記 + Cloud Function 30 天 auto closed）待開始
+> - Phase 3D ⏳ Cloud Function `autoCloseInactiveThreads` 已實作待部署（2026-05-21，每天台灣 04:00 收 awaiting_player + lastMessageAt > 30 天，closedBy='system:auto_30d'）；手動標記已含於 Phase 3C
 > - **整個 v2 玩家端目前用 `FEATURE_FEEDBACK_V2 = false` flag 隱藏**（commit cdb9208）；上線時機按完整度，待 Phase 2D + 3B + 3C + 3D 全完成再改 flag = true 重新部署。詳見下方「Feature Flag 機制」段落。
 
 ### Firestore Schema
