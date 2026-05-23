@@ -1,7 +1,7 @@
 # 靈修冒險 · 數據觀察記事
 
 > 持續更新的數據彙整與洞察文件
-> 對應遊戲版本：v2.11 main + dev（曠野呼聲 v2 client feature flag 隱藏；admin Phase 3C dev 完成；GAL5/EPH1/EPH2 內容入 dev）
+> 對應遊戲版本：v2.14 main（2026-05-24 release 後狀態：曠野呼聲 v2 已完整上線、FEATURE_FEEDBACK_V2 翻 true、admin Phase 3C 已 production、GAL/EPH/PHP 內容已上 main；本快照本身凍結於 5/19，需於下次中更新重抓 5/19 後資料）
 > **最後更新：2026-05-19**
 > 資料涵蓋期間：2026-04-10 ~ 2026-05-07（GA4，已過期 12 天，下次應升級中更新補 5/8 後）+ Firestore 全歷史至 2026-05-19
 > 對應流程手冊：`data-snapshot-playbook.md`

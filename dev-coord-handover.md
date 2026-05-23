@@ -5,6 +5,8 @@
 > 為何交班：跨 6 天 + 已 compaction 一次 + 剩餘工作含高風險上 main（接近紅燈）
 > 接手方式：新開發協調視窗 view 此文件 + roles/development-coordinator.md + claude-prompting-guide.md
 
+> ✅ **後續更新（2026-05-24）**：W21 風險最高的「dev → main 整批 release」已於本日完成。下方「W21 風險最高的動作」段落（含 dev → main merge / flag 翻 true / 部署）為交班當下的歷史紀錄，現均已執行完畢。詳見 LEARNING.md「W21 上線回顧追加（2026-05-24）」。
+
 ---
 
 ## 📚 第一部分：給新開發協調的快速進入指南

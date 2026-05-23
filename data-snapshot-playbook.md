@@ -2,7 +2,7 @@
 
 > 給 James、Claude AI Project、Claude Code 共同遵循的數據更新流程
 > 對應分析文件：`data-insights.md`
-> 對應遊戲版本：v2.10
+> 對應遊戲版本：v2.14
 
 ---
 
