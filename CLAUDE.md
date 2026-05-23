@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-05-11
+> 最後更新：2026-05-24
 
 ---
 
@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.11（main 與 dev 同步，2026-05-11 上線；合併日雙章機制 + 4/17 hotfix + 曠野呼聲 v2 開發中，已用 feature flag 隱藏）
+**目前版本**：v2.14（2026-05-24 整批 release 上線；曠野呼聲 v2 已完整上線、FEATURE_FEEDBACK_V2 已翻 true；新增內容 GAL/EPH/PHP、書架擴充 18 卷、D1 登入頁存檔獨立提示）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -29,7 +29,7 @@ Bible-game/
 ├── README.md                      # GitHub 說明頁
 ├── firebase.json                  # Firebase 設定（Functions/Firestore/Hosting）
 ├── firestore.rules                # Firestore 安全規則
-├── functions/index.js             # Cloud Functions（lineLogin, aiReflection）
+├── functions/index.js             # Cloud Functions（lineLogin, aiReflection, autoCloseInactiveThreads）
 ├── scripts/analyze-feedback.js    # Firestore 數據分析（npm run analyze）
 ├── scripts/check-ai-logs.js       # aiReflection 呼叫量／成功率（npm run logs）
 └── package.json                   # npm scripts
@@ -212,11 +212,15 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 - **失敗處理**（2026-04-28 加入，2026-04-30 升級，2026-05-11 retry 升級）：Gemini 回 503 過載時最多重試 3 次，每次等待 1-2 秒（1.5±0.5 jitter，避免群體同時重試撞牆）；其餘錯誤回傳 fallback 文字「謝謝你願意把心裡的話帶到神面前。祂看見了。」（玩家不會看到錯誤，只是少了個性化回應）
 - 監控：`npm run logs` 看當天呼叫成功率，目標 90% 以上；若 fallback 持續 >10% 考慮加 Gemini Pro 備援，或調整 generationConfig（譬如降 maxOutputTokens / temperature 讓回應更快、減少超時觸發）
 
+**autoCloseInactiveThreads**（us-central1，2nd Gen）
+- 功能：30 天無新訊息的曠野呼聲 thread 自動標記 `status='closed'`（每日排程掃描，cron `0 4 * * *` Asia/Taipei）
+- 部署：2026-05-24（v2.14 上線時部署到 production）
+
 ---
 
 **content.js 結構**：
 ```javascript
-const GAME_VERSION = '2.9';        // 版本號
+const GAME_VERSION = '2.14';        // 版本號
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
 const SCHEDULE = {...};            // 日期→章節對應表
 const BIBLE_LINKS = {...};         // Bible.com 連結
@@ -648,18 +652,18 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [ ] 6月起加拉太書～提多書內容
 
 **v3.0 候選短期（2026-04-28 盤點）**
-- [⏳] **曠野呼聲 v2 多輪對話**（2026-05-11 收工狀態：玩家端骨架完成、admin 後台基礎建設完成，剩玩家紅點 / admin 回覆 / Cloud Function / 結束對話流程）
+- [x] **曠野呼聲 v2 多輪對話** ✅ 已完整上線（2026-05-24, v2.14；4 個 Phase 全數完成、flag 翻 true、後端 + 玩家入口同步上線）
   - Phase 1 ✅ 完成（commit ffa9545）── 資料層（rules + messages 子集合 + 15 筆 v1 文件 migrate）
   - Phase 2A ✅ 完成 ── wantReply 勾選表單
   - Phase 2B ✅ 完成 ── 我的留言列表
   - Phase 2C ✅ 完成（commit 1dea0fe）── thread UI + 玩家追訊息
-  - Phase 2D ⏳ 待做 ── 玩家端紅點提示 + 收到回覆 toast（估 1h）
+  - Phase 2D ✅ 完成（commit 0fd121f）── 玩家端紅點提示 + 收到回覆 toast
   - Phase 3A ✅ 完成（commit fbe4705）── admin site 基礎建設（獨立 hosting + 認證）
-  - Phase 3B ⏳ 待測 ── admin 列表 + 篩選
-  - Phase 3C ⏳ 待開始 ── admin 多輪回覆工具
-  - Phase 3D ⏳ Cloud Function 已實作待部署（2026-05-21，functions/index.js `autoCloseInactiveThreads`：每天台灣 04:00 把 awaiting_player + lastMessageAt > 30 天的 thread 標記 closed，closedBy='system:auto_30d'）；手動標記功能已含於 Phase 3C
-  - **整個 v2 已用 `FEATURE_FEEDBACK_V2 = false` flag 隱藏玩家入口**（commit cdb9208），上線時機按完整度而非日期：Phase 2D + 3B + 3C + 3D 全部完成、實機驗證通過後才改 flag = true 重新部署
-- [ ] 管理後台 ── Firebase Hosting 部署 admin web app：dashboard + feedback reply + SCHEDULE 管理（取代手動開 Firebase Console）
+  - Phase 3B ✅ 已上 production ── admin 列表 + 篩選
+  - Phase 3C ✅ 完成 + 上線（commit 307b9a1）── admin 多輪回覆工具
+  - Phase 3D ✅ 已部署 production（2026-05-24，functions/index.js `autoCloseInactiveThreads`：每天台灣 04:00 把 awaiting_player + lastMessageAt > 30 天的 thread 標記 closed，closedBy='system:auto_30d'）；手動標記功能已含於 Phase 3C
+  - **FEATURE_FEEDBACK_V2 已於 2026-05-24（release `d3f832c`）翻 true，玩家入口已開放**；flag 機制最初為 v2.11 時導入（commit cdb9208），用來讓 v2 程式跟著 main 一起 release 但對玩家隱藏，直到 Phase 2D + 3B + 3C + 3D 全部完成、實機驗證通過再翻開
+- [~] 管理後台 ── ✅ admin web app 已部署（reply 回覆功能上線，2026-05-24，URL: `https://bible-game-admin.web.app`）；❌ SCHEDULE 管理仍未做
 - [ ] Cloud Messaging 推播 ── 每日定時推「今日章節：羅 10」，遊戲內訂閱即可（可考慮取代或並行下方長期願景的「LINE 官方帳號每日推送」）
 - [ ] 每月精華 PDF ── Cloud Function scheduled，月底把當月默想 + AI 回應整理寄給玩家，留存武器
 
@@ -682,17 +686,17 @@ equipment_change / diary_open / chapter_share / feedback_submit
 
 ## 曠野呼聲 v2 規格（2026-05-01 已確認，待實作）
 
-> **實作進度**（2026-05-11 更新）：
+> **實作進度**（2026-05-24 更新，曠野呼聲 v2 已完整上線）：
 > - Phase 1 ✅ 資料層完成（commit ffa9545）：firestore.rules / migration / 15 筆 v1 文件已補上 v2 欄位
 > - Phase 2A ✅ wantReply 勾選表單完成
 > - Phase 2B ✅ 我的留言列表完成
 > - Phase 2C ✅ thread UI + 玩家追訊息完成（commit 1dea0fe）
-> - Phase 2D ⏳ 玩家端紅點 + 收到回覆 toast 待做（約 1h）
+> - Phase 2D ✅ 玩家端紅點 + 收到回覆 toast 完成（commit 0fd121f）
 > - Phase 3A ✅ admin site 基礎建設完成（commit fbe4705）
-> - Phase 3B ⏳ admin 列表 + 篩選待測
-> - Phase 3C ⏳ admin 多輪回覆工具待開始
-> - Phase 3D ⏳ Cloud Function `autoCloseInactiveThreads` 已實作待部署（2026-05-21，每天台灣 04:00 收 awaiting_player + lastMessageAt > 30 天，closedBy='system:auto_30d'）；手動標記已含於 Phase 3C
-> - **整個 v2 玩家端目前用 `FEATURE_FEEDBACK_V2 = false` flag 隱藏**（commit cdb9208）；上線時機按完整度，待 Phase 2D + 3B + 3C + 3D 全完成再改 flag = true 重新部署。詳見下方「Feature Flag 機制」段落。
+> - Phase 3B ✅ admin 列表 + 篩選已上 production
+> - Phase 3C ✅ admin 多輪回覆工具完成 + 上線（commit 307b9a1）
+> - Phase 3D ✅ Cloud Function `autoCloseInactiveThreads` 已部署 production（2026-05-24，每天台灣 04:00 收 awaiting_player + lastMessageAt > 30 天，closedBy='system:auto_30d'）；手動標記已含於 Phase 3C
+> - **FEATURE_FEEDBACK_V2 已於 2026-05-24（release `d3f832c`）翻 true，玩家入口已開放**；flag 機制最初為 v2.11 時導入（commit cdb9208），用來讓 v2 跟著 main 一起 release 但對玩家隱藏。詳見下方「Feature Flag 機制」段落。
 
 ### Firestore Schema
 
@@ -730,7 +734,8 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 
 ### 管理後台（獨立網址）
 
-- 部署：Firebase Hosting 多 site（如 `bible-game-bcb84-admin.web.app`）
+- 部署：Firebase Hosting 多 site，production URL: `https://bible-game-admin.web.app`
+- ✅ 2026-05-24 已部署 production、可登入、reply 已驗證 end-to-end；SCHEDULE 管理功能尚未實作
 - 認證：Firebase Auth + Google 登入 + admin email 白名單（同 firestore.rules `isAdmin()`）
 - 顯示所有留言（含匿名），可篩選 `wantReply` / `status`
 - 支援多輪對話回覆（add 一則 `messages/{msgId}` doc, role='admin'）
@@ -764,11 +769,11 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 
 ### Feature Flag 機制（FEATURE_FEEDBACK_V2）
 
-`content.js` 第 9 行：`const FEATURE_FEEDBACK_V2 = false;`（首次導入：commit `cdb9208`，2026-05-11）
+`content.js` 第 9 行：`const FEATURE_FEEDBACK_V2 = true;`（2026-05-24 release `d3f832c` 翻開；首次導入：commit `cdb9208`，2026-05-11）
 
 **用途**：控制曠野呼聲 v2 玩家端入口的可見性 — wantReply 勾選表單、⋯ 選單「我的留言」入口、my-msgs 頁面、thread UI、未來 Phase 2D 的紅點與 toast 都受此 flag 控制。後端資料層（firestore.rules 的 v2 規則、admin 後台、Cloud Function）**不受 flag 影響、持續運作**。
 
-**預設值**：`false`（目前隱藏中）。
+**目前值**：`true`（曠野呼聲 v2 已上線）。
 
 **實作方式**：
 - v2 玩家端 HTML 元素都標 `data-v2-only="..."` attribute。
@@ -776,11 +781,10 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 - JS 函式（`openMyMessages`、`submitFeedback` 的 wantReply 驗證 / 寫入）也用 `if (FEATURE_FEEDBACK_V2)` gate，防護從 console 或殘留路徑進入。
 - flag = false 時：玩家送出 v1 留言寫入 `wantReply: false`（固定值，符合 firestore.rules 的 boolean schema）。
 
-**開啟條件**：以下 4 個 Phase 全部完成、實機驗證通過後，把 flag 改 `true` 並重新部署：
-- Phase 2D（玩家端紅點 + 收到回覆 toast）
-- Phase 3B（admin 列表 + 篩選測試通過）
-- Phase 3C（admin 多輪回覆工具完成）
-- Phase 3D（結束對話流程：手動標記 + Cloud Function 30 天 auto closed）
+**開啟歷程**：
+- 2026-05-11：導入 flag（`false`），隱藏 v2 入口，先讓合併日機制 v2.11 上線
+- 2026-05-11 ~ 2026-05-24：Phase 2D / 3B / 3C / 3D 陸續完成（preview 環境開 flag 驗證，不在 production 上對特定使用者開）
+- 2026-05-24：四 Phase 全數完成、端到端驗證通過 → flag 翻 `true`、整批 release v2.14 上線（commit `d3f832c`）
 
 **為什麼用 flag**：避免「dev 長期累積、與 main 分叉 15 commit」教訓重演（詳見「分支策略」補註）。Flag 讓 v2 在 dev 持續整合、跟著 main 一起 release（v2.11 含 Phase 1-3A 程式碼但玩家看不到），降低 long-lived feature branch 風險。
 
