@@ -1,6 +1,7 @@
 // Bible-game Cloud Functions
 const { setGlobalOptions } = require('firebase-functions');
 const { onRequest } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
@@ -184,5 +185,51 @@ exports.aiReflection = onRequest(
       console.error(`aiReflection error: uid=${callerId} chapter=${chapter || ''}`, e);
       res.status(500).json({ error: 'AI response failed' });
     }
+  }
+);
+
+// ── 曠野呼聲 30 天 auto-close (Phase 3D) ───────────────────
+// 每天台灣 04:00 跑一次，把 admin 已回覆但玩家 30 天沒回應的 thread 自動標記 closed。
+// 只收 status='awaiting_player'（admin 已盡責；玩家用沉默表達「夠了」）。
+// 不動 awaiting_admin / new（這是 admin 未處理，不該由系統替 admin 自動消音玩家）。
+// 設計選擇：只動 status flag、不刪 message 子集合與主文件，玩家在「我的留言」仍能滾回頭看歷史。
+// Admin SDK 寫入繞過 firestore.rules，無需修改規則。
+exports.autoCloseInactiveThreads = onSchedule(
+  {
+    schedule: '0 4 * * *',           // 每天台灣時間 04:00
+    timeZone: 'Asia/Taipei',
+    region: 'us-central1',           // 與既有 functions 一致
+  },
+  async () => {
+    const db = admin.firestore();
+    const cutoff = admin.firestore.Timestamp.fromMillis(
+      Date.now() - 30 * 24 * 60 * 60 * 1000
+    );
+
+    // 複合 query 需要索引（status ASC + lastMessageAt ASC）
+    // 首次部署後手動 trigger，console 會回索引建立連結
+    const snap = await db.collection('feedback')
+      .where('status', '==', 'awaiting_player')
+      .where('lastMessageAt', '<=', cutoff)
+      .get();
+
+    if (snap.empty) {
+      console.log('autoCloseInactiveThreads: no threads to close');
+      return;
+    }
+
+    // batch update（單次 batch 上限 500，預期遠低於上限）
+    const batch = db.batch();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    snap.docs.forEach(doc => {
+      batch.update(doc.ref, {
+        status: 'closed',
+        closedAt: now,
+        closedBy: 'system:auto_30d',
+      });
+    });
+    await batch.commit();
+
+    console.log(`autoCloseInactiveThreads: closed ${snap.size} threads`);
   }
 );

@@ -71,6 +71,13 @@ Opus 4.7 對指令的字面遵守度很高，所以：
 指令最後加一句：「**遇阻塞點先停下來確認再執行**」
 讓 Claude Code 在發現衝突時主動詢問，而不是默默做出偏離原意的決定。
 
+#### 9. 分支管理（W21 新紀律，2026-05-18 加入）
+
+- **commit 前必須先 `git branch` 確認當前分支**
+- main / dev 切換不是永久狀態，連續任務間容易誤落
+- 教訓來源：2026-05-17 v2.12 hotfix 期間 Claude Code 誤 commit 落 main 分支（已自行 cherry-pick + reset 修正，無內容遺失）
+- 詳見 LEARNING.md「2026-05-17 分支管理紀律」
+
 ---
 
 ### 範例：完整的 Claude Code 指令
@@ -86,6 +93,8 @@ Opus 4.7 對指令的字面遵守度很高，所以：
 - 必須使用既有 :root CSS 變數（--sand、--sand-dark、--shadow 等)
 - 不破壞既有的 popIn 動畫與互動狀態
 - 維持 iOS Safari 相容性
+- 起點：dev 分支 HEAD（請先 git branch 確認）
+- commit 前再 git branch 確認一次
 
 【任務說明】
 為衣櫃裝備（.equip-item）和成就卡片（.ach-card）

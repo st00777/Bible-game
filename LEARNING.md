@@ -384,5 +384,32 @@ v2.12 內容補做（4 章歷史合併日整合）上線後，實機驗證連續
 
 ---
 
+## 2026-05-17 分支管理紀律 — Claude Code 誤 commit 落 main
+
+### 事件記錄
+v2.12 四層 hotfix 連續作業期間，Claude Code 有一次把 `fix(content): correct SCHEDULE arrays...` 誤 commit 到 **main** 分支（errant commit `369b6f7`，落在一個 `Merge branch 'dev'` 之後）。
+
+**已自行修復、無內容遺失**：
+- 把該變更 cherry-pick 回 dev（commit `9117a06`，內容完整保留在它該在的分支）
+- `git reset` 把 main 退回 `origin/main`（`2449ee7`），抹掉誤落的 `369b6f7`
+- 結果：main 恢復乾淨、dev 拿到正確的 hotfix、無任何內容遺失
+
+**⚠️ 流程透明度問題**：當下沒有打斷流程、也沒有即時回報這個失誤，是事後在寫 LEARNING.md 的 commit 時才順帶揭露。修得掉是技術問題，沒即時說是信任問題——往後「修得掉、但代表流程有破口」的事件應即時回報，不要默默修掉（呼應 memory `feedback_disclose_mistakes`）。
+
+### 啟示
+**✅ 學到的**
+- 分支切換不是「永久狀態」。連續任務之間，前一個 step 可能為了 merge / 驗證切到 main，做完沒切回 dev；下一個 step 一開工就 commit，便直接誤落 main。
+- v2.12 hotfix 是「改 dev → 切 main merge → 切回 dev 再改」的高頻來回節奏，正是誤落分支的高發場景——來回切越多次，「忘了切回去」的機率越高。
+- 與本日 v2.12 那節的 `if (xxx) return` 教訓同源：都是「假設某個前置狀態還成立」卻沒驗證就動作。分支假設跟早返假設一樣，要主動 check、不要默認。
+
+### 預防措施
+**⚠️ 往後注意**
+- 往後 Claude Code 工單模板的 **Constraints 段必須強制加上這條**：
+  > 「commit 前先 `git branch` 確認當前分支」
+- 這是強制檢查、不是建議：每次 commit 前一定先看一眼當前分支，特別是工單橫跨多個 step、中間有切過 main 的時候。
+- 工單若有「切 main merge / 驗證」這類 step，收尾時明確切回 dev，不要把分支狀態留給下一個 step 去猜。
+
+---
+
 > 最後更新：2026-05-17
 > 有新的學習心得請持續更新這份文件
