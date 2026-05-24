@@ -11,7 +11,11 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-HZ3EGYB8BB');
-  function track(name, params) { if (typeof gtag === 'function') gtag('event', name, params || {}); }
+  function track(name, params) {
+    if (typeof gtag === 'function') gtag('event', name, params || {});
+    // B1：雙寫 Firestore（writeEventToFirestore 在 db 初始化後才定義，未就緒時略過）
+    if (typeof writeEventToFirestore === 'function') writeEventToFirestore(name, params);
+  }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -1252,6 +1256,43 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 let currentUser = null;
+
+// ══ B1 事件流 timeline（W22, users/{uid}/events 雙寫 GA4+Firestore）═══
+// 設計方案 2026-04-28 通過、CLAUDE.md「事件流設計方案」章節。
+// fire-and-forget；訪客（未登入）不寫；sessionId 用 crypto.randomUUID，
+// 頁面 hidden 超過 30 分鐘再回來換新 sessionId。
+let _sessionId = null;
+let _lastHiddenAt = null;
+function _newSessionId() { return crypto.randomUUID(); }
+function writeEventToFirestore(name, params) {
+  if (!currentUser) return; // 訪客不記
+  if (!_sessionId) _sessionId = _newSessionId();
+  const p = params || {};
+  const doc = {
+    type: name,
+    ts: firebase.firestore.FieldValue.serverTimestamp(),
+    sessionId: _sessionId,
+  };
+  if (p.chapter != null) doc.chapter = String(p.chapter);
+  // metadata：除 chapter 外其餘欄位整包進去
+  const meta = {};
+  for (const k in p) { if (k !== 'chapter') meta[k] = p[k]; }
+  if (Object.keys(meta).length) doc.metadata = meta;
+  // doc id：${Date.now()}-${random4}，避免同毫秒衝突
+  const docId = `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+  db.collection('users').doc(currentUser.uid).collection('events').doc(docId)
+    .set(doc)
+    .catch(e => console.warn('Event write error:', name, e));
+}
+// visibilitychange：hidden 記時間；resume 時若 > 30 min 換新 sessionId
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    _lastHiddenAt = Date.now();
+  } else if (document.visibilityState === 'visible' && _lastHiddenAt) {
+    if (Date.now() - _lastHiddenAt > 30 * 60 * 1000) _sessionId = _newSessionId();
+    _lastHiddenAt = null;
+  }
+});
 
 // Fields to sync with Firestore
 const SYNC_FIELDS = ['setup','name','gender','level','xp','streak','hat','body','item','bg','items','completed'];
