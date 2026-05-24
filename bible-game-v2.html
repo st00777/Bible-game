@@ -409,6 +409,15 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .page{display:none;}
 .page.show{display:block;}
 
+/* Profile / 分眾資料 sheet（E1） */
+.profile-field-group{margin-bottom:14px;}
+.profile-field-label{font-size:13px;font-weight:700;color:var(--text-soft);margin-bottom:6px;display:block;}
+.profile-field-hint{font-size:11px;color:var(--text-soft);margin-top:5px;line-height:1.6;}
+.profile-select,.profile-input{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:11px 13px;font-family:'Noto Sans TC',sans-serif;font-size:14px;color:var(--text);box-sizing:border-box;outline:none;transition:border-color .2s;}
+.profile-select:focus,.profile-input:focus{border-color:var(--purple);}
+.av-group-chip{display:inline-block;font-size:11px;color:var(--text-soft);background:rgba(255,255,255,.55);border-radius:10px;padding:3px 9px;margin-top:4px;border:1px solid var(--sky-deep);}
+.profile-nudge-icon{font-size:36px;margin-bottom:10px;}
+
 /* Animations */
 @keyframes popIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
@@ -900,6 +909,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
       <div class="av-info">
         <div class="av-name" id="av-name">旅途中的信徒</div>
         <div class="av-level" id="av-level">Lv.1 · 初出發的旅人</div>
+        <div class="av-group-chip" id="av-group-chip" style="display:none;"></div>
         <div class="xp-bg"><div class="xp-fill" id="xp-fill" style="width:10%"></div></div>
         <div class="xp-lbl" id="xp-lbl">10 / 100 XP</div>
         <button class="wardrobe-btn" id="wardrobe-btn" onclick="openWardrobe()">👗 衣櫃</button>
@@ -1556,6 +1566,176 @@ async function updateProfile() {
   } catch(e) { console.warn('Profile update error:', e); }
 }
 
+// ── E1：玩家分眾資料 (profile segmentation) ──────────────────
+// 5 欄位：ageGroup / churchKey / district / groupName / devotionHabit
+// district、groupName 為 W23 人工求助轉介會直接讀取的欄位，存乾淨字串、不做轉換
+let profileCache = null;       // 主登入時讀進來，本機快取
+let pendingProfileNudge = false; // completeDevotional 觸發、closeReward 後執行
+
+async function loadProfileData() {
+  if (!currentUser) { profileCache = null; renderGroupChip(); return; }
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid)
+      .collection('profile').doc('data').get();
+    profileCache = doc.exists ? doc.data() : {};
+    renderGroupChip();
+  } catch(e) { console.warn('loadProfileData error:', e); }
+}
+
+async function saveProfileSegmentation(fields) {
+  if (!currentUser) return false;
+  try {
+    const clean = {};
+    // 只接受 5 個允許的分眾欄位、字串 trim、不轉換大小寫（保留玩家原樣輸入）
+    const ALLOWED = ['ageGroup','churchKey','district','groupName','devotionHabit'];
+    for (const k of ALLOWED) {
+      if (k in fields) clean[k] = String(fields[k] || '').trim();
+    }
+    if (Object.keys(clean).length === 0) return false;
+    clean.profileUpdatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('users').doc(currentUser.uid)
+      .collection('profile').doc('data')
+      .set(clean, { merge: true });
+    profileCache = Object.assign({}, profileCache || {}, clean);
+    renderGroupChip();
+    return true;
+  } catch(e) { console.warn('saveProfileSegmentation error:', e); return false; }
+}
+
+function openProfileSheet() {
+  if (!currentUser) {
+    showToast('請先登入才能儲存個人資料');
+    return;
+  }
+  const p = profileCache || {};
+  document.getElementById('profile-age').value = p.ageGroup || '';
+  document.getElementById('profile-church').value = p.churchKey || '';
+  document.getElementById('profile-district').value = p.district || '';
+  document.getElementById('profile-group').value = p.groupName || '';
+  document.getElementById('profile-habit').value = p.devotionHabit || '';
+  openOverlay('profile-overlay');
+}
+
+async function saveProfileFromSheet() {
+  const fields = {
+    ageGroup: document.getElementById('profile-age').value,
+    churchKey: document.getElementById('profile-church').value,
+    district: document.getElementById('profile-district').value,
+    groupName: document.getElementById('profile-group').value,
+    devotionHabit: document.getElementById('profile-habit').value,
+  };
+  const ok = await saveProfileSegmentation(fields);
+  closeOverlay('profile-overlay');
+  if (ok) showToast('已儲存 ✨');
+}
+
+function renderGroupChip() {
+  const chip = document.getElementById('av-group-chip');
+  if (!chip) return;
+  const name = (profileCache && profileCache.groupName) ? profileCache.groupName.trim() : '';
+  if (name) {
+    chip.textContent = '⛪ ' + name;
+    chip.style.display = '';
+  } else {
+    chip.style.display = 'none';
+  }
+}
+
+// ── E1：Nudge（throttled 領獎後輕量提示） ───────────────────────
+const PROFILE_NUDGE_FIELDS = [
+  { key: 'ageGroup', icon: '🎂', title: '想分享你的年齡層嗎？', desc: '只問一題、可以跳過。',
+    type: 'select',
+    options: [['under_jh','國中以下'],['high_school','高中職'],['college','大專 / 大學'],['young_25_35','社青（25-35）'],['middle_35_50','中年（35-50）'],['senior_50_65','熟齡（50-65）'],['elder_65_plus','樂齡（65 以上）']] },
+  { key: 'churchKey', icon: '⛪', title: '想分享你屬於哪間教會嗎？', desc: '只問一題、可以跳過。',
+    type: 'select',
+    options: [['daguang','大光教會'],['other','其他教會'],['none','尚未屬會']] },
+  { key: 'district', icon: '🤝', title: '你的牧區是？', desc: '只問一題、可以跳過。日後若想找牧者聊聊，團隊會用這個欄位人工牽線。',
+    type: 'text', placeholder: '例如：成人查經牧區' },
+  { key: 'groupName', icon: '👥', title: '你的小組叫什麼？', desc: '只問一題、可以跳過。填了主畫面會顯示你的小組標籤。',
+    type: 'text', placeholder: '例如：週四查經班' },
+  { key: 'devotionHabit', icon: '🌱', title: '想分享你的靈修習慣嗎？', desc: '只問一題、可以跳過。',
+    type: 'select',
+    options: [['stable','穩定每天'],['intermittent','斷續'],['beginner','新手摸索'],['starting','想開始']] },
+];
+let currentNudgeFieldKey = null;
+
+function pickNextNudgeField() {
+  if (!profileCache) return null;
+  for (const f of PROFILE_NUDGE_FIELDS) {
+    if (!profileCache[f.key]) return f;
+  }
+  return null;
+}
+
+function maybeShowProfileNudge() {
+  if (!currentUser) return;
+  if (!profileCache) return; // 還沒載入完
+  if ((state.streak || 0) < 3) return; // 連續 3 天起才開始問
+  // cool-down：跳過 3 次後休息 7 天
+  const skipCount = parseInt(localStorage.getItem('profile_nudge_skip_count') || '0', 10);
+  const lastSkip = localStorage.getItem('profile_nudge_last_skip') || '';
+  if (skipCount >= 3 && lastSkip) {
+    const daysSince = Math.floor((Date.now() - new Date(lastSkip).getTime()) / 86400000);
+    if (daysSince < 7) return;
+    localStorage.setItem('profile_nudge_skip_count', '0'); // 7 天到了重置
+  }
+  // 同一天只問一次
+  const lastShown = localStorage.getItem('profile_nudge_last_shown') || '';
+  const today = todayStr();
+  if (lastShown === today) return;
+  const field = pickNextNudgeField();
+  if (!field) return; // 都填完了
+  currentNudgeFieldKey = field.key;
+  document.getElementById('profile-nudge-icon').textContent = field.icon;
+  document.getElementById('profile-nudge-title').textContent = field.title;
+  document.getElementById('profile-nudge-desc').textContent = field.desc;
+  const body = document.getElementById('profile-nudge-body');
+  body.innerHTML = '';
+  if (field.type === 'select') {
+    const sel = document.createElement('select');
+    sel.className = 'profile-select';
+    sel.id = 'profile-nudge-input';
+    const blank = document.createElement('option');
+    blank.value = ''; blank.textContent = '— 請選擇 —';
+    sel.appendChild(blank);
+    for (const [v, lbl] of field.options) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = lbl;
+      sel.appendChild(o);
+    }
+    body.appendChild(sel);
+  } else {
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'profile-input';
+    inp.id = 'profile-nudge-input';
+    inp.maxLength = 30;
+    inp.placeholder = field.placeholder || '';
+    body.appendChild(inp);
+  }
+  localStorage.setItem('profile_nudge_last_shown', today);
+  openOverlay('profile-nudge-overlay');
+}
+
+async function submitProfileNudge() {
+  const inp = document.getElementById('profile-nudge-input');
+  const val = inp ? inp.value.trim() : '';
+  closeOverlay('profile-nudge-overlay');
+  if (!val || !currentNudgeFieldKey) return;
+  const ok = await saveProfileSegmentation({ [currentNudgeFieldKey]: val });
+  if (ok) {
+    localStorage.setItem('profile_nudge_skip_count', '0'); // 願意填、重置跳過計數
+    showToast('已儲存 ✨');
+  }
+}
+
+function skipProfileNudge() {
+  const skipCount = parseInt(localStorage.getItem('profile_nudge_skip_count') || '0', 10);
+  localStorage.setItem('profile_nudge_skip_count', String(skipCount + 1));
+  localStorage.setItem('profile_nudge_last_skip', new Date().toISOString());
+  closeOverlay('profile-nudge-overlay');
+}
+
 // ── 儲存單章完整記錄 + 更新統計 ──────────────────────────────
 async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, reflectionText) {
   if (!currentUser) return;
@@ -1998,6 +2178,8 @@ auth.onAuthStateChanged(async user => {
   initAchievements();
   // Phase 2D：登入後檢查曠野呼聲新回覆，有就亮紅點 + 同 session 彈一次 Toast
   checkUnreadFeedback({ toast: true });
+  // E1：載入分眾資料快取（給領獎後 nudge / av-info chip / 個人資料 sheet 用）
+  loadProfileData();
 });
 
 // Handle LINE OAuth callback on page load
@@ -2915,6 +3097,7 @@ async function completeDevotional() {
     if (isMergedDayAllDone) {
       setTimeout(() => showToast('兩章都讀完了，今天教會的進度走完了 ✨'), 1800);
     }
+    pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
   if (reflSubmitted) {
     // Player wrote a reflection → show "claim reward" button below AI response
@@ -2976,6 +3159,11 @@ function showReward(item, bonus, hasBonus) {
 
 function closeReward() {
   closeOverlay('reward-overlay');
+  // E1：領獎收尾後觸發輕量分眾提示（throttled，內部會自動跳過不該問的場景）
+  if (pendingProfileNudge) {
+    pendingProfileNudge = false;
+    setTimeout(() => maybeShowProfileNudge(), 600);
+  }
   // 合併日完成單章後：刷新日曆 + day-info-bar（讓剛完成的卡片變綠 ✅），並滾回 day-info-bar
   const myScheduleDate = findScheduleDate(selectedChapter);
   if (!myScheduleDate) return;
@@ -4047,10 +4235,85 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
 });
 </script>
 
+<!-- ══ E1: Profile / 個人資料 sheet ══ -->
+<div class="overlay" id="profile-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="sheet-title">⚙️ 個人資料</div>
+      <button onclick="closeOverlay('profile-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
+    </div>
+    <div class="sheet-sub">分享一些關於你的資訊，玩起來更有歸屬感。<br>每一欄都可以留空、之後再改。</div>
+
+    <div class="profile-field-group">
+      <label class="profile-field-label" for="profile-age">年齡層</label>
+      <select id="profile-age" class="profile-select">
+        <option value="">— 暫不選 —</option>
+        <option value="under_jh">國中以下</option>
+        <option value="high_school">高中職</option>
+        <option value="college">大專 / 大學</option>
+        <option value="young_25_35">社青（25-35）</option>
+        <option value="middle_35_50">中年（35-50）</option>
+        <option value="senior_50_65">熟齡（50-65）</option>
+        <option value="elder_65_plus">樂齡（65 以上）</option>
+      </select>
+    </div>
+
+    <div class="profile-field-group">
+      <label class="profile-field-label" for="profile-church">教會所屬</label>
+      <select id="profile-church" class="profile-select">
+        <option value="">— 暫不選 —</option>
+        <option value="daguang">大光教會</option>
+        <option value="other">其他教會</option>
+        <option value="none">尚未屬會</option>
+      </select>
+    </div>
+
+    <div class="profile-field-group">
+      <label class="profile-field-label" for="profile-district">牧區</label>
+      <input id="profile-district" class="profile-input" type="text" maxlength="20" placeholder="例如：成人查經牧區">
+      <div class="profile-field-hint">日後若想找牧者聊聊，團隊會用這個欄位人工牽線。</div>
+    </div>
+
+    <div class="profile-field-group">
+      <label class="profile-field-label" for="profile-group">小組</label>
+      <input id="profile-group" class="profile-input" type="text" maxlength="30" placeholder="例如：週四查經班">
+      <div class="profile-field-hint">填了主畫面會顯示你的小組標籤。</div>
+    </div>
+
+    <div class="profile-field-group">
+      <label class="profile-field-label" for="profile-habit">靈修習慣</label>
+      <select id="profile-habit" class="profile-select">
+        <option value="">— 暫不選 —</option>
+        <option value="stable">穩定每天</option>
+        <option value="intermittent">斷續</option>
+        <option value="beginner">新手摸索</option>
+        <option value="starting">想開始</option>
+      </select>
+    </div>
+
+    <button class="green-btn" onclick="saveProfileFromSheet()">儲存</button>
+    <button class="sky-btn" onclick="closeOverlay('profile-overlay')">取消</button>
+  </div>
+</div>
+
+<!-- ══ E1: Profile gentle nudge (領獎後輕量提示) ══ -->
+<div class="overlay center" id="profile-nudge-overlay">
+  <div class="modal">
+    <div class="profile-nudge-icon" id="profile-nudge-icon">🌱</div>
+    <div class="sheet-title" id="profile-nudge-title">想問你一個問題嗎？</div>
+    <p style="font-size:13px;color:var(--text-soft);line-height:1.7;margin:10px 0 14px;" id="profile-nudge-desc">這只會問一題，可以直接跳過。</p>
+    <div id="profile-nudge-body" style="margin-bottom:14px;"></div>
+    <button class="green-btn" onclick="submitProfileNudge()">儲存</button>
+    <button class="sky-btn" onclick="skipProfileNudge()">等等再說</button>
+  </div>
+</div>
+
 <!-- more-menu lives at body level to escape topbar's animation containing block -->
 <div class="more-menu" id="more-menu">
   <button onclick="openAchievements(); closeMoreMenu()">🏆 成就</button>
   <button onclick="openDiary(); closeMoreMenu()">📖 靈修日記</button>
+  <button onclick="openProfileSheet(); closeMoreMenu()">⚙️ 個人資料</button>
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
