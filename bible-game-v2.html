@@ -1288,6 +1288,8 @@ function writeEventToFirestore(name, params) {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _lastHiddenAt = Date.now();
+    // B1: app_leave（頁面切到背景／鎖屏／切 tab 都算離開）
+    track('app_leave', { sessionId: _sessionId });
   } else if (document.visibilityState === 'visible' && _lastHiddenAt) {
     if (Date.now() - _lastHiddenAt > 30 * 60 * 1000) _sessionId = _newSessionId();
     _lastHiddenAt = null;
@@ -1958,10 +1960,16 @@ async function incrementShareCount() {
   } catch(e) { console.warn('Share count error:', e); }
 }
 
+let _appOpenFired = false;
 auth.onAuthStateChanged(async user => {
   currentUser = user;
   updateAuthUI();
   if (!user || typeof state === 'undefined') return;
+  // B1: app_open — 登入用戶首次解算後 fire 一次（訪客 user=null 已被上一行 return 擋掉）
+  if (!_appOpenFired) {
+    _appOpenFired = true;
+    track('app_open', {});
+  }
 
   if (state.setup) {
     // Already set up locally — sync in-place, stay on current screen
@@ -2678,6 +2686,8 @@ function selectChapter(ch) {
   // 以及 selectChapter 函式體內 chapterFull(ch) 等用區域參數 ch 的位置污染。
   ch = data.chapter;
   selectedChapter = ch;
+  // B1: chapter_select
+  track('chapter_select', { chapter: ch });
 
   // Update badge
   document.getElementById('book-badge').textContent = `📖 ${chapterFull(ch)}`;
@@ -2697,6 +2707,8 @@ function selectChapter(ch) {
   document.getElementById('scene-emoji').textContent = data.sceneEmoji;
   document.getElementById('scene-text').textContent = data.scene;
   document.getElementById('scenario-q').textContent = data.q;
+  // B1: question_view — 玩家看到情境題（selectChapter 一次性 render，等同 chapter_select 後立即看到題）
+  track('question_view', { chapter: ch });
 
   // Choices
   const container = document.getElementById('choices-container');
@@ -2757,6 +2769,8 @@ function selectChoice(btn, choice) {
   choiceConfirmed = true;
   sessionChoice = choice;
   pendingChoice = null;
+  // B1: choice_confirm
+  track('choice_confirm', { chapter: selectedChapter, choice });
   document.querySelectorAll('.choice-btn').forEach(b => {
     b.disabled = true;
     b.classList.remove('previewing');
@@ -2816,10 +2830,14 @@ async function submitReflection() {
     lastAiResponse = d.aiResponse || fallback;
     lastAiIsFallback = d.isFallback === true || !d.aiResponse;
     aiText.textContent = lastAiResponse;
+    // B1: ai_response_received（API 回應收到，含 server 端 fallback 旗標）
+    track('ai_response_received', { chapter: selectedChapter, isFallback: lastAiIsFallback });
   } catch(e) {
     lastAiResponse = fallback;
     lastAiIsFallback = true;
     aiText.textContent = fallback;
+    // B1: ai_response_received（網路失敗也算 received、以 fallback 文案呈現）
+    track('ai_response_received', { chapter: selectedChapter, isFallback: true });
   }
 }
 
