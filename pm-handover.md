@@ -84,13 +84,14 @@ James(葉真旭)是這個專案的唯一決策者,你是他的策略夥伴。
 - Firebase(Firestore + Auth + Functions + Hosting)
 - Gemini 2.5 Flash(AI 回應)
 - GitHub Pages 部署
-- 主遊戲網址:bible-game-bcb84.web.app
-- Admin 後台網址:bible-game-admin.web.app(規劃中)
+- 主遊戲網址:https://st00777.github.io/Bible-game/bible-game-v2.html(GitHub Pages,玩家正式版)
+- Admin 後台網址:https://bible-game-admin.web.app(Firebase Hosting,2026-05-24 已上 production)
 
 ### 當前版本
-- v2.11(2026-05-11 上線,含合併日機制 + feature flag)
-- main 分支:v2.11 已上
-- dev 分支:曠野呼聲 v2 Phase 3B 在跑中,含 feature flag 隱藏
+- v2.14(2026-05-24 整批 release 上線;曠野呼聲 v2 完整上線、flag true、新內容 GAL/EPH/PHP、書架擴充 18 卷、D1 登入提示)
+- main 分支:v2.14 已上(release commit d3f832c + docs sync b9faf3a / 72b60ef)
+- dev 分支:與 main 同步,目前無 in-flight 工作
+- ⚠️ 此「當前版本」段於 2026-05-24 W21 收網時更新一次,日後請接手 PM 自行維護
 
 ### 北極星指標
 **Streak ≥ 7 days × 默想完成率**

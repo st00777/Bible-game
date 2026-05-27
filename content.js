@@ -6,17 +6,21 @@ const GAME_VERSION = '2.14';
 // 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
 // 完整前先隱藏所有 v2 玩家入口，避免玩家送出有「希望收到回覆」期待後沒人能回。
 // flag=false 時：玩家走 v1 流程（mood + category + message + isAnonymous）；後端資料層仍保持 v2 schema
-const FEATURE_FEEDBACK_V2 = false;
+const FEATURE_FEEDBACK_V2 = true;
 
 // 此 flag 控制版本公告彈窗。true = silent 升級（更新 lastSeen 但不彈），
 // false = 一般行為（不一致就彈）。
-// 2026-05-21：v2.14 為玩家端紅點 + Toast 通知（曠野呼聲 v2 玩家可見功能）；
-// 因 FEATURE_FEEDBACK_V2=false 期間玩家看不到差異，silent 升級不打擾。
+// 2026-05-24：v2.14 整批上線，曠野呼聲 v2 玩家功能開放（FEATURE_FEEDBACK_V2 翻 true）；
+// 玩家可見「能收到回覆」，故 SUPPRESS_VERSION_POPUP 設 false、彈版本公告告知。
 // 未來內容副版次升級可沿用這個 flag、機制變更主版次改回 false。
-const SUPPRESS_VERSION_POPUP = true;
+const SUPPRESS_VERSION_POPUP = false;
 
 const VERSION_NOTES = [
-  '🔔 曠野呼聲新增「新回覆」紅點 + Toast 提示（v2 玩家入口開啟後可見）'
+  '💬 曠野呼聲新功能：留言可以收到回覆了！到 ⋯ 選單『我的留言』查看',
+  '🔔 收到新回覆時，主畫面 ⋯ 按鈕顯示紅點 + 登入彈一次 Toast 提示',
+  '📖 新內容：加拉太書、以弗所書、腓立比書陸續上線（6/03 起）',
+  '📚 書架擴充：完整顯示 18 卷新約，三層排版一眼看完',
+  '🔑 登入頁加註：LINE 與 Google 為各自獨立的存檔'
 ];
 
 // 大光教會2026每日讀經進度

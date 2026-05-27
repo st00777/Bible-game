@@ -411,5 +411,29 @@ v2.12 四層 hotfix 連續作業期間，Claude Code 有一次把 `fix(content):
 
 ---
 
-> 最後更新：2026-05-17
+## W21 上線回顧追加（2026-05-24）
+
+### 教訓 1：merge 類工單要先確認 worktree 佈局
+Phase D1 + 整批 release 的 merge 工單預設「在主 repo checkout main」，但專案實際是多 worktree 結構。Claude Code 無法在 phase-3c-admin worktree 直接 git checkout main（該分支被佔用 + 不准 cd 主 repo）。
+
+對策：未來 merge / release 類工單下單前先確認 worktree 佈局，或由 James 在主 repo 手動執行 merge + push，AI 只負責改 flag / 部署等不涉及分支切換的步驟。
+
+### 教訓 2：FEATURE_FEEDBACK_V2 是環境級 flag，不是使用者級
+此 flag 設計為「對正式版開關」（dev/preview 開、main 關），不是對特定使用者開。測試靠 preview 環境開 flag 來驗，不是在正式版對自己單獨開。
+
+上線節奏：功能在 preview 驗過 → 整批 merge → merge 時手動翻 flag true → 後端先部署、玩家入口（push main）最後開。
+
+### 上線執行摘要（v2.14, 2026-05-24）
+- 14 commit 整批 dev → main（merge 2885e6e + flag/changelog d3f832c）
+- FEATURE_FEEDBACK_V2 false→true、SUPPRESS_VERSION_POPUP true→false
+- 部署順序（後端先、玩家入口最後）：firestore.rules（已最新，no-op 確認）→ functions:autoCloseInactiveThreads（更新成功）→ hosting:admin → push main
+- 端到端驗證通過：玩家送留言 → 後台回覆 → 玩家收到回覆 + 紅點/Toast
+
+### 待辦（低優先，不阻塞）
+- admin 首頁文案落後：圖示寫「回覆對話 Phase 3C 即將上線」但實際已上線可回覆，擇日更新文案避免同工困惑。
+- 舊事件補記：v2.12 hotfix 期間曾有一次「誤 commit 落 main → cherry-pick+reset 修正」事件（無遺失），分支管理紀律可一併納入回顧。
+
+---
+
+> 最後更新：2026-05-24
 > 有新的學習心得請持續更新這份文件
