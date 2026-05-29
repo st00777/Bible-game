@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "analyze": "node scripts/analyze-feedback.js",
+    "profiles": "node scripts/list-profiles.js",
     "logs": "node scripts/check-ai-logs.js",
     "line-logs": "node scripts/check-line-logs.js",
     "migrate:feedback-v2": "node scripts/migrate-feedback-v2.js",
