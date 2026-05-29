@@ -211,13 +211,16 @@ async function analyzeFeedback(token, rawDocs) {
   }
 
   // ── v2 多輪對話分析（status / 對話深度 / admin 回覆 / 未讀 backlog / 回覆時長） ──
-  console.log('\n── 🗨️ v2 多輪對話分析 ──');
-  const v2Docs = docs.filter(d => d.status !== undefined);
+  // ⚠️ 用 realDocs（已排除 /測試|test/）── 否則開發者自測 thread 會污染 SLA：
+  //    曾發生「中位首次回覆 11.9 天」假數字，實為 3 筆測試 thread（測試建立日→測 admin 工具日的間隔）。
+  console.log('\n── 🗨️ v2 多輪對話分析（已排除測試留言）──');
+  const v2Docs = realDocs.filter(d => d.status !== undefined);
   if (v2Docs.length === 0) {
-    console.log('  （尚無 v2 多輪對話資料 ── feedback 主 doc 都沒 status 欄位）');
+    console.log('  （尚無 v2 多輪對話資料 ── 真實留言都沒 status 欄位）');
     return;
   }
-  console.log(`  v2 schema 留言: ${v2Docs.length}/${docs.length} 筆`);
+  // migrate 進來的 v1 舊留言：有 status=closed 但無 messages（migration 直接設 closed，從無回覆義務）
+  console.log(`  v2 schema 真實留言: ${v2Docs.length} 筆（另有 ${testDocs.filter(d => d.status !== undefined).length} 筆測試 thread 已排除）`);
 
   // status 分布
   const statusOrder = ['new', 'awaiting_admin', 'awaiting_player', 'closed'];
@@ -285,7 +288,7 @@ async function analyzeFeedback(token, rawDocs) {
   console.log(`  messages 子集合: 抓到 ${messagesFetched} 筆 thread，錯誤 ${messagesErrors} 筆`);
 
   if (replyLags.length === 0) {
-    console.log('  尚無 admin 回覆紀錄');
+    console.log('  尚無真實玩家的 admin 回覆紀錄（v2 玩家端 5/24 才上線，暫無 SLA 樣本）');
   } else {
     replyLags.sort((a, b) => a - b);
     const median = replyLags[Math.floor(replyLags.length / 2)];
@@ -293,6 +296,9 @@ async function analyzeFeedback(token, rawDocs) {
     const mean = replyLags.reduce((s, x) => s + x, 0) / replyLags.length;
     const fmt = h => h < 1 ? `${Math.round(h * 60)} 分` : h < 24 ? `${h.toFixed(1)} 時` : `${(h/24).toFixed(1)} 日`;
     console.log(`  admin 首次回覆時長（共 ${replyLags.length} 筆）: 中位 ${fmt(median)} / 平均 ${fmt(mean)} / p90 ${fmt(p90)}`);
+    if (replyLags.length < 5) {
+      console.log(`  ⚠️ 樣本僅 ${replyLags.length} 筆，不足以當 SLA 指標 ── 請逐筆檢視真偽，勿直接引用中位數`);
+    }
   }
 }
 
