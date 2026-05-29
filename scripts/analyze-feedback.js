@@ -762,6 +762,186 @@ async function analyzeProgress(token, users) {
       console.log(`    寫更長: ${longer}　寫更短: ${shorter}　不變: ${same}　平均差: ${avgDiff > 0 ? '+' : ''}${avgDiff} 字`);
     }
   }
+
+  // ── 7. E1 玩家分眾分析（profile/data 5 欄位，W22/W23 起累積）─────
+  // 欄位：ageGroup / churchKey / district / groupName / devotionHabit（皆選填）
+  // 值域標籤對應 bible-game-v2.html PROFILE_NUDGE_FIELDS
+  console.log('\n── ⑦ 玩家分眾分析（profile/data，E1 選填欄位）──');
+  const AGE_LABELS = {
+    under_jh: '國中以下', high_school: '高中職', college: '大專 / 大學',
+    young_25_35: '社青 25-35', middle_35_50: '中年 35-50',
+    senior_50_65: '熟齡 50-65', elder_65_plus: '樂齡 65+',
+  };
+  const CHURCH_LABELS = { daguang: '大光教會', other: '其他教會', none: '尚未屬會' };
+  const HABIT_LABELS = { stable: '穩定每天', intermittent: '斷續', beginner: '新手摸索', starting: '想開始' };
+  const profiles = [];
+  for (let i = 0; i < players.length; i += batchSize) {
+    const batch = players.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(p => fetchSubDoc(token, p.uid, 'profile', 'data'))
+    );
+    results.forEach((prof, idx) => {
+      if (prof) profiles.push({ uid: batch[idx].uid, ...prof });
+    });
+  }
+  const SEG_FIELDS = ['ageGroup', 'churchKey', 'district', 'groupName', 'devotionHabit'];
+  const filledAny = profiles.filter(p => SEG_FIELDS.some(f => p[f] && String(p[f]).trim())).length;
+  console.log(`  有 profile 文件的玩家: ${profiles.length}/${players.length}`);
+  console.log(`  至少填 1 個分眾欄位:   ${filledAny}/${players.length} (${pct(filledAny, players.length)})`);
+  // 各欄位填寫率
+  console.log('  各欄位填寫率:');
+  SEG_FIELDS.forEach(f => {
+    const n = profiles.filter(p => p[f] && String(p[f]).trim()).length;
+    console.log(`    ${f.padEnd(14)} ${n}/${players.length} (${pct(n, players.length)})`);
+  });
+  // 分布輔助
+  const distOf = (field, labels) => {
+    const c = {};
+    profiles.forEach(p => {
+      const v = p[field] && String(p[field]).trim();
+      if (v) c[v] = (c[v] || 0) + 1;
+    });
+    return c;
+  };
+  const printDist = (title, field, labels) => {
+    const c = distOf(field, labels);
+    const entries = Object.entries(c).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) { console.log(`  ${title}: （尚無資料）`); return; }
+    const max = entries[0][1];
+    console.log(`  ${title}:`);
+    entries.forEach(([k, n]) => {
+      const label = labels[k] || k;  // 未知值（含自由文字）原樣顯示
+      console.log(`    ${label.padEnd(12)} ${bar(n, max).padEnd(16)} ${n} 人`);
+    });
+  };
+  if (filledAny > 0) {
+    printDist('年齡層分布', 'ageGroup', AGE_LABELS);
+    printDist('教會歸屬分布', 'churchKey', CHURCH_LABELS);
+    printDist('靈修習慣自評（核心定位指標）', 'devotionHabit', HABIT_LABELS);
+    // 小組：填寫率 + top 小組
+    const withGroup = profiles.filter(p => p.groupName && p.groupName.trim());
+    console.log(`  小組參與: ${withGroup.length}/${players.length} (${pct(withGroup.length, players.length)}) 填了小組名`);
+    if (withGroup.length > 0) {
+      const groupCount = {};
+      withGroup.forEach(p => { const g = p.groupName.trim(); groupCount[g] = (groupCount[g] || 0) + 1; });
+      const sortedG = Object.entries(groupCount).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      console.log('    小組分布（前 8）:');
+      sortedG.forEach(([g, n]) => console.log(`      ${g.padEnd(16)} ${n} 人`));
+    }
+    // 牧區：填寫數（自由文字，人工轉介用，不細分布）
+    const withDistrict = profiles.filter(p => p.district && p.district.trim()).length;
+    console.log(`  牧區填寫（人工轉介用）: ${withDistrict}/${players.length} (${pct(withDistrict, players.length)})`);
+  }
+
+  // ── 8. B1 事件流漏斗分析（users/{uid}/events，W22 起累積）───────
+  // schema: { type, ts, sessionId, chapter?, metadata? }；訪客不記、fire-and-forget
+  console.log('\n── ⑧ 事件流漏斗分析（events 子集合，B1 W22 起累積）──');
+  console.log('  正在拉 events 子集合（讀取量較大，請稍候）...');
+  const allEvents = [];
+  for (let i = 0; i < players.length; i += batchSize) {
+    const batch = players.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(p => fetchCollection(token, `users/${p.uid}/events`).catch(() => []))
+    );
+    results.forEach((docs, idx) => {
+      const uid = batch[idx].uid;
+      docs.forEach(d => allEvents.push({ uid, ...parseDoc(d) }));
+    });
+  }
+
+  if (allEvents.length === 0) {
+    console.log('  （尚無 events 資料 — B1 W22 後才開始累積，或玩家尚未產生事件）');
+  } else {
+    const uniqSessions = new Set(allEvents.map(e => e.sessionId).filter(Boolean));
+    const activePlayers = new Set(allEvents.map(e => e.uid));
+    const evDates = allEvents.map(e => (e.ts || '').slice(0, 10)).filter(Boolean).sort();
+    console.log(`  總事件數: ${allEvents.length}　unique session: ${uniqSessions.size}　有事件的玩家: ${activePlayers.size}/${players.length}`);
+    if (evDates.length) console.log(`  事件涵蓋: ${evDates[0]} ~ ${evDates[evDates.length-1]}`);
+
+    // 事件類型分布
+    const typeCount = {};
+    allEvents.forEach(e => { typeCount[e.type] = (typeCount[e.type] || 0) + 1; });
+    const sortedTypes = Object.entries(typeCount).sort((a, b) => b[1] - a[1]);
+    const maxT = sortedTypes[0][1];
+    console.log('  事件類型分布:');
+    sortedTypes.forEach(([t, n]) => console.log(`    ${t.padEnd(22)} ${bar(n, maxT).padEnd(16)} ${n}`));
+
+    // 按 session 分組（每個 session 有哪些事件 type + 排序 by ts）
+    const bySession = {};
+    allEvents.forEach(e => {
+      if (!e.sessionId) return;
+      (bySession[e.sessionId] ||= []).push(e);
+    });
+    Object.values(bySession).forEach(list => list.sort((a, b) => (a.ts || '').localeCompare(b.ts || '')));
+    const sessionTypes = Object.entries(bySession).map(([sid, list]) => ({
+      sid, types: new Set(list.map(e => e.type)), list,
+    }));
+
+    // 核心漏斗（session 級：有出現過該事件就算到達）
+    const FUNNEL = [
+      ['chapter_select', '選章節'],
+      ['question_view', '看情境題'],
+      ['choice_confirm', '確認選項'],
+      ['submit_reflection', '送出默想'],
+      ['complete_devotional', '完成領裝備'],
+    ];
+    const funnelBase = sessionTypes.filter(s => s.types.has('chapter_select')).length || 1;
+    console.log('  核心漏斗（session 級，分母=有 chapter_select 的 session）:');
+    FUNNEL.forEach(([t, label]) => {
+      const n = sessionTypes.filter(s => s.types.has(t)).length;
+      console.log(`    ${label.padEnd(10)} ${bar(n, funnelBase).padEnd(16)} ${n} (${pct(n, funnelBase)})`);
+    });
+
+    // 放棄節點熱點：有 question_view 但沒 choice_confirm 的 session，按章節
+    const abandonByCh = {};
+    sessionTypes.forEach(s => {
+      if (s.types.has('question_view') && !s.types.has('choice_confirm')) {
+        const qv = s.list.find(e => e.type === 'question_view');
+        const ch = qv && qv.chapter ? qv.chapter : '(未知章)';
+        abandonByCh[ch] = (abandonByCh[ch] || 0) + 1;
+      }
+    });
+    const sortedAb = Object.entries(abandonByCh).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    if (sortedAb.length > 0) {
+      console.log('  放棄節點熱點（看題未選的 session，按章節前 8）:');
+      sortedAb.forEach(([ch, n]) => console.log(`    ${ch.padEnd(10)} ${n} 次`));
+    } else {
+      console.log('  放棄節點：無「看題未選」的 session');
+    }
+
+    // AI fallback 後行為：fallback 事件後，同 session 是否有 complete_devotional
+    let fbSessions = 0, fbThenComplete = 0;
+    sessionTypes.forEach(s => {
+      const fbIdx = s.list.findIndex(e => e.type === 'ai_response_received' && e.metadata && e.metadata.isFallback === true);
+      if (fbIdx === -1) return;
+      fbSessions++;
+      const after = s.list.slice(fbIdx + 1);
+      if (after.some(e => e.type === 'complete_devotional')) fbThenComplete++;
+    });
+    if (fbSessions > 0) {
+      console.log(`  AI fallback 後行為: ${fbSessions} 個 session 收到 fallback，其中 ${fbThenComplete} 個仍完成靈修 (${pct(fbThenComplete, fbSessions)})`);
+    } else {
+      console.log('  AI fallback 後行為: 事件期間無 fallback 紀錄');
+    }
+
+    // dwell time：chapter_select → complete_devotional（同 session，分鐘）
+    const dwell = [];
+    sessionTypes.forEach(s => {
+      const start = s.list.find(e => e.type === 'chapter_select');
+      const end = s.list.find(e => e.type === 'complete_devotional');
+      if (start && end && start.ts && end.ts) {
+        const mins = (new Date(end.ts) - new Date(start.ts)) / 1000 / 60;
+        if (mins >= 0 && mins < 180) dwell.push(mins);  // 排除負值與 >3hr 異常（跨 session 殘留）
+      }
+    });
+    if (dwell.length > 0) {
+      dwell.sort((a, b) => a - b);
+      const med = dwell[Math.floor(dwell.length / 2)];
+      const p90d = dwell[Math.floor(dwell.length * 0.9)];
+      const fmt = m => m < 1 ? `${Math.round(m * 60)} 秒` : `${m.toFixed(1)} 分`;
+      console.log(`  完成靈修停留時長（選章→完成，共 ${dwell.length} 個 session）: 中位 ${fmt(med)} / p90 ${fmt(p90d)}`);
+    }
+  }
 }
 
 // ── Main ─────────────────────────────────────────────────
