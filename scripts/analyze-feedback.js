@@ -6,6 +6,33 @@
 // PROJECT、getAccessToken 從 _shared.js 共用（三個腳本同一個專案 + 同一套 OAuth 流程）
 const { PROJECT, getAccessToken } = require('./_shared');
 
+// ── Load SCHEDULE from content.js ────────────────────────
+// 用 vm 沙箱載入 content.js，避免污染全域；content.js 純資料、無 browser API 引用
+// 注意：content.js 用 `const SCHEDULE` 宣告，vm.runInNewContext 下 const 不會曝到 context global，
+// 所以包 IIFE 在最後 return 出來
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const contentSrc = fs.readFileSync(path.join(__dirname, '../content.js'), 'utf8');
+const wrappedSrc = `(function(){\n${contentSrc}\nreturn { SCHEDULE };\n})()`;
+const { SCHEDULE = {} } = vm.runInNewContext(wrappedSrc, {});
+// 合併日日期集合（例如 4/05、4/17、4/28、5/10、5/22、6/03）
+const MERGED_DATES = new Set(
+  Object.entries(SCHEDULE)
+    .filter(([, chs]) => Array.isArray(chs) && chs.length >= 2)
+    .map(([d]) => d)
+);
+// 章節 key → 合併日日期反查表（數字 = 使徒行傳）
+const CHAPTER_TO_MERGED_DATE = {};
+Object.entries(SCHEDULE).forEach(([d, chs]) => {
+  if (Array.isArray(chs) && chs.length >= 2) {
+    chs.forEach(c => {
+      const key = typeof c === 'number' ? `ACT${c}` : c;
+      CHAPTER_TO_MERGED_DATE[key] = d;
+    });
+  }
+});
+
 // ── Firestore REST helpers ───────────────────────────────
 
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
@@ -95,8 +122,10 @@ function dateOnly(isoStr) {
 
 // ── Analysis ─────────────────────────────────────────────
 
-function analyzeFeedback(rawDocs) {
+async function analyzeFeedback(token, rawDocs) {
   const docs = rawDocs.map(parseDoc);
+  // 把 doc id 帶進來，給後面 messages 子集合 fetch 用
+  rawDocs.forEach((raw, i) => { docs[i]._id = raw.name.split('/').pop(); });
   const testDocs = docs.filter(d => d.message && /測試|test/i.test(d.message));
   const realDocs = docs.filter(d => !d.message || !/測試|test/i.test(d.message));
 
@@ -166,6 +195,104 @@ function analyzeFeedback(rawDocs) {
       const name = d.isAnonymous ? '匿名' : (d.displayName || '具名');
       console.log(`  ${formatDate(d.createdAt)}  ${moodEmoji[d.mood] || '?'}  [${name}]  ${d.message}`);
     });
+  }
+
+  // ── wantReply 採用度（v2 欄位，5/5 後寫入；玩家端 flag false 時固定寫 false）──
+  const named = realDocs.filter(d => !d.isAnonymous);
+  const wantsReply = named.filter(d => d.wantReply === true).length;
+  console.log('\n── wantReply 採用度（具名真實留言中）──');
+  if (named.length === 0) {
+    console.log('  （無具名真實留言）');
+  } else {
+    console.log(`  希望收到回覆: ${wantsReply}/${named.length} (${pct(wantsReply, named.length)})`);
+    if (wantsReply === 0) {
+      console.log('  注意：玩家端 FEATURE_FEEDBACK_V2 仍 false 時，wantReply 固定寫 false ── 0% 不代表無需求');
+    }
+  }
+
+  // ── v2 多輪對話分析（status / 對話深度 / admin 回覆 / 未讀 backlog / 回覆時長） ──
+  console.log('\n── 🗨️ v2 多輪對話分析 ──');
+  const v2Docs = docs.filter(d => d.status !== undefined);
+  if (v2Docs.length === 0) {
+    console.log('  （尚無 v2 多輪對話資料 ── feedback 主 doc 都沒 status 欄位）');
+    return;
+  }
+  console.log(`  v2 schema 留言: ${v2Docs.length}/${docs.length} 筆`);
+
+  // status 分布
+  const statusOrder = ['new', 'awaiting_admin', 'awaiting_player', 'closed'];
+  const statusDist = {};
+  v2Docs.forEach(d => { statusDist[d.status] = (statusDist[d.status] || 0) + 1; });
+  console.log('  status 分布:');
+  statusOrder.forEach(s => {
+    const n = statusDist[s] || 0;
+    if (n > 0) console.log(`    ${s.padEnd(16)} ${n} 筆`);
+  });
+
+  // 未讀 backlog
+  const unreadAdmin = v2Docs.filter(d => d.unreadByAdmin === true).length;
+  const unreadPlayer = v2Docs.filter(d => d.unreadByPlayer === true).length;
+  console.log(`  admin 待處理 (unreadByAdmin=true): ${unreadAdmin} 筆`);
+  console.log(`  玩家未讀 admin 回覆 (unreadByPlayer=true): ${unreadPlayer} 筆`);
+
+  // 對話深度（messageCount）分布
+  const depthDist = { '1（無回覆）': 0, '2（admin 回 1 次）': 0, '3-4（追問）': 0, '5+（深聊）': 0 };
+  v2Docs.forEach(d => {
+    const c = d.messageCount || 0;
+    if (c <= 1) depthDist['1（無回覆）']++;
+    else if (c === 2) depthDist['2（admin 回 1 次）']++;
+    else if (c <= 4) depthDist['3-4（追問）']++;
+    else depthDist['5+（深聊）']++;
+  });
+  console.log('  對話深度分布（messageCount 快取）:');
+  Object.entries(depthDist).forEach(([label, n]) => {
+    if (n > 0) console.log(`    ${label.padEnd(20)} ${n} 筆`);
+  });
+
+  // admin 處理率（status 不是 'new' 就算被處理過）
+  const processed = v2Docs.filter(d => d.status && d.status !== 'new').length;
+  console.log(`  admin 處理率: ${processed}/${v2Docs.length} (${pct(processed, v2Docs.length)})`);
+
+  // ── messages 子集合：算第一則 admin 回覆時長（中位 / p90） ──
+  console.log('  正在抓 messages 子集合算回覆時長...');
+  const replyLags = [];  // 單位：小時
+  let messagesFetched = 0, messagesErrors = 0;
+  const batchSize = 10;
+  for (let i = 0; i < v2Docs.length; i += batchSize) {
+    const batch = v2Docs.slice(i, i + batchSize);
+    const results = await Promise.all(
+      batch.map(async d => {
+        try {
+          const msgs = await fetchCollection(token, `feedback/${d._id}/messages`);
+          return { d, msgs: msgs.map(parseDoc) };
+        } catch (e) {
+          messagesErrors++;
+          return null;
+        }
+      })
+    );
+    results.forEach(r => {
+      if (!r) return;
+      messagesFetched++;
+      const firstAdmin = r.msgs.filter(m => m.role === 'admin')
+        .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''))[0];
+      if (firstAdmin && r.d.createdAt && firstAdmin.createdAt) {
+        const lag = (new Date(firstAdmin.createdAt) - new Date(r.d.createdAt)) / 1000 / 3600;
+        if (lag >= 0 && lag < 24 * 90) replyLags.push(lag);  // 排除負值與超過 90 天的異常
+      }
+    });
+  }
+  console.log(`  messages 子集合: 抓到 ${messagesFetched} 筆 thread，錯誤 ${messagesErrors} 筆`);
+
+  if (replyLags.length === 0) {
+    console.log('  尚無 admin 回覆紀錄');
+  } else {
+    replyLags.sort((a, b) => a - b);
+    const median = replyLags[Math.floor(replyLags.length / 2)];
+    const p90 = replyLags[Math.floor(replyLags.length * 0.9)];
+    const mean = replyLags.reduce((s, x) => s + x, 0) / replyLags.length;
+    const fmt = h => h < 1 ? `${Math.round(h * 60)} 分` : h < 24 ? `${h.toFixed(1)} 時` : `${(h/24).toFixed(1)} 日`;
+    console.log(`  admin 首次回覆時長（共 ${replyLags.length} 筆）: 中位 ${fmt(median)} / 平均 ${fmt(mean)} / p90 ${fmt(p90)}`);
   }
 }
 
@@ -286,7 +413,9 @@ async function analyzeProgress(token, users) {
   const sortedChapters = Object.entries(chapterCount).sort((a,b) => b[1] - a[1]);
   const maxCh = sortedChapters.length > 0 ? sortedChapters[0][1] : 1;
   sortedChapters.slice(0, 15).forEach(([ch, n]) => {
-    console.log(`  ${ch.padEnd(10)} ${bar(n, maxCh).padEnd(20)} ${n} 人`);
+    const md = CHAPTER_TO_MERGED_DATE[ch];
+    const tag = md ? ` (合併日 ${md.slice(5)})` : '';
+    console.log(`  ${ch.padEnd(10)} ${bar(n, maxCh).padEnd(20)} ${n} 人${tag}`);
   });
   if (sortedChapters.length > 15) console.log(`  ...（共 ${sortedChapters.length} 章有人完成）`);
 
@@ -322,11 +451,23 @@ async function analyzeProgress(token, users) {
     }
   }
 
+  // 用 p.completed 算「累計靈修日數」── 合併日視為 1 日（每章 Object.values 同一日期）
+  // client `saveChapterRecord` 每章 stats.totalDays inc(1)，所以 totalDaysAll 在合併日會雙計算；
+  // uniqueDays 用 (uid, date) 集合修正
+  let totalUniqueDays = 0;
+  players.forEach(p => {
+    if (p.completed && typeof p.completed === 'object') {
+      totalUniqueDays += new Set(Object.values(p.completed)).size;
+    }
+  });
+  const mergedDayInflation = totalDaysAll - totalUniqueDays;
+
   if (statsCount > 0 && totalDaysAll > 0) {
     console.log(`  已登入玩家數據: ${statsCount} 人`);
-    console.log(`  累計靈修天數:   ${totalDaysAll}`);
-    console.log(`  默想填寫率:     ${totalReflections}/${totalDaysAll} (${pct(totalReflections, totalDaysAll)})`);
-    console.log(`  完整閱讀率:     ${totalReads}/${totalDaysAll} (${pct(totalReads, totalDaysAll)})`);
+    console.log(`  累計章節完成:   ${totalDaysAll}`);
+    console.log(`  累計靈修日數:   ${totalUniqueDays}${mergedDayInflation > 0 ? `（合併日視為 1 日，扣除 ${mergedDayInflation} 筆雙章記錄）` : ''}`);
+    console.log(`  默想填寫率:     ${totalReflections}/${totalDaysAll} (${pct(totalReflections, totalDaysAll)})  ← 按章計算`);
+    console.log(`  完整閱讀率:     ${totalReads}/${totalDaysAll} (${pct(totalReads, totalDaysAll)})  ← 按章計算`);
     console.log(`  分享次數:       ${totalShares}`);
     console.log(`  補讀次數:       ${totalMakeups}`);
     console.log(`\n── 靈修時段分布 ──`);
@@ -379,11 +520,14 @@ async function analyzeProgress(token, users) {
   // ── 1. 章節完成 vs 默想填寫缺口 ──────────────────────
   console.log('\n── ① 章節完成 vs 默想填寫缺口 ──');
   const totalChapters = allChapters.length;
+  const uniqueDevotionalDays = new Set(allChapters.map(c => `${c.uid}|${c.date}`)).size;
+  const mergedDayDocs = totalChapters - uniqueDevotionalDays;
   const withReflection = allChapters.filter(c => c.hasReflection).length;
   const noReflection = totalChapters - withReflection;
   console.log(`  總完成章節數:    ${totalChapters}`);
-  console.log(`  寫了默想的:      ${withReflection} (${pct(withReflection, totalChapters)})`);
-  console.log(`  沒寫默想的:      ${noReflection} (${pct(noReflection, totalChapters)})`);
+  console.log(`  累計靈修日數:    ${uniqueDevotionalDays}${mergedDayDocs > 0 ? `（含 ${mergedDayDocs} 筆合併日雙章記錄）` : ''}`);
+  console.log(`  寫了默想的:      ${withReflection} (${pct(withReflection, totalChapters)})  ← 按章計算`);
+  console.log(`  沒寫默想的:      ${noReflection} (${pct(noReflection, totalChapters)})  ← 按章計算`);
   if (noReflection > 0) {
     const noReflByCh = {};
     allChapters.filter(c => !c.hasReflection).forEach(c => {
@@ -408,7 +552,8 @@ async function analyzeProgress(token, users) {
     .sort((a, b) => b[1].total - a[1].total).slice(0, 12);
   sortedChoice.forEach(([k, s]) => {
     const dist = ['A','B','C','D'].map(opt => `${opt}:${String(s[opt]).padStart(2)}`).join('  ');
-    console.log(`  ${k.padEnd(10)} 共 ${String(s.total).padStart(2)} 人  ${dist}`);
+    const tag = CHAPTER_TO_MERGED_DATE[k] ? ' (合併)' : '';
+    console.log(`  ${k.padEnd(10)} 共 ${String(s.total).padStart(2)} 人  ${dist}${tag}`);
   });
 
   // ── 3. 章節參與深度（默想填寫率排行）──────────────────
@@ -425,14 +570,26 @@ async function analyzeProgress(token, users) {
     .slice(0, 12);
   sortedPart.forEach(([k, s]) => {
     const rate = Math.round(s.withReflection / s.completed * 100);
-    console.log(`  ${k.padEnd(10)} ${s.withReflection}/${s.completed}  (${rate}%)`);
+    const tag = CHAPTER_TO_MERGED_DATE[k] ? ' (合併)' : '';
+    console.log(`  ${k.padEnd(10)} ${s.withReflection}/${s.completed}  (${rate}%)${tag}`);
   });
 
   // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
   // 「全部歷史」= 包含 retry 改版前的舊失敗，會被拖累
   // 「部署後」= 有 aiIsFallback 欄位的記錄（改版後寫入），反映真實當下品質
-  // ⚠️ 修改這句要同步：functions/index.js 的 FALLBACK_TEXT + bible-game-v2.html 的 fallback 字串
+  // ⚠️ 修改 FALLBACK_TEXT 要同步：functions/index.js 的 FALLBACK_TEXT + bible-game-v2.html 的 fallback 字串
   const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+  // 統一 fallback 偵測 helper：欄位優先（4/29+），text-match 僅作舊資料 fallback。
+  // 把 text-match 命中次數計入 textMatchCount 當輕度監控 ── 若舊資料一直新增就要查
+  let textMatchCount = 0;
+  function isFallbackChapter(c) {
+    if (c.aiIsFallback === true) return true;
+    if (c.aiIsFallback === undefined && c.aiResponse === FALLBACK_TEXT) {
+      textMatchCount++;
+      return true;
+    }
+    return false;
+  }
   console.log('\n── ④ AI 回應品質（fallback 集中章節）──');
   const withAi = allChapters.filter(c => c.aiResponse);
   if (withAi.length === 0) {
@@ -442,9 +599,7 @@ async function analyzeProgress(token, users) {
     const fallbackByCh = {};
     let totalFallback = 0;
     withAi.forEach(c => {
-      const isFb = c.aiIsFallback === true
-        || (c.aiIsFallback === undefined && c.aiResponse === FALLBACK_TEXT);
-      if (isFb) {
+      if (isFallbackChapter(c)) {
         fallbackByCh[c.key] = (fallbackByCh[c.key] || 0) + 1;
         totalFallback++;
       }
@@ -476,6 +631,9 @@ async function analyzeProgress(token, users) {
       }
     } else {
       console.log(`  ✨ 沒有任何 fallback 紀錄`);
+    }
+    if (textMatchCount > 0) {
+      console.log(`  ⚠️ ${textMatchCount} 筆靠 text-match 判斷 fallback（4/29 前舊資料，無 aiIsFallback 欄位）`);
     }
     console.log(`  注意：本指標僅看 chapters/{key}.aiResponse 最後一次寫入，無法看歷史改寫`);
   }
@@ -614,7 +772,7 @@ async function main() {
 
   console.log('正在讀取 Firestore feedback 集合...');
   const feedbackDocs = await fetchCollection(token, 'feedback');
-  analyzeFeedback(feedbackDocs);
+  await analyzeFeedback(token, feedbackDocs);
 
   console.log('\n正在讀取 Firebase Authentication 用戶...');
   const users = await fetchAllUsers(token);
