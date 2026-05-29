@@ -1,7 +1,7 @@
 # 靈修冒險 · 數據觀察記事
 
 > 持續更新的數據彙整與洞察文件
-> 對應遊戲版本：v2.12 main + dev（GAME_VERSION 升至 2.12 ── 4 章歷史合併日 ACT15 / ACT28 / ROM11 / COR1_8 補做完整；曠野呼聲 v2 client feature flag 仍 false）
+> 對應遊戲版本：v2.14 main（5/24 release 後：曠野呼聲 v2 完整上線、FEATURE_FEEDBACK_V2 翻 true、admin Phase 3C 已 production、GAL/EPH/PHP 內容已上 main）；本期分析在 v2.12 worktree 內完成、資料來源是 production live Firestore
 > **最後更新：2026-05-30**
 > 資料涵蓋期間：2026-04-10 ~ 2026-05-07（GA4，已過期 23 天，下次應升級中更新補 5/8 後 ── 連 3 期欠帳）+ Firestore 全歷史至 2026-05-30
 > 對應流程手冊：`data-snapshot-playbook.md`
@@ -37,7 +37,7 @@
 **低數字判讀（套用 KPI 解讀偏好，不標警示）**：
 
 - **連續 0 天 39 人**（vs 5/23 的 35 +4）：等於新進 7 人全是 0 天，舊 0 天群體沒消化。多為教會擴散節點進來看一眼，依產品定位本就是「擴散」非「留存」目標
-- **wantReply 0%**：玩家端 FEATURE_FEEDBACK_V2 flag 仍 false，固定寫 false，0% 不代表無需求
+- **wantReply 0%**：production v2.14 自 5/24 已 flag=true，但 5/24-30 期間無新具名留言進來（最新具名 4/27 Tian天湉；5/23 那筆是匿名）── 採用度暫無樣本可量化，下期若有新具名留言才能判讀
 - **5/23 那筆留言是匿名**：玩家對 AI 回應有感但選擇匿名，內容比身份重要 ── 這是健康訊號（玩家被內容感動到願意留言已是難得）
 
 **這 7 天發生的重大事件**：
