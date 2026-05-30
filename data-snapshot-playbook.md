@@ -88,7 +88,7 @@ npm run line-logs   # LINE 登入：成功率、失敗時段
 ### Step 2.3 — 跟 Claude Code 說「GA4 更新了，讀一下」
 
 Claude Code 會：
-1. 自動偵測根目錄的 4 個 CSV 檔
+1. 自動偵測根目錄的 2 個 CSV 檔（中更新；整套更新才是 6 個）
 2. 讀檔解析（GA4「第 N 天」自動換算成日期，見 §4）
 3. 整合 Firestore + GA4 數字寫進 `data-insights.md`
 4. commit + push 到 dev
