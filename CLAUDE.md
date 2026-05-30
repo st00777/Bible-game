@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-05-24
+> 最後更新：2026-05-30
 
 ---
 
@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.14（2026-05-24 整批 release 上線；曠野呼聲 v2 已完整上線、FEATURE_FEEDBACK_V2 已翻 true；新增內容 GAL/EPH/PHP、書架擴充 18 卷、D1 登入頁存檔獨立提示）
+**目前版本**：v2.15（2026-05-28 上線；W22 兩功能：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位。前一版 v2.14（2026-05-24）：曠野呼聲 v2 完整上線、FEATURE_FEEDBACK_V2 翻 true、內容 GAL/EPH/PHP、書架擴充 18 卷、D1 登入頁存檔獨立提示）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -30,8 +30,13 @@ Bible-game/
 ├── firebase.json                  # Firebase 設定（Functions/Firestore/Hosting）
 ├── firestore.rules                # Firestore 安全規則
 ├── functions/index.js             # Cloud Functions（lineLogin, aiReflection, autoCloseInactiveThreads）
+├── scripts/_shared.js             # 共用：PROJECT 常數 + OAuth token + Cloud Logging 抓取
 ├── scripts/analyze-feedback.js    # Firestore 數據分析（npm run analyze）
 ├── scripts/check-ai-logs.js       # aiReflection 呼叫量／成功率（npm run logs）
+├── scripts/check-line-logs.js     # lineLogin 成功率／失敗分布（npm run line-logs）
+├── scripts/list-profiles.js       # 列玩家 profile/data（含 E1 分眾欄位）
+├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
+├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
 └── package.json                   # npm scripts
 ```
 
@@ -82,6 +87,12 @@ users/{userId}/profile/data              ← 玩家基本資料
   lineDisplayName: '...'             // LINE 顯示名稱（LINE 登入才有）
   linePictureUrl:  '...'             // LINE 頭像網址（LINE 登入才有）
   totalDays:    12                       // 累計靈修天數（非連續）
+  // E1 分眾欄位（v2.15，⋯選單「個人資料」入口；每欄可留空、之後可改）
+  ageGroup:      '...'                   // 年齡層
+  churchKey:     '...'                   // 教會所屬
+  district:      '...'                   // 牧區（W23 人工求助轉介會直接讀取，存乾淨字串）
+  groupName:     '...'                   // 小組（同上，W23 轉介用）
+  devotionHabit: '...'                   // 靈修習慣
 
 users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM1）
   date:           "2026-04-01"           // 完成日期
@@ -114,6 +125,15 @@ users/{userId}/stats/data                ← 累計統計
 users/{userId}/achievements/data         ← 成就系統（已實作）
   unlockedAt: { 'first_step': '2026-04-25T...' }  // 成就key → 解鎖時間
   progress:   {}                         // 成就進度數值（成就key → number）
+
+users/{userId}/events/{eventId}          ← B1 事件流 timeline（v2.15 已上線）
+  type:       'chapter_select'           // 9 核心事件之一（見下「事件流設計方案」）
+  ts:         Timestamp                  // serverTimestamp
+  sessionId:  'uuid'                      // crypto.randomUUID；hidden>30min 換新
+  chapter:    'ROM10'                    // optional，跟章節有關才填
+  metadata:   { isFallback: false, choice: 'D' }  // optional，事件相依欄位
+  // doc id 用 ${Date.now()}-${random4}；fire-and-forget、訪客（未登入）不寫
+  // track() helper（bible-game-v2.html）雙寫 GA4 + 此子集合；驗證見 scripts/verify-b1-events.js
 
 feedback/{docId}                         ← 曠野呼聲回饋（頂層集合）
   mood:        '平靜/有動力/有點累/經文太難/其他'
@@ -220,7 +240,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 
 **content.js 結構**：
 ```javascript
-const GAME_VERSION = '2.14';        // 版本號
+const GAME_VERSION = '2.15';        // 版本號
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
 const SCHEDULE = {...};            // 日期→章節對應表
 const BIBLE_LINKS = {...};         // Bible.com 連結
@@ -452,6 +472,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 ## 數據觀察基準（2026-04-27 snapshot）
 
 > 此區是當下狀態快照，非永久事實 ── 後續用 `npm run analyze` / `npm run logs` 重抓。
+> ⚠️ **這是 4/27 的歷史快照，數字已過時**（截至 5 月底 Auth 端已破百、101 user）。最新數據以 `data-insights.md`（持續更新）為準，本段保留作時間錨點、不再回頭改數字。
 
 **玩家規模**
 - 註冊 46 人（Google 10 / LINE 36；LINE 佔 78%）
@@ -496,7 +517,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 | **放棄事件流失分析** ── 玩家停在哪步（讀經文／情境題／默想） | 需新增 | 1-2 小時（獨立）／可從事件流推導 | 建議搭事件流 |
 | **AI 失敗後玩家後續行為** ── 拿 fallback 後是再送還是放棄 | 需新增 | 1 小時（獨立）／可從事件流推導 | 建議搭事件流 |
 | **章節完成 vs 默想填寫關聯** ── 142 完成 - 134 默想 = 8 次缺寫，是哪些人？ | ✅ 已加入 `npm run analyze` 區塊 ①（2026-04-28） | — | — |
-| **事件流 session timeline** | 📋 設計方案 2026-04-28 通過（見章節末尾「事件流設計方案」），啟動條件：玩家數破百 | 3-5 小時實作 | A 級資料骨幹，做了之後上方 3 項都能推導 |
+| **事件流 session timeline** | ✅ 已上線（W22 B1，v2.15，2026-05-28）：`users/{uid}/events` 雙寫 GA4+Firestore、9 核心事件、訪客不記；落地驗證通過（scripts/verify-b1-events.js） | — | 已是骨幹，下方 3 項可開始推導 |
 | **默想歷史保留** | ✅ 已完成 (2026-04-28) | — | — |
 
 ### B 級 ── 中期有用
@@ -551,10 +572,10 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 **最小可行投資**：步驟 1+2+3 ≈ **1.5-2 個工作天**，能解決 80% 的數據盲點。
 
-### 事件流設計方案（2026-04-28 通過，啟動條件：玩家數破百）
+### 事件流設計方案（2026-04-28 通過 → ✅ 已於 W22 B1 實作上線，v2.15）
 
-> 啟動 v3.0 中期實作前，這份方案是已通過的設計骨幹，可直接進開發。
-> **目前玩家 49 人**，到達 100 人時觸發實作。
+> ✅ **此方案已實作落地**（2026-05-28，B1）：玩家數於 5 月底破百（Auth 端 101 user）觸發、按本方案上線。
+> 下方為原始設計骨幹，保留作為實作依據與欄位規格參照。實際實作見 bible-game-v2.html 的 `track()` / `writeEventToFirestore()`。
 
 **Collection 結構**：`users/{uid}/events/{eventId}`（重用既有 `users/{userId}/{document=**}` 安全規則，無需修改 firestore.rules）
 
@@ -643,6 +664,9 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [x] FEATURE_FEEDBACK_V2 feature flag 機制（隱藏曠野呼聲 v2 入口，v2.11，commit cdb9208）
 - [x] AI retry 升級 2→3 次（降低 fallback 率，v2.11，2026-05-11 部署）
 - [x] 「合併日」日曆標籤 hotfix（v2.11，commit 5f49518）
+- [x] 曠野呼聲 v2 多輪對話完整上線 + 內容 GAL/EPH/PHP + 書架擴充 18 卷 + D1 登入頁存檔提示（v2.14，2026-05-24，詳見下方 v3.0 候選短期）
+- [x] **B1 事件流 timeline**（v2.15，2026-05-28）── `track()` 雙寫 GA4+Firestore `users/{uid}/events`、9 核心事件、訪客不記、sessionId 30min 過期；落地驗證 scripts/verify-b1-events.js
+- [x] **E1 個人資料入口**（v2.15，2026-05-28）── ⋯選單分眾 5 欄位（ageGroup/churchKey/district/groupName/devotionHabit），每欄可留空可改；district/groupName 為 W23 人工求助轉介預留欄位
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）
@@ -668,8 +692,8 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [ ] 每月精華 PDF ── Cloud Function scheduled，月底把當月默想 + AI 回應整理寄給玩家，留存武器
 
 **v3.0 候選中期**
-- [ ] **事件流 session timeline** ── 設計方案已就緒（見「資料缺漏盤點」末尾），啟動條件：玩家數破百（目前 49）；做了之後解鎖客戶端錯誤、放棄事件、AI 失敗行為、dwell time 等多項 A/B 級分析
-- [ ] 小組功能 ── `groups/{groupId}` 集合 + 邀請碼，「我們小組這週有 N 人靈修」（涵蓋下方「小組排行榜、朋友動態」）
+- [x] **事件流 session timeline** ✅ 已上線（W22 B1，v2.15，2026-05-28）── 玩家數破百觸發、按設計方案實作；解鎖客戶端錯誤、放棄事件、AI 失敗行為、dwell time 等分析的資料骨幹已就位（下一步：擴 `npm run analyze` 漏斗區塊 + 客戶端錯誤事件 30 分鐘加掛）
+- [ ] 小組功能 ── `groups/{groupId}` 集合 + 邀請碼，「我們小組這週有 N 人靈修」（涵蓋下方「小組排行榜、朋友動態」）。**E1 已鋪底**：玩家 profile 的 groupName/district 欄位（v2.15）是小組功能的分眾資料前置
 - [ ] 語音默想 ── Cloud Storage，對不擅打字的長者友善，可能解鎖目前完全沒在寫默想的族群
 - [ ] 小組共讀模式 ── 兩人互相看默想，需具名授權（教會夫妻、同小組成員一起靈修場景）
 
