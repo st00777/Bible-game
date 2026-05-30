@@ -73,7 +73,7 @@ npm run line-logs   # LINE 登入：成功率、失敗時段
 
 ### Step 2.2 — 拉 GA4 兩個必要檔案
 
-到 [analytics.google.com](https://analytics.google.com)，登入後切到屬性 **`G-HZ3EGYB8BB`**（Bible-game GA4）。
+到 [analytics.google.com](https://analytics.google.com)，登入後確認**左上角屬性名稱顯示 `bible-game-bcb84`**（畫面上看得到的名字；底層測量 ID 是 `G-HZ3EGYB8BB`，藏在設定裡平常看不到，不用找）。
 
 **檔案 A — `Firebase_總覽.csv`**
 - 路徑：左側選單 → 「報表」→「Firebase 總覽」→ 右上角「分享/匯出」→「下載 CSV」
