@@ -37,6 +37,7 @@ Bible-game/
 ├── scripts/list-profiles.js       # 列玩家 profile/data（含 E1 分眾欄位）
 ├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
 ├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
+├── scripts/ga4-insights.js        # GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API）
 └── package.json                   # npm scripts
 ```
 
@@ -56,13 +57,16 @@ Bible-game/
 **資料同步**：登入後進度自動同步 Firestore；未登入使用 localStorage
 **Firebase 專案**：`bible-game-bcb84`
 **AI 回應**：Google AI Studio（Gemini 2.5 Flash），透過 Cloud Function `aiReflection` 代理呼叫
-**追蹤**：Google Analytics GA4（`G-HZ3EGYB8BB`）
+**追蹤**：Google Analytics GA4（measurement ID `G-HZ3EGYB8BB`；Data API 用的 property ID 是 `534159832`，純數字、在 GA4 屬性設定找）
 **數據分析**：
 - `npm run analyze` ── Firestore 6 區塊報告（feedback / users / 靈修進度 / 成就 / 章節品質 ①-④ / 裝備 ⑤ / 默想歷史 ⑥）
 - `npm run logs [天數]` ── aiReflection 呼叫量、AI 真實回應比、錯誤類型分布（預設過去 1 天）
 - `npm run line-logs [天數]` ── lineLogin 成功率、HTTP 失敗分布、錯誤類型、失敗時段（預設過去 1 天）
+- `npm run ga4` ── GA4 深度指標：活躍規模 MAU(30天)/WAU(7天)/DAU(昨天)、9 核心事件觸發人數、週 cohort 留存（對齊 data-insights 口徑）
 
-三個腳本都用 Firebase CLI refresh token 直接打 Cloud REST API，不需額外安裝 SDK。
+前三支用 Firebase CLI refresh token 直接打 Cloud REST API；`npm run ga4` 改用 service account 金鑰（`ga4-key.json`，屬性檢視者權限）+ 純 Node crypto 簽 JWT 換 token 打 GA4 Data API。四支都不需額外安裝 SDK。
+
+> **GA4 SA 權限怎麼來的**（2026-06-01）：GA4 網頁「資源存取權管理」加 service account 會跳「與帳戶不符」加不進去（已知卡點）。改用管理員 OAuth + Admin API `createAccessBinding` 從程式端加成「檢視者」。`ga4-key.json`（SA 金鑰）與 `token.json`（OAuth 授權）都已 gitignore、絕不進 git。
 
 ---
 
