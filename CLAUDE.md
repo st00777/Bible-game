@@ -24,6 +24,7 @@ Bible-game/
 ├── bible-game-v2.html             # 遊戲主體（機制、介面、邏輯）
 ├── content.js                     # 靈修內容（每週更新這個）
 ├── CLAUDE.md                      # 本文件 — 專案記憶
+├── design-principles.md           # 情緒／默想類功能設計紅線（我們不做什麼），與 CLAUDE.md 並列
 ├── LEARNING.md                    # 開發學習筆記（踩坑紀錄）
 ├── claude-code-agent-prompts.md   # 內容生成 prompts + 審查清單
 ├── README.md                      # GitHub 說明頁
