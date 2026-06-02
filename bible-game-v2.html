@@ -2394,6 +2394,7 @@ let selectedChapter = null;
 let pendingChoice = null;
 let choiceConfirmed = false;
 let reflSubmitted = false;
+let _reflEditStart = null;  // 默想編輯起點 timestamp（refl-text 首次 focus/input 記；換章節重置；submit 取整數秒 editDuration）
 let reflTimer = null;
 let sessionChoice = null;    // 本章玩家選的選項（A/B/C/D）
 let sessionHasRead = false;  // 本章是否點閱讀完整章節
@@ -2867,6 +2868,7 @@ function selectChapter(ch) {
   sessionChoice = null;
   sessionHasRead = false;
   document.getElementById('refl-text').value = '';
+  _reflEditStart = null;  // 換章節清掉上一章的編輯起點，避免帶舊時間
   document.getElementById('ai-resp').classList.remove('show');
   document.getElementById('choice-feedback').style.display = 'none';
 
@@ -2996,7 +2998,12 @@ async function submitReflection() {
   const text = document.getElementById('refl-text').value.trim();
   if (!text || reflSubmitted) return;
   reflSubmitted = true;
-  track('submit_reflection', { chapter: selectedChapter });
+  // 默想編輯時長（整數秒）：有抓到起點才帶 editDuration，沒抓到乾淨省略（不送 0/NaN）。
+  // 🔴 design-principles 紅線1：只記秒數、永遠不記默想內容、不做情感分析。
+  const _reflParams = { chapter: selectedChapter };
+  if (_reflEditStart != null) _reflParams.editDuration = Math.round((Date.now() - _reflEditStart) / 1000);
+  track('submit_reflection', _reflParams);
+  _reflEditStart = null;  // 送出後即重置，不僅依賴 reflSubmitted／換章節，避免起點殘留
 
   const aiDiv = document.getElementById('ai-resp');
   const aiText = document.getElementById('ai-resp-text');
@@ -4193,6 +4200,14 @@ function applyFeatureFlags() {
 
 document.addEventListener('DOMContentLoaded', () => {
   applyFeatureFlags();
+  // 默想編輯計時：refl-text 首次 focus 或 input 記起點（取第一個、起點 null 才記）。
+  // 純後台分析、玩家畫面零變化（design-principles 紅線4：不回灌任何「你想了 X 分鐘」顯示）。
+  const _reflEl = document.getElementById('refl-text');
+  if (_reflEl) {
+    const _markReflStart = () => { if (_reflEditStart == null) _reflEditStart = Date.now(); };
+    _reflEl.addEventListener('focus', _markReflStart);
+    _reflEl.addEventListener('input', _markReflStart);
+  }
   if (state.setup) {
     showMainAppScreen();
     // Version update notice
