@@ -67,11 +67,13 @@ npm run line-logs   # LINE 登入：成功率、失敗時段
 
 ---
 
-## 2. 中更新流程（小更新 + GA4 兩個 CSV）
+## 2. 中更新流程（小更新 + GA4）
+
+> 🤖 **GA4 已自動化（2026-06-01 起）**：中更新直接跑 `npm run ga4`（service account 打 Data API，自動抓 MAU/WAU/DAU + 9 事件觸發人數 + 週 cohort 留存），**不需手動匯出 CSV**。下方 Step 2.2 的手動匯出流程僅在 `npm run ga4` 壞掉時當 fallback（見 `sop-ga4-midupdate.md`）。
 
 ### Step 2.1 — 先跑小更新流程
 
-照上面跑完三腳本，記下 Firestore 數字。
+照上面跑完三腳本，記下 Firestore 數字。然後跑 `npm run ga4` 取得 GA4 深度指標。
 
 ### Step 2.2 — 拉 GA4 三個深度檔案（2026-05-30 起新標準）
 

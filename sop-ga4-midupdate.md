@@ -1,7 +1,13 @@
-# 📋 SOP · GA4 中更新（James 在電腦前照著跑）
+# 📋 SOP · GA4 中更新（手動匯出 CSV ── 已被 npm run ga4 取代，僅留 fallback）
 
-> 來源：📊 數據分析　｜　最後更新：2026-05-30　｜ 對應：`data-snapshot-playbook.md` §2 + §4（這份是濃縮版，細節以 playbook 為準）
-> 目的：把 GA4 的 MAU / 留存 / 參與度 / 漏斗視角更新到最新，這是每期中更新的標準流程。
+> ⚠️ **此手動流程已被 `npm run ga4` 取代（2026-06-01 起），一般情況不用再照這份做。**
+> 現在數據視窗跑 `npm run ga4` 會用 service account 直接打 GA4 Data API，自動抓 MAU/WAU/DAU + 9 事件觸發人數 + 週 cohort 留存，**不需開網頁、不需手動匯出 CSV、不需搬檔**。
+> **本份保留作 fallback**：只在 `npm run ga4` 壞掉時（SA 金鑰 `ga4-key.json` 過期 / Data API 改版 / 權限被收回）才回頭手動匯出。手動匯出的 CSV 仍可由數據視窗讀檔解析（見 `data-snapshot-playbook.md` §2/§4）。
+>
+> ---
+>
+> 來源：📊 數據分析　｜　最後更新：2026-06-03　｜ 對應：`data-snapshot-playbook.md` §2 + §4
+> 目的（fallback 時）：把 GA4 的 MAU / 留存 / 參與度 / 漏斗視角更新到最新。
 > **中更新固定拉 3 個「深度檔」**（拍板 3「服務深度 > 拉新」後改的標準，理由見文末）。
 > 你只要做 Step 1-3（約 10 分鐘手動），Step 4 交給我。
 
