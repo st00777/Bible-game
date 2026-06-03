@@ -14,6 +14,7 @@ const LINE_CHANNEL_ID = '2009801861';
 const ALLOWED_ORIGINS = [
   'https://st00777.github.io',                        // prod (GitHub Pages)
   'https://bible-game-bcb84--dev-01luz2yz.web.app',   // dev preview (Firebase Hosting channel)
+  'https://bible-game-bcb84.web.app',                 // 固定測試站 (hosting:main)
 ];
 
 // AI 失敗時回給玩家的 fallback 文字。
@@ -36,6 +37,7 @@ exports.lineLogin = onRequest(
     const VALID_REDIRECTS = [
       'https://st00777.github.io/Bible-game/bible-game-v2.html',
       'https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html',
+      'https://bible-game-bcb84.web.app/bible-game-v2.html',
     ];
 
     const { code, redirect_uri } = req.body;
