@@ -332,6 +332,14 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .sheet-handle{width:40px;height:4px;background:var(--sky-deep);border-radius:2px;margin:0 auto 18px;}
 .sheet-title{font-size:18px;font-weight:900;margin-bottom:6px;}
 .sheet-sub{font-size:13px;color:var(--text-soft);text-align:center;margin-bottom:18px;}
+/* ── 情緒2.0 心情選擇器（靈修前的停頓；紅線3 冷框架 / 紅線7 無愧疚出口）── */
+.mood-card{background:var(--card);border-radius:26px;padding:30px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 30px var(--shadow);animation:popIn .5s ease;}
+.mood-q{font-size:calc(var(--fs-body) + 3px);font-weight:900;color:var(--text);margin-bottom:24px;line-height:1.7;}
+.mood-chips{display:flex;flex-direction:column;gap:10px;}
+.mood-chip{width:100%;background:white;border:2px solid var(--sand-dark);border-radius:14px;padding:14px;font-family:'Noto Sans TC',sans-serif;font-size:var(--fs-body);color:var(--text);cursor:pointer;transition:all .2s;}
+.mood-chip:hover{transform:translateY(-2px);border-color:var(--purple);box-shadow:0 4px 14px rgba(156,123,181,.25);}
+.mood-skip{margin-top:18px;background:none;border:none;color:var(--text-soft);font-family:'Noto Sans TC',sans-serif;font-size:calc(var(--fs-body) - 2px);cursor:pointer;padding:6px 12px;}
+.mood-skip:hover{color:var(--text);}
 
 /* Tutorial */
 .tut-step{display:flex;align-items:flex-start;gap:13px;background:var(--sky);border-radius:13px;padding:13px;margin-bottom:11px;}
@@ -609,6 +617,20 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 <!-- Overlays -->
 
 <!-- Tutorial -->
+<div class="overlay center" id="mood-overlay">
+  <div class="mood-card">
+    <div class="mood-q">今天，你帶著什麼來？</div>
+    <div class="mood-chips">
+      <button class="mood-chip" onclick="pickMood('今天還不錯')">😌 今天還不錯</button>
+      <button class="mood-chip" onclick="pickMood('想要一點力量')">💪 想要一點力量</button>
+      <button class="mood-chip" onclick="pickMood('想被陪一下')">🫂 想被陪一下</button>
+      <button class="mood-chip" onclick="pickMood('想被看見')">👀 想被看見</button>
+      <button class="mood-chip" onclick="pickMood('想安靜一下')">🌿 想安靜一下</button>
+    </div>
+    <button class="mood-skip" onclick="skipMood()">先不說</button>
+  </div>
+</div>
+
 <div class="overlay" id="tut-overlay">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -1763,6 +1785,7 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
       hasRead: !!hasRead,
     };
     if (reflectionText) record.reflectionText = reflectionText;
+    if (sessionMood) record.mood = sessionMood;  // 情緒2.0：當天起點心情，玩家本人回顧用；null（先不說）不寫此欄（紅線7）
     if (lastAiResponse) {
       record.aiResponse = lastAiResponse;
       record.aiIsFallback = lastAiIsFallback;
@@ -2397,6 +2420,9 @@ let reflSubmitted = false;
 let _reflEditStart = null;  // 默想編輯起點 timestamp（refl-text 首次 focus/input 記；換章節重置；submit 取整數秒 editDuration）
 let reflTimer = null;
 let sessionChoice = null;    // 本章玩家選的選項（A/B/C/D）
+let sessionMood = null;          // 情緒2.0：本次靈修起點心情（先不說=null，不留痕）；selectChapter 重置區清空
+let _pendingChapterPick = null;  // 心情選擇器待載入章節（攔 confirmDaySelection/selectMergedDayChapter）
+let _pendingMood = null;         // 心情選擇器暫存值；proceedToChapter 在 selectChapter 後才寫入 sessionMood
 let sessionHasRead = false;  // 本章是否點閱讀完整章節
 
 function initApp() {
@@ -2799,10 +2825,32 @@ function updateDayInfoBar(ds, d) {
 
 // 合併日：玩家從雙卡選一章 → 載入該章 + 滾動到 verse-card
 function selectMergedDayChapter(ch) {
-  selectChapter(ch);
+  // 情緒2.0：合併日點雙卡也是玩家主動動作 → 先彈心情選擇器
+  _pendingChapterPick = ch;
+  openOverlay('mood-overlay');
+}
+
+// 情緒2.0：心情選擇器回呼 —— 選心情 / 先不說 → 載入章節
+function proceedToChapter() {
+  const pick = _pendingChapterPick;
+  _pendingChapterPick = null;
+  if (!pick) return;
+  selectChapter(pick);          // 注意：selectChapter 重置區會把 sessionMood 歸 null…
+  sessionMood = _pendingMood;   // …故必須在 selectChapter 之後才賦值本次心情
+  _pendingMood = null;
   setTimeout(() => {
     document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
   }, 200);
+}
+function pickMood(mood) {
+  _pendingMood = mood;
+  closeOverlay('mood-overlay');
+  proceedToChapter();
+}
+function skipMood() {            // 先不說：不存 mood、不留痕（紅線7）
+  _pendingMood = null;
+  closeOverlay('mood-overlay');
+  proceedToChapter();
 }
 
 function confirmDaySelection() {
@@ -2814,10 +2862,9 @@ function confirmDaySelection() {
   // 合併日玩家通常從雙卡點，這條 fallback 給「日曆框被點 → confirmDaySelection 間接觸發」場景
   const pick = pickDefaultChapter(availChapters);
   if (!pick) return;
-  selectChapter(pick);
-  setTimeout(() => {
-    document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
-  }, 200);
+  // 情緒2.0：玩家主動「開始靈修」→ 先彈心情選擇器，選了或先不說才載入章節（紅線2 只在主動動作觸發）
+  _pendingChapterPick = pick;
+  openOverlay('mood-overlay');
 }
 
 function calChangeMonth(dir) {
@@ -2867,6 +2914,7 @@ function selectChapter(ch) {
   reflSubmitted = false;
   sessionChoice = null;
   sessionHasRead = false;
+  sessionMood = null;  // 情緒2.0：跨章不留痕——任何 selectChapter 呼叫都清掉；mood-picked 路徑在 proceedToChapter 於此之後重設
   document.getElementById('refl-text').value = '';
   _reflEditStart = null;  // 換章節清掉上一章的編輯起點，避免帶舊時間
   document.getElementById('ai-resp').classList.remove('show');
