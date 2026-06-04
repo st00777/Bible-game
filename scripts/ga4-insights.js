@@ -18,10 +18,18 @@ const KEY_PATH = path.join(__dirname, '..', 'ga4-key.json');
 const DATA_API = `https://analyticsdata.googleapis.com/v1beta/properties/${PROPERTY_ID}:runReport`;
 
 // B1 事件流的 9 個核心事件（與 bible-game-v2.html track() 雙寫的事件名一致）
+// 註：CLAUDE.md 事件流設計方案用「設計名」、client 實際 emit 名與設計名有兩處不同。
+// 用實際 emit 名查 GA4 才不會抓 0；alias 註解格式參考 scripts/verify-b1-events.js。
 const CORE_EVENTS = [
-  'app_open', 'chapter_select', 'read_verse_view', 'question_view',
-  'choice_confirm', 'reflection_submit', 'ai_response_received',
-  'complete_devotional', 'app_leave',
+  'app_open',
+  'chapter_select',
+  'read_chapter',          // = read_verse_view（CLAUDE.md 設計名）
+  'question_view',
+  'choice_confirm',
+  'submit_reflection',     // = reflection_submit（CLAUDE.md 設計名）
+  'ai_response_received',
+  'complete_devotional',
+  'app_leave',
 ];
 
 // ── 用 SA 金鑰簽 JWT、換短效 access token（純 crypto，不裝 SDK）──
