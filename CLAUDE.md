@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-05-30
+> 最後更新：2026-06-05
 
 ---
 
@@ -531,7 +531,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 |---|---|---|
 | 章節停留時長（dwell time） | 需新增 | 1 小時（依賴事件流） |
 | 選項猶豫軌跡（選 A 又改 C） | 需新增 | 1 小時 |
-| 默想字數分布／編輯時長 | ✅ 字數分布已加入 `npm run analyze` 區塊 ⑥（2026-05-01）；編輯時長尚未做 | — |
+| 默想字數分布／編輯時長 | ✅ 字數分布 `npm run analyze` 區塊 ⑥（2026-05-01）；✅ 編輯時長 `editDuration` 2026-06-03（commit 25e1ef7）已加入 `reflection_submit` metadata（dev，未升版） | — |
 | 重複登入計數（同日進遊戲幾次） | 需新增 | 15 分鐘（profile/data 加 sessionCount counter） |
 | 完成靈修後逗留行為 | 需新增 | 1 小時（依賴事件流） |
 | 裝備換裝行為時點 | 需新增 | 30 分鐘 |
@@ -672,6 +672,12 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [x] 曠野呼聲 v2 多輪對話完整上線 + 內容 GAL/EPH/PHP + 書架擴充 18 卷 + D1 登入頁存檔提示（v2.14，2026-05-24，詳見下方 v3.0 候選短期）
 - [x] **B1 事件流 timeline**（v2.15，2026-05-28）── `track()` 雙寫 GA4+Firestore `users/{uid}/events`、9 核心事件、訪客不記、sessionId 30min 過期；落地驗證 scripts/verify-b1-events.js
 - [x] **E1 個人資料入口**（v2.15，2026-05-28）── ⋯選單分眾 5 欄位（ageGroup/churchKey/district/groupName/devotionHabit），每欄可留空可改；district/groupName 為 W23 人工求助轉介預留欄位
+- [x] **`npm run ga4` 深度指標腳本**（2026-06-01，commit 8f975a4）── SA 金鑰打 GA4 Data API 拉 MAU/WAU/DAU + 9 核心事件觸發人數 + 週 cohort 留存（對齊 data-insights 口徑）；SA 權限經管理員 OAuth + Admin API `createAccessBinding` 加成檢視者，繞過 GA4 網頁加 SA 卡點。詳見「技術架構 > 數據分析」
+- [x] **默想編輯時長 editDuration + 日記回看事件驗證**（2026-06-03，commit 25e1ef7，dev、未升版未上線）── `reflection_submit` 的 metadata 加 `editDuration`；diary_open 回看事件（深度追蹤 #1）落地驗證，餵北極星指標
+- [x] **情緒 2.0 心情選擇器 + mood 存儲**（2026-06-04，commit f1c8b41，dev、未升版未上線）── 默想前選當次心情，存進事件／默想資料
+- [x] **AI 默想回覆參考當次心情 mood**（2026-06-05，commit 2b8511a + 55ff83b prompt 收緊，dev、未升版未上線）── `aiReflection` 帶入 mood 個人化回應；設計紅線見 `design-principles.md`
+
+> ⚠️ 上面標「dev、未升版未上線」三項（editDuration／情緒2.0／mood-aware AI）程式已在 dev，但**尚未升版、未部署玩家端**（GitHub Pages 正式版仍 v2.15）。升版上線前再一併處理 `GAME_VERSION` / `VERSION_NOTES` / changelog。
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）
