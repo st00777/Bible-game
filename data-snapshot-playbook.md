@@ -175,6 +175,22 @@ cohort 編號（cohort 0, 1, 2...）的編法**也是同樣規則**（cohort 0 =
 - AI fallback 集中章節（內容品質警訊）
 - 真實留言新增筆數（玩家情感參與）
 
+### GA4 Data API 能力與天花板（2026-06-05 補）
+
+`npm run ga4`（`scripts/ga4-insights.js`）用 service account（viewer 權限 + analytics.readonly）打 GA4 Data API。
+
+**現在實際抓的（3 類）**：活躍規模 MAU/WAU/DAU、9 核心事件觸發人數、週 cohort 留存。要加只是多寫 `runReport`、不用再要權限。
+
+**能力上能加的**（同一把金鑰，幾乎任何「維度 × 指標」彙總）：時段/星期、地理（縣市）、裝置/瀏覽器、流量來源管道（Direct vs 社群）、頁面瀏覽、自訂事件參數、留存任意切法、參與時間…
+
+**兩個天花板（GA4 給不了）**：
+1. 🚫 **個別玩家逐筆原始事件** ── Data API 只給彙總；user-level raw 要另開 BigQuery export。**但我們用 Firestore B1 事件流補掉**（per-user 逐筆、精確，見 analyze 區塊 ⑧）。
+2. 🚫 **小樣本被自動遮蔽** ── 人口統計（年齡/性別）類維度，人數太少 GA4 套門檻回空值/(other)。我們才 ~50 活躍，這類常拿到空 ── 分眾用 **E1 玩家自填 + Firestore** 看，比 GA4 人口統計可靠。
+
+**一句話**：GA4 = 廣覆蓋（含訪客）但粗、小樣本會被遮；Firestore B1/E1 = 只含登入者但精確逐筆。規模/來源/趨勢看 GA4，深度/個人/分眾看 Firestore。
+
+> 已知小坑：GA4 報表 `read_verse_view`/`reflection_submit` 顯示 0，因設計命名 ≠ 實際埋點（`read_chapter`/`submit_reflection`），非抓不到。修法歸開發協調。
+
 ---
 
 ## 6. data-insights.md 更新規範
