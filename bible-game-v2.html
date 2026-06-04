@@ -3071,6 +3071,7 @@ async function submitReflection() {
         reflectionTitle: data?.reflectionTitle || '',
         playerText: text,
         uid: currentUser?.uid || null,
+        mood: sessionMood || null,  // 情緒2.0：當次起點心情餵 AI（冷框架承接）；先不說=null，後端走無 mood 邏輯
       }),
     });
     const d = await res.json();
