@@ -75,3 +75,14 @@ node_modules/
 # GA4 / Firebase 匯出資料（含玩家城市分布等敏感統計，不公開到 repo）
 *.csv
 *.xlsx
+
+# Claude Code 工具產物（本機 worktree / 設定，不入庫）
+.claude/
+
+# 含玩家地理/留存敏感統計的策略分析（同上方 *.csv/*.xlsx 原則，不上公開 repo）
+靈修冒險-多領域專家分析.md
+
+# GCP / GA4 服務帳號金鑰（具體檔名排除，避免 *.json 誤排 firebase.json / package.json）
+ga4-key.json
+# 管理員 OAuth 一次性授權 token（代表 James 本人授權，用完即收，絕不進 git）
+token.json

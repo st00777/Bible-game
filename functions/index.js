@@ -14,6 +14,7 @@ const LINE_CHANNEL_ID = '2009801861';
 const ALLOWED_ORIGINS = [
   'https://st00777.github.io',                        // prod (GitHub Pages)
   'https://bible-game-bcb84--dev-01luz2yz.web.app',   // dev preview (Firebase Hosting channel)
+  'https://bible-game-bcb84.web.app',                 // 固定測試站 (hosting:main)
 ];
 
 // AI 失敗時回給玩家的 fallback 文字。
@@ -36,6 +37,7 @@ exports.lineLogin = onRequest(
     const VALID_REDIRECTS = [
       'https://st00777.github.io/Bible-game/bible-game-v2.html',
       'https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html',
+      'https://bible-game-bcb84.web.app/bible-game-v2.html',
     ];
 
     const { code, redirect_uri } = req.body;
@@ -153,7 +155,7 @@ exports.aiReflection = onRequest(
       return;
     }
 
-    const { chapter, reflectionTitle, playerText, uid } = req.body;
+    const { chapter, reflectionTitle, playerText, uid, mood } = req.body;
     if (!playerText) {
       res.status(400).json({ error: 'Missing playerText' });
       return;
@@ -162,8 +164,19 @@ exports.aiReflection = onRequest(
     const callerId = uid || 'anonymous';
     console.log(`aiReflection call: uid=${callerId} chapter=${chapter || ''} title=${reflectionTitle || ''} textLen=${playerText.length}`);
 
-    const systemPrompt = `你是一位溫暖的靈修同伴。使用者正在讀${chapter || '聖經'}，默想主題是「${reflectionTitle || '靈修'}」。
+    // 情緒2.0：玩家當次選的心情當「帶來的起點」餵 prompt（冷框架承接，不診斷/不評判）。
+    // 🔴 design-principles 紅線3/4/1：起點≠現狀、不當開場主角、即時餵不另存；mood 空（先不說）整段不出現、prompt 逐字同舊版。
+    const moodBlock = mood ? `
+玩家這次進來時，從幾個選項裡挑了「${mood}」當作今天帶來的起點。
+請把它當成「他帶進來的脈絡」輕輕承接——這是他進門時的起點，不是他此刻的狀態；
+他現在的狀態，請你從他寫的默想本文去讀，不要用這個起點去推測或診斷他現在怎麼了。
+- 先回應他寫的默想本文，再順帶把這個起點輕輕帶進來，不要用心情當開場第一句；也不要整段圍著它打轉——它是順帶的背景，不是主角。
+- 用承認、留空間的語氣，例如「你今天帶著『${mood}』來到神面前」。
+- 不要評判、不要診斷、不要替他總結情緒、不要問「你還好嗎？」這類關心句。
+` : '';
 
+    const systemPrompt = `你是一位溫暖的靈修同伴。使用者正在讀${chapter || '聖經'}，默想主題是「${reflectionTitle || '靈修'}」。
+${moodBlock}
 規則：
 - 用繁體中文
 - 只輸出2-3句回應，不要輸出其他任何內容
