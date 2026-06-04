@@ -179,9 +179,11 @@ cohort 編號（cohort 0, 1, 2...）的編法**也是同樣規則**（cohort 0 =
 
 `npm run ga4`（`scripts/ga4-insights.js`）用 service account（viewer 權限 + analytics.readonly）打 GA4 Data API。
 
+**🎯 抓取策略（2026-06-05 PM 定案，定調往後配比）**：GA4 每期**只抓「它獨有」的 3 樣** ── ① 訪客 vs 登入規模差/轉化、② WAU 趨勢、③ cohort 留存。廣度檔（地理/裝置/來源）降**季度**才拉。**不擴張**。原則：指標要「決策驅動」不是「可得驅動」（能抓 ≠ 該抓；我們 ~50 活躍，多抓只是小樣本噪音）。**凡 Firestore 能精確給的（每人深度、逐章漏斗）不在 GA4 重複抓** ── 避免兩源對不上時不知信誰。分工：Firestore=深度真相 / GA4=廣度脈絡 / Cloud Logging=服務健康。
+
 **現在實際抓的（3 類）**：活躍規模 MAU/WAU/DAU、9 核心事件觸發人數、週 cohort 留存。要加只是多寫 `runReport`、不用再要權限。
 
-**能力上能加的**（同一把金鑰，幾乎任何「維度 × 指標」彙總）：時段/星期、地理（縣市）、裝置/瀏覽器、流量來源管道（Direct vs 社群）、頁面瀏覽、自訂事件參數、留存任意切法、參與時間…
+**能力上能加的**（同一把金鑰，幾乎任何「維度 × 指標」彙總，但依上方策略「不擴張」、廣度季度才碰）：時段/星期、地理（縣市）、裝置/瀏覽器、流量來源管道（Direct vs 社群）、頁面瀏覽、自訂事件參數、留存任意切法、參與時間…
 
 **兩個天花板（GA4 給不了）**：
 1. 🚫 **個別玩家逐筆原始事件** ── Data API 只給彙總；user-level raw 要另開 BigQuery export。**但我們用 Firestore B1 事件流補掉**（per-user 逐筆、精確，見 analyze 區塊 ⑧）。
@@ -189,7 +191,9 @@ cohort 編號（cohort 0, 1, 2...）的編法**也是同樣規則**（cohort 0 =
 
 **一句話**：GA4 = 廣覆蓋（含訪客）但粗、小樣本會被遮；Firestore B1/E1 = 只含登入者但精確逐筆。規模/來源/趨勢看 GA4，深度/個人/分眾看 Firestore。
 
-> 已知小坑：GA4 報表 `read_verse_view`/`reflection_submit` 顯示 0，因設計命名 ≠ 實際埋點（`read_chapter`/`submit_reflection`），非抓不到。修法歸開發協調。
+> 已知小坑：GA4 報表 `read_verse_view`/`reflection_submit` 顯示 0，因設計命名 ≠ 實際埋點（`read_chapter`/`submit_reflection`），非抓不到。
+> **修法（2026-06-05 PM 裁決，開發協調工單，排 6/14 內容閘門後）**：走「**改消費端**」── 把查詢端（`ga4-insights.js` 的 `CORE_EVENTS`）改成實際 emit 名；**不准改 emit 端**（會斷數月歷史連續性）。
+> 另一衛生修：**editDuration 覆蓋率**（現 11%）PM 升為**優先**（在命名對齊之前）── 它是主動選的「投入質」北極星，覆蓋率補滿前不當正式北極星、只當數量級看。
 
 ---
 
