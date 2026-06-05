@@ -3785,14 +3785,14 @@ function showDiaryDetail(key) {
   if (entry.reflectionText) {
     html += `<div class="diary-detail-section">
       <div class="diary-detail-label">✍️ 你的默想</div>
-      <div class="diary-detail-text">${entry.reflectionText}</div>
+      <div class="diary-detail-text">${escapeHtmlMyMsg(entry.reflectionText).replace(/\n/g, '<br>')}</div>
     </div>`;
   }
   const aiText = entry.aiResponse || entry.aiResponseGemma || entry.aiResponseGemini || '';
   if (aiText) {
     html += `<div class="diary-detail-section">
       <div class="diary-detail-label">✨ 靈修回應</div>
-      <div class="diary-detail-ai">${aiText}</div>
+      <div class="diary-detail-ai">${escapeHtmlMyMsg(aiText)}</div>
     </div>`;
   }
 
