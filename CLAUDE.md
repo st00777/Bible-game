@@ -9,7 +9,7 @@
 **專案名稱**：靈修冒險（Bible Devotional Game）
 **部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.15（2026-05-28 上線；W22 兩功能：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位。前一版 v2.14（2026-05-24）：曠野呼聲 v2 完整上線、FEATURE_FEEDBACK_V2 翻 true、內容 GAL/EPH/PHP、書架擴充 18 卷、D1 登入頁存檔獨立提示）
+**目前版本**：v2.16（2026-06-14 上線；情緒2.0 心情選擇器、mood-aware AI 默想回應、新內容 COL/TH/TIM、合併日雙章選讀。前一版 v2.15（2026-05-28）：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -245,7 +245,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 
 **content.js 結構**：
 ```javascript
-const GAME_VERSION = '2.15';        // 版本號
+const GAME_VERSION = '2.16';        // 版本號
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
 const SCHEDULE = {...};            // 日期→章節對應表
 const BIBLE_LINKS = {...};         // Bible.com 連結
@@ -673,11 +673,11 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [x] **B1 事件流 timeline**（v2.15，2026-05-28）── `track()` 雙寫 GA4+Firestore `users/{uid}/events`、9 核心事件、訪客不記、sessionId 30min 過期；落地驗證 scripts/verify-b1-events.js
 - [x] **E1 個人資料入口**（v2.15，2026-05-28）── ⋯選單分眾 5 欄位（ageGroup/churchKey/district/groupName/devotionHabit），每欄可留空可改；district/groupName 為 W23 人工求助轉介預留欄位
 - [x] **`npm run ga4` 深度指標腳本**（2026-06-01，commit 8f975a4）── SA 金鑰打 GA4 Data API 拉 MAU/WAU/DAU + 9 核心事件觸發人數 + 週 cohort 留存（對齊 data-insights 口徑）；SA 權限經管理員 OAuth + Admin API `createAccessBinding` 加成檢視者，繞過 GA4 網頁加 SA 卡點。詳見「技術架構 > 數據分析」
-- [x] **默想編輯時長 editDuration + 日記回看事件驗證**（2026-06-03，commit 25e1ef7，dev、未升版未上線）── `reflection_submit` 的 metadata 加 `editDuration`；diary_open 回看事件（深度追蹤 #1）落地驗證，餵北極星指標
-- [x] **情緒 2.0 心情選擇器 + mood 存儲**（2026-06-04，commit f1c8b41，dev、未升版未上線）── 默想前選當次心情，存進事件／默想資料
-- [x] **AI 默想回覆參考當次心情 mood**（2026-06-05，commit 2b8511a + 55ff83b prompt 收緊，dev、未升版未上線）── `aiReflection` 帶入 mood 個人化回應；設計紅線見 `design-principles.md`
+- [x] **默想編輯時長 editDuration + 日記回看事件驗證**（2026-06-03，commit 25e1ef7，已隨 v2.16 上線（c4306f7））── `reflection_submit` 的 metadata 加 `editDuration`；diary_open 回看事件（深度追蹤 #1）落地驗證，餵北極星指標
+- [x] **情緒 2.0 心情選擇器 + mood 存儲**（2026-06-04，commit f1c8b41，已隨 v2.16 上線（c4306f7））── 默想前選當次心情，存進事件／默想資料
+- [x] **AI 默想回覆參考當次心情 mood**（2026-06-05，commit 2b8511a + 55ff83b prompt 收緊，已隨 v2.16 上線（c4306f7））── `aiReflection` 帶入 mood 個人化回應；設計紅線見 `design-principles.md`
 
-> ⚠️ 上面標「dev、未升版未上線」三項（editDuration／情緒2.0／mood-aware AI）程式已在 dev，但**尚未升版、未部署玩家端**（GitHub Pages 正式版仍 v2.15）。升版上線前再一併處理 `GAME_VERSION` / `VERSION_NOTES` / changelog。
+> ✅ 上面三項（editDuration／情緒2.0／mood-aware AI）已隨 v2.16 release（c4306f7）上線、部署玩家端（GitHub Pages 正式版已 v2.16）；`GAME_VERSION` / `VERSION_NOTES` / changelog 均已同步。
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）
