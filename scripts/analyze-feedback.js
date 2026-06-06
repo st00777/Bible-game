@@ -544,6 +544,26 @@ async function analyzeProgress(token, users) {
     sorted.forEach(([k, n]) => console.log(`    ${k.padEnd(10)} ${n} 次`));
   }
 
+  // ── 情緒2.0 心情功能採用率（層1：只看用不用，不看選什麼）──
+  // 🔴 紅線三鎖（PM 裁決，違反即廢案）：
+  //   1. 只讀 mood 欄位「有無/非空」，絕不讀取、不比對、不輸出 mood 的「值」
+  //   2. 只輸出整體聚合比率一個數字，無 per-player 記錄、無 mood 分布
+  //   3. 即時計算即時印，不寫任何檔案
+  console.log('\n── 情緒2.0 心情功能採用率（層1：只看用不用，不看選什麼）──');
+  const MOOD_LAUNCH_DATE = '2026-06-05';  // 心情選擇器隨 v2.16 上線日；之前的 chapters 結構上不可能有 mood，用此日當分母起點避免被舊資料稀釋
+  const moodEra = allChapters.filter(c => c.date && c.date >= MOOD_LAUNCH_DATE);
+  const moodDenom = moodEra.length;
+  // hasMood：只判斷欄位有無/非空 → 絕不讀取或比對是哪一個心情值（紅線鎖1）
+  const moodNumer = moodEra.filter(c => c.mood != null && String(c.mood).length > 0).length;
+  if (moodDenom === 0) {
+    console.log(`  ${MOOD_LAUNCH_DATE} 起尚無靈修筆數，無法計算採用率（樣本 0）`);
+  } else {
+    const moodDaysLive = Math.max(1, Math.round((Date.now() - Date.parse(MOOD_LAUNCH_DATE)) / 86400000));
+    console.log(`  心情功能採用率 ${pct(moodNumer, moodDenom)}（${MOOD_LAUNCH_DATE} 起 ${moodDenom} 筆中 ${moodNumer} 筆有選）`);
+    console.log(`  ⚠️ 樣本僅 ${moodDenom} 筆、上線約 ${moodDaysLive} 天、且含 ${MOOD_LAUNCH_DATE} 上線前筆數，為偏低之粗略方向值，`);
+    console.log(`     勿當精確採用率，建議樣本累積數日後再判讀`);
+  }
+
   // ── 2. 情境題選項分布 ──────────────────────────────
   console.log('\n── ② 情境題選項分布（≥3 人，前 12 章）──');
   const choiceStats = {};
