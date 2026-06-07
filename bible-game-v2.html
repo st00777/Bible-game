@@ -1348,7 +1348,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Fields to sync with Firestore
-const SYNC_FIELDS = ['setup','name','gender','level','xp','streak','hat','body','item','bg','items','completed'];
+const SYNC_FIELDS = ['setup','name','gender','level','xp','streak','hat','body','item','bg','items','completed','rewardClaimed','rewardClaimedMigrated'];
 
 let firestoreSaveTimer = null;
 function saveToFirestore() {
@@ -1363,12 +1363,27 @@ function saveToFirestore() {
   }, 1500);
 }
 
+// 領裝備漏領補救（A 小塊）：完成靈修這個關鍵節點專用的「即時寫雲端」。
+// 先清掉待發的 debounce、再立即 set，避免完成後 1.5s 內關 app 導致資料沒送出。
+// ★ 只給完成節點呼叫；原 saveToFirestore（debounce）完全不動，其他 saveState 照舊。
+async function flushToFirestore() {
+  if (!currentUser) return;
+  clearTimeout(firestoreSaveTimer);
+  const data = {};
+  SYNC_FIELDS.forEach(f => { data[f] = state[f]; });
+  data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+  try {
+    await db.collection('users').doc(currentUser.uid).set(data, { merge: true });
+  } catch(e) { console.warn('Firestore flush error:', e); }
+}
+
 async function loadFromFirestore(uid) {
   try {
     const doc = await db.collection('users').doc(uid).get();
     if (doc.exists) {
       const data = doc.data();
       SYNC_FIELDS.forEach(f => { if (data[f] !== undefined) state[f] = data[f]; });
+      migrateRewardClaimed();   // 領裝備漏領補救：以背包為基準一次性遷移（載入後、render 前）
       localStorage.setItem('bible_state', JSON.stringify(state));
       // Sync font size from cloud (cloud wins)
       if (data.fontSize) {
@@ -2203,6 +2218,7 @@ auth.onAuthStateChanged(async user => {
       if (doc.exists && doc.data().setup) {
         const data = doc.data();
         SYNC_FIELDS.forEach(f => { if (data[f] !== undefined) state[f] = data[f]; });
+        migrateRewardClaimed();   // 領裝備漏領補救：以背包為基準一次性遷移（載入後、render 前）
         localStorage.setItem('bible_state', JSON.stringify(state));
         showMainAppScreen();
         showToast('☁️ 已從雲端載入進度');
@@ -2242,7 +2258,9 @@ function loadState() {
     item: '',
     bg: '🌿',
     items: [],
-    completed: {}   // { "ACT10": "YYYY-MM-DD", ... }
+    completed: {},   // { "ACT10": "YYYY-MM-DD", ... }
+    rewardClaimed: {},           // 領裝備漏領補救：哪些章已放過領取動畫 { "ROM10": true }
+    rewardClaimedMigrated: false // 一次性遷移旗標
   }));
 }
 
@@ -2251,7 +2269,22 @@ function saveState() {
   saveToFirestore();
 }
 
+// 領裝備漏領補救：以背包為基準的一次性遷移。
+// 既有玩家的 completed 章節若背包已有該章裝備 → 視為歷史已領（rewardClaimed=true）；
+// 背包查無 → 留空，讓補發鈕之後出現。★ 只初始化 rewardClaimed + 旗標，絕不改 completed 的值。
+function migrateRewardClaimed() {
+  if (state.rewardClaimedMigrated) return;   // 只跑一次
+  if (!state.rewardClaimed) state.rewardClaimed = {};
+  Object.keys(state.completed || {}).forEach(key => {
+    const owned = (state.items || []).some(i => chapterKey(i.chapter) === key);
+    if (owned) state.rewardClaimed[key] = true;
+  });
+  state.rewardClaimedMigrated = true;
+  saveState();
+}
+
 let state = loadState();
+if (!state.rewardClaimed) state.rewardClaimed = {};  // 既有 localStorage 無此欄時補上，確保讀取安全
 
 // Migrate old avatar_state if exists
 const oldState = localStorage.getItem('avatar_state');
@@ -2989,6 +3022,7 @@ function selectChapter(ch) {
     completeBtn.disabled = true;
     completeBtn.classList.remove('done');
   }
+  renderRewardRecovery(ch);   // 領裝備漏領補救：已完成但未領 → 補發鈕 + 安撫文案
 }
 
 // ══ CHOICE SELECTION ══════════════════════════════════════
@@ -3160,6 +3194,7 @@ async function completeDevotional() {
     && getScheduleChapters(myScheduleDate).length >= 2
     && getScheduleChapters(myScheduleDate).every(c => state.completed[chapterKey(c)]);
   saveState();
+  await flushToFirestore();  // 完成節點即時寫雲端：完成後 1.5s 內關 app 也不掉（其他 saveState 仍走 debounce）
   const reflText2 = document.getElementById('refl-text').value.trim();
   saveChapterRecord(selectedChapter, sessionChoice, hasBonus, sessionHasRead, reflText2);
 
@@ -3185,6 +3220,9 @@ async function completeDevotional() {
     claimBtn.onclick = () => {
       claimBtn.remove();
       showReward(newItem, bonusItem, hasBonus);
+      // 領裝備漏領補救：只「事後記一筆已放過領取動畫」，不改延後觸發時機
+      if (!state.rewardClaimed) state.rewardClaimed = {};
+      state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
       setTimeout(() => checkAchievements(), 1500);
       afterReward();
     };
@@ -3192,6 +3230,9 @@ async function completeDevotional() {
   } else {
     // No reflection → show reward immediately
     showReward(newItem, bonusItem, hasBonus);
+    // 領裝備漏領補救：記一筆已放過領取動畫
+    if (!state.rewardClaimed) state.rewardClaimed = {};
+    state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
     setTimeout(() => checkAchievements(), 1500);
     afterReward();
   }
@@ -3203,6 +3244,58 @@ async function completeDevotional() {
 }
 
 // ══ REWARD ══════════════════════════════════════════════
+
+// 領裝備漏領補救（B 核心 + C 文案）：在已完成章節的 Done 區塊，依「已領/未領 × 背包有無」決定顯示。
+// ★ 此函式只控制「補發入口的顯示」與「安撫文案」，不發放任何裝備、不動完成判定。
+function renderRewardRecovery(ch) {
+  const key = chapterKey(ch);
+  const completeBtn = document.getElementById('complete-btn');
+  let box = document.getElementById('reward-recovery');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'reward-recovery';
+    box.style.cssText = 'margin:10px 0 0;text-align:center;';
+    completeBtn.parentNode.insertBefore(box, completeBtn);
+  }
+  box.innerHTML = '';
+  if (!isChapterDone(ch)) { box.style.display = 'none'; return; }   // 未完成章不顯示
+  box.style.display = 'block';
+  const claimed = !!(state.rewardClaimed && state.rewardClaimed[key]);
+  const owned = (state.items || []).some(i => chapterKey(i.chapter) === key);
+  if (claimed) {
+    // C：已領 → 安撫文案（背包有才宣稱已收入背包）
+    box.innerHTML = owned
+      ? '<div style="font-size:12px;color:var(--green-dark);font-weight:700;">本章裝備已收入背包 ✅</div>'
+      : '<div style="font-size:12px;color:var(--text-soft);">本章已完成</div>';
+    return;
+  }
+  // 未領 → B：補發鈕（純展示動畫）+ C：依背包有無給文案
+  const note = owned ? '裝備已在背包，可補看領取動畫' : '可補看領取動畫';
+  box.innerHTML = `<button class="green-btn" onclick="replayReward()">✅ 領取裝備</button>
+    <div style="font-size:12px;color:var(--text-soft);margin-top:6px;">${note}</div>`;
+}
+
+// 領裝備漏領補救（B 核心）：補放領取動畫。★ 純展示——不 push 裝備、不加 xp、不動 completed/streak。
+// 用全域 selectedChapter（與 completeDevotional 一致），避免 ACT 數字 key 經 inline 字串化後型別走樣。
+function replayReward() {
+  const ch = selectedChapter;
+  const key = chapterKey(ch);
+  if (!isChapterDone(ch)) return;                                  // 安全：只對已完成章
+  if (state.rewardClaimed && state.rewardClaimed[key]) return;     // 已領就不再放
+  const data = CHAPTERS.find(c => String(c.chapter) === String(ch));
+  if (!data) return;
+  const gender = state.gender || 'n';
+  // hasBonus 由背包件數推：該章在 state.items 的件數（2=有稀有 / 1=無 / 0=資料已不在 → 僅基本展示）
+  const ownedForCh = (state.items || []).filter(i => chapterKey(i.chapter) === key).length;
+  const hasBonus = ownedForCh >= 2;
+  const baseI = {...resolveItem(data.baseItem, gender), chapter: ch};
+  const bonusI = hasBonus ? {...resolveItem(data.bonusItem, gender), chapter: ch} : null;
+  showReward(baseI, bonusI, hasBonus);                             // 純展示動畫
+  if (!state.rewardClaimed) state.rewardClaimed = {};
+  state.rewardClaimed[key] = true;
+  saveState();
+  renderRewardRecovery(ch);                                        // 刷新：補發鈕 → 「已收入背包 ✅」
+}
 
 function showReward(item, bonus, hasBonus) {
   document.getElementById('r-hat').textContent = state.hat;
