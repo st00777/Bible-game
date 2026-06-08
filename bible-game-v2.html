@@ -3179,7 +3179,7 @@ async function completeDevotional() {
   // 治本：完成（入袋/標completed/動畫）延後到「領取那一刻」才發生。
   if (reflSubmitted) {
     // 有默想 → 玩家先讀 AI，點下方綠鈕才 finalizeCompletion（= 完成 + 領取同時發生，不再有中間狀態）
-    btn.textContent = '⬇️ 讀完 AI 回應後，請點下方按鈕領取裝備（暫定文案，待 PM 定稿）';
+    btn.textContent = '願這段話與你同行，記得往下領取裝備 ↓';
     const aiDiv = document.getElementById('ai-resp');
     const claimBtn = document.createElement('button');
     claimBtn.className = 'green-btn';
