@@ -1816,18 +1816,8 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
     }
     await db.collection('users').doc(currentUser.uid)
       .collection('chapters').doc(key).set(record);
-    // 默想歷史保留：每次寫入都新增一筆，避免改寫時覆蓋舊默想
-    if (reflectionText) {
-      await db.collection('users').doc(currentUser.uid)
-        .collection('chapters').doc(key)
-        .collection('reflections').doc(String(Date.now()))
-        .set({
-          reflectionText,
-          aiResponse: lastAiResponse || '',
-          aiIsFallback: lastAiIsFallback,
-          completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-    }
+    // 默想歷史保留：reflections 子集合寫入已 relocate 到 submitReflection（AI fetch 之前、獨立於 AI 成敗），
+    // 確保「沒領就離開」時玩家默想仍落地。此處（finalize 路徑）不再重複寫子集合，避免同篇雙筆（doc id=Date.now()）。
     // 累計統計
     const statsUpdates = { totalDays: inc(1) };
     if (hasReflection) statsUpdates.reflectionCount = inc(1);
@@ -3096,6 +3086,27 @@ async function submitReflection() {
   track('submit_reflection', _reflParams);
   _reflEditStart = null;  // 送出後即重置，不僅依賴 reflSubmitted／換章節，避免起點殘留
 
+  // 默想落地脫鉤（治本）：在 AI fetch 之前就直寫 reflections 子集合，獨立於 AI 成敗。
+  // 此處只存玩家文字（aiResponse 此刻尚未產生，留給 finalize 寫進 chapter doc）；存檔失敗報錯、不 silent。
+  // ★不寫 chapter doc（chapter doc 留給 finalize）→ 沒領就離開時：默想已保命，但不會誤進日記/誤判完成。
+  // ★存檔失敗 → return false：呼叫端不生「領取」綠鈕、讓玩家重送，鎖死「章 completed ⟹ 非空默想已落地」。
+  if (currentUser) {
+    try {
+      await db.collection('users').doc(currentUser.uid)
+        .collection('chapters').doc(chapterKey(selectedChapter))
+        .collection('reflections').doc(String(Date.now()))
+        .set({
+          reflectionText: text,
+          submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    } catch(e) {
+      console.warn('Reflection save error:', e);
+      showToast('⚠️ 默想沒存成功，請再按一次「完成」重送');
+      reflSubmitted = false;   // 允許重送
+      return false;            // 不進入可完成路徑
+    }
+  }
+
   const aiDiv = document.getElementById('ai-resp');
   const aiText = document.getElementById('ai-resp-text');
   aiDiv.classList.add('show');
@@ -3130,6 +3141,7 @@ async function submitReflection() {
     // B1: ai_response_received（網路失敗也算 received、以 fallback 文案呈現）
     track('ai_response_received', { chapter: selectedChapter, isFallback: true });
   }
+  return true;   // 默想已落地（或訪客無需雲端存）→ 允許進入可完成路徑
 }
 
 // ══ COMPLETE ══════════════════════════════════════════════
@@ -3155,10 +3167,40 @@ async function completeDevotional() {
   btn.textContent = '✨ 正在整理今日收穫…';
 
   if (reflText && !reflSubmitted) {
-    await submitReflection();
+    const ok = await submitReflection();
+    if (ok === false) {
+      // 存檔失敗 → 不進入可完成路徑（不生綠鈕），讓玩家重送
+      btn.disabled = false;
+      btn.textContent = '✨ 完成今日靈修，領取裝備！';
+      return;
+    }
   }
 
+  // 治本：完成（入袋/標completed/動畫）延後到「領取那一刻」才發生。
+  if (reflSubmitted) {
+    // 有默想 → 玩家先讀 AI，點下方綠鈕才 finalizeCompletion（= 完成 + 領取同時發生，不再有中間狀態）
+    btn.textContent = '⬇️ 讀完 AI 回應後，請點下方按鈕領取裝備（暫定文案，待 PM 定稿）';
+    const aiDiv = document.getElementById('ai-resp');
+    const claimBtn = document.createElement('button');
+    claimBtn.className = 'green-btn';
+    claimBtn.style.marginTop = '12px';
+    claimBtn.textContent = '✅ 完成靈修，領取裝備';
+    claimBtn.onclick = async () => { claimBtn.remove(); await finalizeCompletion(); };
+    aiDiv.appendChild(claimBtn);
+  } else {
+    // 沒默想 → 當下完成 + 動畫（行為等同現況）
+    await finalizeCompletion();
+  }
+}
+
+// 領裝備治本：完成那塊統一在此。由「綠鈕（有默想）」或「completeDevotional 當下（沒默想）」呼叫。
+// 完成 = 領取那一刻；沒領 = 沒完成、下次可重做（不會留下「入袋了但沒領」的中間狀態）。
+async function finalizeCompletion() {
+  if (isChapterDone(selectedChapter)) return;   // 🔴 護欄1：防綠鈕連點 / 重入 → 重複入袋 + 重複 streak++
+
+  const reflText = document.getElementById('refl-text').value.trim();
   const hasBonus = reflText.length > 0;
+  // ===== 以下為原 completeDevotional 完成區塊，逐行原封搬入（streak / 合併日 / xp / completed 一行未改）=====
   // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
   const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
   const gender = state.gender || 'n';
@@ -3209,34 +3251,16 @@ async function completeDevotional() {
     }
     pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
-  if (reflSubmitted) {
-    // Player wrote a reflection → show "claim reward" button below AI response
-    // so they can read the AI response first before the reward overlay appears
-    const aiDiv = document.getElementById('ai-resp');
-    const claimBtn = document.createElement('button');
-    claimBtn.className = 'green-btn';
-    claimBtn.style.marginTop = '12px';
-    claimBtn.textContent = '✅ 完成靈修，領取裝備';
-    claimBtn.onclick = () => {
-      claimBtn.remove();
-      showReward(newItem, bonusItem, hasBonus);
-      // 領裝備漏領補救：只「事後記一筆已放過領取動畫」，不改延後觸發時機
-      if (!state.rewardClaimed) state.rewardClaimed = {};
-      state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
-      setTimeout(() => checkAchievements(), 1500);
-      afterReward();
-    };
-    aiDiv.appendChild(claimBtn);
-  } else {
-    // No reflection → show reward immediately
-    showReward(newItem, bonusItem, hasBonus);
-    // 領裝備漏領補救：記一筆已放過領取動畫
-    if (!state.rewardClaimed) state.rewardClaimed = {};
-    state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
-    setTimeout(() => checkAchievements(), 1500);
-    afterReward();
-  }
+  // ===== 完成區塊搬運結束（以上邏輯與原 completeDevotional 逐字相同）=====
 
+  showReward(newItem, bonusItem, hasBonus);
+  // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
+  if (!state.rewardClaimed) state.rewardClaimed = {};
+  state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
+  setTimeout(() => checkAchievements(), 1500);
+  afterReward();
+
+  const btn = document.getElementById('complete-btn');
   btn.textContent = '✅ 已完成此章靈修';
   btn.classList.add('done');
   document.getElementById('done-banner').classList.add('show');
