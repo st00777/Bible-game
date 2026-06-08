@@ -313,6 +313,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .complete-btn:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 10px 28px rgba(76,175,80,.5);}
 .complete-btn:disabled{background:#CCC;box-shadow:none;cursor:not-allowed;transform:none;}
 .complete-btn.done{background:linear-gradient(135deg,#90CAF9,#42A5F5);}
+.refl-claim-hint{margin-top:16px;margin-bottom:10px;text-align:center;font-size:calc(var(--fs-body) - 2px);font-weight:400;line-height:1.6;color:var(--text-soft);}
 
 /* Already done banner */
 .done-banner{background:linear-gradient(135deg,#E3F2FD,#BBDEFB);border:2px solid #90CAF9;border-radius:16px;padding:14px 16px;margin-bottom:14px;text-align:center;display:none;}
@@ -3179,13 +3180,18 @@ async function completeDevotional() {
   // 治本：完成（入袋/標completed/動畫）延後到「領取那一刻」才發生。
   if (reflSubmitted) {
     // 有默想 → 玩家先讀 AI，點下方綠鈕才 finalizeCompletion（= 完成 + 領取同時發生，不再有中間狀態）
-    btn.textContent = '願這段話與你同行，記得往下領取裝備 ↓';
+    btn.textContent = '';
     const aiDiv = document.getElementById('ai-resp');
+    // 領取引導提示：插在綠鈕「正上方」（AI回應 → 提示 → 綠鈕），輕量文字、無底色邊框
+    const claimHint = document.createElement('p');
+    claimHint.className = 'refl-claim-hint';
+    claimHint.textContent = '願這段話與你同行，記得往下領取裝備 ↓';
+    aiDiv.appendChild(claimHint);
     const claimBtn = document.createElement('button');
     claimBtn.className = 'green-btn';
     claimBtn.style.marginTop = '12px';
     claimBtn.textContent = '✅ 完成靈修，領取裝備';
-    claimBtn.onclick = async () => { claimBtn.remove(); await finalizeCompletion(); };
+    claimBtn.onclick = async () => { claimBtn.remove(); claimHint.remove(); await finalizeCompletion(); };
     aiDiv.appendChild(claimBtn);
   } else {
     // 沒默想 → 當下完成 + 動畫（行為等同現況）
