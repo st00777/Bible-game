@@ -1,6 +1,6 @@
 // ══ 靈修冒險 content.js ══════════════════════════════════
 // 版本號：每次更新內容或機制時修改
-const GAME_VERSION = '2.16';
+const GAME_VERSION = '2026.06.11';
 
 // ── Feature flags ──────────────────────────────────────────
 // 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
@@ -12,14 +12,17 @@ const FEATURE_FEEDBACK_V2 = true;
 // false = 一般行為（不一致就彈）。
 // 2026-05-24：v2.14 整批上線，曠野呼聲 v2 玩家功能開放（FEATURE_FEEDBACK_V2 翻 true）；
 // 玩家可見「能收到回覆」，故 SUPPRESS_VERSION_POPUP 設 false、彈版本公告告知。
+// 2026-06-10 領裝備治本：修復類、靜默上線，設 true 不彈公告（changelog 仍留紀錄）
 // 未來內容副版次升級可沿用這個 flag、機制變更主版次改回 false。
-const SUPPRESS_VERSION_POPUP = false;
+const SUPPRESS_VERSION_POPUP = true;
 
 const VERSION_NOTES = [
   '🌱 靈修前新增「今天帶著什麼來」心情選擇：可選、可跳過',
   '💬 AI 默想回應會參考你帶來的心情',
   '📖 新內容：歌羅西書、帖撒羅尼迦前後書、提摩太前書陸續上線（6/14 起）',
-  '📚 合併日雙章：同一天兩章可各自選讀（6/14 西1+2、6/26 提前2+3）'
+  '📚 合併日雙章：同一天兩章可各自選讀（6/14 西1+2、6/26 提前2+3）',
+  '🔧 修復領取裝備卡關',
+  '🔧 修復日記回看顯示'
 ];
 
 // 大光教會2026每日讀經進度
