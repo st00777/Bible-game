@@ -239,6 +239,51 @@ const BIBLE_LINKS = {
   'HEB9':'https://www.bible.com/zh-TW/bible/46/HEB.9.CUV'
 };
 
+// ══ A1 地基：書卷導讀 + 角色圖鑑 schema（dev only，值待 Phase 1 內容窗填）═══
+// 結構與 SCHEDULE / BIBLE_LINKS 並列，置於 CHAPTERS 之前；不參與既有遊戲邏輯。
+const BOOK_INTRO = {
+  // 示範：提摩太前書（公認事實已填，其餘神學/內容性值待審定）
+  TIM1: {
+    author: '保羅',                                // 公認事實
+    time: '',                                       // TODO: 內容窗審定（成書年代）
+    place: '',                                      // TODO: 內容窗審定（寫作地點）
+    theme: '教會秩序與真道的持守',                  // TODO: 內容窗審定（主題定稿）
+    audience: '提摩太（以弗所教會的年輕牧者）',      // 公認事實
+  },
+  // ── 以下為空殼：結構在、值待 Phase 1 由內容窗填（欄位：作者/時間/地點/主題/給誰）──
+  ROM:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  COR1: { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  COR2: { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  GAL:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  EPH:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  PHP:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  COL:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TH1:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TH2:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TIM2: { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TIT:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  PHM:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  HEB:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+};
+
+const CHARACTERS = {
+  // 示範：保羅、提摩太各一筆（解鎖條件用 TIM1 章節 key 參照）
+  paul: {
+    name: '保羅',                                            // TODO: 內容窗審定
+    book: 'TIM1',
+    intro: '蒙祂呼召的外邦使徒，曾逼迫教會，後寫信牧養屬靈兒子提摩太。', // TODO: 內容窗審定
+    unlock: 'TIM1_1',                                        // 完成此章節 key 後解鎖
+  },
+  timothy: {
+    name: '提摩太',                                          // TODO: 內容窗審定
+    book: 'TIM1',
+    intro: '保羅的屬靈兒子，年輕的以弗所教會同工，被囑咐持守所信的真道。', // TODO: 內容窗審定
+    unlock: 'TIM1_2',                                        // 完成此章節 key 後解鎖
+  },
+  // ── 其餘角色待 Phase 1 由內容窗補（結構同上：名字 name / 書卷 book / 簡介 intro / 解鎖條件 unlock）──
+};
+
+
 // ══ 每日靈修內容 ═════════════════════════════════════════
 const CHAPTERS = [
   // ── 使徒行傳 10 ──
