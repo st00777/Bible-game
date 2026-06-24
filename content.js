@@ -267,20 +267,39 @@ const BOOK_INTRO = {
 };
 
 const CHARACTERS = {
-  // 示範：保羅、提摩太各一筆（解鎖條件用 TIM1 章節 key 參照）
+  // 示範：保羅、提摩太（多時期 schema；Phase 1 只填「教牧時期」，其餘時期預留空殼）
+  // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock } }
   paul: {
-    name: '保羅',                                            // TODO: 內容窗審定
-    book: 'TIM1',
-    intro: '蒙祂呼召的外邦使徒，曾逼迫教會，後寫信牧養屬靈兒子提摩太。', // TODO: 內容窗審定
-    unlock: 'TIM1_1',                                        // 完成此章節 key 後解鎖
+    name: '保羅',                                              // TODO: 內容窗審定
+    periods: {
+      // 早期激辯（加拉太／帖前後）── 預留空殼，待 Phase 2 內容窗填
+      early: {},                                               // TODO: 內容窗審定
+      // 釋放後·教牧時期（提前／提多）── Phase 1 起步
+      teaching: {
+        book: 'TIM1',
+        title: '釋放後·教牧時期',                              // TODO: 內容窗審定
+        desc: '蒙祂呼召的外邦使徒，曾逼迫教會，後寫信牧養屬靈兒子提摩太。', // TODO: 內容窗審定
+        unlock: 'TIM1_1',                                      // 完成此章節 key 後解鎖
+      },
+      // 第一次監禁·監獄書信（以弗所／腓立比／歌羅西／腓利門）── 預留空殼
+      prison: {},                                              // TODO: 內容窗審定
+      // 臨終（提後）── 預留空殼
+      final: {},                                               // TODO: 內容窗審定
+    },
   },
   timothy: {
-    name: '提摩太',                                          // TODO: 內容窗審定
-    book: 'TIM1',
-    intro: '保羅的屬靈兒子，年輕的以弗所教會同工，被囑咐持守所信的真道。', // TODO: 內容窗審定
-    unlock: 'TIM1_2',                                        // 完成此章節 key 後解鎖
+    name: '提摩太',                                            // TODO: 內容窗審定
+    periods: {
+      // 提前 Phase 1 起步，先只做教牧時期
+      teaching: {
+        book: 'TIM1',
+        title: '年輕的教會同工',                              // TODO: 內容窗審定
+        desc: '保羅的屬靈兒子，年輕的以弗所教會同工，被囑咐持守所信的真道。', // TODO: 內容窗審定
+        unlock: 'TIM1_2',                                      // 完成此章節 key 後解鎖
+      },
+    },
   },
-  // ── 其餘角色待 Phase 1 由內容窗補（結構同上：名字 name / 書卷 book / 簡介 intro / 解鎖條件 unlock）──
+  // ── 其餘角色待 Phase 1/2 由內容窗補（結構：name + periods{ <時期key>:{ book, title, desc, unlock } }）──
 };
 
 

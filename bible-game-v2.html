@@ -553,6 +553,25 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .book-spine-bar{width:80%;height:4px;background:rgba(0,0,0,.15);border-radius:2px;margin-top:3px;overflow:hidden;}
 .book-spine-bar-fill{height:100%;background:white;border-radius:2px;transition:width .6s ease;}
 .shelf-summary{text-align:center;color:#D7CCC8;font-size:12px;font-weight:700;margin-top:8px;padding-top:6px;}
+/* A1 書卷詳情頁（套既有 token：--purple/--card/--fs-body，卡片照 .avatar-card 風格、popIn 動畫）*/
+.bd-section{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .45s ease forwards;}
+.bd-section-title{font-size:calc(var(--fs-body) - 1px);font-weight:900;color:var(--purple);margin-bottom:10px;}
+.bd-intro-row{font-size:calc(var(--fs-body) - 2px);color:var(--text);line-height:1.7;margin-bottom:4px;}
+.bd-intro-row .bd-label{color:var(--text-soft);font-weight:700;margin-right:6px;}
+.bd-intro-empty{color:var(--text-soft);opacity:.7;}
+.bd-progress-text{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);font-weight:700;margin-bottom:10px;}
+.bd-chapter-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.bd-chapter{min-width:38px;text-align:center;padding:6px 8px;border-radius:10px;font-size:calc(var(--fs-body) - 4px);font-weight:700;border:2px solid var(--sky-deep);background:white;color:var(--text-soft);}
+.bd-chapter.done{background:var(--green);border-color:var(--green-dark);color:white;}
+.bd-char{border-radius:14px;padding:12px;margin-bottom:10px;background:var(--sand);box-shadow:0 2px 8px var(--shadow);}
+.bd-char-name{font-size:var(--fs-body);font-weight:900;color:var(--text);margin-bottom:6px;}
+.bd-period{font-size:calc(var(--fs-body) - 3px);line-height:1.6;padding:8px 0;border-top:1px dashed var(--sand-dark);}
+.bd-period:first-of-type{border-top:none;}
+.bd-period.locked{color:var(--text-soft);opacity:.75;}
+.bd-period-title{font-weight:700;}
+.bd-lock-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
+.bd-lock-tag.on{background:var(--green);color:white;}
+.bd-lock-tag.off{background:var(--sand-dark);color:var(--text-soft);}
 </style>
 </head>
 <body>
@@ -841,6 +860,18 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   <div class="modal">
     <div id="ach-unlock-content"></div>
     <button class="green-btn" onclick="closeOverlay('ach-unlock-overlay')">繼續靈修旅程 →</button>
+  </div>
+</div>
+
+<!-- A1 書卷詳情頁（純新增 view，不碰主流程；只讀 state.completed）-->
+<div class="overlay" id="book-detail-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="sheet-title" id="bd-title">📖 書卷</div>
+      <button onclick="closeOverlay('book-detail-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
+    </div>
+    <div id="book-detail-body"></div>
   </div>
 </div>
 
@@ -2169,7 +2200,7 @@ function renderLibraryPage() {
       const prog = getBookProgress(book);
       const pct = Math.round(prog.done / prog.total * 100);
       const cls = prog.complete ? 'lit' : (prog.done > 0 ? 'progress' : 'locked');
-      html += `<div class="book-spine ${cls}">
+      html += `<div class="book-spine ${cls}" onclick="openBookDetail('${book.key}')">
         <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
         <div class="book-spine-name">${book.name}</div>
         <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
@@ -2182,6 +2213,81 @@ function renderLibraryPage() {
   html += `<div class="shelf-summary">📖 已完走 ${done} / ${BOOKS.length} 卷</div>`;
   html += '</div>';
   el.innerHTML = html;
+}
+
+// ── A1 書卷詳情頁（純新增 view；只讀 state.completed，不寫狀態、不碰主流程）──
+function openBookDetail(bookKey) {
+  renderBookDetail(bookKey);
+  openOverlay('book-detail-overlay');
+}
+function renderBookDetail(bookKey) {
+  const book = BOOKS.find(b => b.key === bookKey);
+  if (!book) return;
+  const titleEl = document.getElementById('bd-title');
+  if (titleEl) titleEl.textContent = `${book.emoji} ${book.name}`;
+  const esc = (typeof escapeHtmlMyMsg === 'function') ? escapeHtmlMyMsg : (x => x);
+  let html = '';
+
+  // ① 導讀區（讀 BOOK_INTRO[key]；空值顯示「待補」）
+  const intro = (typeof BOOK_INTRO !== 'undefined' && BOOK_INTRO[bookKey]) || null;
+  html += '<div class="bd-section"><div class="bd-section-title">📜 書卷導讀</div>';
+  if (intro) {
+    const rows = [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]];
+    for (const [label, val] of rows) {
+      const shown = (val && String(val).trim()) ? esc(val) : '<span class="bd-intro-empty">待補</span>';
+      html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${shown}</div>`;
+    }
+  } else {
+    html += '<div class="bd-intro-row bd-intro-empty">導讀內容待補</div>';
+  }
+  html += '</div>';
+
+  // ② 章節清單 + 進度（getBookProgress + state.completed 逐章標完成；不揭露默想內容）
+  const prog = getBookProgress(book);
+  html += '<div class="bd-section"><div class="bd-section-title">📑 章節進度</div>';
+  html += `<div class="bd-progress-text">已完成 ${prog.done} / ${prog.total} 章</div>`;
+  html += '<div class="bd-chapter-grid">';
+  book.entries.forEach((ch, i) => {
+    const done = !!state.completed[chapterKey(ch)];
+    html += `<div class="bd-chapter ${done ? 'done' : ''}">${done ? '✓' : (i + 1)}</div>`;
+  });
+  html += '</div></div>';
+
+  // ③ 人物冊（遍歷 CHARACTERS，逐 period 判斷 book===key 與解鎖；只介紹、不含默想輸入）
+  const chars = (typeof CHARACTERS !== 'undefined') ? CHARACTERS : {};
+  const entries = [];
+  for (const cid in chars) {
+    const c = chars[cid];
+    if (!c || !c.periods) continue;
+    const ps = [];
+    for (const pid in c.periods) {
+      const p = c.periods[pid];
+      if (p && p.book === bookKey) ps.push(p);
+    }
+    if (ps.length) entries.push({ c, ps });
+  }
+  if (entries.length) {
+    html += '<div class="bd-section"><div class="bd-section-title">👥 人物冊</div>';
+    for (const { c, ps } of entries) {
+      html += `<div class="bd-char"><div class="bd-char-name">${esc(c.name || '（待補）')}</div>`;
+      for (const p of ps) {
+        const unlocked = !!(p.unlock && state.completed[chapterKey(p.unlock)]);
+        const title = (p.title && p.title.trim()) ? esc(p.title) : '（時期待補）';
+        const tag = unlocked ? '<span class="bd-lock-tag on">已解鎖</span>' : '<span class="bd-lock-tag off">未解鎖</span>';
+        html += `<div class="bd-period ${unlocked ? '' : 'locked'}"><span class="bd-period-title">${title}</span>${tag}`;
+        if (unlocked) {
+          html += `<div>${(p.desc && p.desc.trim()) ? esc(p.desc) : '（介紹待補）'}</div>`;
+        } else {
+          html += '<div>走到這卷的進度即可解鎖這段認識。</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  document.getElementById('book-detail-body').innerHTML = html;
 }
 
 // ── 分享次數 +1 ──────────────────────────────────────────────
