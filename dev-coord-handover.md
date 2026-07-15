@@ -1,3 +1,79 @@
+# 💻 W22 事 3 交接（2026-05-31）+ 0601 接手核對
+
+> 2026-06-01 開發視窗0601 補存（舊視窗因工具格式 bug 沒存成功）。
+> 下方第一段是 0601 視窗接手核對結果，第二段是 5/31 交接原文。
+
+## 0601 接手核對結果
+
+**git 落差已釐清（兩個虛驚）：**
+- dev HEAD `f39b2ce`（非交接單寫的 `a11d77f`）：6/01 早上多 merge `f39b2ce`（只改 CLAUDE.md +6/-2 補 GA4 說明），純文件不碰玩家可見檔。現 dev 比 origin/dev(`6c789b4`) 多 3 個 Cowork commit：`8f975a4`/`a11d77f`/`f39b2ce`。
+- main：交接單的 `148aa94` 其實是 origin/main；本機 main=`d3f832c`（v2.14 release）落後 origin/main。與事 3 無關，待 James 確認 main 同步。
+
+**三站線上內容（curl 實測）：** GitHub Pages 正式版=2.15、無新章節（玩家端乾淨）；firebase hosting:main 測試站=2.15、無新章節（待本次部署更新）；dev channel=2.14（舊）。
+
+**內容就緒度（本機 content.js）：** GAL5/GAL6、COL1–4、TIM1_1~6 章節物件 + BIBLE_LINKS + SCHEDULE 全齊、互相對得上 → 事 3 四項清單可完整驗。
+（註：0601 視窗一度因 grep 格式誤判「COL 缺失」，重查更正——內容無缺口。）
+
+**狀態：** 待 James 拍板是否 deploy / 是否先 push origin dev 那 3 個 Cowork commit。未自行部署。
+
+---
+
+## W22 事 3 交接原文（2026-05-31）
+
+### git 現況（接手第一件事核對）
+- 分支 dev、工作樹 clean
+- 本機 dev HEAD = a11d77f；origin/dev = 6c789b4；main = 148aa94（未動、別碰）
+- 本機比 origin/dev 多 2 個未 push 的 Cowork commit（與事 3 無關、不動玩家可見檔）：
+  8f975a4 npm run ga4 腳本、a11d77f gitignore 排除 OAuth token.json
+- ⚠️ 背景 session 偶發 cwd 跑掉 → 每個 Bash 前先 cd /Users/aitest/Desktop/Bible-game
+
+接手先跑：git fetch origin && git branch --show-current && git rev-parse --short HEAD && git status -s
+
+### W22 三條尾巴進度
+- 事 1 職責去重 commit：✅ 已 push（af50809 + 6c789b4）
+- 事 2 Phase C 切換：✅ 已完成、無 diff（COL+5 歷史合併日早在 d15c76b/b65e83e/091aa5c 切好，18 卷全 mergedActive:false）
+- 事 3 部署測試版 + 驗證清單：⏸️ 未完成
+
+### 事 3 怎麼做（繞過長指令格式 bug — 關鍵）
+不要把帶管線的長 firebase deploy 直接送終端機。改 here-doc 建 deploy.sh 再送短指令：
+
+  cat > deploy.sh <<'INNER'
+  #!/usr/bin/env bash
+  set -euo pipefail
+  cd /Users/aitest/Desktop/Bible-game
+  git rev-parse --abbrev-ref HEAD
+  git rev-parse --short HEAD
+  firebase deploy --only hosting:main 2>&1 | tee deploy.log
+  INNER
+
+然後送：bash deploy.sh。看到 "Deploy complete!" + Hosting URL 才算成功。
+
+Constraints：只 --only hosting:main、嚴禁裸 deploy、不碰 admin/functions/rules、不 merge/push main、不碰 GitHub Pages 正式版。deploy.sh / deploy.log 不要 git add。deploy 再出非預期輸出 → 停手回報、不硬重試第三次。
+
+決策點：本機有未 push 的 Cowork commit。部署玩家端結果與 origin/dev 相同、可直接部署；要不要先 git push origin dev 先問 James（別視窗的活）。
+
+部署後 curl sanity：GAME_VERSION 仍 '2.15'、title v2.15、admin/functions/rules 未動。
+
+### 給 James 的 4 項實機驗證清單（部署成功後給、然後停下）
+打開 https://bible-game-bcb84.web.app/bible-game-v2.html ：
+1. 6/14 月曆 → COL1+COL2 雙卡 UI 觸發
+2. 6/26 月曆 → TIM1_2+TIM1_3 雙卡 UI 觸發
+3. COL 書卷頁完走判定：讀完 COL1-4 → N/N + library 成就
+4. 6 月隨機抽 3 章 → 內容正常顯示、不是「內容更新中」
+
+### 🛑 停止線
+清單給出後停下，等 James 實機驗證全綠才討論上 main。升 v2.16 上 main 是 PM 拍板、執行者不自動推進。
+
+### 常識速查
+- flag：GAME_VERSION='2.15' / FEATURE_FEEDBACK_V2=true / SUPPRESS_VERSION_POPUP=false（content.js:3/9/16）
+- 版本公告彈窗「累積列多條」是設計不是 bug，不改
+- 部署 target：firebase.json main → site bible-game-bcb84；admin → bible-game-admin（別碰）
+- CLAUDE.md 已同步 v2.15（commit 2b0c3b7）
+
+═══════════════════════════════════════════════════════════
+（以下為 2026-05-23 W21 開發協調交班備忘錄，原文保留）
+═══════════════════════════════════════════════════════════
+
 # 💻 開發協調交班備忘錄
 
 > 交班日期：2026-05-23（W21 第六天，週六）
