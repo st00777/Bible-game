@@ -59,6 +59,7 @@
 - **影響**：Cloud Functions（Gen2 / Cloud Run）需 Blaze 才能運作 → **LINE 登入（占 87% 玩家 105/121）已壞、AI 默想同風險**。Google 登入走前端 SDK 不經函式、**不受影響**；**Firestore 玩家資料完全安全**（本次四支腳本全讀得到、一筆沒少）。
 - **30 天迷思澄清**：免費（Spark）方案**不會過 30 天就刪玩家資料**；30 天寬限期針對的是 Cloud Run 等付費資源（函式，原始碼在 git 可重部署）。真正的問題是「現在」函式已停、非「30 天後」。
 - **修復（需 James 本人）**：GCP billing 主控台重新連結有效帳單帳戶 / 更新過期卡（`console.cloud.google.com/billing/linkedaccount?project=bible-game-bcb84`）→ 函式自動恢復、免重部署。建議順手設預算警示避免再次靜默停用。**恢復後重跑 `npm run line-logs` 驗證。**
+- **✅ 結案（同日 7/15 ~15:40）**：James 重開付費方案。**實測 lineLogin 已恢復** ── 打函式從「billing is disabled」轉為回 `{"error":"login_failed"}`（假 code 的預期健康反應）＝已越過 billing 閘門正常執行、免重部署；AI 共用同閘門一併恢復。停機約 ~1 小時（14:47~15:40）。待辦：設預算警示防再次靜默停用。
 
 ### 📊 常規指標：週完成疑落底、深度全綠
 
