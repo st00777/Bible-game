@@ -27,6 +27,7 @@ Bible-game/
 ├── design-principles.md           # 情緒／默想類功能設計紅線（我們不做什麼），與 CLAUDE.md 並列
 ├── LEARNING.md                    # 開發學習筆記（踩坑紀錄）
 ├── claude-code-agent-prompts.md   # 內容生成 prompts + 審查清單
+├── content-tone-guide.md          # 敏感經文內容處理基調（內容視窗必讀）
 ├── README.md                      # GitHub 說明頁
 ├── firebase.json                  # Firebase 設定（Functions/Firestore/Hosting）
 ├── firestore.rules                # Firestore 安全規則
