@@ -1002,3 +1002,17 @@ commit 前必須確認當前所在分支。
 - **共同開發者**：遊戲設計發想，測試，新功能提案
 
 **使用工具**：Claude（對話討論）、Claude Code（程式修改）、GitHub Pages（部署）
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
