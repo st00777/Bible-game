@@ -24,14 +24,16 @@ case "$CMD" in
     firebase hosting:channel:deploy "$CH" --only main --expires "$EXP" 2>&1 | tee deploy.log
     ;;
   functions)
-    echo "▶ Functions：firebase deploy --only functions:aiReflection,functions:lineLogin"
-    firebase deploy --only functions:aiReflection,functions:lineLogin 2>&1 | tee deploy.log
+    # 部署「全部」functions：舊寫法硬列 aiReflection,lineLogin，
+    # 導致 autoCloseInactiveThreads（30 天自動關閉討論串）改了永遠上不了線（issue #7）。
+    echo "▶ Functions：firebase deploy --only functions（全部，含 autoCloseInactiveThreads）"
+    firebase deploy --only functions 2>&1 | tee deploy.log
     ;;
   *)
     echo "用法：bash deploy.sh <hosting|channel|functions> [channel名稱] [expires]"
     echo "  hosting               固定測試站  firebase deploy --only hosting:main"
     echo "  channel [名稱] [天數]  preview     firebase hosting:channel:deploy <名稱:dev> --only main --expires <天數:30d>"
-    echo "  functions             後端        firebase deploy --only functions:aiReflection,functions:lineLogin"
+    echo "  functions             後端        firebase deploy --only functions（全部）"
     exit 1
     ;;
 esac
