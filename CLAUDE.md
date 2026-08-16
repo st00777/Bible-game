@@ -1016,3 +1016,7 @@ Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, 
 ### Domain docs
 
 Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Skills 指令速查
+
+mattpocock-skills 各指令的用途與分類（中文），所有視窗共用。見 `docs/agents/skills-guide.md`。
