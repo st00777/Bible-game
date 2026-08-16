@@ -27,11 +27,23 @@
         "**/node_modules/**",
         "functions/**",
         "admin/**",
+        "docs/**",
+        "drafts/**",
+        "roles/**",
+        "scripts/**",
+        "sprint-log/**",
         "CLAUDE.md",
         "README.md",
         "claude_output.log",
         "firestore.rules",
-        "*.log"
+        "*.log",
+        "*.json",
+        "*.md",
+        "*.txt",
+        "*.csv",
+        "*.sh",
+        "*.bak",
+        "*.zip"
       ]
     },
     {
