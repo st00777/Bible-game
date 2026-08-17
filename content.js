@@ -397,7 +397,7 @@ const BOOK_INTRO = {
 // 使徒行傳是特例：章節 key 是純數字（10、11、12...），所以沒 prefix 欄位
 // 未來加新書卷只要在這裡多加一個物件，chapterLabel/chapterFull 會自動支援
 const BOOKS = [
-  { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:18,
+  { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:19,
     entries:[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
     merged:{}, mergedActive:false },
   { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
