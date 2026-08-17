@@ -392,6 +392,82 @@ const BOOK_INTRO = {
   },
 };
 
+// ══ 書卷表（2026-08-17 自 bible-game-v2.html 搬入，issue #2：內容資料集中管理）══
+// 每本書兩個欄位：shortName（中文短名，給日曆/列表用）、prefix（章節 key 字串前綴）
+// 使徒行傳是特例：章節 key 是純數字（10、11、12...），所以沒 prefix 欄位
+// 未來加新書卷只要在這裡多加一個物件，chapterLabel/chapterFull 會自動支援
+const BOOKS = [
+  { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:18,
+    entries:[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
+    merged:{}, mergedActive:false },
+  { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
+    entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM11','ROM12','ROM13','ROM14','ROM15','ROM16'],
+    merged:{}, mergedActive:false },
+  { key:'COR1', name:'哥林多前書', shortName:'林前', prefix:'COR1_', emoji:'✉️', totalChapters:16,
+    entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_8','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
+    merged:{}, mergedActive:false },
+  { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
+    entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
+    merged:{}, mergedActive:false },
+  { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
+    entries:['GAL1','GAL2','GAL3','GAL4','GAL5','GAL6'],
+    merged:{}, mergedActive:false },
+  { key:'EPH', name:'以弗所書', shortName:'弗', prefix:'EPH', emoji:'💍', totalChapters:6,
+    entries:['EPH1','EPH2','EPH3','EPH4','EPH5','EPH6'],
+    merged:{}, mergedActive:false },
+  { key:'PHP', name:'腓立比書', shortName:'腓', prefix:'PHP', emoji:'🌅', totalChapters:4,
+    entries:['PHP1','PHP2','PHP3','PHP4'],
+    merged:{}, mergedActive:false },
+  { key:'COL', name:'歌羅西書', shortName:'西', prefix:'COL', emoji:'👑', totalChapters:4,
+    entries:['COL1','COL2','COL3','COL4'],
+    merged:{}, mergedActive:false },
+  { key:'TH1', name:'帖撒羅尼迦前書', shortName:'帖前', prefix:'TH1_', emoji:'⏳', totalChapters:5,
+    entries:['TH1_1','TH1_2','TH1_3','TH1_4','TH1_5'],
+    merged:{}, mergedActive:false },
+  { key:'TH2', name:'帖撒羅尼迦後書', shortName:'帖後', prefix:'TH2_', emoji:'🛡️', totalChapters:3,
+    entries:['TH2_1','TH2_2','TH2_3'],
+    merged:{}, mergedActive:false },
+  { key:'TIM1', name:'提摩太前書', shortName:'提前', prefix:'TIM1_', emoji:'🎓', totalChapters:6,
+    entries:['TIM1_1','TIM1_2','TIM1_3','TIM1_4','TIM1_5','TIM1_6'],
+    merged:{}, mergedActive:false },
+  { key:'TIM2', name:'提摩太後書', shortName:'提後', prefix:'TIM2_', emoji:'🪖', totalChapters:4,
+    entries:['TIM2_1','TIM2_2','TIM2_3','TIM2_4'],
+    merged:{}, mergedActive:false },
+  { key:'TIT', name:'提多書', shortName:'多', prefix:'TIT', emoji:'⚓', totalChapters:3,
+    entries:['TIT1','TIT2','TIT3'],
+    merged:{}, mergedActive:false },
+  { key:'PHM', name:'腓利門書', shortName:'門', prefix:'PHM', emoji:'🤝', totalChapters:1,
+    entries:['PHM1'],
+    merged:{}, mergedActive:false },
+  { key:'HEB', name:'希伯來書', shortName:'來', prefix:'HEB', emoji:'🕊️', totalChapters:13,
+    entries:['HEB1','HEB2','HEB3','HEB4','HEB5','HEB6','HEB7','HEB8','HEB9','HEB10','HEB11','HEB12','HEB13'],
+    merged:{}, mergedActive:false },
+  { key:'JAS', name:'雅各書', shortName:'雅', prefix:'JAS', emoji:'⚖️', totalChapters:5,
+    entries:['JAS1','JAS2','JAS3','JAS4','JAS5'],
+    merged:{}, mergedActive:false },
+  { key:'PE1', name:'彼得前書', shortName:'彼前', prefix:'PE1_', emoji:'🪨', totalChapters:5,
+    entries:['PE1_1','PE1_2','PE1_3','PE1_4','PE1_5'],
+    merged:{}, mergedActive:false },
+  { key:'PE2', name:'彼得後書', shortName:'彼後', prefix:'PE2_', emoji:'📜', totalChapters:3,
+    entries:['PE2_1','PE2_2','PE2_3'],
+    merged:{}, mergedActive:false },
+  { key:'JN1', name:'約翰一書', shortName:'約一', prefix:'JN1_', emoji:'💛', totalChapters:5,
+    entries:['JN1_1','JN1_2','JN1_3','JN1_4','JN1_5'],
+    merged:{}, mergedActive:false },
+  { key:'JN2', name:'約翰二書', shortName:'約二', prefix:'JN2_', emoji:'📩', totalChapters:1,
+    entries:['JN2_1'],
+    merged:{}, mergedActive:false },
+  { key:'JN3', name:'約翰三書', shortName:'約三', prefix:'JN3_', emoji:'📨', totalChapters:1,
+    entries:['JN3_1'],
+    merged:{}, mergedActive:false },
+  { key:'JUD', name:'猶大書', shortName:'猶', prefix:'JUD', emoji:'🛡️', totalChapters:1,
+    entries:['JUD1'],
+    merged:{}, mergedActive:false },
+  { key:'REV', name:'啟示錄', shortName:'啟', prefix:'REV', emoji:'📖', totalChapters:22,
+    entries:['REV1','REV2','REV3','REV4','REV5','REV6','REV7','REV8','REV9','REV10','REV11','REV12','REV13','REV14','REV15','REV16','REV17','REV18','REV19','REV20','REV21','REV22'],
+    merged:{}, mergedActive:false },
+];
+
 const CHARACTERS = {
   // 示範：保羅、提摩太（多時期 schema；Phase 1 只填「教牧時期」，其餘時期預留空殼）
   // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock } }
@@ -6099,3 +6175,66 @@ const CHAPTERS = [
     bonusItem:{emoji:'📿', name:'我願祢來', desc:'「證明這事的說：「是了，我必快來！」阿們！主耶穌啊，我願你來！」', slot:'hand'}
   }
 ];
+
+// ══ 內容一致性自檢（issue #2）════════════════════════════════════
+// 五張表（SCHEDULE / BIBLE_LINKS / BOOK_INTRO / CHAPTERS / BOOKS）以前靠人腦
+// 保持一致，對不上時是玩家先發現。這支自檢在 content.js 載入完立刻跑：
+//   結構性錯誤（章節缺內容、章節不屬於任何書卷）→ console.error
+//   內容待補（缺書卷導讀、totalChapters 過期）    → console.warn
+// 只印在 console、不影響玩家畫面；結果掛在 window.CONTENT_VALIDATION，
+// 新增章節存檔後開 dev preview 的 console 看一眼，就等於過了一次驗收。
+function validateContent() {
+  const errors = [];
+  const warns = [];
+  const chapterSet = new Set(CHAPTERS.map(c => String(c.chapter)));
+
+  // 1) BOOKS 的每個章節都要有內容；同一章不能出現在兩本書
+  const entrySet = new Set();
+  BOOKS.forEach(b => b.entries.forEach(e => {
+    const k = String(e);
+    if (entrySet.has(k)) errors.push(`BOOKS：章節 ${k} 重複出現（${b.key}）`);
+    entrySet.add(k);
+    if (!chapterSet.has(k)) errors.push(`BOOKS：${b.name} 的 ${k} 在 CHAPTERS 找不到內容`);
+  }));
+
+  // 2) CHAPTERS 的每一章都要屬於某本書（孤兒章節玩家永遠點不到書卷詳情）
+  chapterSet.forEach(k => {
+    if (!entrySet.has(k)) errors.push(`CHAPTERS：章節 ${k} 不屬於任何 BOOKS 書卷`);
+  });
+
+  // 3) SCHEDULE 排了的章節都要有內容
+  Object.keys(SCHEDULE).forEach(d => SCHEDULE[d].forEach(ch => {
+    if (!chapterSet.has(String(ch))) errors.push(`SCHEDULE：${d} 排的 ${ch} 在 CHAPTERS 找不到內容`);
+  }));
+
+  // 4) 每一章都要有經文連結
+  chapterSet.forEach(k => {
+    if (!BIBLE_LINKS[k]) errors.push(`BIBLE_LINKS：章節 ${k} 缺經文連結`);
+  });
+
+  // 5) 每本書都該有導讀（缺的話書卷詳情頁會顯示「待補」）
+  BOOKS.forEach(b => {
+    if (!BOOK_INTRO[b.key]) warns.push(`BOOK_INTRO：${b.name}（${b.key}）缺書卷導讀`);
+  });
+
+  // 6) totalChapters 與 entries 數量對不上（mergedActive:false 時分母走 entries，
+  //    totalChapters 只是過期標籤，但留著會誤導下一個維護的人）
+  BOOKS.forEach(b => {
+    if (b.totalChapters !== b.entries.length) {
+      warns.push(`BOOKS：${b.name} totalChapters=${b.totalChapters} 但 entries 有 ${b.entries.length} 章`);
+    }
+  });
+
+  if (errors.length) {
+    console.error(`🚨 內容自檢：${errors.length} 條結構錯誤（新章節上線前必修）`);
+    errors.forEach(m => console.error('  ✗ ' + m));
+  }
+  if (warns.length) {
+    console.warn(`📋 內容自檢：${warns.length} 條待補（不擋上線，找內容窗補）`);
+    warns.forEach(m => console.warn('  · ' + m));
+  }
+  if (!errors.length && !warns.length) console.log('✅ 內容自檢通過：五張表一致');
+  return { errors, warns };
+}
+if (typeof window !== 'undefined') window.CONTENT_VALIDATION = validateContent();
+else validateContent(); // node 環境（驗證腳本）直接跑
