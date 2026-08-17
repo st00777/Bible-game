@@ -2362,6 +2362,23 @@ function chapterKey(ch) {
   return `ACT${ch}`;                       // 數字 = 使徒行傳
 }
 
+// 章節查表唯一入口（issue #3）：以前 15 個呼叫點各自 CHAPTERS.find，
+// String() 寬鬆與嚴格比對兩種寫法並存，數字章節被 inline onclick 字串化後
+// 嚴格比對就查不到。統一走這裡，接受三種形態：
+//   10（數字）、'10'（字串化數字）、'ACT10' / 'ROM3'（chapterKey 存檔 key）
+// 索引在第一次查詢時才建（content.js 是 defer 載入，本段執行當下 CHAPTERS 還不在）。
+let CHAPTERS_BY_KEY = null;
+function getChapter(ch) {
+  if (!CHAPTERS_BY_KEY) {
+    CHAPTERS_BY_KEY = new Map();
+    CHAPTERS.forEach(c => {
+      CHAPTERS_BY_KEY.set(String(c.chapter), c);      // 10 → '10'；'ROM3' → 'ROM3'
+      CHAPTERS_BY_KEY.set(chapterKey(c.chapter), c);  // 10 → 'ACT10'（字串 key 兩者相同，覆寫無害）
+    });
+  }
+  return CHAPTERS_BY_KEY.get(String(ch)) || null;
+}
+
 function isChapterDone(ch) {
   return !!state.completed[chapterKey(ch)];
 }
@@ -2476,24 +2493,24 @@ function findScheduleDate(ch) {
 function pickDefaultChapter(chapters) {
   if (!chapters || chapters.length === 0) return null;
   // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
-  const undone = chapters.find(c => !isChapterDone(c) && CHAPTERS.find(d => String(d.chapter) === String(c)));
+  const undone = chapters.find(c => !isChapterDone(c) && getChapter(c));
   if (undone) return undone;
-  const firstAvail = chapters.find(c => CHAPTERS.find(d => String(d.chapter) === String(c)));
+  const firstAvail = chapters.find(c => getChapter(c));
   return firstAvail || null;
 }
 
 function getTodayChapter() {
   const today = todayStr();
-  const todays = getScheduleChapters(today).filter(c => CHAPTERS.find(d => d.chapter === c));
+  const todays = getScheduleChapters(today).filter(c => getChapter(c));
   const pick = pickDefaultChapter(todays);
   if (pick) return pick;
   // Fallback: find the latest past date with available content
   const availableDates = Object.keys(SCHEDULE)
-    .filter(d => d <= today && getScheduleChapters(d).some(c => CHAPTERS.find(x => x.chapter === c)))
+    .filter(d => d <= today && getScheduleChapters(d).some(c => getChapter(c)))
     .sort();
   if (availableDates.length > 0) {
     const lastChapters = getScheduleChapters(availableDates[availableDates.length - 1])
-      .filter(c => CHAPTERS.find(x => x.chapter === c));
+      .filter(c => getChapter(c));
     return pickDefaultChapter(lastChapters) || CHAPTERS[0].chapter;
   }
   return CHAPTERS[0].chapter;
@@ -2761,7 +2778,7 @@ function renderCalGrid() {
     } else {
       const ds = calDateStr(calYear, calMonth, d);
       const chapters = getScheduleChapters(ds);
-      const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+      const availChapters = chapters.filter(c => getChapter(c));
       const hasContent = availChapters.length > 0;
       const doneCount = availChapters.filter(c => isChapterDone(c)).length;
       const allDone = hasContent && doneCount === availChapters.length;
@@ -2815,7 +2832,7 @@ const SINGLE_DAY_BAR_HTML = `
 function updateDayInfoBar(ds, d) {
   const bar = document.getElementById('day-info-bar');
   const chapters = getScheduleChapters(ds);
-  const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+  const availChapters = chapters.filter(c => getChapter(c));
   const todayFlag = calIsToday(calYear, calMonth, d);
   const isFuture = new Date(calYear, calMonth, d) > new Date(calToday.getFullYear(), calToday.getMonth(), calToday.getDate());
   const weekdays = ['日','一','二','三','四','五','六'];
@@ -2826,7 +2843,7 @@ function updateDayInfoBar(ds, d) {
   if (availChapters.length >= 2) {
     bar.classList.add('merged');
     const cardsHtml = availChapters.map(c => {
-      const data = CHAPTERS.find(x => x.chapter === c);
+      const data = getChapter(c);
       const done = isChapterDone(c);
       return `
         <div class="merged-day-card ${done ? 'done' : ''}" onclick="selectMergedDayChapter('${c}')">
@@ -2851,7 +2868,7 @@ function updateDayInfoBar(ds, d) {
     bar.innerHTML = SINGLE_DAY_BAR_HTML;
   }
   const ch = availChapters[0] || chapters[0];
-  const chapterData = ch ? CHAPTERS.find(c => c.chapter === ch) : null;
+  const chapterData = ch ? getChapter(ch) : null;
   const hasContent = !!chapterData;
   const done = hasContent ? isChapterDone(ch) : false;
 
@@ -2944,7 +2961,7 @@ function skipMood() {            // 先不說：不存 mood、不留痕（紅線
 function confirmDaySelection() {
   if (!calSelectedDate) return;
   const chapters = getScheduleChapters(calSelectedDate);
-  const availChapters = chapters.filter(c => CHAPTERS.find(x => x.chapter === c));
+  const availChapters = chapters.filter(c => getChapter(c));
   if (availChapters.length === 0) return;
   // 單章日：直接載入；合併日：載入預設章（第一個未完成 / 第一可用）
   // 合併日玩家通常從雙卡點，這條 fallback 給「日曆框被點 → confirmDaySelection 間接觸發」場景
@@ -3009,7 +3026,7 @@ function selectChapter(ch) {
   document.getElementById('choice-feedback').style.display = 'none';
 
   // v2.12 hotfix: 寬鬆比對容忍數字/字串 chapter key 混用（使徒行傳用數字、其他書卷用字串）。長期規格統一後可移除。
-  const data = CHAPTERS.find(c => String(c.chapter) === String(ch));
+  const data = getChapter(ch);
   if (!data) return;
   // v2.12 hotfix 策略 A: 用 data.chapter 而非外部傳入的 ch，從源頭正規化型別。
   // 解決使徒行傳合併日 onclick HTML 屬性字串化導致下游 19 處 selectedChapter 污染、
@@ -3076,7 +3093,7 @@ function selectChapter(ch) {
 function selectChoice(btn, choice) {
   if (choiceConfirmed) return;
   // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
-  const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
+  const data = getChapter(selectedChapter);
   if (!data) return;
 
   if (pendingChoice !== choice) {
@@ -3169,7 +3186,7 @@ async function submitReflection() {
   aiText.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
 
   // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
-  const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
+  const data = getChapter(selectedChapter);
   // ⚠️ 修改這句要同步：functions/index.js 的 FALLBACK_TEXT + scripts/analyze-feedback.js 的 FALLBACK_TEXT
   const fallback = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
   try {
@@ -3263,7 +3280,7 @@ async function finalizeCompletion() {
   const hasBonus = reflText.length > 0;
   // ===== 以下為原 completeDevotional 完成區塊，逐行原封搬入（streak / 合併日 / xp / completed 一行未改）=====
   // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
-  const data = CHAPTERS.find(c => String(c.chapter) === String(selectedChapter));
+  const data = getChapter(selectedChapter);
   const gender = state.gender || 'n';
   const newItem = {...resolveItem(data.baseItem, gender), chapter: selectedChapter};
   const bonusItem = hasBonus ? {...resolveItem(data.bonusItem, gender), chapter: selectedChapter} : null;
@@ -3367,7 +3384,7 @@ function replayReward() {
   const key = chapterKey(ch);
   if (!isChapterDone(ch)) return;                                  // 安全：只對已完成章
   if (state.rewardClaimed && state.rewardClaimed[key]) return;     // 已領就不再放
-  const data = CHAPTERS.find(c => String(c.chapter) === String(ch));
+  const data = getChapter(ch);
   if (!data) return;
   const gender = state.gender || 'n';
   // hasBonus 由背包件數推：該章在 state.items 的件數（2=有稀有 / 1=無 / 0=資料已不在 → 僅基本展示）
@@ -3895,7 +3912,7 @@ function renderDiaryList(entries) {
   for (const [book, items] of Object.entries(groups)) {
     html += `<div class="diary-book-group"><div class="diary-book-title">${book}</div>`;
     items.forEach(e => {
-      const ch = CHAPTERS.find(c => chapterKey(c.chapter) === e.key);
+      const ch = getChapter(e.key);
       const title = ch?.reflectionTitle || '';
       const chLabel = chapterFull(ch?.chapter || e.key);
       const preview = e.reflectionText ? e.reflectionText.slice(0, 60) + (e.reflectionText.length > 60 ? '...' : '') : '（有填寫默想，但文字未保存）';
@@ -3915,7 +3932,7 @@ function filterDiary() {
   const q = document.getElementById('diary-search').value.trim().toLowerCase();
   if (!q) { renderDiaryList(diaryData); return; }
   const filtered = diaryData.filter(e => {
-    const ch = CHAPTERS.find(c => chapterKey(c.chapter) === e.key);
+    const ch = getChapter(e.key);
     const chLabel = chapterFull(ch?.chapter || e.key).toLowerCase();
     const text = (e.reflectionText || '').toLowerCase();
     const title = (ch?.reflectionTitle || '').toLowerCase();
@@ -3929,7 +3946,7 @@ function showDiaryDetail(key) {
   if (!entry) return;
   // 追蹤：玩家點某筆日記看詳情（含當天 AI 回應）— 比 diary_open 更深一層的回顧行為
   track('diary_detail', { chapter: key });
-  const ch = CHAPTERS.find(c => chapterKey(c.chapter) === key);
+  const ch = getChapter(key);
   const chLabel = chapterFull(ch?.chapter || key);
   const title = ch?.reflectionTitle || '';
   const prompt = ch?.reflection || '';
