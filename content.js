@@ -6354,13 +6354,17 @@ function validateContent() {
   const warns = [];
   const chapterSet = new Set(CHAPTERS.map(c => String(c.chapter)));
 
-  // 1) BOOKS 的每個章節都要有內容；同一章不能出現在兩本書
+  // 1) 同一章不能出現在兩本書。
+  //    「entries 有但 CHAPTERS 無」不在此報：依 design-principles.md v1.2
+  //    「一書卷分批上線時，entries 一律預填全書卷章數」通則（2026-07-27 拍板），
+  //    預填章節在尚未排程前不是缺漏；「已排程卻無內容」的玩家可見破損
+  //    由檢查 3) 單一負責（error），避免同一章被報兩次（排多日時更多次）。
+  //    （PM 2026-08-17 裁定：採單一職責分工、檢查 3) 維持 error 不降級。）
   const entrySet = new Set();
   BOOKS.forEach(b => b.entries.forEach(e => {
     const k = String(e);
     if (entrySet.has(k)) errors.push(`BOOKS：章節 ${k} 重複出現（${b.key}）`);
     entrySet.add(k);
-    if (!chapterSet.has(k)) errors.push(`BOOKS：${b.name} 的 ${k} 在 CHAPTERS 找不到內容`);
   }));
 
   // 2) CHAPTERS 的每一章都要屬於某本書（孤兒章節玩家永遠點不到書卷詳情）
