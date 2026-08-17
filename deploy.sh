@@ -6,6 +6,14 @@ cd /Users/aitest/Desktop/Bible-game
 
 CMD="${1:-}"
 
+# 白名單部署（安全事件收尾）：hosting 只上傳 public/ 內的兩個遊戲檔。
+# 每次部署前強制從根目錄同步，確保 public/ 版本不會落後、preview 不會驗到舊版。
+sync_public() {
+  mkdir -p public
+  cp -f bible-game-v2.html content.js public/
+  echo "▶ 已同步 public/（bible-game-v2.html + content.js）"
+}
+
 echo "== 分支 / HEAD =="
 git rev-parse --abbrev-ref HEAD
 git rev-parse --short HEAD
@@ -13,12 +21,14 @@ echo
 
 case "$CMD" in
   hosting)
+    sync_public
     echo "▶ 固定測試站：firebase deploy --only hosting:main  (→ bible-game-bcb84.web.app)"
     firebase deploy --only hosting:main 2>&1 | tee deploy.log
     ;;
   channel)
     CH="${2:-dev}"
     EXP="${3:-30d}"
+    sync_public
     # ⚠️ 紀律：channel:deploy 用 --only main（不是 hosting:main）
     echo "▶ Preview channel '$CH' (expires $EXP)：firebase hosting:channel:deploy $CH --only main --expires $EXP"
     firebase hosting:channel:deploy "$CH" --only main --expires "$EXP" 2>&1 | tee deploy.log

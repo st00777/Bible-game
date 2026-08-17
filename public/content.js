@@ -1,0 +1,6240 @@
+// ══ 靈修冒險 content.js ══════════════════════════════════
+// 版本號：每次更新內容或機制時修改
+const GAME_VERSION = '2026.06.11';
+
+// ── Feature flags ──────────────────────────────────────────
+// 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
+// 完整前先隱藏所有 v2 玩家入口，避免玩家送出有「希望收到回覆」期待後沒人能回。
+// flag=false 時：玩家走 v1 流程（mood + category + message + isAnonymous）；後端資料層仍保持 v2 schema
+const FEATURE_FEEDBACK_V2 = true;
+
+// 此 flag 控制版本公告彈窗。true = silent 升級（更新 lastSeen 但不彈），
+// false = 一般行為（不一致就彈）。
+// 2026-05-24：v2.14 整批上線，曠野呼聲 v2 玩家功能開放（FEATURE_FEEDBACK_V2 翻 true）；
+// 玩家可見「能收到回覆」，故 SUPPRESS_VERSION_POPUP 設 false、彈版本公告告知。
+// 2026-06-10 領裝備治本：修復類、靜默上線，設 true 不彈公告（changelog 仍留紀錄）
+// 未來內容副版次升級可沿用這個 flag、機制變更主版次改回 false。
+const SUPPRESS_VERSION_POPUP = true;
+
+const VERSION_NOTES = [
+  '🌱 靈修前新增「今天帶著什麼來」心情選擇：可選、可跳過',
+  '💬 AI 默想回應會參考你帶來的心情',
+  '📖 新內容：歌羅西書、帖撒羅尼迦前後書、提摩太前書陸續上線（6/14 起）',
+  '📚 合併日雙章：同一天兩章可各自選讀（6/14 西1+2、6/26 提前2+3）',
+  '🔧 修復領取裝備卡關',
+  '🔧 修復日記回看顯示'
+];
+
+// 大光教會2026每日讀經進度
+// 格式：'YYYY-MM-DD': [章節1, 章節2...] 陣列（合併日 length>=2，單章日 length==1）
+// 章節數字 = 使徒行傳；字串 key = 其他書卷
+const SCHEDULE = {
+  '2026-04-01': [10], '2026-04-02': [11], '2026-04-03': [12],
+  '2026-04-04': [13], '2026-04-05': [14, 15], '2026-04-06': [16],
+  '2026-04-07': [17], '2026-04-08': [18], '2026-04-09': [19],
+  '2026-04-10': [20], '2026-04-11': [21], '2026-04-12': [22],
+  '2026-04-13': [23], '2026-04-14': [24], '2026-04-15': [25],
+  '2026-04-16': [26], '2026-04-17': [27, 28],
+  '2026-04-18': ['ROM1'], '2026-04-19': ['ROM2'],
+  '2026-04-20': ['ROM3'], '2026-04-21': ['ROM4'],
+  '2026-04-22': ['ROM5'], '2026-04-23': ['ROM6'],
+  '2026-04-24': ['ROM7'], '2026-04-25': ['ROM8'],
+  '2026-04-26': ['ROM9'], '2026-04-27': ['ROM10'],
+  '2026-04-28': ['ROM11', 'ROM12'], '2026-04-29': ['ROM13'],
+  '2026-04-30': ['ROM14'],
+  '2026-05-01': ['ROM15'],
+  '2026-05-02': ['ROM16'],
+  '2026-05-03': ['COR1_1'],
+  '2026-05-04': ['COR1_2'],
+  '2026-05-05': ['COR1_3'],
+  '2026-05-06': ['COR1_4'],
+  '2026-05-07': ['COR1_5'],
+  '2026-05-08': ['COR1_6'],
+  '2026-05-09': ['COR1_7'],
+  '2026-05-10': ['COR1_8', 'COR1_9'],
+  '2026-05-11': ['COR1_10'],
+  '2026-05-12': ['COR1_11'],
+  '2026-05-13': ['COR1_12'],
+  '2026-05-14': ['COR1_13'],
+  '2026-05-15': ['COR1_14'],
+  '2026-05-16': ['COR1_15'],
+  '2026-05-17': ['COR1_16'],
+  '2026-05-18': ['COR2_1'],
+  '2026-05-19': ['COR2_2'],
+  '2026-05-20': ['COR2_3'],
+  '2026-05-21': ['COR2_4'],
+  '2026-05-22': ['COR2_5', 'COR2_6'],
+  '2026-05-23': ['COR2_7'],
+  '2026-05-24': ['COR2_8'],
+  '2026-05-25': ['COR2_9'],
+  '2026-05-26': ['COR2_10'],
+  '2026-05-27': ['COR2_11'],
+  '2026-05-28': ['COR2_12'],
+  '2026-05-29': ['COR2_13'],
+  '2026-05-30': ['GAL1'],
+  '2026-05-31': ['GAL2'],
+  '2026-06-01': ['GAL3'],
+  '2026-06-02': ['GAL4'],
+  '2026-06-03': ['GAL5', 'GAL6'],
+  '2026-06-04': ['EPH1'],
+  '2026-06-05': ['EPH2'],
+  '2026-06-06': ['EPH3'],
+  '2026-06-07': ['EPH4'],
+  '2026-06-08': ['EPH5'],
+  '2026-06-09': ['EPH6'],
+  '2026-06-10': ['PHP1'],
+  '2026-06-11': ['PHP2'],
+  '2026-06-12': ['PHP3'],
+  '2026-06-13': ['PHP4'],
+  '2026-06-14': ['COL1','COL2'],
+  '2026-06-15': ['COL3'],
+  '2026-06-16': ['COL4'],
+  '2026-06-17': ['TH1_1'],
+  '2026-06-18': ['TH1_2'],
+  '2026-06-19': ['TH1_3'],
+  '2026-06-20': ['TH1_4'],
+  '2026-06-21': ['TH1_5'],
+  '2026-06-22': ['TH2_1'],
+  '2026-06-23': ['TH2_2'],
+  '2026-06-24': ['TH2_3'],
+  '2026-06-25': ['TIM1_1'],
+  '2026-06-26': ['TIM1_2','TIM1_3'],
+  '2026-06-27': ['TIM1_4'],
+  '2026-06-28': ['TIM1_5'],
+  '2026-06-29': ['TIM1_6'],
+  '2026-06-30': ['TIM2_1'],
+  '2026-07-01': ['TIM2_2'],
+  '2026-07-02': ['TIM2_3'],
+  '2026-07-03': ['TIM2_4'],
+  '2026-07-04': ['TIT1'],
+  '2026-07-05': ['TIT2'],
+  '2026-07-06': ['TIT3'],
+  '2026-07-07': ['PHM1'],
+  '2026-07-08': ['HEB1','HEB2'],
+  '2026-07-09': ['HEB3'],
+  '2026-07-10': ['HEB4'],
+  '2026-07-11': ['HEB5'],
+  '2026-07-12': ['HEB6'],
+  '2026-07-13': ['HEB7'],
+  '2026-07-14': ['HEB8'],
+  '2026-07-15': ['HEB9'],
+  '2026-07-16': ['HEB10'],
+  '2026-07-17': ['HEB11'],
+  '2026-07-18': ['HEB12'],
+  '2026-07-19': ['HEB13'],
+  '2026-07-20': ['JAS1'],
+  '2026-07-21': ['JAS2'],
+  '2026-07-22': ['JAS3'],
+  '2026-07-23': ['JAS4'],
+  '2026-07-24': ['JAS5'],
+  '2026-07-25': ['PE1_1'],
+  '2026-07-26': ['PE1_2'],
+  '2026-07-27': ['PE1_3'],
+  '2026-07-28': ['PE1_4'],
+  '2026-07-29': ['PE1_5'],
+  '2026-07-30': ['PE2_1'],
+  '2026-07-31': ['PE2_2'],
+  '2026-08-01': ['PE2_3'],
+  '2026-08-02': ['JN1_1','JN1_2'],
+  '2026-08-03': ['JN1_3'],
+  '2026-08-04': ['JN1_4'],
+  '2026-08-05': ['JN1_5'],
+  '2026-08-06': ['JN2_1'],
+  '2026-08-07': ['JN3_1'],
+  '2026-08-08': ['JUD1'],
+  '2026-08-09': ['REV1'],
+  '2026-08-10': ['REV2'],
+  '2026-08-11': ['REV3'],
+  '2026-08-12': ['REV4'],
+  '2026-08-13': ['REV5','REV6'],
+  '2026-08-14': ['REV7'],
+  '2026-08-15': ['REV8'],
+  '2026-08-16': ['REV9'],
+  '2026-08-17': ['REV10'],
+  '2026-08-18': ['REV11'],
+  '2026-08-19': ['REV12'],
+  '2026-08-20': ['REV13'],
+  '2026-08-21': ['REV14'],
+  '2026-08-22': ['REV15'],
+  '2026-08-23': ['REV16'],
+  '2026-08-24': ['REV17'],
+  '2026-08-25': ['REV18','REV19'],
+  '2026-08-26': ['REV20'],
+  '2026-08-27': ['REV21'],
+  '2026-08-28': ['REV22']
+};
+
+// Bible.com 連結
+const BIBLE_LINKS = {
+  10:'https://www.bible.com/zh-TW/bible/46/ACT.10.CUNP',
+  11:'https://www.bible.com/zh-TW/bible/46/ACT.11.CUNP',
+  12:'https://www.bible.com/zh-TW/bible/46/ACT.12.CUNP',
+  13:'https://www.bible.com/zh-TW/bible/46/ACT.13.CUNP',
+  14:'https://www.bible.com/zh-TW/bible/46/ACT.14.CUNP',
+  15:'https://www.bible.com/zh-TW/bible/46/ACT.15.CUNP',
+  16:'https://www.bible.com/zh-TW/bible/46/ACT.16.CUNP',
+  17:'https://www.bible.com/zh-TW/bible/46/ACT.17.CUNP',
+  18:'https://www.bible.com/zh-TW/bible/46/ACT.18.CUNP',
+  19:'https://www.bible.com/zh-TW/bible/46/ACT.19.CUNP',
+  20:'https://www.bible.com/zh-TW/bible/46/ACT.20.CUNP',
+  21:'https://www.bible.com/zh-TW/bible/46/ACT.21.CUNP',
+  22:'https://www.bible.com/zh-TW/bible/46/ACT.22.CUNP',
+  23:'https://www.bible.com/zh-TW/bible/46/ACT.23.CUNP',
+  24:'https://www.bible.com/zh-TW/bible/46/ACT.24.CUNP',
+  25:'https://www.bible.com/zh-TW/bible/46/ACT.25.CUNP',
+  26:'https://www.bible.com/zh-TW/bible/46/ACT.26.CUNP',
+  27:'https://www.bible.com/zh-TW/bible/46/ACT.27.CUNP',
+  28:'https://www.bible.com/zh-TW/bible/46/ACT.28.CUNP',
+  'ROM1':'https://www.bible.com/zh-TW/bible/46/ROM.1.CUNP',
+  'ROM2':'https://www.bible.com/zh-TW/bible/46/ROM.2.CUNP',
+  'ROM3':'https://www.bible.com/zh-TW/bible/46/ROM.3.CUNP',
+  'ROM4':'https://www.bible.com/zh-TW/bible/46/ROM.4.CUNP',
+  'ROM5':'https://www.bible.com/zh-TW/bible/46/ROM.5.CUNP',
+  'ROM6':'https://www.bible.com/zh-TW/bible/46/ROM.6.CUNP',
+  'ROM7':'https://www.bible.com/zh-TW/bible/46/ROM.7.CUNP',
+  'ROM8':'https://www.bible.com/zh-TW/bible/46/ROM.8.CUNP',
+  'ROM9':'https://www.bible.com/zh-TW/bible/46/ROM.9.CUNP',
+  'ROM10':'https://www.bible.com/zh-TW/bible/46/ROM.10.CUNP',
+  'ROM11':'https://www.bible.com/zh-TW/bible/46/ROM.11.CUNP',
+  'ROM12':'https://www.bible.com/zh-TW/bible/46/ROM.12.CUNP',
+  'ROM13':'https://www.bible.com/zh-TW/bible/46/ROM.13.CUNP',
+  'ROM14':'https://www.bible.com/zh-TW/bible/46/ROM.14.CUNP',
+  'ROM15':'https://www.bible.com/zh-TW/bible/46/ROM.15.CUV',
+  'ROM16':'https://www.bible.com/zh-TW/bible/46/ROM.16.CUV',
+  'COR1_1':'https://www.bible.com/zh-TW/bible/46/1CO.1.CUV',
+  'COR1_2':'https://www.bible.com/zh-TW/bible/46/1CO.2.CUV',
+  'COR1_3':'https://www.bible.com/zh-TW/bible/46/1CO.3.CUV',
+  'COR1_4':'https://www.bible.com/zh-TW/bible/46/1CO.4.CUV',
+  'COR1_5':'https://www.bible.com/zh-TW/bible/46/1CO.5.CUV',
+  'COR1_6':'https://www.bible.com/zh-TW/bible/46/1CO.6.CUV',
+  'COR1_7':'https://www.bible.com/zh-TW/bible/46/1CO.7.CUV',
+  'COR1_8':'https://www.bible.com/zh-TW/bible/46/1CO.8.CUV',
+  'COR1_9':'https://www.bible.com/zh-TW/bible/46/1CO.9.CUV',
+  'COR1_10':'https://www.bible.com/zh-TW/bible/46/1CO.10.CUV',
+  'COR1_11':'https://www.bible.com/zh-TW/bible/46/1CO.11.CUV',
+  'COR1_12':'https://www.bible.com/zh-TW/bible/46/1CO.12.CUV',
+  'COR1_13':'https://www.bible.com/zh-TW/bible/46/1CO.13.CUV',
+  'COR1_14':'https://www.bible.com/zh-TW/bible/46/1CO.14.CUV',
+  'COR1_15':'https://www.bible.com/zh-TW/bible/46/1CO.15.CUV',
+  'COR1_16':'https://www.bible.com/zh-TW/bible/46/1CO.16.CUV',
+  'COR2_1':'https://www.bible.com/zh-TW/bible/46/2CO.1.CUV',
+  'COR2_2':'https://www.bible.com/zh-TW/bible/46/2CO.2.CUV',
+  'COR2_3':'https://www.bible.com/zh-TW/bible/46/2CO.3.CUV',
+  'COR2_4':'https://www.bible.com/zh-TW/bible/46/2CO.4.CUV',
+  'COR2_5':'https://www.bible.com/zh-TW/bible/46/2CO.5.CUV',
+  'COR2_6':'https://www.bible.com/zh-TW/bible/46/2CO.6.CUV',
+  'COR2_7':'https://www.bible.com/zh-TW/bible/46/2CO.7.CUV',
+  'COR2_8':'https://www.bible.com/zh-TW/bible/46/2CO.8.CUV',
+  'COR2_9':'https://www.bible.com/zh-TW/bible/46/2CO.9.CUV',
+  'COR2_10':'https://www.bible.com/zh-TW/bible/46/2CO.10.CUV',
+  'COR2_11':'https://www.bible.com/zh-TW/bible/46/2CO.11.CUV',
+  'COR2_12':'https://www.bible.com/zh-TW/bible/46/2CO.12.CUV',
+  'COR2_13':'https://www.bible.com/zh-TW/bible/46/2CO.13.CUV',
+  'GAL1':'https://www.bible.com/zh-TW/bible/46/GAL.1.CUV',
+  'GAL2':'https://www.bible.com/zh-TW/bible/46/GAL.2.CUV',
+  'GAL3':'https://www.bible.com/zh-TW/bible/46/GAL.3.CUV',
+  'GAL4':'https://www.bible.com/zh-TW/bible/46/GAL.4.CUV',
+  'GAL5':'https://www.bible.com/zh-TW/bible/46/GAL.5.CUV',
+  'GAL6':'https://www.bible.com/zh-TW/bible/46/GAL.6.CUV',
+  'EPH1':'https://www.bible.com/zh-TW/bible/46/EPH.1.CUV',
+  'EPH2':'https://www.bible.com/zh-TW/bible/46/EPH.2.CUV',
+  'EPH3':'https://www.bible.com/zh-TW/bible/46/EPH.3.CUV',
+  'EPH4':'https://www.bible.com/zh-TW/bible/46/EPH.4.CUV',
+  'EPH5':'https://www.bible.com/zh-TW/bible/46/EPH.5.CUV',
+  'EPH6':'https://www.bible.com/zh-TW/bible/46/EPH.6.CUV',
+  'PHP1':'https://www.bible.com/zh-TW/bible/46/PHP.1.CUV',
+  'PHP2':'https://www.bible.com/zh-TW/bible/46/PHP.2.CUV',
+  'PHP3':'https://www.bible.com/zh-TW/bible/46/PHP.3.CUV',
+  'PHP4':'https://www.bible.com/zh-TW/bible/46/PHP.4.CUV',
+  'COL1':'https://www.bible.com/zh-TW/bible/46/COL.1.CUV',
+  'COL2':'https://www.bible.com/zh-TW/bible/46/COL.2.CUV',
+  'COL3':'https://www.bible.com/zh-TW/bible/46/COL.3.CUV',
+  'COL4':'https://www.bible.com/zh-TW/bible/46/COL.4.CUV',
+  'TH1_1':'https://www.bible.com/zh-TW/bible/46/1TH.1.CUV',
+  'TH1_2':'https://www.bible.com/zh-TW/bible/46/1TH.2.CUV',
+  'TH1_3':'https://www.bible.com/zh-TW/bible/46/1TH.3.CUV',
+  'TH1_4':'https://www.bible.com/zh-TW/bible/46/1TH.4.CUV',
+  'TH1_5':'https://www.bible.com/zh-TW/bible/46/1TH.5.CUV',
+  'TH2_1':'https://www.bible.com/zh-TW/bible/46/2TH.1.CUV',
+  'TH2_2':'https://www.bible.com/zh-TW/bible/46/2TH.2.CUV',
+  'TH2_3':'https://www.bible.com/zh-TW/bible/46/2TH.3.CUV',
+  'TIM1_1':'https://www.bible.com/zh-TW/bible/46/1TI.1.CUV',
+  'TIM1_2':'https://www.bible.com/zh-TW/bible/46/1TI.2.CUV',
+  'TIM1_3':'https://www.bible.com/zh-TW/bible/46/1TI.3.CUV',
+  'TIM1_4':'https://www.bible.com/zh-TW/bible/46/1TI.4.CUV',
+  'TIM1_5':'https://www.bible.com/zh-TW/bible/46/1TI.5.CUV',
+  'TIM1_6':'https://www.bible.com/zh-TW/bible/46/1TI.6.CUV',
+  'TIM2_1':'https://www.bible.com/zh-TW/bible/46/2TI.1.CUV',
+  'TIM2_2':'https://www.bible.com/zh-TW/bible/46/2TI.2.CUV',
+  'TIM2_3':'https://www.bible.com/zh-TW/bible/46/2TI.3.CUV',
+  'TIM2_4':'https://www.bible.com/zh-TW/bible/46/2TI.4.CUV',
+  'TIT1':'https://www.bible.com/zh-TW/bible/46/TIT.1.CUV',
+  'TIT2':'https://www.bible.com/zh-TW/bible/46/TIT.2.CUV',
+  'TIT3':'https://www.bible.com/zh-TW/bible/46/TIT.3.CUV',
+  'PHM1':'https://www.bible.com/zh-TW/bible/46/PHM.1.CUV',
+  'HEB1':'https://www.bible.com/zh-TW/bible/46/HEB.1.CUV',
+  'HEB2':'https://www.bible.com/zh-TW/bible/46/HEB.2.CUV',
+  'HEB3':'https://www.bible.com/zh-TW/bible/46/HEB.3.CUV',
+  'HEB4':'https://www.bible.com/zh-TW/bible/46/HEB.4.CUV',
+  'HEB5':'https://www.bible.com/zh-TW/bible/46/HEB.5.CUV',
+  'HEB6':'https://www.bible.com/zh-TW/bible/46/HEB.6.CUV',
+  'HEB7':'https://www.bible.com/zh-TW/bible/46/HEB.7.CUV',
+  'HEB8':'https://www.bible.com/zh-TW/bible/46/HEB.8.CUV',
+  'HEB9':'https://www.bible.com/zh-TW/bible/46/HEB.9.CUV',
+  'HEB10':'https://www.bible.com/zh-TW/bible/46/HEB.10.CUV',
+  'HEB11':'https://www.bible.com/zh-TW/bible/46/HEB.11.CUV',
+  'HEB12':'https://www.bible.com/zh-TW/bible/46/HEB.12.CUV',
+  'HEB13':'https://www.bible.com/zh-TW/bible/46/HEB.13.CUV',
+  'JAS1':'https://www.bible.com/zh-TW/bible/46/JAS.1.CUV',
+  'JAS2':'https://www.bible.com/zh-TW/bible/46/JAS.2.CUV',
+  'JAS3':'https://www.bible.com/zh-TW/bible/46/JAS.3.CUV',
+  'JAS4':'https://www.bible.com/zh-TW/bible/46/JAS.4.CUV',
+  'JAS5':'https://www.bible.com/zh-TW/bible/46/JAS.5.CUV',
+  'PE1_1':'https://www.bible.com/zh-TW/bible/46/1PE.1.CUV',
+  'PE1_2':'https://www.bible.com/zh-TW/bible/46/1PE.2.CUV',
+  'PE1_3':'https://www.bible.com/zh-TW/bible/46/1PE.3.CUV',
+  'PE1_4':'https://www.bible.com/zh-TW/bible/46/1PE.4.CUV',
+  'PE1_5':'https://www.bible.com/zh-TW/bible/46/1PE.5.CUV',
+  'PE2_1':'https://www.bible.com/zh-TW/bible/46/2PE.1.CUV',
+  'PE2_2':'https://www.bible.com/zh-TW/bible/46/2PE.2.CUV',
+  'PE2_3':'https://www.bible.com/zh-TW/bible/46/2PE.3.CUV',
+  'JN1_1':'https://www.bible.com/zh-TW/bible/46/1JN.1.CUV',
+  'JN1_2':'https://www.bible.com/zh-TW/bible/46/1JN.2.CUV',
+  'JN1_3':'https://www.bible.com/zh-TW/bible/46/1JN.3.CUV',
+  'JN1_4':'https://www.bible.com/zh-TW/bible/46/1JN.4.CUV',
+  'JN1_5':'https://www.bible.com/zh-TW/bible/46/1JN.5.CUV',
+  'JN2_1':'https://www.bible.com/zh-TW/bible/46/2JN.1.CUV',
+  'JN3_1':'https://www.bible.com/zh-TW/bible/46/3JN.1.CUV',
+  'JUD1':'https://www.bible.com/zh-TW/bible/46/JUD.1.CUV',
+  'REV1':'https://www.bible.com/zh-TW/bible/46/REV.1.CUV',
+  'REV2':'https://www.bible.com/zh-TW/bible/46/REV.2.CUV',
+  'REV3':'https://www.bible.com/zh-TW/bible/46/REV.3.CUV',
+  'REV4':'https://www.bible.com/zh-TW/bible/46/REV.4.CUV',
+  'REV5':'https://www.bible.com/zh-TW/bible/46/REV.5.CUV',
+  'REV6':'https://www.bible.com/zh-TW/bible/46/REV.6.CUV',
+  'REV7':'https://www.bible.com/zh-TW/bible/46/REV.7.CUV',
+  'REV8':'https://www.bible.com/zh-TW/bible/46/REV.8.CUV',
+  'REV9':'https://www.bible.com/zh-TW/bible/46/REV.9.CUV',
+  'REV10':'https://www.bible.com/zh-TW/bible/46/REV.10.CUV',
+  'REV11':'https://www.bible.com/zh-TW/bible/46/REV.11.CUV',
+  'REV12':'https://www.bible.com/zh-TW/bible/46/REV.12.CUV',
+  'REV13':'https://www.bible.com/zh-TW/bible/46/REV.13.CUV',
+  'REV14':'https://www.bible.com/zh-TW/bible/46/REV.14.CUV',
+  'REV15':'https://www.bible.com/zh-TW/bible/46/REV.15.CUV',
+  'REV16':'https://www.bible.com/zh-TW/bible/46/REV.16.CUV',
+  'REV17':'https://www.bible.com/zh-TW/bible/46/REV.17.CUV',
+  'REV18':'https://www.bible.com/zh-TW/bible/46/REV.18.CUV',
+  'REV19':'https://www.bible.com/zh-TW/bible/46/REV.19.CUV',
+  'REV20':'https://www.bible.com/zh-TW/bible/46/REV.20.CUV',
+  'REV21':'https://www.bible.com/zh-TW/bible/46/REV.21.CUV',
+  'REV22':'https://www.bible.com/zh-TW/bible/46/REV.22.CUV'
+};
+
+// ══ A1 地基：書卷導讀 + 角色圖鑑 schema（dev only，值待 Phase 1 內容窗填）═══
+// 結構與 SCHEDULE / BIBLE_LINKS 並列，置於 CHAPTERS 之前；不參與既有遊戲邏輯。
+const BOOK_INTRO = {
+  // 示範：提摩太前書（公認事實已填，其餘神學/內容性值待審定）
+  TIM1: {
+    author: '保羅',                                // 公認事實
+    time: '',                                       // TODO: 內容窗審定（成書年代）
+    place: '',                                      // TODO: 內容窗審定（寫作地點）
+    theme: '教會秩序與真道的持守',                  // TODO: 內容窗審定（主題定稿）
+    audience: '提摩太（以弗所教會的年輕牧者）',      // 公認事實
+  },
+  // ── 以下為空殼：結構在、值待 Phase 1 由內容窗填（欄位：作者/時間/地點/主題/給誰）──
+  ROM:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  COR1: { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  COR2: { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  GAL:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  EPH:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  PHP:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  COL:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TH1:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TH2:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TIM2: { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  TIT:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  PHM:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  HEB:  { author:'', time:'', place:'', theme:'', audience:'' }, // TODO: 內容窗審定
+  JN1: {
+    author: '不詳（經文未署名，傳統歸使徒約翰）',
+    time: '不詳（傳統認為晚於約翰福音）',
+    place: '不詳（傳統上與以弗所一帶有關）',
+    theme: '信的人如何確知自己有永生（光中行，相愛，信子）',
+    audience: '未指名的信徒群體（稱「小子們」，正被錯誤教訓困擾）',
+  },
+  JN2: {
+    author: '作長老的（1:1 自述；傳統歸使徒約翰）',
+    time: '不詳（傳統認為與約翰一書相近）',
+    place: '不詳（傳統上與以弗所一帶有關）',
+    theme: '在真理裡彼此相愛，也對錯誤教訓保持分辨',
+    audience: '蒙揀選的太太和她的兒女（或指一位信徒，或為教會的稱呼）',
+  },
+  JN3: {
+    author: '作長老的（1:1 自述；傳統歸使徒約翰）',
+    time: '不詳（傳統認為與約翰一書相近）',
+    place: '不詳（傳統上與以弗所一帶有關）',
+    theme: '接待走天路的傳道人，並按真理而行',
+    audience: '該猶（作者稱讚他按真理而行）',
+  },
+  JUD: {
+    author: '猶大（1:1 自述，雅各的弟兄）',
+    time: '不詳（經文未提供時間線索）',
+    place: '不詳',
+    theme: '為真道爭辯，並保守自己常在神的愛中',
+    audience: '蒙召並在父神裡蒙愛的人（未指名地區，聚會已有假教師混入）',
+  },
+  REV: {
+    author: '約翰（1:1 與 1:9 自述；傳統歸使徒約翰）',
+    time: '不詳（傳統認為在教會受逼迫的年代）',
+    place: '拔摩海島（1:9 明說），寫給亞細亞七教會',
+    theme: '羔羊已經得勝，神仍坐在寶座上，終點是擦去眼淚',
+    audience: '亞細亞七教會（有的受逼迫，有的正與環境妥協）',
+  },
+};
+
+// ══ 書卷表（2026-08-17 自 bible-game-v2.html 搬入，issue #2：內容資料集中管理）══
+// 每本書兩個欄位：shortName（中文短名，給日曆/列表用）、prefix（章節 key 字串前綴）
+// 使徒行傳是特例：章節 key 是純數字（10、11、12...），所以沒 prefix 欄位
+// 未來加新書卷只要在這裡多加一個物件，chapterLabel/chapterFull 會自動支援
+const BOOKS = [
+  { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:19,
+    entries:[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
+    merged:{}, mergedActive:false },
+  { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
+    entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM11','ROM12','ROM13','ROM14','ROM15','ROM16'],
+    merged:{}, mergedActive:false },
+  { key:'COR1', name:'哥林多前書', shortName:'林前', prefix:'COR1_', emoji:'✉️', totalChapters:16,
+    entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_8','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
+    merged:{}, mergedActive:false },
+  { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
+    entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
+    merged:{}, mergedActive:false },
+  { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
+    entries:['GAL1','GAL2','GAL3','GAL4','GAL5','GAL6'],
+    merged:{}, mergedActive:false },
+  { key:'EPH', name:'以弗所書', shortName:'弗', prefix:'EPH', emoji:'💍', totalChapters:6,
+    entries:['EPH1','EPH2','EPH3','EPH4','EPH5','EPH6'],
+    merged:{}, mergedActive:false },
+  { key:'PHP', name:'腓立比書', shortName:'腓', prefix:'PHP', emoji:'🌅', totalChapters:4,
+    entries:['PHP1','PHP2','PHP3','PHP4'],
+    merged:{}, mergedActive:false },
+  { key:'COL', name:'歌羅西書', shortName:'西', prefix:'COL', emoji:'👑', totalChapters:4,
+    entries:['COL1','COL2','COL3','COL4'],
+    merged:{}, mergedActive:false },
+  { key:'TH1', name:'帖撒羅尼迦前書', shortName:'帖前', prefix:'TH1_', emoji:'⏳', totalChapters:5,
+    entries:['TH1_1','TH1_2','TH1_3','TH1_4','TH1_5'],
+    merged:{}, mergedActive:false },
+  { key:'TH2', name:'帖撒羅尼迦後書', shortName:'帖後', prefix:'TH2_', emoji:'🛡️', totalChapters:3,
+    entries:['TH2_1','TH2_2','TH2_3'],
+    merged:{}, mergedActive:false },
+  { key:'TIM1', name:'提摩太前書', shortName:'提前', prefix:'TIM1_', emoji:'🎓', totalChapters:6,
+    entries:['TIM1_1','TIM1_2','TIM1_3','TIM1_4','TIM1_5','TIM1_6'],
+    merged:{}, mergedActive:false },
+  { key:'TIM2', name:'提摩太後書', shortName:'提後', prefix:'TIM2_', emoji:'🪖', totalChapters:4,
+    entries:['TIM2_1','TIM2_2','TIM2_3','TIM2_4'],
+    merged:{}, mergedActive:false },
+  { key:'TIT', name:'提多書', shortName:'多', prefix:'TIT', emoji:'⚓', totalChapters:3,
+    entries:['TIT1','TIT2','TIT3'],
+    merged:{}, mergedActive:false },
+  { key:'PHM', name:'腓利門書', shortName:'門', prefix:'PHM', emoji:'🤝', totalChapters:1,
+    entries:['PHM1'],
+    merged:{}, mergedActive:false },
+  { key:'HEB', name:'希伯來書', shortName:'來', prefix:'HEB', emoji:'🕊️', totalChapters:13,
+    entries:['HEB1','HEB2','HEB3','HEB4','HEB5','HEB6','HEB7','HEB8','HEB9','HEB10','HEB11','HEB12','HEB13'],
+    merged:{}, mergedActive:false },
+  { key:'JAS', name:'雅各書', shortName:'雅', prefix:'JAS', emoji:'⚖️', totalChapters:5,
+    entries:['JAS1','JAS2','JAS3','JAS4','JAS5'],
+    merged:{}, mergedActive:false },
+  { key:'PE1', name:'彼得前書', shortName:'彼前', prefix:'PE1_', emoji:'🪨', totalChapters:5,
+    entries:['PE1_1','PE1_2','PE1_3','PE1_4','PE1_5'],
+    merged:{}, mergedActive:false },
+  { key:'PE2', name:'彼得後書', shortName:'彼後', prefix:'PE2_', emoji:'📜', totalChapters:3,
+    entries:['PE2_1','PE2_2','PE2_3'],
+    merged:{}, mergedActive:false },
+  { key:'JN1', name:'約翰一書', shortName:'約一', prefix:'JN1_', emoji:'💛', totalChapters:5,
+    entries:['JN1_1','JN1_2','JN1_3','JN1_4','JN1_5'],
+    merged:{}, mergedActive:false },
+  { key:'JN2', name:'約翰二書', shortName:'約二', prefix:'JN2_', emoji:'📩', totalChapters:1,
+    entries:['JN2_1'],
+    merged:{}, mergedActive:false },
+  { key:'JN3', name:'約翰三書', shortName:'約三', prefix:'JN3_', emoji:'📨', totalChapters:1,
+    entries:['JN3_1'],
+    merged:{}, mergedActive:false },
+  { key:'JUD', name:'猶大書', shortName:'猶', prefix:'JUD', emoji:'🛡️', totalChapters:1,
+    entries:['JUD1'],
+    merged:{}, mergedActive:false },
+  { key:'REV', name:'啟示錄', shortName:'啟', prefix:'REV', emoji:'📖', totalChapters:22,
+    entries:['REV1','REV2','REV3','REV4','REV5','REV6','REV7','REV8','REV9','REV10','REV11','REV12','REV13','REV14','REV15','REV16','REV17','REV18','REV19','REV20','REV21','REV22'],
+    merged:{}, mergedActive:false },
+];
+
+const CHARACTERS = {
+  // 示範：保羅、提摩太（多時期 schema；Phase 1 只填「教牧時期」，其餘時期預留空殼）
+  // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock } }
+  paul: {
+    name: '保羅',                                              // TODO: 內容窗審定
+    periods: {
+      // 早期激辯（加拉太／帖前後）── 預留空殼，待 Phase 2 內容窗填
+      early: {},                                               // TODO: 內容窗審定
+      // 釋放後·教牧時期（提前／提多）── Phase 1 起步
+      teaching: {
+        book: 'TIM1',
+        title: '釋放後·教牧時期',                              // TODO: 內容窗審定
+        desc: '蒙祂呼召的外邦使徒，曾逼迫教會，後寫信牧養屬靈兒子提摩太。', // TODO: 內容窗審定
+        unlock: 'TIM1_1',                                      // 完成此章節 key 後解鎖
+      },
+      // 第一次監禁·監獄書信（以弗所／腓立比／歌羅西／腓利門）── 預留空殼
+      prison: {},                                              // TODO: 內容窗審定
+      // 臨終（提後）── 預留空殼
+      final: {},                                               // TODO: 內容窗審定
+    },
+  },
+  timothy: {
+    name: '提摩太',                                            // TODO: 內容窗審定
+    periods: {
+      // 提前 Phase 1 起步，先只做教牧時期
+      teaching: {
+        book: 'TIM1',
+        title: '年輕的教會同工',                              // TODO: 內容窗審定
+        desc: '保羅的屬靈兒子，年輕的以弗所教會同工，被囑咐持守所信的真道。', // TODO: 內容窗審定
+        unlock: 'TIM1_2',                                      // 完成此章節 key 後解鎖
+      },
+    },
+  },
+  // ── 其餘角色待 Phase 1/2 由內容窗補（結構：name + periods{ <時期key>:{ book, title, desc, unlock } }）──
+};
+
+
+// ══ 每日靈修內容 ═════════════════════════════════════════
+const CHAPTERS = [
+  // ── 使徒行傳 10 ──
+  {
+    chapter:10, sceneEmoji:'🏠',
+    readTime:4,
+    guide:{
+      intro:'第10章是使徒行傳的重大轉折點——福音從猶太人圈子正式跨越到外邦人。這一章同時發生兩個異象：一個在凱撒利亞，一個在約帕，神精心安排讓它們在正確的時間點交會。',
+      outline:[
+        {nodes:'1-8節', text:'百夫長哥尼流禱告，天使指示他去找彼得'},
+      {nodes:'9-16節', text:'彼得在約帕屋頂禱告，看見大布降下的異象三次'},
+      {nodes:'17-23節', text:'哥尼流的使者到達，聖靈指示彼得同去'},
+      {nodes:'24-33節', text:'彼得進入外邦人的家，哥尼流說明呼召經過'},
+      {nodes:'34-43節', text:'彼得講道——神不偏待人，凡敬畏祂的都蒙悅納'},
+      {nodes:'44-48節', text:'聖靈降在外邦人身上，他們受洗——突破性的時刻'}
+      ],
+      focus:'今日情境題聚焦在 9-16節——彼得三次看見異象，面對打破從小規矩的掙扎。'
+    },
+    verse:'「神已經指示我，無論什麼人，我都不可說他是俗而不潔淨的。」',
+    verseRef:'—— 使徒行傳 10:28',
+    scene:'羅馬百夫長哥尼流虔誠禱告，神差天使告訴他去找彼得。同時，彼得在禱告中看見異象——一塊布從天降下，裡頭有各樣不潔淨的動物，神說「殺了吃吧」。彼得拒絕了三次。',
+    q:'如果你是彼得，你面對「打破從小被教導的規矩」這件事，心裡會有什麼掙扎？',
+    choices:[
+      {k:'A',text:'規矩是神定的，就算神說改變，我也需要時間確認這真的是神的聲音。'},
+      {k:'B',text:'神既然說了三次，我會選擇順服，即使不完全明白為什麼。'},
+      {k:'C',text:'我會去，但心裡帶著問號——邊走邊等神繼續說明。'},
+      {k:'D',text:'老實說，打破從小的框架很難，我可能需要更多時間才能跨出那一步。'}
+    ],
+    responses:{
+      A:'謹慎辨別神的聲音是智慧，不是不信。彼得自己也是重複確認了三次——神有耐心等我們跟上祂的腳步。',
+      B:'這是順服的勇氣。值得注意的是，他去了之後才「明白」神的心意——有時候順服走在明白之前。',
+      C:'這是很誠實的信心狀態——帶著問號前行，不假裝自己完全明白。這其實也是彼得的真實狀態。',
+      D:'框架很難打破，這是人之常情。彼得花了三次異象才願意動身。神知道我們需要時間，祂不嫌棄我們慢。'
+    },
+    reflectionTitle:'我的框架',
+    reflection:'彼得從小被教導的「潔淨與不潔淨」，在一個異象之後被神翻轉了。\n\n你生命中有沒有一個「從小以為是真理」的信念或框架，後來被神或生命經歷慢慢打開？那個過程是什麼感覺？',
+    baseItem:{emoji:'🏺',name:'哥尼流的香爐',desc:'「你的禱告和你的賙濟達到神面前」',slot:'hand'},
+    bonusItem:{emoji:'🥼',name:'異象的白袍',desc:'「有一塊大布，用四角繫著，從天而降」',slot:'body'}
+  },
+
+  // ── 使徒行傳 11 ──
+  {
+    chapter:11, sceneEmoji:'🌍',
+    readTime:3,
+    guide:{
+      intro:'第11章記錄了福音擴張的連鎖反應——從哥尼流事件引發的爭議，到安提阿教會的誕生。安提阿將成為初代教會最重要的宣教基地，而「基督徒」這個名字也從這裡開始。',
+      outline:[
+        {nodes:'1-18節', text:'彼得在耶路撒冷為進入外邦人家辯護，眾人聽完後榮耀神'},
+      {nodes:'19-21節', text:'四散的信徒到安提阿，開始向外邦人傳福音，主與他們同在'},
+      {nodes:'22-26節', text:'巴拿巴被差派察看，看見神的恩典就歡喜，去找保羅一起牧養'},
+      {nodes:'27-30節', text:'先知亞迦布預言饑荒，安提阿教會慷慨奉獻支援猶太信徒'}
+      ],
+      focus:'今日情境題聚焦在 22-24節——巴拿巴「看見神的恩典就歡喜了」，他如何回應一個打破傳統的新事工。'
+    },
+    verse:'「主與他們同在，信而歸主的人就很多了。」',
+    verseRef:'—— 使徒行傳 11:21',
+    scene:'逼迫四散的信徒到了安提阿，開始向外邦人傳福音。耶路撒冷教會聽到消息，派巴拿巴去察看。巴拿巴看見神的恩典，就歡喜，勸勉眾人。',
+    q:'巴拿巴到安提阿，「看見神的恩典就歡喜了」。如果你是他，你去察看一件「打破傳統」的新事工，你的第一反應是什麼？',
+    choices:[
+      {k:'A',text:'先觀察，看果子對不對——人數增長不代表是神的工作。'},
+      {k:'B',text:'如果看見人真實改變、生命更新，我會選擇支持，即使方式不傳統。'},
+      {k:'C',text:'我會帶著開放的心去，但也帶著問題：這是神在做的嗎？'},
+      {k:'D',text:'老實說，我可能會先有防衛心，需要時間才能放下成見。'}
+    ],
+    responses:{
+      A:'查驗果子是聖經的原則。巴拿巴也不是盲目接受——是有具體的改變讓他確認的。',
+      B:'這是巴拿巴精神的核心：以人的生命改變為優先，而不是形式是否符合傳統。',
+      C:'帶著問題去是智慧，不是不信。開放加上辨別，正是健康的屬靈態度。',
+      D:'防衛心往往來自我們對「正確方式」的執著。巴拿巴的名字原意是「勸慰之子」——接納是可以操練的。'
+    },
+    reflectionTitle:'辨別與接納',
+    reflection:'巴拿巴不是盲目接受，也不是批判拒絕——他「看見神的恩典就歡喜了」。\n\n在你的教會或信仰群體中，有沒有一件「不太傳統但明顯有神恩典」的事？你當時的反應是什麼？',
+    baseItem:{emoji:'🌿',name:'巴拿巴的橄欖枝',desc:'「他是個好人，被聖靈充滿，大有信心」',slot:'hand'},
+    bonusItem:{emoji:'🌏',name:'安提阿的地圖',desc:'「門徒稱為基督徒，是從安提阿起首」',slot:'bg'}
+  },
+
+  // ── 使徒行傳 12 ──
+  {
+    chapter:12, sceneEmoji:'🚪',
+    readTime:3,
+    guide:{
+      intro:'第12章是一個充滿戲劇性對比的章節：希律王殺了雅各、囚禁彼得，看似教會最黑暗的時刻；但神在夜間行動，彼得奇蹟脫獄，而希律王最終被天使擊打而死。神的計畫不被任何政治權力阻擋。',
+      outline:[
+        {nodes:'1-5節', text:'希律殺雅各，又囚禁彼得，教會切切禱告'},
+      {nodes:'6-11節', text:'天使夜間帶領彼得從監獄脫出，彼得以為是異象'},
+      {nodes:'12-17節', text:'彼得到馬可母親家，使女羅大跑去報告，眾人說「你是瘋了」'},
+      {nodes:'18-19節', text:'天亮後士兵找不到彼得，希律審問守衛'},
+      {nodes:'20-23節', text:'希律在推羅西頓人面前發表演說，被天使擊打而死'},
+      {nodes:'24-25節', text:'神的道興旺，巴拿巴和保羅完成使命回到安提阿'}
+      ],
+      focus:'今日情境題聚焦在 12-17節——教會切切禱告，但彼得真的出現時，他們卻說「你是瘋了」。'
+    },
+    verse:'「彼得敲門的時候，有一個使女名叫羅大，出來探聽。」',
+    verseRef:'—— 使徒行傳 12:13',
+    scene:'希律王殺了雅各，又把彼得下在監裡。教會為他切切禱告。天使在夜間讓彼得從監獄逃出，彼得跑到馬可母親家敲門。羅大跑進去報告，眾人卻說「你是瘋了」——他們剛剛還在為他禱告！',
+    q:'教會切切禱告彼得出監，但彼得真的出現在門口時，他們卻說「你是瘋了」。你覺得這說明了什麼？',
+    choices:[
+      {k:'A',text:'禱告時我們常常不真的相信神會回應——這是很多人誠實的狀態。'},
+      {k:'B',text:'他們的信心不完美，但神仍然回應了——恩典不等我們的信心夠大。'},
+      {k:'C',text:'這讓我反思自己禱告時有多少是真的「預期神會回應」。'},
+      {k:'D',text:'我也常這樣——禱告了，卻沒有準備好神真的動工時怎麼辦。'}
+    ],
+    responses:{
+      A:'這是很多禱告者誠實的自白。教會開口了，這本身就是信心的行動。',
+      B:'這節故事最美的地方——神的恩典不以我們信心的完美程度為條件。他們禱告，神就動了。',
+      C:'「期待神回應」和「習慣性地禱告」是兩種不同的狀態。前者需要我們真的相信神是聽禱告的神。',
+      D:'好消息是：神不嫌棄不完美的信心——祂仍然敲了那扇門。'
+    },
+    reflectionTitle:'禱告與期待',
+    reflection:'「切切禱告」——卻在答案到門口時說「你是瘋了」。\n\n你有沒有一個禱告，其實心裡不太確定神會不會回應？那個禱告現在在哪裡？',
+    baseItem:{emoji:'🔓',name:'天使的鑰匙',desc:'「鐵門自動開了」',slot:'hand'},
+    bonusItem:{emoji:'🕯️',name:'夜禱的蠟燭',desc:'「教會為他切切禱告神」',slot:'hand'}
+  },
+
+  // ── 使徒行傳 13 ──
+  {
+    chapter:13, sceneEmoji:'⛵',
+    readTime:5,
+    guide:{
+      intro:'第13章是初代教會第一次有組織的宣教旅程的起點。聖靈在禱告中說話，安提阿教會放手差派最好的兩位領袖出去。這一章也記錄了保羅（原名掃羅）正式以「保羅」之名出現，成為宣教主角。',
+      outline:[
+        {nodes:'1-3節', text:'安提阿教會禁食禱告，聖靈差派巴拿巴和保羅出去'},
+      {nodes:'4-12節', text:'在居比路——對抗假先知以呂馬，總督信主'},
+      {nodes:'13-15節', text:'到彼西底的安提阿，在會堂被邀請講道'},
+      {nodes:'16-41節', text:'保羅在會堂講道——從亞伯拉罕到耶穌的救恩歷史'},
+      {nodes:'42-52節', text:'外邦人渴望聽道，猶太人嫉妒反對，保羅轉向外邦人'}
+      ],
+      focus:'今日情境題聚焦在 1-3節——安提阿教會如何「放手」差派最好的人出去。'
+    },
+    verse:'「聖靈說：要為我分派巴拿巴和掃羅，去做我召他們所做的工。」',
+    verseRef:'—— 使徒行傳 13:2',
+    scene:'安提阿教會的領袖們正在禁食禱告，聖靈說話了——要分派巴拿巴和保羅出去宣教。這不是他們計畫的，是神在禱告中插入的呼召。他們放手，讓教會最好的兩位領袖離開。',
+    q:'聖靈呼召的，是教會最核心的兩位領袖。如果你是安提阿教會的其他牧者，你願意「放手」讓最強的同工離開嗎？',
+    choices:[
+      {k:'A',text:'理性上知道應該放手，但情感上會捨不得——這兩個人走了，教會怎麼辦？'},
+      {k:'B',text:'如果確認是聖靈說的，我願意放手——神的呼召比教會的需要更大。'},
+      {k:'C',text:'我會問：我們確定這是聖靈說的嗎？還是他們自己想去？'},
+      {k:'D',text:'老實說，教會利益和神的呼召有時候會衝突，這個張力我沒有容易的答案。'}
+    ],
+    responses:{
+      A:'這個捨不得是真實的，也是健康的。但安提阿教會最終選擇了放手——這需要相信神會補足。',
+      B:'這是使命優先的信念。安提阿教會因為這個決定，成為初代教會最重要的宣教基地。',
+      C:'辨別是必要的。這個呼召是在「禁食禱告」的群體中發生的，集體的辨別讓它更可靠。',
+      D:'這個張力是真實的。安提阿的故事提供了一個方向：以神的國為優先。'
+    },
+    reflectionTitle:'放手的勇氣',
+    reflection:'安提阿教會把最好的人送出去——這是一種「以神的國為優先」的放手。\n\n你生命中有沒有一次，你需要放開一個人、一個機會、或一個計畫，因為你知道那是神要你做的？那個放手的感覺是什麼？',
+    baseItem:{emoji:'⛵',name:'宣教的船帆',desc:'「被聖靈差遣，下到西流基」',slot:'bg'},
+    bonusItem:{emoji:'🧙',name:'宣教者的外袍',desc:'「禁食禱告，按手在他們頭上差遣出去」',slot:'body'}
+  },
+
+  // ── 使徒行傳 14 ──
+  {
+    chapter:14, sceneEmoji:'🪨',
+    readTime:4,
+    guide:{
+      intro:'第14章記錄了保羅第一次宣教旅程中最戲劇性的高低起伏——在路司得從被當神拜，到被石頭打幾乎致死，再爬起來繼續走。這一章也包含了一句讓人深思的話：「我們進入神的國，必須經歷許多艱難。」',
+      outline:[
+        {nodes:'1-7節', text:'以哥念——猶太人和外邦人分裂，保羅行神蹟，最終逃往路司得'},
+      {nodes:'8-18節', text:'路司得——保羅醫好瘸腿人，群眾要拜他們為神，保羅極力阻止'},
+      {nodes:'19-20節', text:'猶太人來煽動群眾，保羅被石頭打拖出城外，爬起來繼續走'},
+      {nodes:'21-23節', text:'回程堅固各教會，任命長老，說「必須經歷艱難進神的國」'},
+      {nodes:'24-28節', text:'回到安提阿，報告神藉他們所行的事，特別是外邦人開了信道的門'}
+      ],
+      focus:'今日情境題聚焦在 8-20節——路司得的高峰與低谷，從被當神拜到被石頭打。'
+    },
+    verse:'「我們進入神的國，必須經歷許多艱難。」',
+    verseRef:'—— 使徒行傳 14:22',
+    scene:'在路司得，群眾因為保羅行了神蹟，要拜他們為神。保羅極力阻止說「我們也是人！」但風向一轉，有人煽動群眾，把保羅用石頭打，拖出城外，以為他死了。',
+    q:'保羅剛被人當神拜，轉眼間就被石頭打到昏死——這種劇烈的起伏，你覺得對一個傳道者最大的考驗是什麼？',
+    choices:[
+      {k:'A',text:'被高舉的時候不驕傲，比被打擊的時候不灰心更難。'},
+      {k:'B',text:'被石頭打後還能繼續回城傳道，這需要超越人性的能力。'},
+      {k:'C',text:'群眾的評價這麼不穩定，這讓我想到不能把身份建立在別人的認可上。'},
+      {k:'D',text:'老實說，被石頭打完還繼續——我不確定我能做到這樣。'}
+    ],
+    responses:{
+      A:'驕傲的試探往往在成功時，不在失敗時。保羅在路司得的反應——「我也是人！」——顯示他早就有這個準備。',
+      B:'第20節說他「起來，走進城去」——這幾乎是超自然的。「靠著那加給我力量的，凡事都能做」，這裡是最真實的實踐。',
+      C:'當日他是神，明日他是罪人——群眾的評價從來不是穩固的根基。',
+      D:'這個誠實很珍貴。保羅也不是天生就能這樣——他是在許多苦難中被塑造的。'
+    },
+    reflectionTitle:'高峰與低谷',
+    reflection:'保羅在同一個城市，先被當神拜，後被石頭打——然後爬起來繼續走。\n\n你生命中有沒有一個「從高峰跌到低谷」的時刻？那個過程讓你對神、對自己，有什麼不同的認識？',
+    baseItem:{emoji:'🪨',name:'路司得的石頭',desc:'「他起來，走進城去——次日同巴拿巴往特庇去」',slot:'hand'},
+    bonusItem:{emoji:'🛡️',name:'堅忍的盾牌',desc:'「我們進入神的國，必須經歷許多艱難」',slot:'hand'}
+  },
+
+  // ── 使徒行傳 15 ──
+  {
+    chapter:15, sceneEmoji:'🕊️',
+    readTime:5,
+    guide:{
+      intro:'第15章是早期教會最關鍵的一次會議——耶路撒冷會議。外邦人信主了，但要不要受割禮、守摩西律法才算得救？這場辯論決定了福音是「因信稱義」還是「靠律法行為」。彼得、雅各、保羅、巴拿巴各自發聲，最後拍板：「我們得救乃是因主耶穌的恩」。',
+      outline:[
+        {nodes:'1-5節', text:'有人主張外邦人必須受割禮，保羅、巴拿巴與他們大大辯論，眾人定規上耶路撒冷'},
+        {nodes:'6-11節', text:'✦ 彼得起來見證——神早已揀選外邦人，得救是因主耶穌的恩'},
+        {nodes:'12-21節', text:'雅各引先知書定案——不可難為外邦人，只要禁戒幾件不可少的事'},
+        {nodes:'22-35節', text:'寫信差人下安提阿，眾人因信上安慰的話就歡喜了'},
+        {nodes:'36-41節', text:'保羅與巴拿巴為馬可起了爭論，甚至彼此分開，各走各路繼續宣教'}
+      ],
+      focus:'今日情境題聚焦在 6-11節——彼得在會議中起身見證，「得救是因主耶穌的恩」。'
+    },
+    verse:'「我們得救乃是因主耶穌的恩，和他們一樣，這是我們所信的。」',
+    verseRef:'—— 使徒行傳 15:11',
+    scene:'耶路撒冷會議現場，辯論已經多時。彼得起身說話：神早已揀選外邦人，賜聖靈給他們，正如給我們一樣。為什麼還要把祖宗和我們都不能負的軛，放在門徒的頸項上呢？',
+    q:'彼得說「祖宗和我們所不能負的軛」——一個連自己都背不起的擔子，卻要求別人背。你生命中有沒有這種「自己做不到、卻拿來要求別人」的時刻？',
+    choices:[
+      {k:'A',text:'有，我會用比自己更高的標準要求家人或同事——想到就有點臉紅。'},
+      {k:'B',text:'我比較常反過來：對別人很寬，對自己很嚴。'},
+      {k:'C',text:'我以為「高標準」是好事，原來壓到人不能負荷就變成軛了。'},
+      {k:'D',text:'老實說，我也常忘記自己是「因恩得救」，不知不覺又靠行為。'}
+    ],
+    responses:{
+      A:'彼得敢在眾人面前說「我們也負不起」——這份誠實鬆開了當時整個教會的張力。今天能不能試著對某個人說一句「這個我自己也做不到，不勉強你」？',
+      B:'對自己嚴是負責，對別人寬是恩典——這組合其實很接近神對你的方式。只是別忘了，神對你也是寬的，不只對別人。',
+      C:'軛是農具，套上去是要拉車、不是壓死人。耶穌說「我的軛是容易的」——這章告訴你，分得出哪個是祂的、哪個是人加的。下次當你又覺得「我應該再多做一點」的時候，先停一下問自己：「這個重擔，是耶穌給我的，還是我自己疊上去的？」',
+      D:'這個提醒值得記下來。下次抓到自己又在「靠表現」的時候，輕輕跟自己說一句：「我是因恩得救的，跟別人一樣。」'
+    },
+    reflectionTitle:'恩典的軛',
+    reflection:'耶路撒冷會議的核心問題不是「外邦人要不要遵守律法」，而是「我們到底是怎麼得救的」。彼得一句「我們得救乃是因主耶穌的恩」拍板定案——救恩從來不是行為的成績單，是恩典的禮物。\n\n你今天身上背的，哪些是神給你的軛、哪些是自己（或別人）加上去的？分得出來嗎？',
+    baseItem:{emoji:'🕊️',name:'白白的救恩',desc:'「我們得救乃是因主耶穌的恩，和他們一樣，這是我們所信的」',slot:'body'},
+    bonusItem:{emoji:'📜',name:'耶路撒冷的書信',desc:'「因為聖靈和我們定意不將別的重擔放在你們身上」',slot:'hand'}
+  },
+
+  // ── 使徒行傳 16 ──
+  {
+    chapter:16, sceneEmoji:'🎵',
+    readTime:5,
+    guide:{
+      intro:'第16章是保羅第二次宣教旅程的轉折點——福音從亞洲跨越到歐洲。聖靈的帶領有時是透過關閉某扇門來顯明的。這章也記錄了歐洲第一批信徒的誕生，以及一場改變監獄的半夜禱告。',
+      outline:[
+        {nodes:'1-5節', text:'提摩太加入團隊，各教會信心漸增'},
+      {nodes:'6-10節', text:'聖靈禁止往亞西亞，馬其頓異象——「來幫助我們！」'},
+      {nodes:'11-15節', text:'腓立比——呂底亞和全家信主，歐洲第一批基督徒'},
+      {nodes:'16-24節', text:'趕出占卜的鬼，被捕、鞭打、關入監獄'},
+      {nodes:'25-34節', text:'半夜禱告唱詩、地震、鐵鏈脫落、禁子一家信主 ✦'},
+      {nodes:'35-40節', text:'保羅以羅馬公民身份要求道歉後離開'}
+      ],
+      focus:'今日情境題聚焦在 25-34節——半夜監獄裡的那首詩歌，和它帶來的連鎖反應。'
+    },
+    verse:'「約在半夜，保羅和西拉禱告唱詩讚美神，眾囚犯也側耳而聽。」',
+    verseRef:'—— 使徒行傳 16:25',
+    scene:'保羅和西拉在腓立比傳福音，被人誣告，遭到鞭打，關進監獄，腳被夾在木狗裡。但在最黑暗的半夜，他們不是哭泣，而是禱告唱詩——然後地震，鐵鏈脫落，門全開了。',
+    q:'背部帶著鞭傷，腳被夾住，在半夜的監獄裡——保羅和西拉選擇唱詩。你覺得這種「在苦難中讚美」是怎麼可能發生的？',
+    choices:[
+      {k:'A',text:'這不是正常人能做到的——一定是聖靈在他們裡面做了什麼特別的事。'},
+      {k:'B',text:'他們已經習慣了苦難，知道神會翻轉——所以讚美是一種信心的宣告。'},
+      {k:'C',text:'也許唱詩本身就是他們抵擋絕望的方式——不是因為感覺好，而是選擇不讓黑暗說了算。'},
+      {k:'D',text:'老實說，我在苦難中很難讚美——這個故事讓我又羨慕又慚愧。'}
+    ],
+    responses:{
+      A:'保羅後來說「我靠著那加給我力量的」——這種在極限中的讚美，確實超越了人的自然反應。',
+      B:'他們不是因為感覺好而唱，而是因為知道神是誰而唱——這種根植在真理上的讚美，最難也最穩固。',
+      C:'讚美有時是一種屬靈的爭戰。「眾囚犯也側耳而聽」——他們的讚美連監獄裡的人都被吸引了。',
+      D:'但這個故事不是在定罪我們，而是在邀請我們：下次黑暗來臨，試試看開口讚美，哪怕聲音很小。'
+    },
+    reflectionTitle:'黑夜中的歌聲',
+    reflection:'「眾囚犯也側耳而聽」——他們的讚美影響了整個監獄，最後禁子一家信主。\n\n你有沒有一個「黑夜裡的歌聲」的時刻——在最難的處境中，你選擇了感謝或讚美？那個經歷對你、對周圍的人，有什麼影響？',
+    baseItem:{emoji:'🎵',name:'半夜的詩歌',desc:'「禱告唱詩讚美神，眾囚犯也側耳而聽」',slot:'hat'},
+    bonusItem:{emoji:'⛓️',name:'脫落的鐵鏈',desc:'「地大震動，監門全開，眾人的鎖鍊也都脫落了」',slot:'bg'}
+  },
+
+  // ── 使徒行傳 17 ──
+  {
+    chapter:17, sceneEmoji:'🏛️',
+    readTime:4,
+    guide:{
+      intro:'第17章記錄了保羅面對三種截然不同的聽眾：帖撒羅尼迦的猶太人（激烈反對）、庇哩亞人（查考聖經）、雅典的哲學家（好奇但輕視）。保羅在亞略巴古的演講是整本使徒行傳中最具文化對話意味的一段。',
+      outline:[
+        {nodes:'1-9節', text:'帖撒羅尼迦——在會堂講道三個安息日，猶太人嫉妒引起暴動'},
+      {nodes:'10-15節', text:'庇哩亞——庇哩亞人天天查考聖經，許多人信主'},
+      {nodes:'16-21節', text:'雅典——保羅看見滿城偶像心裡著急，在會堂和市場講道'},
+      {nodes:'22-31節', text:'亞略巴古演講——從「未識之神」的祭壇切入，宣講創造主和復活'},
+      {nodes:'32-34節', text:'有人嘲笑，有人要再聽，少數人信主（包括亞略巴古的官狄奧尼修）'}
+      ],
+      focus:'今日情境題聚焦在 22-31節——保羅如何從對方的文化找到切入點，把福音帶進完全不同的世界觀。'
+    },
+    verse:'「雅典人哪，我看你們凡事很敬畏鬼神。我遊行的時候，觀看你們所敬拜的，遇見一座壇，上面寫著『未識之神』。」',
+    verseRef:'—— 使徒行傳 17:22-23',
+    scene:'保羅在雅典等候同伴，看見滿城都是偶像，心裡著急。他在亞略巴古對哲學家們演講，從「未識之神」的祭壇切入，引用希臘詩人的話，把福音帶進完全不同的文化框架裡。',
+    q:'保羅沒有說「你們都錯了」，而是從他們的文化找到切入點。如果你要向一個完全不信神的朋友分享信仰，你會怎麼開始？',
+    choices:[
+      {k:'A',text:'從他們的需要或痛苦出發——找到人生中那個「未識之神」的空缺。'},
+      {k:'B',text:'直接分享我自己的改變——不講道理，只說我的故事。'},
+      {k:'C',text:'老實說我不太敢開口，怕說錯或引起衝突。'},
+      {k:'D',text:'先成為朋友，讓生命的樣式說話，不急著用嘴巴傳福音。'}
+    ],
+    responses:{
+      A:'這正是保羅在雅典的策略——找到他們心裡那個「神留下的空缺」。每個人心裡都有一個「未識之神」的祭壇。',
+      B:'這也是很有力量的方式。個人見證往往比論證更難反駁——因為這是你真實經歷的事。',
+      C:'這個誠實很珍貴。保羅在雅典也有人嘲笑他。不怕被誤解，是傳福音必要的代價之一。',
+      D:'這是耐心的愛——先贏得關係，再說話。保羅在雅典是短暫的，但很多時候信仰是在長期關係中傳遞的。'
+    },
+    reflectionTitle:'未識之神',
+    reflection:'保羅說「你們所不認識而敬拜的，我現在告訴你們」——他從他們的世界出發，而不是強迫他們進入他的世界。\n\n你生命中有沒有一個「未信者」，你一直想跟他分享信仰？你覺得他心裡的「未識之神」是什麼形狀的？',
+    baseItem:{emoji:'🗽',name:'亞略巴古的石頭',desc:'「你們所不認識而敬拜的，我現在告訴你們」',slot:'hand'},
+    bonusItem:{emoji:'📜',name:'雅典的辯論書',desc:'「保羅在他們中間站著說」',slot:'hat'}
+  },
+
+  // ── 使徒行傳 18 ──
+  {
+    chapter:18, sceneEmoji:'🏠',
+    readTime:4,
+    guide:{
+      intro:'第18章記錄了保羅在哥林多的長期服事——這是他宣教旅程中少數住超過一年的地方。神夜間對保羅說「不要懼怕，有我與你同在」，這句話出現在他最想離開的時刻。這章也介紹了重要同工亞居拉和百基拉。',
+      outline:[
+        {nodes:'1-4節', text:'到哥林多，遇見帳棚匠亞居拉和百基拉，一起工作傳道'},
+      {nodes:'5-8節', text:'西拉和提摩太來到，猶太人反對，保羅轉向外邦人'},
+      {nodes:'9-11節', text:'神夜間對保羅說「不要懼怕，有我與你同在」——住了一年半 ✦'},
+      {nodes:'12-17節', text:'被告上亞該亞方伯迦流，迦流不受理，拒絕干涉宗教事務'},
+      {nodes:'18-23節', text:'保羅離開哥林多，帶百基拉和亞居拉到以弗所，自己回安提阿'},
+      {nodes:'24-28節', text:'亞波羅在以弗所講道，百基拉和亞居拉為他補充更完整的真道'}
+      ],
+      focus:'今日情境題聚焦在 9-11節——神選在保羅最軟弱、最想離開的時刻說「不要懼怕，有我與你同在」。'
+    },
+    verse:'「不要懼怕，只管講，不要閉口；有我與你同在，必沒有人下手害你。」',
+    verseRef:'—— 使徒行傳 18:9-10',
+    scene:'保羅在哥林多遇見帳棚匠亞居拉和百基拉，成為同工，一起工作一起傳道。但當地人激烈反對，保羅心生退意。神夜間對他說話：「不要懼怕，只管講……有我與你同在。」',
+    q:'神對保羅說「有我與你同在」——這句話是在他最勇敢的時候說的，還是在他最想放棄的時候？為什麼這個時間點讓你有感？',
+    choices:[
+      {k:'A',text:'神在我最軟弱的時候靠近——這讓我想到祂的恩典在軟弱上顯得完全。'},
+      {k:'B',text:'神不等我表現好才來鼓勵我，這讓我覺得被完全接納。'},
+      {k:'C',text:'我也常常需要這樣的聲音——不是在得勝的時候，而是在想放棄的時候。'},
+      {k:'D',text:'我羨慕保羅能直接聽到神說話，我有時候不知道神有沒有在跟我說話。'}
+    ],
+    responses:{
+      A:'「我的能力是在人的軟弱上顯得完全」——這節話在哥林多的故事裡有了具體的場景。神的同在不是獎勵，而是禮物。',
+      B:'這是恩典最深刻的定義之一：神在我們還不夠好的時候，就已經同在了。',
+      C:'保羅這個時刻的軟弱讓他更真實。聖經沒有隱藏這些掙扎，因為神的故事是在真實人性中展開的。',
+      D:'神的聲音不只在異象中。亞居拉和百基拉的出現、神夜間的話——這些都是祂的聲音。有時候同工的陪伴也是神說話的方式。'
+    },
+    reflectionTitle:'同在的時機',
+    reflection:'神選擇在保羅「最想離開」的時刻說：「不要懼怕，有我與你同在。」\n\n你有沒有一個「最想放棄」的時刻，後來發現神其實在那裡？那個時刻讓你對「神的同在」有什麼不同的理解？',
+    baseItem:{emoji:'🪡',name:'帳棚匠的線軸',desc:'「亞居拉和百基拉，保羅在他們那裡住下做工」',slot:'hand'},
+    bonusItem:{emoji:'🌙',name:'夜間的應許',desc:'「不要懼怕，有我與你同在」',slot:'hat'}
+  },
+
+  // ── 使徒行傳 19 ──
+  {
+    chapter:19, sceneEmoji:'🔥',
+    readTime:5,
+    guide:{
+      intro:'第19章是保羅在以弗所的兩年多服事，也是整個宣教旅程中神蹟最集中、影響最深遠的一段。這章以一場城市暴動結束——銀匠底米丟因為生意受影響，煽動群眾對抗保羅。信仰真的改變了一座城市的消費行為。',
+      outline:[
+        {nodes:'1-7節', text:'發現只受了約翰的洗的門徒，為他們施洗並按手，聖靈降下'},
+      {nodes:'8-10節', text:'在會堂講道三個月，後轉到推喇奴的學房，持續兩年'},
+      {nodes:'11-20節', text:'神藉保羅行特別神蹟，假冒趕鬼者被鬼打傷，信主者燒毀邪術書籍 ✦'},
+      {nodes:'21-22節', text:'保羅計劃往馬其頓、亞該亞，再往耶路撒冷，最後去羅馬'},
+      {nodes:'23-41節', text:'銀匠底米丟煽動暴動，城裡大亂，最後被書記官平息'}
+      ],
+      focus:'今日情境題聚焦在 11-20節——信仰帶來真實的生命改變，那些燒掉邪術書籍的人付上了真實的代價。'
+    },
+    verse:'「主的道大大興旺，而且得勝，就是這樣。」',
+    verseRef:'—— 使徒行傳 19:20',
+    scene:'在以弗所，許多人信主，把以前用的邪術書籍拿出來當眾燒掉，估計價值五萬塊錢。同時，銀匠底米丟煽動暴動，因為保羅的傳道讓狄阿拿女神的偶像賣不出去，影響了他的生意。',
+    q:'底米丟說「這保羅誘惑許多人，說人手所做的不是神」——信仰真的改變了人的消費行為和生活方式。你的信仰有沒有讓你在某件事上「損失」過？',
+    choices:[
+      {k:'A',text:'有——我因為信仰放棄過一些利益或機會，雖然當時很掙扎。'},
+      {k:'B',text:'我覺得信仰應該讓人的生命更豐盛，不太確定「損失」是不是正常的。'},
+      {k:'C',text:'那些以弗所人燒掉書的勇氣讓我佩服，我不確定自己做得到。'},
+      {k:'D',text:'老實說，我的信仰好像還沒有真正影響過我的錢包或利益。'}
+    ],
+    responses:{
+      A:'這種損失本身就是信仰真實的見證。耶穌說「凡為我喪掉生命的，必得著生命」——這不只是比喻。',
+      B:'豐盛是真的，但不是沒有代價。耶穌也說「叫地上太平？我來，不是叫地上太平，乃是叫地上動刀兵」——跟隨祂有時候意味著衝突。',
+      C:'那些書是他們的「財產」，燒掉是真實的捨棄。信仰的代價不是抽象的——那天以弗所有煙從廣場升起。',
+      D:'這是很誠實的反思。信仰如果沒有讓任何事情改變，也許值得問問：我真的在跟隨嗎？'
+    },
+    reflectionTitle:'信仰的代價',
+    reflection:'那些以弗所人燒掉邪術書籍——那不只是宗教行為，那是真實的財物損失。\n\n你的信仰有沒有讓你做過一個「代價很高」的決定？那個決定讓你對信仰有什麼更深的理解？',
+    baseItem:{emoji:'🔥',name:'以弗所的火焰',desc:'「平素行邪術的，也有許多人把書拿來，堆積在眾人面前焚燒。他們算計書價，便知道共合五萬塊錢。」',slot:'bg'},
+    bonusItem:{emoji:'✨',name:'尊大的名',desc:'「凡住在以弗所的，無論是猶太人，是希臘人，都知道這事，也都懼怕；主耶穌的名從此就尊大了。」',slot:'hand'}
+  },
+
+  // ── 使徒行傳 20 ──
+  {
+    chapter:20, sceneEmoji:'🌊',
+    readTime:4,
+    guide:{
+      intro:'第20章記錄了保羅宣教旅程中最感性的一個片段——在米利都與以弗所長老的告別。保羅知道自己此去必有苦難，但他選擇不以性命為念。這段告別演說是整本使徒行傳中保羅最完整的自我剖白。',
+      outline:[
+        {nodes:'1-6節', text:'離開以弗所，經過馬其頓和希臘，往耶路撒冷方向走'},
+      {nodes:'7-12節', text:'在特羅亞——保羅講道到半夜，少年人猶推古睡著墜樓，保羅使他復活'},
+      {nodes:'13-16節', text:'從亞朔走路到米利都，保羅趕路盼望在五旬節前到耶路撒冷'},
+      {nodes:'17-27節', text:'召以弗所長老來，述說自己服事的心志和即將面臨的苦難'},
+      {nodes:'28-35節', text:'囑咐長老牧養教會，警告必有豺狼進入，要效法自己親手做工'},
+      {nodes:'36-38節', text:'跪下禱告，眾人抱著保羅的頸項哭泣，送他上船'}
+      ],
+      focus:'今日情境題聚焦在 22-24節——保羅說「我去是被捆綁，但我不以性命為念，只要行完我的路程」。'
+    },
+    verse:'「現在我往耶路撒冷去，心甚迫切，不知道在那裡要遇見甚麼事；但知道聖靈在各城裡向我指證，說有捆鎖與患難等待我。」',
+    verseRef:'—— 使徒行傳 20:22-23',
+    scene:'保羅在米利都與以弗所的長老們告別。他知道此去必有苦難，但他說「我卻不以性命為念……只要行完我的路程」。這是一段充滿情感的告別——眾人抱著保羅的頸項哭泣。',
+    q:'保羅說「我不以性命為念，只要完成主交給我的使命」——你有沒有什麼事情，是你「明知代價很高，卻仍然願意去做」的？',
+    choices:[
+      {k:'A',text:'有——那是一種清楚的呼召，代價讓我害怕，但使命感更大。'},
+      {k:'B',text:'我還沒有遇過這樣清晰的時刻，我不確定自己會怎麼選。'},
+      {k:'C',text:'我很佩服保羅這種決心，但我也覺得珍惜自己的生命是正確的。'},
+      {k:'D',text:'「完成路程」這個意象讓我想想——我的人生路程是什麼？'}
+    ],
+    responses:{
+      A:'這種清楚是很珍貴的。保羅的勇氣不是來自不在乎自己，而是來自比性命更確定的事——他知道他的呼召。',
+      B:'不確定不是失敗。保羅也是在許多年的跟隨和苦難中才到達這種清晰。呼召是在路上被確認的，不是在出發前就完全明白的。',
+      C:'這個張力是真實的。保羅不是不愛自己，他說「我不以性命為念」——這是一種把生命主權交給神的宣告，不是輕視生命。',
+      D:'「行完我的路程」——保羅對自己的使命有清楚的認識。你的路程是什麼，這是一個值得靜下來問的問題。'
+    },
+    reflectionTitle:'完成路程',
+    reflection:'「只要行完我的路程，成就主耶穌所託付我的職事」——保羅對自己的使命有清楚的圖像。\n\n如果你的人生是一段「路程」，你現在走在哪裡？你對終點的樣子有沒有一些想像？',
+    baseItem:{emoji:'🌊',name:'米利都的海風',desc:'「眾人痛哭，抱著保羅的頸項，和他親嘴。」',slot:'bg'},
+    bonusItem:{emoji:'🧭',name:'旅人的指南針',desc:'「我卻不以性命為念，也不看為寶貴，只要行完我的路程，成就我從主耶穌所領受的職事，證明神恩惠的福音。」',slot:'hand'}
+  },
+
+  // ── 使徒行傳 21 ──
+  {
+    chapter:21, sceneEmoji:'⚓',
+    readTime:4,
+    guide:{
+      intro:'第21章記錄了保羅義無反顧前往耶路撒冷的旅程。沿路每個地方的信徒都在勸他不要去——先知亞迦布用戲劇性的動作預言他將被捆綁。但保羅說「我甘心」。他的到來立刻引發了耶路撒冷的衝突。',
+      outline:[
+        {nodes:'1-9節', text:'經過哥士、羅底、巴大喇、推羅，在推羅信徒家住七天，眾人勸他不要去'},
+      {nodes:'10-14節', text:'到凱撒利亞，先知亞迦布用腰帶捆綁自己預言，眾人痛哭勸阻'},
+      {nodes:'15-16節', text:'保羅說「我為主的名，就是死在耶路撒冷也是甘心的」，眾人不再勸 ✦'},
+      {nodes:'17-26節', text:'到耶路撒冷，雅各和長老接待，建議保羅行潔淨禮化解誤會'},
+      {nodes:'27-36節', text:'亞西亞的猶太人在聖殿挑動群眾，保羅被拖出聖殿，幾乎被打死'},
+      {nodes:'37-40節', text:'千夫長逮捕，保羅用希臘話和千夫長說話，獲准向群眾說話'}
+      ],
+      focus:'今日情境題聚焦在 10-14節——眾人的眼淚和勸阻，保羅都不為所動。信心還是固執，怎麼分辨？'
+    },
+    verse:'「我們聽見這話，並那一方的人都苦勸保羅，不要上耶路撒冷去。」',
+    verseRef:'—— 使徒行傳 21:12',
+    scene:'保羅一路往耶路撒冷，沿途每個地方的信徒都在勸他不要去。先知亞迦布把保羅的腰帶捆住自己，說「捆綁這腰帶之人，猶太人要如此捆綁他」。但保羅說：「我為主的名，不但被人捆綁，就是死在耶路撒冷也是甘心的。」',
+    q:'眾人的眼淚和勸阻，保羅都不為所動。你覺得在「眾人反對，但你確信是神旨意」的時候，要怎麼分辨是固執還是信心？',
+    choices:[
+      {k:'A',text:'如果禱告後仍然有平安，就算眾人反對，那通常是神在引導。'},
+      {k:'B',text:'眾人的勸阻本身也可能是神的保護，不能完全忽視。'},
+      {k:'C',text:'這種情況很難分辨——我自己可能會被眾人的眼淚說服。'},
+      {k:'D',text:'保羅是使徒，他有特別的啟示；我不確定普通信徒也能有這樣的確信。'}
+    ],
+    responses:{
+      A:'內心的平安是重要的指標。保羅的「甘心」不是衝動，而是建立在長期禱告和呼召確認上的。',
+      B:'這個角度也很重要。聖經沒有說眾人都錯了——保羅承認他們的心意，「聽見這話，我們就苦勸他」。愛有時候是勸阻。',
+      C:'這個誠實很珍貴。眼淚的力量是真實的。但保羅說「你們為什麼這樣哭，叫我心碎呢？」——他感受到了，但仍然選擇前行。',
+      D:'保羅的確有特別的呼召，但「在確信中前行，即使眾人不理解」這個功課，是每個信徒都可能面對的。'
+    },
+    reflectionTitle:'確信與勸阻',
+    reflection:'保羅說「你們為什麼這樣哭，叫我心碎呢？」——他感受到眾人的眼淚，但仍然前行。\n\n你有沒有一次，在眾人反對的情況下，仍然選擇了你確信是對的事？那個過程是什麼感覺？',
+    baseItem:{emoji:'⚓',name:'凱撒利亞的錨',desc:'「我為主的名，就是死在耶路撒冷也是甘心的」',slot:'hand'},
+    bonusItem:{emoji:'🎗️',name:'亞迦布的腰帶',desc:'「亞迦布拿保羅的腰帶捆上自己的手腳說：這腰帶的主人必被捆綁」',slot:'hat'}
+  },
+
+  // ── 使徒行傳 22 ──
+  {
+    chapter:22, sceneEmoji:'✋',
+    readTime:4,
+    guide:{
+      intro:'第22章是保羅在耶路撒冷台階上的自我申辯——他用希伯來話讓憤怒的群眾安靜下來，然後述說自己從逼迫者到使徒的完整得救故事。這是整本使徒行傳中保羅第一次完整述說自己的見證。',
+      outline:[
+        {nodes:'1-5節', text:'開場——我是猶太人，在迦瑪列門下受教，曾逼迫這道的人'},
+      {nodes:'6-11節', text:'大馬士革路上——耀眼的光、倒在地上、「掃羅，你為何逼迫我？」'},
+      {nodes:'12-16節', text:'亞拿尼亞來幫助他，說「起來，受洗，洗去你的罪」 ✦'},
+      {nodes:'17-21節', text:'回耶路撒冷在聖殿禱告時的異象——主說「你去吧，我要差你遠去外邦人那裡」'},
+      {nodes:'22-29節', text:'群眾聽到「外邦人」就大叫，千夫長要鞭打他，保羅說出羅馬公民身份'},
+      {nodes:'30節', text:'千夫長吩咐祭司長和公會集會，要查明保羅被告的緣故'}
+      ],
+      focus:'今日情境題聚焦在整段見證——保羅如何在最危險的時刻，選擇分享自己的得救故事。'
+    },
+    verse:'「你起來，求告他的名受洗，洗去你的罪。」',
+    verseRef:'—— 使徒行傳 22:16',
+    scene:'保羅在耶路撒冷被捕，站在台階上向憤怒的群眾為自己申辯。他用希伯來話說話，眾人安靜下來。保羅述說自己從逼迫者到信徒的親身經歷——他的得救見證。',
+    q:'保羅在最危險的時刻，選擇分享自己的得救見證。你上一次分享自己信仰故事是什麼時候？',
+    choices:[
+      {k:'A',text:'我很少分享，不知道從哪裡開始，也怕對方不感興趣。'},
+      {k:'B',text:'我的故事好像不夠戲劇性，沒有保羅那種大轉變。'},
+      {k:'C',text:'我分享過，但更多是在已經信主的朋友圈裡，對非信徒比較難開口。'},
+      {k:'D',text:'我覺得見證是很個人的事，需要對的時機和對的人。'}
+    ],
+    responses:{
+      A:'保羅的見證結構很簡單：我以前是什麼樣的人、發生了什麼事、我現在是什麼樣的人。這個結構每個人都可以用。',
+      B:'「不夠戲劇性」是很多人的誤會。最有力量的見證不是最戲劇性的，而是最真實的。你的故事，就是你的故事。',
+      C:'這是很多信徒的狀態。保羅在最不安全的地方說出他的故事——那種勇氣是可以慢慢操練的。',
+      D:'這個謹慎是智慧，不是膽怯。見證確實需要關係和時機。但有時候「等待對的時機」也可能是一直不開口的藉口。'
+    },
+    reflectionTitle:'你的故事',
+    reflection:'保羅的見證包含三個部分：我以前是怎樣的人、神在哪個時刻相遇了我、我現在是怎樣的人。\n\n試著用這個框架想想你的故事——你願意把它寫下來嗎，哪怕只是給自己看？',
+    baseItem:{emoji:'🎤',name:'台階上的麥克風',desc:'「保羅站在台階上，向百姓招手」',slot:'hand'},
+    bonusItem:{emoji:'💧',name:'洗禮的水',desc:'「起來，求告他的名受洗，洗去你的罪」',slot:'bg'}
+  },
+
+  // ── 使徒行傳 23 ──
+  {
+    chapter:23, sceneEmoji:'🌙',
+    readTime:4,
+    guide:{
+      intro:'第23章充滿了混亂與轉折——公會的爭論、暗殺陰謀、緊急轉移。但在這一切混亂的中心，有一個安靜的時刻：「當夜，主站在保羅旁邊說：放心吧！」這句話出現在最孤單最混亂的那晚。',
+      outline:[
+        {nodes:'1-5節', text:'保羅在公會說話，大祭司命人打他，保羅回嘴，後來道歉'},
+      {nodes:'6-10節', text:'保羅利用法利賽人和撒都該人的神學矛盾，引發公會內部大爭論'},
+      {nodes:'11節', text:'當夜，主站在保羅旁邊說：「放心吧！你必在羅馬為我作見證。」 ✦'},
+      {nodes:'12-22節', text:'超過四十人起誓暗殺保羅，保羅的外甥得知後報告千夫長'},
+      {nodes:'23-30節', text:'千夫長秘密安排470人護送保羅連夜前往凱撒利亞'},
+      {nodes:'31-35節', text:'到凱撒利亞，巡撫腓力斯接到信，等候原告來到後再審問'}
+      ],
+      focus:'今日情境題聚焦在第11節——神選在最混亂孤單的那晚，站在保羅旁邊說話。'
+    },
+    verse:'「當夜，主站在保羅旁邊，說：放心吧！你怎樣在耶路撒冷為我作見證，也必怎樣在羅馬為我作見證。」',
+    verseRef:'—— 使徒行傳 23:11',
+    scene:'保羅在公會受審，被人打了，大聲喊叫，法利賽人和撒都該人互相爭論，場面混亂。士兵把他帶回營裡。就在那天晚上，最孤單最混亂的時刻，主站在他旁邊說話了。',
+    q:'「當夜，主站在保羅旁邊」——不是在得勝的那天，而是在最混亂孤單的那晚。你有沒有在「最低谷的那夜」感受到神的靠近？',
+    choices:[
+      {k:'A',text:'有過——那種靠近不是解決問題，而是一種「有人陪著我」的真實感。'},
+      {k:'B',text:'我在低谷的時候反而感覺神很遠，這讓我羨慕保羅的經歷。'},
+      {k:'C',text:'我不確定我有沒有注意到，也許神在那裡，但我太慌亂了。'},
+      {k:'D',text:'「放心吧」這三個字，我現在就需要聽到。'}
+    ],
+    responses:{
+      A:'「有人陪著我」本身就是最深的安慰。神不一定改變環境，但祂的同在改變了我們在環境中的狀態。',
+      B:'這個誠實是禱告的開始。「神啊，我感覺不到祢」本身就是一種向神說話。黑暗不代表神不在——有時候是我們的感官被恐懼遮蔽了。',
+      C:'這是很真實的狀態。回頭看的時候，也許那夜有什麼人、什麼話、什麼感受，是神同在的痕跡。',
+      D:'「放心吧」——這話是給在患難中的人說的，不是給一切順利的人說的。這句話今天也是給你的。'
+    },
+    reflectionTitle:'最孤單的那夜',
+    reflection:'神選擇在保羅最混亂孤單的夜晚靠近他。\n\n你生命中最孤單的「那一夜」是什麼時候？回頭看，你有沒有看見神曾經在那裡留下的痕跡？',
+    baseItem:{emoji:'🌙',name:'暗夜的月光',desc:'「當夜，主站在保羅旁邊說：放心吧！」',slot:'bg'},
+    bonusItem:{emoji:'🕊️',name:'平安的應許',desc:'「你必怎樣在羅馬為我作見證」',slot:'hat'}
+  },
+
+  // ── 使徒行傳 24 ──
+  {
+    chapter:24, sceneEmoji:'⏳',
+    readTime:3,
+    guide:{
+      intro:'第24章是一場司法程序的緩慢折磨——保羅在腓力斯面前受審，辯護清楚有力，但腓力斯因貪愛錢財而拖延判決。保羅就這樣在等待中度過了整整兩年。等待，有時候是信仰最真實的考驗。',
+      outline:[
+        {nodes:'1-9節', text:'祭司長和辯士帶著控告來到，以「瘟疫、煽動作亂、污穢聖殿」三項罪名控告'},
+      {nodes:'10-21節', text:'保羅為自己辯護——我沒有在聖殿滋事，我信的是律法和先知，只為復活受審'},
+      {nodes:'22-23節', text:'腓力斯以「等千夫長來」為由拖延，吩咐看守保羅但給他自由'},
+      {nodes:'24-25節', text:'腓力斯和妻子屢次召見保羅，聽到公義、節制、審判時心裡害怕'},
+      {nodes:'26-27節', text:'腓力斯盼望保羅賄賂他，屢次召見但始終不判決，兩年後換了繼任者 ✦'}
+      ],
+      focus:'今日情境題聚焦在兩年的等待——腓力斯說「等我得便」，那個「得便」從來沒有來。'
+    },
+    verse:'「腓力斯本是詳細曉得這道，就支吾他們說：「且等千夫長呂西亞下來，我要審斷你們的事。」」',
+    verseRef:'—— 使徒行傳 24:22',
+    scene:'保羅在腓力斯總督面前受審，說到公義、節制、將來的審判，腓力斯心裡害怕，說「等我得便再說」。就這樣，保羅被留在監裡等候，一等就是兩年。',
+    q:'保羅在監裡不知道等待的盡頭在哪裡，也許每天都在想「今天會不會有消息？」你有沒有正在經歷一段「不知道要等多久」的等待？',
+    choices:[
+      {k:'A',text:'有——我最難熬的不是等待本身，而是不知道終點在哪裡。'},
+      {k:'B',text:'我覺得等待是神讓我學習某件事的時間，但道理歸道理，等起來還是很難。'},
+      {k:'C',text:'腓力斯說「等我得便」讓我有點心寒——有些人永遠不會「得便」的。'},
+      {k:'D',text:'保羅在等待中還是能和人說話、服事——我想學習這種在等待中仍然活著的能力。'}
+    ],
+    responses:{
+      A:'「不知道終點」確實是等待中最重的部分。保羅兩年的等待也是這樣。神沒有告訴他「再等730天」——只有一天一天的信靠。',
+      B:'道理和感受之間的距離是真實的。知道等待有意義，不代表等待不痛。神也知道這個距離。',
+      C:'腓力斯的「得便」從來沒有來。這提醒我們——有些機會窗口是會關閉的，對我們自己也一樣。',
+      D:'保羅在等待中仍然傳福音、仍然寫書信。等待不是暫停，是另一種前行的方式。'
+    },
+    reflectionTitle:'等待中的信心',
+    reflection:'保羅在監裡等了兩年，腓力斯始終沒有給他答案。\n\n你現在有沒有一個「不知道要等多久」的事情？在那個等待裡，你有沒有感覺到神也在那個等待的空間裡？',
+    baseItem:{emoji:'⏳',name:'兩年的沙漏',desc:'「腓力斯又指望保羅送他銀錢，所以屢次叫他來，和他談論。」',slot:'hand'},
+    bonusItem:{emoji:'🤍',name:'無虧的良心',desc:'「我因此自己勉勵，對神對人，常存無虧的良心。」',slot:'hat'}
+  },
+
+  // ── 使徒行傳 25 ──
+  {
+    chapter:25, sceneEmoji:'⚖️',
+    readTime:3,
+    guide:{
+      intro:'第25章記錄了新任巡撫非斯都接手這個燙手山芋。猶太人再次想置保羅於死地，但保羅做了一個決定性的選擇：「我上訴於凱撒！」這個決定最終把他帶到了羅馬——正如神應許的那樣。',
+      outline:[
+        {nodes:'1-5節', text:'非斯都到任，祭司長控告保羅，非斯都邀他們到凱撒利亞受審'},
+      {nodes:'6-12節', text:'審問中保羅清楚申辯，非斯都想討好猶太人，保羅宣告：我上訴於凱撒 ✦'},
+      {nodes:'13-22節', text:'亞基帕王和百尼基來訪，非斯都把保羅的案子說給他們聽'},
+      {nodes:'23-27節', text:'亞基帕和百尼基大排場蒞臨，非斯都安排保羅在眾人面前陳述'}
+      ],
+      focus:'今日情境題聚焦在 6-12節——保羅選擇用合法的公民權利保護自己，這是智慧還是信心不足？'
+    },
+    verse:'「保羅分訴說：「無論猶太人的律法，或是聖殿，或是凱撒，我都沒有干犯。」」',
+    verseRef:'—— 使徒行傳 25:8',
+    scene:'新任總督非斯都接替腓力斯，猶太人趁機再次控告保羅。保羅面對無根據的控告，決定行使羅馬公民的權利：「我上訴於凱撒！」這個決定最終帶他去到羅馬。',
+    q:'保羅用合法的公民權利保護自己，拒絕被不公義的系統吞噬。你覺得用「世俗的法律或制度」來保護自己，和信靠神，這兩者之間有衝突嗎？',
+    choices:[
+      {k:'A',text:'沒有衝突——神設立了人間的制度，善用它也是智慧。'},
+      {k:'B',text:'有點矛盾——真正的信心應該是完全交託，不需要靠人的系統保護自己。'},
+      {k:'C',text:'要看情況——有些時候忍受不公義是見證，有些時候抗議才是見證。'},
+      {k:'D',text:'保羅上訴凱撒，最後去了羅馬傳福音——神可以用我們的「自保」行為來成就祂的計畫。'}
+    ],
+    responses:{
+      A:'保羅確實這樣做了，而且聖靈沒有阻止他。智慧地使用神設立的制度，本身也是對神的信靠。',
+      B:'這個張力是真實的。但「完全交託」不等於「不採取行動」——交託的同時可以盡人事。',
+      C:'這個辨別很重要。耶穌被打了不還手，保羅卻說「我是羅馬人，你們這樣打我合法嗎？」——情境不同，回應不同。',
+      D:'這是整卷使徒行傳的主題之一：神用人的決定成就祂的旨意。保羅的上訴是他自己的選擇，也是神帶他去羅馬的方式。'
+    },
+    reflectionTitle:'智慧的自保',
+    reflection:'保羅用合法的公民權利保護自己，沒有被動地接受不公義。\n\n你有沒有遇過一個情況，你需要決定「忍受不公義」還是「為自己說話」？你是怎麼判斷的？',
+    baseItem:{emoji:'⚖️',name:'凱撒的法庭',desc:'「非斯都和議會商量了，就說：「你既上告於凱撒，可以往凱撒那裡去。」」',slot:'hand'},
+    bonusItem:{emoji:'📋',name:'查明無罪的判詞',desc:'「但我查明他沒有犯甚麼該死的罪，並且他自己上告於皇帝，所以我定意把他解去。」',slot:'bg'}
+  },
+
+  // ── 使徒行傳 26 ──
+  {
+    chapter:26, sceneEmoji:'👑',
+    readTime:4,
+    guide:{
+      intro:'第26章是保羅在亞基帕王面前最完整、最有力的見證陳述。他的故事說得如此精彩，連王都說出了那句著名的話：「你幾乎說服了我，叫我作基督徒！」保羅的回答展現了他對每一個人得救的深切渴望。',
+      outline:[
+        {nodes:'1-3節', text:'保羅獲准說話，感謝亞基帕王熟悉猶太風俗和難題'},
+      {nodes:'4-11節', text:'我的過去——從小是嚴格的法利賽人，曾激烈逼迫基督徒'},
+      {nodes:'12-18節', text:'大馬士革路上——光比太陽更亮，主的聲音，蒙召成為外邦人的使徒'},
+      {nodes:'19-23節', text:'我的服從——從大馬士革到耶路撒冷到外邦，只傳律法和先知所說的'},
+      {nodes:'24-29節', text:'非斯都說「你瘋了」，亞基帕說「你幾乎說服了我」，保羅的回應 ✦'},
+      {nodes:'30-32節', text:'眾人退去後，都說「這人沒有犯甚麼死罪或下監的罪」'}
+      ],
+      focus:'今日情境題聚焦在 24-29節——「你幾乎說服了我」，差一點就信了的亞基帕王。'
+    },
+    verse:'「亞基帕王啊，你信先知嗎？我知道你是信的。亞基帕對保羅說：你幾乎說服了我，叫我作基督徒！」',
+    verseRef:'—— 使徒行傳 26:27-28',
+    scene:'保羅在亞基帕王面前分享他的見證——從逼迫者到蒙召者的完整故事。他說得如此有力，連王都說「你幾乎說服了我」。保羅回答：「無論幾乎不幾乎，我向神所求的，就是你們今日聽我的，都能成為我這樣的人。」',
+    q:'「你幾乎說服了我」——亞基帕差一點就信了，但沒有。你身邊有沒有一個「幾乎要信了」的人？你有什麼感受？',
+    choices:[
+      {k:'A',text:'有——那種「差一點」讓我心裡有點痛，也讓我反思自己還能做什麼。'},
+      {k:'B',text:'我覺得「幾乎」也許是一個過程，神的工作還在繼續。'},
+      {k:'C',text:'保羅說「無論幾乎不幾乎」——他的責任是說出來，結果是神的事。'},
+      {k:'D',text:'這讓我想到：我自己有沒有什麼事情是「幾乎要順服神，但還沒有」？'}
+    ],
+    responses:{
+      A:'那種痛是愛的一部分。保羅也感受到了——他說「我向神所求的，就是你們都能成為我這樣的人」。他為他們禱告。',
+      B:'「幾乎」可能是播種，可能是澆水——只有神知道那個種子在哪個季節發芽。你的責任是繼續愛他。',
+      C:'這是很重要的自由——把結果交給神。保羅說完話，無論王信不信，他都沒有失敗。',
+      D:'這個轉向自己的問題很深刻。「幾乎」順服和「真的」順服之間，有時候只差一個決定。'
+    },
+    reflectionTitle:'幾乎',
+    reflection:'「你幾乎說服了我」——亞基帕差一點就跨過那條線。\n\n你生命中有沒有一件事，你「幾乎」要順服神，但到現在還在「幾乎」的狀態？那條線的另一邊，你想像是什麼？',
+    baseItem:{emoji:'👑',name:'亞基帕的王冠',desc:'「你幾乎說服了我，叫我作基督徒！」',slot:'hat'},
+    bonusItem:{emoji:'🌟',name:'見證者的光',desc:'「無論幾乎不幾乎，我向神所求的，就是你們都能成為我這樣的人」',slot:'bg'}
+  },
+
+  // ── 使徒行傳 27 ──
+  {
+    chapter:27, sceneEmoji:'⛵',
+    readTime:5,
+    guide:{
+      intro:'第27章是一段驚心動魄的航海故事，也是整本使徒行傳中篇幅最長的單一事件敘述。保羅從囚犯變成了風浪中的帶領者——他的平靜根基不是對天氣的掌控，而是對神應許的確信。',
+      outline:[
+        {nodes:'1-8節', text:'從凱撒利亞出發，沿途換船，航行艱難，到了佳澳'},
+      {nodes:'9-12節', text:'保羅警告不宜繼續航行，但百夫長和船主決定繼續，往腓尼基過冬'},
+      {nodes:'13-20節', text:'遇到「猶拉革羅」颶風，拋棄貨物，眾人毫無生還的希望'},
+      {nodes:'21-26節', text:'保羅站起來：「你們應該聽我的，神的使者昨夜站在我旁邊說……」 ✦'},
+      {nodes:'27-38節', text:'第14夜接近陸地，保羅擘餅感謝神，鼓勵眾人吃飯'},
+      {nodes:'39-44節', text:'船擱淺破裂，但276人全部上岸得救，應驗神的話'}
+      ],
+      focus:'今日情境題聚焦在 21-26節——保羅在風浪中站起來帶領，他的平靜從哪裡來？'
+    },
+    verse:'「所以眾位可以放心，我信神他怎樣對我說，事情也要怎樣成就。」',
+    verseRef:'—— 使徒行傳 27:25',
+    scene:'保羅乘船前往羅馬，途中遭遇可怕的大風浪，船幾乎要破碎，眾人毫無生還的希望。但保羅起來對眾人說：「你們放心，不會有人喪命的，只會失去船。」然後他拿起餅來，當眾祝謝神，擘開吃了。',
+    q:'保羅在風浪中，不是在角落禱告等死，而是「站起來」帶領眾人、擘餅感謝。你在最失控的環境裡，你通常的反應是什麼？',
+    choices:[
+      {k:'A',text:'我通常會往內縮——先處理自己的恐懼，再想能不能幫助別人。'},
+      {k:'B',text:'我想做保羅那樣的人，但不確定在真實的風浪裡做不做得到。'},
+      {k:'C',text:'我覺得保羅能這樣做，是因為他已經清楚神要帶他去羅馬——他有一個應許。'},
+      {k:'D',text:'「擘餅感謝」在最危險的時刻——這個畫面讓我覺得很震撼。'}
+    ],
+    responses:{
+      A:'往內縮是人之常情。但保羅也害怕過——他說「你們放心」，意味著眾人（也包括他自己）需要被鼓勵。他選擇在恐懼中站起來。',
+      B:'這個誠實很重要。保羅的勇氣不是天生的，是在許多次風浪中被塑造的。你現在的小風浪，也在塑造你。',
+      C:'完全正確。保羅的平靜根基是那個「你必在羅馬為我作見證」的應許。有應許的人，在風浪中有不同的錨。',
+      D:'擘餅感謝——在最混亂的船上，最危險的時刻，他做的是一個感恩的動作。這不是否認危險，而是宣告神比危險更大。'
+    },
+    reflectionTitle:'風浪中的錨',
+    reflection:'保羅在風浪中站起來，不是因為他不害怕，而是因為他有一個比風浪更確定的應許。\n\n你生命中現在有沒有一個「風浪」正在吹？你有沒有一個「應許」可以作為錨？',
+    baseItem:{emoji:'🌊',name:'狂風的浪潮',desc:'「太陽和星辰多日不顯露，又有狂風大浪催逼，我們得救的指望就都絕了。」',slot:'bg'},
+    bonusItem:{emoji:'🍞',name:'風浪中的餅',desc:'「保羅說了這話，就拿著餅，在眾人面前祝謝了神，擘開吃。」',slot:'hand'}
+  },
+
+  // ── 使徒行傳 28 ──
+  {
+    chapter:28, sceneEmoji:'🏛️',
+    readTime:5,
+    guide:{
+      intro:'使徒行傳的最後一章。保羅在船難之後抵達米利大島，被毒蛇咬卻沒事，又醫好島長的父親；最終抵達羅馬，雖然被軟禁，卻放膽傳道兩年。整卷書沒有交代保羅最後怎麼了，只說「並沒有人禁止」——故事的盡頭，是福音繼續往前走。',
+      outline:[
+        {nodes:'1-6節', text:'米利大島——毒蛇咬手保羅沒事，島民從以為他是兇手，到當他是神'},
+        {nodes:'7-10節', text:'醫好島長父親，島上的病人都來得醫治，停留三個月'},
+        {nodes:'11-16節', text:'啟程往羅馬，弟兄們在亞比烏市迎接，保羅「感謝神，放心壯膽」'},
+        {nodes:'17-29節', text:'✦ 在羅馬向猶太人首領講論神國的道，有信的、有不信的'},
+        {nodes:'30-31節', text:'在自己租的房子住了兩年，放膽傳講神國的道，並沒有人禁止'}
+      ],
+      focus:'今日情境題聚焦在 30-31節——保羅被軟禁的兩年，依然放膽傳道。'
+    },
+    verse:'「放膽傳講神國的道，將主耶穌基督的事教導人，並沒有人禁止。」',
+    verseRef:'—— 使徒行傳 28:31',
+    scene:'保羅終於到了羅馬。不是自由地走進來，而是被鎖鍊帶來，住在自己租的房子裡，由一個兵看守。但他兩年都在做同一件事——凡來見他的人，他全都接待，放膽傳講神國的道。使徒行傳就在這裡戛然而止，沒有交代他後來怎麼了。',
+    q:'保羅一生想去羅馬，去的時候卻是囚犯；他在那裡住了兩年，被軟禁卻沒被禁止傳道。如果你的人生此刻也卡在一個「不是你想要的位置」，這段經文最觸動你的是什麼？',
+    choices:[
+      {k:'A',text:'他沒有等到「環境改善」才開始傳道——在租的房子裡也照樣放膽。'},
+      {k:'B',text:'「並沒有人禁止」——神能在最受限的地方為祂的話開路。'},
+      {k:'C',text:'使徒行傳就這樣結束，沒有大結局——好像在說故事其實還沒完。'},
+      {k:'D',text:'老實說，我現在的處境連「放膽」兩個字都說不出口，更別說傳道。'}
+    ],
+    responses:{
+      A:'他沒有 podium、沒有禮拜堂、沒有自由出入——只有一間租的房子和一條鎖鍊。但他做的事和在大馬色路上時一樣。你現在的「租房子」是哪裡？',
+      B:'最後一句話是「並沒有人禁止」——羅馬政府沒禁止，鎖鍊沒禁止，連保羅自己的軟弱也沒禁止。神的話往前走的時候，路會自己讓開。',
+      C:'路加沒寫保羅後來殉道，沒寫他第二次旅程，沒寫結局。因為使徒行傳的主角從來不是保羅——是那個「並沒有人禁止」的福音。你的故事也還沒寫完。',
+      D:'這句話不是責備你的——是給你看，連保羅都是「被鎖鍊捆著」才到羅馬的。放膽不是天生的，是在最不像樣的處境裡被神慢慢餵出來的。今天能說出「我累了」，就是一個小小的放膽。'
+    },
+    reflectionTitle:'未完的結局',
+    reflection:'使徒行傳的最後一句話沒有句點式的高潮——「並沒有人禁止」。保羅還在那間租的房子裡，福音卻已經往前走了。\n\n你生命中有沒有一件事，外表看起來是「卡住了」，但其實神的工作正在那裡靜靜地進行？此刻，你願意把那個「卡住」的地方，重新交還給神嗎？',
+    baseItem:{emoji:'🔗',name:'羅馬的鎖鍊',desc:'「我原為以色列人所指望的，被這鍊子捆鎖」',slot:'hand'},
+    bonusItem:{emoji:'🏛️',name:'放膽的居所',desc:'「放膽傳講神國的道，將主耶穌基督的事教導人，並沒有人禁止」',slot:'bg'}
+  },
+
+  // ── 羅馬書 1 ──
+  {
+    chapter:'ROM1', sceneEmoji:'✉️',
+    readTime:4,
+    guide:{
+      intro:'羅馬書是保羅最系統性的神學書信，寫給他從未親自拜訪過的羅馬教會。第1章從福音的宣告開始，然後毫不留情地描述一個離開神的世界是什麼樣子——人用受造之物代替造物主，用謊言換了真理。這是整卷書的起點：人需要福音，因為人需要神。',
+      outline:[
+        {nodes:'1-7節', text:'問安——保羅自我介紹，說明蒙召作使徒，問候羅馬眾聖徒'},
+      {nodes:'8-15節', text:'心願——保羅渴望親自到羅馬，為要傳福音，他欠希臘人和野蠻人的債'},
+      {nodes:'16-17節', text:'主題宣告——我不以福音為恥，這福音是神的大能，義人因信得生 ✦'},
+      {nodes:'18-23節', text:'人的問題——神的忿怒向一切不虔不義的人顯明，人知道神卻不榮耀祂'},
+      {nodes:'24-32節', text:'後果——神任憑人放縱，人陷入各種罪中，並且知道這是當死的事仍去行'}
+      ],
+      focus:'今日情境題聚焦在 16-17節——「我不以福音為恥」，保羅在帝國首都說出這句話的意義。'
+    },
+    verse:'「我不以福音為恥；這福音本是神的大能，要救一切相信的，先是猶太人，後是希臘人。」',
+    verseRef:'—— 羅馬書 1:16',
+    scene:'保羅寫信給從未謀面的羅馬教會，開門見山宣告：他不以福音為恥。但接著，他描述了一個沒有神的世界——人用謊言換了真理，用受造之物代替造物主。這封信從一開始就是一場關於「你把什麼放在中心」的對話。',
+    q:'「我不以福音為恥」——保羅說這句話時是在羅馬帝國的核心。你有沒有曾經「以福音為恥」的時刻？',
+    choices:[
+      {k:'A',text:'有——在某些場合我會刻意不提自己的信仰，怕被誤解或被看輕。'},
+      {k:'B',text:'我覺得「不以為恥」不代表要大聲宣揚，而是在機會來時不退縮。'},
+      {k:'C',text:'我比較擔心的不是羞恥，而是說不清楚、被誤解——這讓我不敢開口。'},
+      {k:'D',text:'老實說，我在不同圈子裡有不同的「版本」，信仰那個版本不常出現。'}
+    ],
+    responses:{
+      A:'這個誠實很珍貴。「以為恥」的根源通常是「在乎別人的眼光多過在乎神的眼光」——這是很人性的掙扎，保羅也是刻意宣告才能站住的。',
+      B:'這是很成熟的理解。「不以為恥」是一種內在的立場，不是表演式的宣告。你說的「機會來時不退縮」——那個機會時刻，你通常做到嗎？',
+      C:'「說不清楚」是很多人不開口的真實原因。這提醒我們：學習如何表達信仰，本身也是屬靈成長的一部分。',
+      D:'這個誠實需要勇氣說出來。保羅的「不以為恥」是一個宣告，意味著他做了一個選擇——讓信仰成為他所有圈子都知道的那個他。'
+    },
+    reflectionTitle:'不以為恥',
+    reflection:'「我不以福音為恥」——保羅是在最需要這個宣告的地方說這句話的。\n\n你生命中有哪個「圈子」，你的信仰是隱形的？那個隱形背後的原因是什麼？',
+    baseItem:{emoji:'✉️',name:'羅馬的書信',desc:'「我不以福音為恥，這福音本是神的大能」',slot:'hand'},
+    bonusItem:{emoji:'🌍',name:'萬國的地圖',desc:'「先是猶太人，後是希臘人」',slot:'bg'}
+  },
+
+  // ── 羅馬書 2 ──
+  {
+    chapter:'ROM2', sceneEmoji:'⚖️',
+    readTime:4,
+    guide:{
+      intro:'第2章是一個出乎意料的轉向——保羅從描述外邦人的罪，突然對著「論斷人的人」說話。這很可能是在提醒那些自以為因為有律法就站在更高位置的猶太人：你知道律法，但你行出來了嗎？神的審判是按照真理和行為，不按照身份。',
+      outline:[
+        {nodes:'1-5節', text:'論斷人的人也定自己的罪——你做了同樣的事，神的審判是按真理的'},
+      {nodes:'6-11節', text:'神按各人的行為報應，不偏待人——猶太人和外邦人都一樣'},
+      {nodes:'12-16節', text:'沒有律法的，按本性行律法上的事，良心作見證'},
+      {nodes:'17-24節', text:'有律法的猶太人——你靠律法誇口，但你自己守律法嗎？'},
+      {nodes:'25-29節', text:'真正的割禮是心裡的——外在的記號不能代替內在的改變 ✦'}
+      ],
+      focus:'今日情境題聚焦在 1節——「你論斷人，就是定自己的罪」，這面鏡子照向每一個人。'
+    },
+    verse:'「你這論斷人的，無論你是誰，也無可推諉。你在甚麼事上論斷人，就在甚麼事上定自己的罪；因你這論斷人的，自己所行卻和別人一樣。」',
+    verseRef:'—— 羅馬書 2:1',
+    scene:'保羅在第一章描述了外邦人的罪之後，筆鋒一轉對著「論斷人的人」說話——很可能是指自以為義的猶太人。他說：你論斷別人，卻做同樣的事。神的審判是按照真理，不因為你知道律法就例外。',
+    q:'「你論斷人的，你自己也做同樣的事」——你有沒有一種罪是你特別容易在別人身上看見、卻不容易在自己身上看見的？',
+    choices:[
+      {k:'A',text:'有——我對某種行為特別敏感，事後想想，那往往是我自己也在掙扎的地方。'},
+      {k:'B',text:'我覺得論斷和辨別是不同的，我只是有標準，不一定是論斷。'},
+      {k:'C',text:'這節話讓我想到：有時候我批評別人，其實是在轉移對自己問題的注意力。'},
+      {k:'D',text:'我不太確定「論斷」的界線在哪——什麼時候是合理的評判，什麼時候是論斷？'}
+    ],
+    responses:{
+      A:'心理學稱這為「投射」——我們最敏銳的雷達，往往指向自己最脆弱的地方。這不是巧合，是人性的一個規律。保羅在這裡點出了這個規律。',
+      B:'論斷和辨別確實不同。辨別是認識是非，論斷是把自己放在審判者的位置。保羅的重點不是「不能有標準」，而是「有標準的你，自己符合那個標準嗎？」',
+      C:'這個洞見很深刻。批評別人有時是一種自我保護——如果我把焦點放在你的問題上，就不用正視我自己的問題。',
+      D:'這是個好問題。簡單說：論斷是「你這個人是錯的」，辨別是「這件事是錯的」。前者審判人，後者評估行為。保羅反對的是前者。'
+    },
+    reflectionTitle:'鏡子裡的論斷',
+    reflection:'保羅說：你論斷別人，你就定了自己的罪。\n\n有沒有一種你特別不能忍受的行為或態度——當你看見它在別人身上時？靜下來問問：這面鏡子，有沒有也在照著你？',
+    baseItem:{emoji:'⚖️',name:'審判的天秤',desc:'「我們知道這樣行的人，神必照真理審判他。」',slot:'hand'},
+    bonusItem:{emoji:'🌷',name:'領人悔改的恩慈',desc:'「還是你藐視他豐富的恩慈、寬容、忍耐，不曉得他的恩慈是領你悔改呢？」',slot:'hat'}
+  },
+
+  // ── 羅馬書 3 ──
+  {
+    chapter:'ROM3', sceneEmoji:'🎯',
+    readTime:4,
+    guide:{
+      intro:'第3章是羅馬書前半段的高峰——保羅把所有人（猶太人和外邦人）都放在同一個審判台前：沒有義人，連一個都沒有。然後，他宣告了整本書最震撼的轉折：「但如今」。不靠律法，只因信耶穌基督，白白被稱義。',
+      outline:[
+        {nodes:'1-8節', text:'猶太人有什麼特別？有神的話語託付給他們，但人的不信不能廢掉神的信實'},
+      {nodes:'9-18節', text:'結論：猶太人和外邦人都在罪惡之下，引用多處詩篇證明「沒有義人」'},
+      {nodes:'19-20節', text:'律法的功用：叫人知罪，不是叫人稱義'},
+      {nodes:'21-26節', text:'但如今——神的義因信耶穌基督顯明，白白稱義，藉耶穌的血得救贖 ✦'},
+      {nodes:'27-31節', text:'誇口在哪裡？既然稱義是因信，猶太人和外邦人在神面前是平等的'}
+      ],
+      focus:'今日情境題聚焦在 23-24節——「白白地稱義」，這個「白白」對你意味著什麼？'
+    },
+    verse:'「因為世人都犯了罪，虧缺了神的榮耀；如今卻蒙神的恩典，因基督耶穌的救贖，就白白地稱義。」',
+    verseRef:'—— 羅馬書 3:23-24',
+    scene:'保羅把猶太人和外邦人都放在同一個審判台前：沒有人例外，沒有義人，連一個都沒有。然後，他宣告了最震撼的轉折——「但如今」。不是靠律法，而是因信耶穌基督，白白被稱義。',
+    q:'「白白地稱義」——這個「白白」讓你有什麼感受？',
+    choices:[
+      {k:'A',text:'感恩——但有時候太習慣這個恩典，以至於不再覺得它珍貴。'},
+      {k:'B',text:'有點難以接受——我總覺得應該要「做些什麼」才算數。'},
+      {k:'C',text:'「白白」這個詞讓我覺得被完全接納，不是因為我夠好，而是因為祂夠好。'},
+      {k:'D',text:'我理智上明白，但情感上有時候還是覺得自己要先「夠格」才能靠近神。'}
+    ],
+    responses:{
+      A:'「習慣恩典」是一種很微妙的屬靈危機——恩典沒有消失，只是我們的驚訝消失了。保羅寫羅馬書，某種程度就是要讓我們重新被恩典震撼。',
+      B:'這個掙扎很普遍，也很誠實。律法主義的根，往往不是我們以為的「驕傲」，而是我們不敢相信真的可以「白白」得到愛。',
+      C:'這正是保羅要傳遞的核心——稱義的根基是基督的義，不是我們的義。「被完全接納」這個感受，就是福音最深的意思。',
+      D:'「情感上覺得要先夠格」——這是很多信徒的真實狀態。保羅說「白白」，是要拆掉那道「我必須先準備好」的牆。神不是在等你夠好才靠近。'
+    },
+    reflectionTitle:'白白的恩典',
+    reflection:'「白白地稱義」——不是因為你夠好，不是因為你努力夠了，而是因為基督。\n\n你最近有沒有一個地方，你還在試著「證明自己夠格」被神愛？那個地方，你願意讓「白白」的恩典進去嗎？',
+    baseItem:{emoji:'🎯',name:'公義的箭矢',desc:'「世人都犯了罪，虧缺了神的榮耀」',slot:'hand'},
+    bonusItem:{emoji:'🎁',name:'白白的禮物',desc:'「蒙神的恩典，白白地稱義」',slot:'hat'}
+  },
+
+  // ── 羅馬書 4 ──
+  {
+    chapter:'ROM4', sceneEmoji:'⭐',
+    readTime:4,
+    guide:{
+      intro:'第4章保羅用亞伯拉罕作例子，證明稱義從來不是靠割禮或律法，而是靠信心——而且這個原則在律法頒布之前、割禮施行之前就已經成立了。亞伯拉罕在最不可能的處境下相信神的應許，這就是信心的原型。',
+      outline:[
+        {nodes:'1-8節', text:'亞伯拉罕是因信稱義，不是因行為——引用創世記和詩篇證明'},
+      {nodes:'9-12節', text:'稱義發生在割禮之前——亞伯拉罕是所有因信稱義之人的父'},
+      {nodes:'13-17節', text:'應許不是藉律法而來，是藉信心的義而來，使恩典得以確立'},
+      {nodes:'18-22節', text:'亞伯拉罕在無可指望時仍抱著指望，不疑惑，確信神能成就 ✦'},
+      {nodes:'23-25節', text:'「算為他義」不只是為亞伯拉罕寫的，也是為我們寫的'}
+      ],
+      focus:'今日情境題聚焦在 18-21節——亞伯拉罕「在無可指望的時候，仍然抱著指望」。'
+    },
+    verse:'「亞伯拉罕信神，這就算為他的義。」',
+    verseRef:'—— 羅馬書 4:3',
+    scene:'保羅用亞伯拉罕來證明：稱義從來不是靠割禮或律法，而是靠信心。亞伯拉罕在受割禮之前就被稱為義了。他在「無可指望的時候」仍然相信神的應許——那時他已經老邁，撒拉的子宮也已死了。',
+    q:'亞伯拉罕在「無可指望的時候，仍然抱著指望」——你有沒有一個看起來毫無希望、但你仍然選擇相信的事？',
+    choices:[
+      {k:'A',text:'有——那種信心不是因為我看見了希望，而是因為我選擇相信神比現實更大。'},
+      {k:'B',text:'老實說，我在「無可指望」的時候很難抱持指望，我更傾向於接受現實。'},
+      {k:'C',text:'我覺得「抱著指望」和「否認現實」之間很難拿捏，亞伯拉罕是怎麼做到的？'},
+      {k:'D',text:'我現在就有一個這樣的處境，我還在學習怎麼在其中信靠。'}
+    ],
+    responses:{
+      A:'這種信心是最真實的信心——不是因為感覺好，不是因為看見了，而是因為相信神說的是真的。亞伯拉罕的信心和你的信心，有同一個根基。',
+      B:'這個誠實很重要。「接受現實」本身不是信心的反面——問題是那個「現實」是以人的眼光看，還是以神的眼光看。兩種「現實」有時候很不一樣。',
+      C:'保羅說亞伯拉罕「心裡不疑惑」——但這不代表他沒有看見現實。他知道自己的身體已死、撒拉的子宮已死，但他相信那位應許的神有能力成就。信心不是眼閉，而是眼睛放在正確的對象上。',
+      D:'「在學習怎麼信靠」——這本身就是信仰最真實的樣子。亞伯拉罕也不是一次就信得完美，他的旅程也是一步一步的。'
+    },
+    reflectionTitle:'無可指望的指望',
+    reflection:'亞伯拉罕「在無可指望的時候，仍然抱著指望」——他相信的不是情況會改變，而是應許他的那一位是可信的。\n\n你現在有沒有一個「無可指望」的地方？你對那個地方，有沒有一個來自神的應許可以抓住？',
+    baseItem:{emoji:'🌻',name:'無可指望時的指望',desc:'「他在無可指望的時候，因信仍有指望，就得以作多國的父，正如先前所說：「你的後裔將要如此。」」',slot:'bg'},
+    bonusItem:{emoji:'🌱',name:'應許的嫩芽',desc:'「亞伯拉罕所信的，是那叫死人復活、使無變為有的神，他在主面前作我們世人的父。如經上所記：「我已經立你作多國的父。」」',slot:'hand'}
+  },
+
+  // ── 羅馬書 5 ──
+  {
+    chapter:'ROM5', sceneEmoji:'🕊️',
+    readTime:4,
+    guide:{
+      intro:'第5章是稱義之後的果實——與神相和、在患難中有喜樂、神的愛澆灌在心裡。保羅也引入了亞當與基督的對比：罪和死藉亞當進入世界，恩典和生命藉基督進入世界。一個人帶來毀滅，一個人帶來更大的救贖。',
+      outline:[
+        {nodes:'1-5節', text:'稱義的果實：與神相和、在患難中歡喜、盼望不至於羞恥 ✦'},
+      {nodes:'6-11節', text:'神愛的證明：我們還是罪人的時候，基督就為我們死了'},
+      {nodes:'12-14節', text:'亞當與基督的對比開始：罪藉一人進入世界，死又因罪傳給眾人'},
+      {nodes:'15-17節', text:'恩賜不像過犯——基督帶來的遠超亞當造成的'},
+      {nodes:'18-21節', text:'總結：一次的義行，使眾人稱義得生；恩典在罪增多的地方更加增多'}
+      ],
+      focus:'今日情境題聚焦在 1-5節——患難生忍耐，忍耐生老練，老練生盼望，這條鏈條你走到哪一站？'
+    },
+    verse:'「我們既因信稱義，就藉著我們的主耶穌基督得與神相和。」',
+    verseRef:'—— 羅馬書 5:1',
+    scene:'保羅說稱義帶來「與神相和」——原來是敵對的關係，現在和好了。然後他說了一句讓人意外的話：我們在患難中也是歡歡喜喜的。不是忍受患難，而是在患難中有喜樂。因為患難生忍耐，忍耐生老練，老練生盼望。',
+    q:'「患難生忍耐，忍耐生老練，老練生盼望」——你有沒有經歷過這個鏈條？一個苦難，最後真的帶出了盼望？',
+    choices:[
+      {k:'A',text:'有——但那個「盼望」不是在苦難中間出現的，而是在走過之後回頭才看見的。'},
+      {k:'B',text:'我還在某個苦難的中間，還沒走到「盼望」那一站，現在還在「忍耐」。'},
+      {k:'C',text:'我對「在患難中歡喜」這件事有點懷疑——這是真的，還是強迫自己正向思考？'},
+      {k:'D',text:'我覺得「老練」這個詞很有意思——苦難不是讓人麻木，而是讓人更有深度。'}
+    ],
+    responses:{
+      A:'「回頭才看見」——這是很多人的經歷。神的作為常常在我們過了那個山谷之後，才看得見祂一直在那裡的痕跡。謝謝你願意回頭看。',
+      B:'「還在忍耐那一站」——這是最真實、也最需要被陪伴的地方。保羅說神把愛澆灌在我們心裡，不是等我們走到「盼望」才給，而是在「忍耐」的時候就已經在了。',
+      C:'這個懷疑是健康的。保羅說的「歡喜」不是否認痛苦，而是因為有一個比痛苦更大的真實——神的愛已經藉聖靈澆灌在我們心裡。那個喜樂的根基不是感覺，而是確定。',
+      D:'「老練」在希臘原文是「被試驗過後被確認的品格」——就像金被火試過之後才知道成色。苦難帶來的不是傷痕，而是深度，是你不能用其他方式得到的東西。'
+    },
+    reflectionTitle:'患難的鏈條',
+    reflection:'患難→忍耐→老練→盼望——這不是一個理論，而是保羅從自己生命中提煉出來的真實。\n\n你現在在這個鏈條的哪一站？你能看見神在那一站陪著你的痕跡嗎？',
+    baseItem:{emoji:'🕊️',name:'相和的橄欖枝',desc:'「我們既因信稱義，就藉著主得與神相和」',slot:'hand'},
+    bonusItem:{emoji:'🌈',name:'患難後的彩虹',desc:'「患難生忍耐，忍耐生老練，老練生盼望」',slot:'bg'}
+  },
+
+  // ── 羅馬書 6 ──
+  {
+    chapter:'ROM6', sceneEmoji:'💧',
+    readTime:4,
+    guide:{
+      intro:'第6章回應一個邏輯上的問題：「既然恩典在罪增多的地方更加增多，我們可以繼續犯罪讓恩典顯多嗎？」保羅的回答是：絕對不可！你已經受洗歸入基督的死，就當向罪死，向神活。你的身份已經改變了。',
+      outline:[
+        {nodes:'1-4節', text:'絕對不可！我們受洗歸入基督的死，好叫我們也在新生的樣式中生活'},
+      {nodes:'5-10節', text:'與基督同死同活——舊人已被釘死，罪的身體廢掉，我們對罪死了'},
+      {nodes:'11-14節', text:'要「算」自己向罪是死的，向神是活的——這是一個主動的選擇 ✦'},
+      {nodes:'15-19節', text:'你從前作罪的奴僕，現在要作義的奴僕——獻上肢體作義的器具'},
+      {nodes:'20-23節', text:'罪的工價是死，神的恩賜是永生——兩條路的對比'}
+      ],
+      focus:'今日情境題聚焦在 11節——「向罪算自己是死的」，這是一種選擇，還是一種感覺？'
+    },
+    verse:'「這樣，你們向罪也當看自己是死的；向神在基督耶穌裡，卻當看自己是活的。」',
+    verseRef:'—— 羅馬書 6:11',
+    scene:'保羅回應一個問題：「我們可以繼續在罪中，讓恩典顯多嗎？」他說：絕對不可！你已經受洗歸入基督的死，就當向罪死，向神活。罪不再能作你的主，因為你已不在律法之下，乃在恩典之下。',
+    q:'「向罪看自己是死的」——這是一個選擇，還是一種感覺？你認為這句話在實際生活中是什麼意思？',
+    choices:[
+      {k:'A',text:'是一個選擇——每次面對試探時，選擇以「我對這件事已死」的身份回應。'},
+      {k:'B',text:'我覺得這更像一個需要不斷操練的真理，不是一次就能完全實踐的。'},
+      {k:'C',text:'老實說，我知道這個道理，但實際面對試探時，那個「死」的感覺完全消失了。'},
+      {k:'D',text:'我覺得關鍵是「在基督裡」——這個身份是真實的，不是靠感覺維持的。'}
+    ],
+    responses:{
+      A:'這是保羅說的「算」的意思——你把它當作事實來對待，不是等感覺告訴你你已死。這種「以信心算定」是基督徒生活很核心的操練。',
+      B:'這個理解很真實。保羅這裡用的是命令語氣「要算自己是死的」，意味著這是一個需要主動、持續的行動，不是被動發生的狀態。',
+      C:'歡迎來到每一個基督徒的掙扎。這不是你信心不夠——而是因為我們仍然活在身體裡，試探是真實的。保羅說的「死」是身份的真實，不是感覺的真實。每次你選擇不順從，就是在活出那個身份。',
+      D:'完全正確。「在基督裡」是這句話的關鍵。你的新身份不是你創造的，是基督給你的，是客觀的事實。感覺會說謊，身份不會。'
+    },
+    reflectionTitle:'向罪死，向神活',
+    reflection:'「向罪死，向神活」——這是一個身份的宣告，不只是一個道德要求。\n\n你生命中有沒有一個反覆的試探，你很想「算自己是死的」？今天，你願不願意在那個地方做一個宣告？',
+    baseItem:{emoji:'💧',name:'受洗的水',desc:'「我們藉著洗禮歸入他的死」',slot:'bg'},
+    bonusItem:{emoji:'✝️',name:'十字架的印記',desc:'「向罪看自己是死的，向神在基督裡是活的」',slot:'hat'}
+  },
+
+  // ── 羅馬書 7 ──
+  {
+    chapter:'ROM7', sceneEmoji:'😔',
+    readTime:4,
+    guide:{
+      intro:'第7章是保羅最誠實的自我剖白之一。他描述一個認識神的人內心的掙扎——知道善卻做不到，不想做的惡卻偏偏去做。這章讓幾千年來的信徒大大鬆了一口氣：原來連保羅也這樣。然後第8章立刻接著說：聖靈有答案。',
+      outline:[
+        {nodes:'1-6節', text:'律法的比喻：婚姻關係因死得自由——我們向律法死了，歸於基督'},
+      {nodes:'7-12節', text:'律法本身不是罪，但罪藉律法在我裡面發動，讓我看見自己的真實狀態'},
+      {nodes:'13-17節', text:'律法叫我看見：我所做的不是我所願意的，住在我裡面的罪做了這事'},
+      {nodes:'18-23節', text:'我知道在我裡頭沒有良善，立志為善由得我，行出來卻由不得我 ✦'},
+      {nodes:'24-25節', text:'我真是苦啊！誰能救我？感謝神，靠著耶穌基督就能脫離！'}
+      ],
+      focus:'今日情境題聚焦在 18-24節——「我所願意的善，我反不做」，這個掙扎你熟悉嗎？'
+    },
+    verse:'「我真是苦啊！誰能救我脫離這取死的身體呢？感謝神，靠著我們的主耶穌基督就能脫離了。」',
+    verseRef:'—— 羅馬書 7:24-25',
+    scene:'保羅說了一段讓很多人大受安慰的自白：「我所願意的善，我反不做；我所不願意的惡，我倒去做。」他不是在說他信主之前，而是在描述一個認識神的人內心的掙扎——知道善卻行不出來。',
+    q:'「我所願意的善，我反不做」——你有沒有一個地方，你非常清楚什麼是對的，卻仍然一再做不到？',
+    choices:[
+      {k:'A',text:'有——那種「明知故犯」的感覺讓我覺得自己很失敗，有時會懷疑自己是不是真的信主。'},
+      {k:'B',text:'有——這段話讓我大大鬆了一口氣，原來連保羅也這樣。'},
+      {k:'C',text:'我覺得這種掙扎正是我需要每天倚靠聖靈的原因——靠自己的意志力是不夠的。'},
+      {k:'D',text:'「誰能救我？」——保羅的答案是耶穌，不是「努力一點」。這讓我重新思考解決方式。'}
+    ],
+    responses:{
+      A:'「懷疑自己是不是真的信主」——這個掙扎本身，反而是你確實在意聖潔的證明。完全不在乎的人，不會有這種掙扎。保羅說的正是一個真實信主的人的狀態。',
+      B:'這也是神學家讀到這段話的反應——保羅的誠實是一份禮物，讓幾千年來的信徒知道：這個掙扎不是你的失敗，而是所有人的實況。',
+      C:'完全對。羅馬書7章是「我做不到」的哀嘆，羅馬書8章馬上接著說「聖靈的律勝過了罪和死的律」。解決方案不是意志力，而是另一個更大的力量。',
+      D:'「誰能救我」是一個完全正確的問題方向——不是「我怎麼做才能改變」，而是「誰能做我做不到的事」。這個轉向，是從律法思維到恩典思維的關鍵。'
+    },
+    reflectionTitle:'良善的掙扎',
+    reflection:'「我真是苦啊！」——這是一個信主的人發出的誠實哀嘆，不是軟弱的表現，而是對聖潔的渴望遇見自己的有限。\n\n你有沒有一個「我真是苦啊」的地方？你願意把那個地方帶到保羅的答案面前——感謝神，靠著耶穌基督？',
+    baseItem:{emoji:'😔',name:'掙扎的眼淚',desc:'「我所願意的善，我反不做」',slot:'hand'},
+    bonusItem:{emoji:'🙌',name:'感謝的雙手',desc:'「感謝神！靠著我們的主耶穌基督就能脫離了」',slot:'hat'}
+  },
+
+  // ── 羅馬書 8 ──
+  {
+    chapter:'ROM8', sceneEmoji:'🔥',
+    readTime:6,
+    guide:{
+      intro:'第8章是整本羅馬書的高峰，也是整本聖經最令人振奮的章節之一。從「不定罪」開始，到「聖靈幫助我們的軟弱」，到「萬事互相效力」，到「誰能使我們與基督的愛隔絕？」——保羅用一連串的問題和宣告，讓讀者看見：在基督裡，什麼都不能把我們與神的愛分開。',
+      outline:[
+        {nodes:'1-4節', text:'如今不定罪了！聖靈的律勝過罪和死的律'},
+      {nodes:'5-11節', text:'體貼聖靈的是生命平安，聖靈住在你裡面，你的靈因義是活的'},
+      {nodes:'12-17節', text:'我們不是欠肉體的債，靠聖靈治死身體的惡行，就必活著——神的兒子'},
+      {nodes:'18-27節', text:'現在的苦楚不足以比將來的榮耀，萬物嘆息，聖靈為我們代求'},
+      {nodes:'28-30節', text:'萬事互相效力，叫愛神的人得益處——從預知到得榮耀的鏈條 ✦'},
+      {nodes:'31-39節', text:'神若幫助我們，誰能抵擋？誰能使我們與基督的愛隔絕？沒有任何事能！'}
+      ],
+      focus:'今日情境題聚焦在 28節和31-39節——「萬事互相效力」和「什麼都不能隔絕」，哪句話你今天最需要？'
+    },
+    verse:'「如今，那些在基督耶穌裏的就不定罪了。」',
+    verseRef:'—— 羅馬書 8:1',
+    scene:'羅馬書第8章是整本書信的高峰。從「不定罪」開始，到「聖靈幫助我們的軟弱」，到「萬事互相效力」，到「誰能使我們與基督的愛隔絕？」——保羅用一連串的問題宣告：什麼都不能。',
+    q:'「萬事互相效力，叫愛神的人得益處」——這句話在你生命中，有沒有真實被驗證過？',
+    choices:[
+      {k:'A',text:'有——有一件我當時完全看不見意義的事，後來才看見神如何把它用在更大的圖畫裡。'},
+      {k:'B',text:'我還在等待某件事「效力」，目前我只看見困難，還沒看見益處。'},
+      {k:'C',text:'我對這節話有點掙扎——有些事情我真的看不出來怎麼可能「效力」成益處。'},
+      {k:'D',text:'「愛神的人」這個條件讓我注意到——這個應許不是給所有人的，而是給有關係的人的。'}
+    ],
+    responses:{
+      A:'這種「後來才看見」的經歷，是信仰最真實的見證之一。神的作為有時候需要時間才能看清楚。今天，你願不願意把那件事跟一個你信任的人分享，讓他也被鼓勵？',
+      B:'「還在等待」是誠實的、也是需要被陪伴的狀態。保羅說「效力」，不是說「變好」——神可以用任何事朝向你的益處工作，那個工作可能現在就在進行。今天，你願不願意對神說：「我還看不見，但我選擇相信祢正在做」？',
+      C:'這個掙扎是合理的。「萬事效力」不是說每件事本身都是好的，而是說神有能力把任何事導向愛祂之人的益處。今天，那件你覺得「不可能效力」的事，你願不願意帶著它禱告一次：「神，這件事祢真的能用嗎？」',
+      D:'這個觀察很細膩。「愛神的人」不是條件門檻，而是描述一種關係——在這段關係裡，神的恩典以這種方式運作。今天，你願不願意問自己：「我跟神的關係，現在是什麼狀態？」'
+    },
+    reflectionTitle:'萬事效力',
+    reflection:'「如今，那些在基督耶穌裡的，就不定罪了」——羅馬書8章從這裡開始，以「什麼都不能使我們與神的愛隔絕」結束。\n\n你現在最需要聽到的，是開頭的「不定罪」，還是結尾的「什麼都不能隔絕」？為什麼？',
+    baseItem:{emoji:'🔥',name:'聖靈的火焰',desc:'「體貼聖靈的，乃是生命、平安。」',slot:'hat'},
+    bonusItem:{emoji:'🏆',name:'得勝的冠冕',desc:'「靠著愛我們的主，在這一切的事上已經得勝有餘了。」',slot:'hand'}
+  },
+
+  // ── 羅馬書 9 ──
+  {
+    chapter:'ROM9', sceneEmoji:'🏺',
+    readTime:5,
+    guide:{
+      intro:'第9章進入羅馬書最艱難的神學討論——神的揀選與人的責任。保羅為以色列人的不信深感憂傷，然後面對一個殘酷的問題：神對以色列的應許失效了嗎？他用窰匠和泥土的比喻說：神有主權，但祂的目的是榮耀和憐憫，不是隨意。',
+      outline:[
+        {nodes:'1-5節', text:'保羅為以色列人的憂傷——他們有諸多特權，但多數拒絕了彌賽亞'},
+      {nodes:'6-13節', text:'神的話沒有落空——以色列的真正含義是按應許的後裔，不是按血統'},
+      {nodes:'14-18節', text:'神不是不公義——祂要憐憫誰就憐憫誰，這是祂的主權'},
+      {nodes:'19-24節', text:'窰匠和泥土——神有權柄從一團泥做貴重或卑賤的器皿 ✦'},
+      {nodes:'25-33節', text:'外邦人因信得著義，以色列人因不信跌倒——引用先知書的預言'}
+      ],
+      focus:'今日情境題聚焦在 19-24節——窰匠和泥土的比喻，神的主權和你對「公平」的感受之間的張力。'
+    },
+    verse:'「窰匠難道沒有權柄從一團泥裏拿一塊做成貴重的器皿，又拿一塊做成卑賤的器皿嗎？」',
+    verseRef:'—— 羅馬書 9:21',
+    scene:'保羅在這章面對一個艱難的問題：神的選民以色列，為什麼多數拒絕了彌賽亞？這引出了關於神的主權和人的責任之間最深的張力。保羅用窰匠和泥土的比喻說：神有主權，但問題不在公平，而是在祂的美意。',
+    q:'「窰匠有沒有權柄」——這個問題觸及神的主權和我們的自由意志。你怎麼看待這個張力？',
+    choices:[
+      {k:'A',text:'我接受神有主權，但這章對我來說是聖經裡最難接受的部分之一。'},
+      {k:'B',text:'我覺得這個比喻的重點不是「泥土沒有選擇」，而是「窰匠有善意的目的」。'},
+      {k:'C',text:'老實說，我對「神揀選」的神學沒有完全想通，但我選擇信靠那位揀選的神。'},
+      {k:'D',text:'這章讓我意識到：我對神的「公平」有很多預設，但神的標準可能和我的不一樣。'}
+    ],
+    responses:{
+      A:'這個誠實是可以被接受的。羅馬書9-11章是神學上最有爭議的部分，幾千年來神學家都在辯論。你不是唯一覺得難的人。今天，你願不願意帶著這個「難」對神說：「我不完全懂，但我還是在這裡」？',
+      B:'這個角度很重要。保羅說神是「忍耐寬容」地對待器皿的——窰匠不是任意的，而是有目的的。今天，你願不願意問神：「祢造我的目的是什麼？」',
+      C:'「沒有完全想通，但選擇信靠」——這是一種成熟的信仰姿態，不是逃避問題，而是承認有些問題的答案在我們能理解的範圍之外。今天，有沒有一個你想不通的問題，你願意暫時放在神那裡，不急著要答案？',
+      D:'「神的標準可能和我的不一樣」——這正是保羅在這章要說的。今天，你心裡那個覺得「不公平」的地方，你願不願意把它攤開在神面前，就說：「我覺得不公平，但我想聽祢怎麼說」？'
+    },
+    reflectionTitle:'窰匠與泥土',
+    reflection:'保羅在這章沒有完全「解決」主權與自由的張力，他只是把我們帶到神的面前，說：祂是窰匠，我們是泥土，祂的目的是善的。\n\n你現在有沒有一個地方，你在跟神說「這不公平」？你願意把那個地方帶到窰匠面前，問問祂的目的是什麼？',
+    baseItem:{emoji:'🏺',name:'窰匠的陶器',desc:'「受造之物豈能對造他的說：你為什麼這樣造我呢？」',slot:'hand'},
+    bonusItem:{emoji:'✨',name:'榮耀的器皿',desc:'「又要將他豐盛的榮耀彰顯在那蒙憐憫、早預備得榮耀的器皿上。」',slot:'hat'}
+  },
+
+  // ── 羅馬書 10 ──
+  {
+    chapter:'ROM10', sceneEmoji:'👟',
+    readTime:4,
+    guide:{
+      intro:'第10章從神學轉向實際——以色列人的問題不是沒有機會，而是不順從。他們有熱心，卻不是按照真知識。保羅說出了那條著名的救恩鏈：聽道→信→呼求→得救。然後問：怎能信所沒有聽見的？怎能聽沒有人傳的？',
+      outline:[
+        {nodes:'1-4節', text:'以色列人有熱心但不是按真知識，自己立義，不服神的義'},
+      {nodes:'5-10節', text:'信道的義：口裡承認、心裡相信耶穌是主，就必得救'},
+      {nodes:'11-13節', text:'凡呼求主名的就必得救——猶太人和外邦人沒有分別'},
+      {nodes:'14-15節', text:'救恩的鏈條：差遣→傳→聽→信→呼求——佳美的腳蹤 ✦'},
+      {nodes:'16-21節', text:'以色列人聽見了嗎？是的，但他們不順從——引用以賽亞書'}
+      ],
+      focus:'今日情境題聚焦在 14-15節——「傳福音的人，他們的腳蹤何等佳美」，誰的腳蹤把福音帶到你面前？'
+    },
+    verse:'「報福音、傳喜信的人，他們的腳蹤何等佳美！」',
+    verseRef:'—— 羅馬書 10:15',
+    scene:'保羅說信心來自聽道，聽道從傳道而來。然後他問：怎能信所沒有聽見的？怎能聽沒有傳道的？怎能傳沒有被差遣的？這是一個關於「誰來傳」的緊迫問題——以色列人聽見了嗎？是的，但他們不順從。',
+    q:'「那傳福音、報好信息的人，他們的腳蹤何等佳美」——你生命中有沒有一個人，他的「腳蹤」把福音帶到了你面前？',
+    choices:[
+      {k:'A',text:'有——我現在的信仰，跟某一個特定的人有直接的關係，他/她的腳蹤很佳美。'},
+      {k:'B',text:'不是一個人，而是一些人一起拼出了我認識神的路。'},
+      {k:'C',text:'我是在很特別的情況下信主的，好像不太像「有人傳給我」那種模式。'},
+      {k:'D',text:'這讓我想到：我有沒有成為某人的「佳美腳蹤」？我有沒有把福音帶到什麼人面前？'}
+    ],
+    responses:{
+      A:'那個人的腳蹤，影響了你的永恆。今天，你願不願意傳一句話給那個人：「謝謝你當初把福音帶到我面前」？',
+      B:'「一些人一起拼出」——這正是保羅說的鏈條在真實生活中的樣子。今天，那些人裡面，有沒有一個你特別想感謝的？你願不願意讓他知道？',
+      C:'神有很多帶人歸向祂的方式，不一定都是「某人傳福音」的模式。但幾乎每個人回頭看，都會發現有一些人、一些話、一些事，是神用來鋪路的。今天，你能找到那條路上的第一個人嗎？',
+      D:'這個轉向自己的問題很重要。你今天站在信仰裡，有人的腳蹤走在你前面。今天，你的腳蹤正在走向誰？你願不願意為那個人禱告一次？'
+    },
+    reflectionTitle:'佳美的腳蹤',
+    reflection:'「他們的腳蹤何等佳美」——保羅引用以賽亞書，描述把好消息帶來的人。\n\n誰的腳蹤把福音帶到你面前？你有沒有感謝過他/她？而你自己的腳蹤，正在走向誰？',
+    baseItem:{emoji:'👟',name:'佳美的腳蹤',desc:'「報福音、傳喜信的人，他們的腳蹤何等佳美！」',slot:'hand'},
+    bonusItem:{emoji:'📢',name:'傳道者的號角',desc:'「信道是從聽道來的，聽道是從基督的話來的」',slot:'hat'}
+  },
+
+  // ── 羅馬書 11 ──
+  {
+    chapter:'ROM11', sceneEmoji:'🌳',
+    readTime:6,
+    guide:{
+      intro:'保羅用一棵橄欖樹講神的救恩計畫。以色列暫時被「鋸下幾根枝子」是為了讓外邦人能被接上樹根的肥汁；但這不是棄絕，而是奧秘——時候到了，被折下的枝子要重新接回。這一章從擔憂（神棄絕祂的百姓嗎？）走到讚嘆（深哉，神豐富的智慧和知識！），最後在「萬有都是本於他，倚靠他，歸於他」中安息。',
+      outline:[
+        {nodes:'1-10節', text:'神並沒有棄絕以色列——照著揀選的恩典，還有所留的餘數'},
+        {nodes:'11-15節', text:'以色列的過失反倒讓救恩臨到外邦人，要激動他們發憤'},
+        {nodes:'16-24節', text:'✦ 橄欖樹的比喻——野橄欖被接上，不可向舊枝子誇口'},
+        {nodes:'25-32節', text:'奧秘揭曉：以色列全家都要得救，神將眾人都圈在不順服之中，要憐恤眾人'},
+        {nodes:'33-36節', text:'頌讚詩——深哉，神豐富的智慧和知識，萬有都歸於他'}
+      ],
+      focus:'今日情境題聚焦在 16-24節——野橄欖被接上的人，要怎麼站在這份恩典裡。'
+    },
+    verse:'「你就不可向舊枝子誇口；若是誇口，當知道不是你托著根，乃是根托著你。」',
+    verseRef:'—— 羅馬書 11:18',
+    scene:'保羅在跟一群以外邦人為主的羅馬信徒講話。他用一棵橄欖樹比喻整個救恩史——舊枝子是以色列，新接上的野橄欖是外邦信徒。他看見一個危險的情緒正在萌芽：外邦信徒開始覺得「我被接上是因為我比較好」，於是他用一句話釘住他們：不是你托著根，乃是根托著你。',
+    q:'保羅警告外邦信徒不要向被折下的枝子誇口——因為立得住的人，最容易忘記自己是被接上來的。回到你自己身上，這段經文最戳中你哪裡？',
+    choices:[
+      {k:'A',text:'我確實常常忘記，我的信不是我爭來的，是根托著我才站得住。'},
+      {k:'B',text:'「不可自高，反要懼怕」——這種敬畏的緊張感，我其實已經很久沒有了。'},
+      {k:'C',text:'我會不自覺地看不起某些「不信的人」，沒意識到自己也曾是那枝被折下的。'},
+      {k:'D',text:'老實說，我現在連「站得住」都很勉強，談不上向誰誇口。'}
+    ],
+    responses:{
+      A:'你願意承認這件事本身就是恩典——很多人一輩子都覺得是自己努力才有今天的信。今天的你，要對那條「托著你的根」說一句什麼？',
+      B:'敬畏不是恐懼神懲罰你，是知道自己是「被接上」的、不是天生就在這棵樹上。這份緊張感弱了，往往是因為太久沒回頭看自己的來時路。今天試著回想一件神留你下來的事。',
+      C:'保羅看見的就是這個——人一站穩，就忘了自己也曾在外面。願意承認這個的人，已經比大部分人離恩典更近一步。下次你心裡又升起那種優越感時，能不能小聲對自己說一句「我也是被接上的」？',
+      D:'這句話不是責備你的——是給你看，連「站得住」都是根托著你的，不是你自己撐的。今天不用談誇口，能說出「我累了，請你繼續托住我」，就已經夠了。'
+    },
+    reflectionTitle:'被接上的人',
+    reflection:'橄欖樹的比喻裡，最容易被忽略的一句話是：「不是你托著根，乃是根托著你。」站得住的人最容易忘記這件事——以為立得穩是因為自己夠好、信得夠深、做得夠對。\n\n回想你的信仰歷程，有沒有哪一刻，是「根托著你」而不是「你撐住自己」的證據？此刻，你願意把那個被托住的感覺，再一次交還給神嗎？',
+    baseItem:{emoji:'🌳',name:'橄欖根的肥汁',desc:'「你這野橄欖得接在其中，一同得著橄欖根的肥汁」',slot:'bg'},
+    bonusItem:{emoji:'👑',name:'難測的智慧',desc:'「深哉，神豐富的智慧和知識！他的判斷何其難測！他的蹤跡何其難尋！」',slot:'hat'}
+  },
+
+  // ── 羅馬書 12 ──
+  {
+    chapter:'ROM12', sceneEmoji:'🫀',
+    readTime:4,
+    guide:{
+      intro:'第12章是羅馬書從神學進入生活的轉折點。保羅用「所以」連接了前11章的一切——因為神做了這一切，所以你的回應是什麼？活祭、心意更新、謙卑看自己、在群體中用恩賜服事、彼此相愛——這是福音活出來的樣子。',
+      outline:[
+        {nodes:'1-2節', text:'將身體獻上當活祭——不效法世界，心意更新，察驗神的旨意 ✦'},
+      {nodes:'3-8節', text:'謙卑看自己，按信心的大小——身體各肢體有不同恩賜，各盡其職'},
+      {nodes:'9-13節', text:'愛要無偽，恨惡惡事，在患難中忍耐，在禱告上恆切，供給聖徒的需用'},
+      {nodes:'14-16節', text:'逼迫你的要祝福，與喜樂的同樂，與哀哭的同哭，不要自以為聰明'},
+      {nodes:'17-21節', text:'不以惡報惡，盡力與眾人和睦，不要自己伸冤，要以善勝惡'}
+      ],
+      focus:'今日情境題聚焦在 1-2節——「活祭」這個意象，在你的日常生活中意味著什麼？'
+    },
+    verse:'「所以弟兄們，我以神的慈悲勸你們，將身體獻上，當作活祭，是聖潔的，是神所喜悅的；你們如此事奉乃是理所當然的。」',
+    verseRef:'—— 羅馬書 12:1',
+    scene:'保羅在前11章講完所有神學之後，用「所以」開始了第12章——這是回應的邀請。不是宗教儀式，而是把自己的身體、日常生活獻上。不要效法世界，要心意更新，去察驗神的旨意。',
+    q:'「將身體獻上，當作活祭」——「活祭」這個意象，對你的日常生活有什麼具體的意涵？',
+    choices:[
+      {k:'A',text:'讓我想到：我的日常工作、家庭、習慣，都可以是這個祭壇上的一部分。'},
+      {k:'B',text:'「活祭」最難的地方是「活」——死祭只需死一次，活祭每天都要選擇繼續擺上。'},
+      {k:'C',text:'「不要效法世界」讓我思考：我的生活方式有多少是被文化塑造的，有多少是被神塑造的？'},
+      {k:'D',text:'「理所當然」這個詞讓我有感——不是勉強做，而是因為明白了神的慈悲，這是自然的回應。'}
+    ],
+    responses:{
+      A:'「日常生活都是祭壇的一部分」——這正是保羅說「活祭」的意思。今天，你的日常裡有沒有一個時刻——吃飯、通勤、跟家人說話——你願意對神說：「這個時刻也是祢的」？',
+      B:'「每天都要選擇繼續擺上」——這是對活祭最深刻的理解。今天，你那個最難「繼續」的地方是什麼？你願不願意帶著它對神說：「我需要祢的恩典來繼續」？',
+      C:'「有多少是被文化塑造的」——這是「不要效法世界」的實際操練。今天，你願意在哪一個具體的地方，讓神來重塑你的思考模式？',
+      D:'「理所當然」——希臘原文是「合乎邏輯的」。如果你真的理解了神對你做的一切，把自己獻上是唯一說得通的回應。今天，你願不願意停下來，想一件神為你做過的事，然後讓那份感恩帶你走出下一步？'
+    },
+    reflectionTitle:'活祭的日常',
+    reflection:'「所以」——保羅把11章的神學和12章的生活用這個字連起來。因為神做了這一切，所以你的回應是什麼？\n\n你今天的日常生活中，有哪一個具體的地方，你願意把它放上這個「活祭」的祭壇？',
+    baseItem:{emoji:'🫀',name:'活祭的心',desc:'「將身體獻上，當作活祭，是聖潔的，是神所喜悅的。」',slot:'body'},
+    bonusItem:{emoji:'🔄',name:'更新的心意',desc:'「心意更新而變化，察驗何為神的善良、純全、可喜悅的旨意」',slot:'hat'}
+  },
+
+  // ── 羅馬書 13 ──
+  {
+    chapter:'ROM13', sceneEmoji:'👥',
+    readTime:3,
+    guide:{
+      intro:'第13章談到兩件看似不同的事：順服執政掌權者，和愛的命令。但它們有一個共同的根基——愛。順服政府是因為神設立了秩序，愛鄰舍是因為愛就完全了律法。保羅還加上了一個時間感：救恩近了，要脫去暗昧的行為。',
+      outline:[
+        {nodes:'1-7節', text:'順服執政掌權者——神設立的，不順服就是抵擋神；納糧納稅，給當得的'},
+      {nodes:'8-10節', text:'愛的債是唯一允許的虧欠——愛人就完全了律法，愛是律法的總結 ✦'},
+      {nodes:'11-14節', text:'時候到了，要從睡夢中醒來——救恩近了，脫去暗昧，穿上光明的軍裝'}
+      ],
+      focus:'今日情境題聚焦在 8-10節——「惟有彼此相愛，要常以為虧欠」，你有沒有一個愛的債想要還？'
+    },
+    verse:'「不可虧欠人什麼，惟有彼此相愛，要常以為虧欠；因為愛人的就完全了律法。」',
+    verseRef:'—— 羅馬書 13:8',
+    scene:'保羅談到順服執政掌權者，然後說到愛的債——這是唯一允許的「虧欠」。愛鄰舍就是完全了律法的意思，因為「不可姦淫、不可殺人、不可偷盜」都包括在「愛人如己」這一句話裡。',
+    q:'「惟有彼此相愛，要常以為虧欠」——你現在生命中，有沒有一個關係是你覺得「愛的債」還沒還清的？',
+    choices:[
+      {k:'A',text:'有——有一個人我知道我應該更多付出，但一直沒有行動。'},
+      {k:'B',text:'我覺得「愛的債永遠還不清」這個概念，讓愛變成動詞而不是名詞——是持續的行動。'},
+      {k:'C',text:'有一個關係我覺得我付出很多，但對方好像不在乎——這讓我不確定要繼續嗎？'},
+      {k:'D',text:'「愛人如己」——我有時候覺得愛自己都不夠，怎麼愛別人呢？'}
+    ],
+    responses:{
+      A:'「知道應該，但沒行動」——這個知與行的距離，有時候只需要一個小小的第一步。今天是什麼？一通電話？一封訊息？一個擁抱？',
+      B:'「愛是持續的行動」——完全正確。保羅說「常以為虧欠」，意思是愛不是可以還清的債，而是一種持續的姿態。今天，有沒有一個人，你可以對他做一件小事，讓愛這個動詞再動一次？',
+      C:'這是很真實的掙扎。保羅說「愛人如己」，沒有說「等對方也愛你才愛」。但這不代表要讓自己受傷。今天，你願不願意問自己：「我在這段關係裡，需要的是更多的愛，還是更清楚的邊界？」',
+      D:'「愛自己都不夠」——這個感覺值得停下來看看。保羅說的「如己」，是以「自己需要被愛、值得被愛」為前提的。今天，你願不願意對神說：「我需要先被祢愛，才知道怎麼愛別人」？'
+    },
+    reflectionTitle:'愛的債',
+    reflection:'「惟有彼此相愛，要常以為虧欠」——這是唯一允許持續的債。\n\n你現在有沒有一個「愛的債」想要還？今天可以做什麼具體的小事，朝著那個方向走一步？',
+    baseItem:{emoji:'👥',name:'鄰舍的手',desc:'「愛人如己」',slot:'hand'},
+    bonusItem:{emoji:'❤️',name:'永不還清的愛',desc:'「惟有彼此相愛，要常以為虧欠」',slot:'hat'}
+  },
+
+  // ── 羅馬書 14 ──
+  {
+    chapter:'ROM14', sceneEmoji:'🍽️',
+    readTime:4,
+    guide:{
+      intro:'第14章處理教會內部的「灰色地帶」紛爭——有人吃一切食物，有人只吃蔬菜；有人看某日比別的日子重要，有人看每日都一樣。保羅說：不要論斷對方，也不要讓你的自由成為別人跌倒的石頭。各人在神面前站立，以建立對方為目標。',
+      outline:[
+        {nodes:'1-4節', text:'接納信心軟弱的人，不要為飲食論斷——他是神的僕人，由神評判'},
+      {nodes:'5-9節', text:'各人心裡要確定，無論吃不吃、守日不守日，都是為主'},
+      {nodes:'10-12節', text:'你為何論斷弟兄？我們各人必要將自己的事在神面前說明 ✦'},
+      {nodes:'13-18節', text:'不叫弟兄跌倒——你的自由不能成為別人的絆腳石，神的國不在吃喝'},
+      {nodes:'19-23節', text:'追求和睦與彼此建立，不因食物毀壞神的工程；各人要憑信心而行'}
+      ],
+      focus:'今日情境題聚焦在 10-13節——你有沒有在教會群體中，因不同標準與人產生過摩擦？'
+    },
+    verse:'「這樣看來，我們各人必要將自己的事在神面前說明。所以，我們不可再彼此論斷，寧可定意誰也不給弟兄放下絆腳跌人之物。」',
+    verseRef:'—— 羅馬書 14:12-13',
+    scene:'教會裡有信心軟弱的人和信心剛強的人——有人覺得可以吃一切食物，有人只吃蔬菜；有人看某日比別的日子重要，有人看每日都一樣。保羅說：不要論斷對方，各人要在神面前站立，不要讓你的自由成為別人跌倒的原因。',
+    q:'「不要論斷對方，也不要使弟兄跌倒」——你有沒有在教會群體中，因為不同的信仰習慣或標準，而與人產生過摩擦？',
+    choices:[
+      {k:'A',text:'有——我覺得自己在某些「灰色地帶」的立場和別人不同，讓我有點孤立的感覺。'},
+      {k:'B',text:'我比較是被論斷的那方——有人覺得我「不夠聖潔」，這讓我很受傷。'},
+      {k:'C',text:'我有時候是論斷別人的那方——我對某些行為有很強的意見，但保羅讓我反思這一點。'},
+      {k:'D',text:'「各人必要將自己的事在神面前說明」——這讓我想到，最後的評審不是弟兄，是神。'}
+    ],
+    responses:{
+      A:'「不同立場帶來孤立」——這是教會真實的張力。保羅的解方不是「大家都一樣」，而是「在各自立場上，都以神為主，都不論斷對方」。今天，那個跟你立場不同的人，你願不願意先放下立場，問他：「你最近好嗎？」',
+      B:'「被論斷，很受傷」——這是保羅在這章要保護的那一方。你受的傷，保羅是看見的。今天，你願不願意帶著那份受傷對神說：「祢知道我的痛，請祢來醫治」？',
+      C:'「我是論斷別人的那方」——這個誠實需要勇氣。保羅問：他也是在為主而活，各人的良心在神面前。今天，你願不願意在心裡對那個你論斷過的人說：「我不是你的審判者」？',
+      D:'「最後的評審是神」——這個提醒同時解放了被論斷的人，也約束了論斷人的人。今天，有沒有一個你正在用自己的標準評斷的人或事，你願不願意把那個評斷交給神？'
+    },
+    reflectionTitle:'灰色地帶',
+    reflection:'保羅說：神的國不在乎吃喝，只在乎公義、和平，並聖靈中的喜樂。\n\n你在信仰群體裡，有沒有一個「灰色地帶」的議題讓你跟人有摩擦？你能不能把那個議題暫時放下，先看看彼此身上有沒有「公義、和平、喜樂」？',
+    baseItem:{emoji:'🫒',name:'追求和睦',desc:'「所以，我們務要追求和睦的事與彼此建立德行的事。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'和平的使者',desc:'「因為神的國不在乎吃喝，只在乎公義、和平，並聖靈中的喜樂。」',slot:'body'}
+  },
+
+  // ── 羅馬書 15 ──
+  {
+    chapter:'ROM15', sceneEmoji:'🤝',
+    readTime:5,
+    guide:{
+      intro:'保羅在羅馬書接近尾聲，從神學轉向實際的群體生活。這一章談的是：強壯的人如何對待軟弱的人，以及基督如何成為我們的榜樣。',
+      outline:[
+        {nodes:'1-6節', text:'堅固的人應該擔代不堅固人的軟弱，不求自己的喜悅——效法基督的榜樣'},
+        {nodes:'7-13節', text:'彼此接納，如同基督接納我們——外邦人與猶太人同蒙應許'},
+        {nodes:'14-21節', text:'保羅說明自己的使命：把福音傳到基督名未曾被稱過的地方'},
+        {nodes:'22-33節', text:'保羅分享旅行計畫，請求羅馬信徒為他禱告'}
+      ],
+      focus:'今日情境題聚焦在1-7節——強壯的人如何在群體中擔代軟弱的人，以及接納的功課。'
+    },
+    verse:'「所以，你們要彼此接納，如同基督接納你們一樣，使榮耀歸與神。」',
+    verseRef:'—— 羅馬書 15:7',
+    scene:'保羅說「堅固的人應該擔代不堅固人的軟弱，不求自己的喜悅」——然後他說基督也是這樣做的。接納，不是因為對方夠好，而是因為基督先這樣接納了我們。',
+    q:'保羅說「堅固的人要擔代不堅固的人」——在你的生命裡，你通常扮演哪一個角色？',
+    choices:[
+      {k:'A',text:'我常常是那個「堅固的人」，但有時候會覺得累，想被人擔代。'},
+      {k:'B',text:'我常常是那個「不堅固的人」，很感謝身邊有人願意擔代我。'},
+      {k:'C',text:'我在不同情境下會換角色，有時強有時弱。'},
+      {k:'D',text:'老實說，我不太確定自己是哪一種，我還在摸索。'}
+    ],
+    responses:{
+      A:'「堅固的人也需要被擔代」——這是保羅沒有明說但暗示的真實。你的疲倦不是軟弱，而是你一直在給出的證明。今天，有沒有一個人，你可以告訴他：「我最近其實有點撐不住」？',
+      B:'被擔代是一種恩典，能接受幫助本身就需要勇氣。你願意讓別人進來，這也是信任的功課。今天，有沒有機會跟那個擔代你的人說：「我其實很感謝你那時候在」？',
+      C:'流動性其實很健康——群體的美麗就在於我們不需要永遠是同一個角色。今天，你現在比較靠哪一邊？你現在需要的，是有人陪，還是有人幫你做什麼？',
+      D:'不確定自己是哪一種，有時候反而是因為你對自己很誠實。今天，有沒有一個你信任的人，你可以跟他說：「我最近其實有點搞不清楚自己在幹嘛」？'
+    },
+    reflectionTitle:'接納的功課',
+    reflection:'保羅說基督「不求自己的喜悅」，而是擔代了我們的軟弱。這是接納的最高形式——不是因為對方夠好，而是因為祂先這樣接納了我們。\n\n你生命中有沒有一個人，接納他對你來說很難？今天，你願不願意把基督接納你的方式，試著用在那個人身上——哪怕只是心裡先說一聲「我願意試試」？',
+    baseItem:{emoji:'🤝',name:'擔代的手',desc:'「我們堅固的人，應該擔代不堅固人的軟弱」',slot:'hand'},
+    bonusItem:{emoji:'🌿',name:'接納的橄欖枝',desc:'「如同基督接納你們一樣」',slot:'hat'}
+  },
+
+  // ── 羅馬書 16 ──
+  {
+    chapter:'ROM16', sceneEmoji:'📜',
+    readTime:4,
+    guide:{
+      intro:'羅馬書16章是一長串的問安名單——32個人名，其中10位是女性，各種身份的人都有。很多人讀到這章想跳過，但保羅把每一個人都記念，因為他們對他都有意義。',
+      outline:[
+        {nodes:'1-16節', text:'保羅問安名單——弟兄姐妹、同工、在主裡受苦的人，一個都沒有被遺忘'},
+        {nodes:'17-20節', text:'警告要留意那些造成分裂、使人跌倒的人'},
+        {nodes:'21-24節', text:'同工們的問安'},
+        {nodes:'25-27節', text:'榮耀歸給神——羅馬書的最終頌讚'}
+      ],
+      focus:'今日情境題聚焦在1-16節——保羅如何記念每一個人，以及我們生命中那些值得被感謝的人。'
+    },
+    verse:'「問百基拉和亞居拉安，他們在基督耶穌裡與我同工，也為我的命，自己把頸項置之度外。」',
+    verseRef:'—— 羅馬書 16:3-4',
+    scene:'羅馬書16章是一長串的問安名單，32個人名，10位女性。很多人讀到這章就想跳過，但保羅把這些人一個個列出來，是因為他們每一個人對他都有意義。百基拉和亞居拉甚至為他的命把頸項置之度外——保羅把這件事寫進了聖經，讓幾千年來的人都知道。',
+    q:'保羅在信末一個個記念這些人——你有沒有一個人，他在你信仰旅程中扮演了重要的角色，但你可能從來沒有好好感謝過？',
+    choices:[
+      {k:'A',text:'有——有一個人的陪伴或話語，在我最需要的時候出現，我一直沒有機會說謝謝。'},
+      {k:'B',text:'我想到的不是一個人，而是一群人——小組、教會，很多人共同塑造了我。'},
+      {k:'C',text:'我覺得感謝這件事我做得不夠好，總覺得「對方應該知道」就沒有說出口。'},
+      {k:'D',text:'老實說，我現在想不到特定的人，但這個問題讓我想去回想。'}
+    ],
+    responses:{
+      A:'那個「沒有機會說謝謝」，有時候只是一個行動的距離。今天，你願不願意傳一句話給那個人：「我一直想跟你說，你那時候在，對我來說真的很重要」？',
+      B:'群體的恩典往往是最容易被視為理所當然的。今天，有沒有其中一個人，你可以讓他知道：「你是那群人裡面，我很感謝神把你放在我生命裡的」？',
+      C:'「對方應該知道」是感謝最常見的天敵。說出口的感謝和沒說出口的感謝，對對方的意義完全不同。今天，你願不願意說出那句一直沒說出口的話？',
+      D:'光是願意去回想，就已經是一種感恩的姿態了。今天，給自己五分鐘，想想誰在你生命裡留下過痕跡——如果想到了，你願不願意傳一句話讓他知道？'
+    },
+    reflectionTitle:'被記念的人',
+    reflection:'保羅記念百基拉和亞居拉「為我的命把頸項置之度外」——他們為保羅冒過生命危險，保羅把這件事寫進了聖經，讓幾千年來的人都知道他們的名字。\n\n你生命中有沒有一個「百基拉和亞居拉」？他們或許沒有為你冒生命危險，但在某個關鍵時刻，他們為你付出了很多。今天，你願不願意讓他們知道——他們在你心裡，是被記念的人？',
+    baseItem:{emoji:'📜',name:'記念的名冊',desc:'「問百基拉和亞居拉安，他們在基督耶穌裡與我同工」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'同工的信物',desc:'「與我同工的提摩太問你們安」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 1 ──
+  {
+    chapter:'COR1_1', sceneEmoji:'✉️',
+    readTime:4,
+    guide:{
+      intro:'保羅寫信給哥林多教會——一個問題很多的教會。開門見山，他就提到教會裡有分黨分派，然後說了一句讓人意外的話：基督是不可分的。',
+      outline:[
+        {nodes:'1-9節', text:'問安與感謝——保羅肯定哥林多信徒在恩賜上的豐富'},
+        {nodes:'10-17節', text:'分黨分派的問題——「我是屬保羅的、我是屬亞波羅的」，保羅嚴肅指出這是錯誤'},
+        {nodes:'18-25節', text:'十字架的道理——在世人看來是愚拙，在得救的人卻是神的大能'},
+        {nodes:'26-31節', text:'神揀選的邏輯——不是揀選有智慧、有能力的，而是揀選世上愚拙的'}
+      ],
+      focus:'今日情境題聚焦在18-25節——十字架的道理在世人看來是愚拙的，你如何面對信仰被人覺得「不理性」？'
+    },
+    verse:'「因為十字架的道理，在那滅亡的人為愚拙，在我們得救的人，卻為神的大能。」',
+    verseRef:'—— 哥林多前書 1:18',
+    scene:'哥林多是一座充滿智慧與辯論文化的城市，教會裡的人也把這種文化帶進來——比較老師、分黨派、追求高深的道理。保羅說：不是的，十字架才是核心。而十字架，在世人眼中，是愚拙的。',
+    q:'保羅說十字架的道理「在世人看來是愚拙的」——你有沒有一個時刻，你的信仰讓你在別人眼中看起來很奇怪或不理性？',
+    choices:[
+      {k:'A',text:'有——我在某個場合說了關於信仰的話，被別人用奇怪的眼神看，那個眼神我還記得。'},
+      {k:'B',text:'我還沒有真正面對過這種處境，我的信仰大部分時間是「隱形」的。'},
+      {k:'C',text:'我有時候會調整自己表達信仰的方式，讓它聽起來「比較合理」，但我不確定這樣對不對。'},
+      {k:'D',text:'老實說，我自己有時候也覺得某些信仰的部分很難說清楚，不只是別人覺得奇怪。'}
+    ],
+    responses:{
+      A:'那個眼神很真實，也很難受。但保羅說十字架本來就是「愚拙」的——不是因為它沒有道理，而是因為它的邏輯跟世界的邏輯不同。今天，你願不願意回想那個時刻，問自己：「那次之後，我有沒有因此縮起來？」',
+      B:'信仰隱形不一定是問題，但值得問自己：是環境讓它隱形，還是我讓它隱形？今天，有沒有一個場合，你其實可以輕輕說一句關於信仰的話，但你沒有說？',
+      C:'調整表達方式本身不是問題，問題是調整的目的——是為了讓對方更容易理解，還是為了讓自己不要太突出？今天，你願不願意問自己：「我最近有沒有因為怕被看奇怪，而說了一個比較安全的版本？」',
+      D:'「說不清楚」有時候正是信仰最真實的地方——因為它超出了我們能用邏輯完全框住的範圍。今天，有沒有一個你一直說不清楚的信仰問題，你願不願意帶著它去禱告，就說：「我不太懂，但我還是在這裡」？'
+    },
+    reflectionTitle:'愚拙的智慧',
+    reflection:'「神的愚拙，總比人智慧；神的軟弱，總比人強壯。」保羅說的這句話，翻轉了所有關於「強大」和「有道理」的定義。十字架不是因為沒有道理才被稱為愚拙，而是因為它的道理太不像這個世界的邏輯。\n\n你現在生命中有沒有一件事，用「世界的邏輯」看是說不通的，但你選擇用信心繼續走？那件事是什麼？今天，你願不願意在心裡對神說：「這件事我不完全懂，但我選擇相信祢」？',
+    baseItem:{emoji:'✉️',name:'哥林多的書信',desc:'「保羅奉神旨意，蒙召作基督耶穌的使徒」',slot:'hand'},
+    bonusItem:{emoji:'⚡',name:'十字架的大能',desc:'「在我們得救的人，卻為神的大能」',slot:'bg'}
+  },
+
+  // ── 哥林多前書 2 ──
+  {
+    chapter:'COR1_2', sceneEmoji:'🕯️',
+    readTime:3,
+    guide:{
+      intro:'哥林多前書第2章，保羅說明他傳福音的方式——不是用高言大智，而是帶著軟弱、懼怕，單單傳講耶穌基督並祂釘十字架。然後他談到聖靈的工作：祂讓我們明白神所賜給我們的恩典。',
+      outline:[
+        {nodes:'1-5節', text:'保羅說明自己傳道的方式——不靠言語智慧，只靠聖靈和大能的明證'},
+        {nodes:'6-10節', text:'神隱藏的智慧——這世代的人看不見，但神藉著聖靈向愛祂的人顯明'},
+        {nodes:'11-13節', text:'聖靈的工作——讓我們明白神所賜給我們的恩典'},
+        {nodes:'14-16節', text:'屬靈的人與屬血氣的人——只有屬靈的人才能看見屬靈的事'}
+      ],
+      focus:'今日情境題聚焦在1-5節——保羅說他是帶著軟弱、懼怕來到哥林多的，這讓我們思考：軟弱和信心可以同時存在嗎？'
+    },
+    verse:'「我在你們那裏，又軟弱，又懼怕又甚戰兢。」',
+    verseRef:'—— 哥林多前書 2:3',
+    scene:'保羅去哥林多之前，剛在雅典遭遇挫折——他在亞略巴古的講道幾乎沒有什麼回應。帶著這樣的經歷，他來到哥林多。他沒有假裝沒事，他說：「我在你們那裡，又軟弱，又懼怕，又甚戰兢。」但他繼續傳講。',
+    q:'保羅說他傳福音時是「軟弱、懼怕、戰兢」的——你有沒有一件你覺得神呼召你做、但你一直覺得自己不夠的事？',
+    choices:[
+      {k:'A',text:'有——我知道那件事，但我一直在等自己「準備好」，結果一直沒有開始。'},
+      {k:'B',text:'有——我已經在做了，但我心裡常常覺得自己不夠格，怕被人看穿。'},
+      {k:'C',text:'我不確定神有沒有呼召我做什麼特別的事，我還在尋找方向。'},
+      {k:'D',text:'老實說，我覺得「呼召」這件事對我來說很遙遠，我還沒認真想過。'}
+    ],
+    responses:{
+      A:'「等準備好」是一個很誠實的狀態，但保羅告訴我們：他從來沒有準備好，他是帶著軟弱去的。今天，那件事裡，有沒有一個最小的第一步，小到不需要你準備好也能做？',
+      B:'「怕被人看穿」說明你其實很在乎那件事——不在乎的人不會怕。保羅也怕，但他繼續傳講。今天，你願不願意告訴神：「我很怕，但我還是想繼續」？',
+      C:'還在尋找方向是真實的，不是問題。有時候呼召不是一個大聲音，而是一個小小的「這件事好像跟我有關」。今天，有沒有一件事，你心裡有過這種感覺，但你沒有認真對待它？',
+      D:'「沒認真想過」是一個很誠實的回答。呼召有時候不是在特別的時刻出現，而是在日常生活裡慢慢清晰。今天，你願不願意帶著這個問題禱告一次：「神，祢要我做什麼？」'
+    },
+    reflectionTitle:'軟弱裡的信心',
+    reflection:'保羅說他去哥林多時「又軟弱，又懼怕，又甚戰兢」——這不是謙虛的說法，而是真實的狀態。但他沒有因此不去。他的力量不是來自自信，而是來自聖靈和大能的明證。\n\n你生命中有沒有一件事，你是帶著軟弱和懼怕去做的？那件事後來怎麼了？今天，你願不願意把你現在的軟弱告訴神，然後問祂：「這樣的我，祢還能用嗎？」',
+    baseItem:{emoji:'🕯️',name:'戰兢的燈火',desc:'「我在你們那裡，又軟弱，又懼怕，又甚戰兢」',slot:'hand'},
+    bonusItem:{emoji:'🌟',name:'聖靈的啟示',desc:'「只有神藉着聖靈向我們顯明了。」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 3 ──
+  {
+    chapter:'COR1_3', sceneEmoji:'🌱',
+    readTime:3,
+    guide:{
+      intro:'保羅繼續處理哥林多教會的分黨問題。他用農業和建築兩個比喻說明：傳道人只是工人，神才是主人。教會是神的田地，也是神的建築——根基只有一個，就是耶穌基督。',
+      outline:[
+        {nodes:'1-9節', text:'保羅和亞波羅只是工人——一個栽種、一個澆灌，但叫他生長的是神'},
+        {nodes:'10-15節', text:'建造的比喻——根基是耶穌基督，各人要謹慎怎樣在上面建造'},
+        {nodes:'16-17節', text:'你們是神的殿——聖靈住在你們裡面，這殿是聖的'},
+        {nodes:'18-23節', text:'不要自欺——世上的智慧在神看來是愚拙的，萬有都是你們的'}
+      ],
+      focus:'今日情境題聚焦在1-9節——保羅說他只是栽種的，亞波羅只是澆灌的，叫他生長的是神。這讓我們思考：我們在信仰旅程中，誰是那個「栽種」和「澆灌」的人？'
+    },
+    verse:'「我栽種了，亞波羅澆灌了，惟有神叫他生長。」',
+    verseRef:'—— 哥林多前書 3:6',
+    scene:'哥林多教會有人說「我是屬保羅的」，有人說「我是屬亞波羅的」——好像在比較哪個老師比較厲害。保羅說：你們都搞錯了。我只是栽種的，亞波羅只是澆灌的，真正讓生命成長的，是神。',
+    q:'回想你的信仰旅程，有沒有一個人是神用來「栽種」或「澆灌」你的？',
+    choices:[
+      {k:'A',text:'有——有一個人說過一句話，或做過一件事，讓我跟信仰的關係有了不一樣的轉折。'},
+      {k:'B',text:'有——不是一個人，是很多人，在不同的時期一棒接一棒地陪著我走。'},
+      {k:'C',text:'我說不清楚是誰，但我知道我今天的信仰不是自己走到這裡的。'},
+      {k:'D',text:'老實說，我現在的信仰還很脆弱，我不確定有沒有人真的在澆灌我。'}
+    ],
+    responses:{
+      A:'那句話或那件事，可能那個人自己都不記得了——但它在你生命裡留下了根。今天，你願不願意告訴那個人：「你可能不知道，但你那時候說的話，我一直記得」？',
+      B:'一棒接一棒——這是教會最美的樣子。每一個人都是神手裡的工具，在你生命裡的不同季節出現。今天，你願不願意想想，現在是誰在澆灌你？',
+      C:'「不是自己走到這裡的」——這個認識本身就是一種感恩。今天，你願不願意對神說：「謝謝祢一路安排那些人在我旁邊」？',
+      D:'「信仰還很脆弱」是一個很誠實的狀態。保羅說叫他生長的是神——不是你要先夠強，神才能工作。今天，你願不願意跟神說：「我很脆弱，但我還是來了」？'
+    },
+    reflectionTitle:'栽種與澆灌',
+    reflection:'保羅說「我栽種了，亞波羅澆灌了，惟有神叫他生長」——這句話把所有的功勞都還給了神。傳道人、老師、小組長，他們都只是工人，真正讓生命改變的，從來都是神。\n\n你現在的生命裡，有沒有一個人正在等待被「栽種」或「澆灌」？也許是你的家人、朋友、同事。今天，你願不願意問神：「祢要我成為誰生命裡的那個工人？」',
+    baseItem:{emoji:'🌱',name:'栽種的種子',desc:'「我栽種了，亞波羅澆灌了，惟有神叫他生長。」',slot:'hand'},
+    bonusItem:{emoji:'🏛️',name:'神殿的根基',desc:'「因為那已經立好的根基，就是耶穌基督，此外沒有人能立別的根基。」',slot:'bg'}
+  },
+
+  // ── 哥林多前書 4 ──
+  {
+    chapter:'COR1_4', sceneEmoji:'⚖️',
+    readTime:3,
+    guide:{
+      intro:'保羅繼續回應哥林多教會的分黨問題。這一章他談到使徒的身份和處境——不是世人眼中的成功者，而是像被判死刑的囚犯、世界的污穢。他說這些不是抱怨，而是讓哥林多人看清楚：什麼才是真正的跟隨基督。',
+      outline:[
+        {nodes:'1-5節', text:'使徒是基督的執事——審判我的是主，不是你們，也不是我自己'},
+        {nodes:'6-13節', text:'使徒的真實處境——飢餓、口渴、赤身、挨打，成了世界的污穢'},
+        {nodes:'14-17節', text:'保羅以父親的心說話——我在基督裡用福音生了你們，提摩太會提醒你們我的行事為人'},
+        {nodes:'18-21節', text:'保羅的警告——我要到你們那裡，要看的不是言語，乃是權能'}
+      ],
+      focus:'今日情境題聚焦在1-5節——保羅說審判他的是主，不是人，也不是他自己。這讓我們思考：我們是活在人的眼光裡，還是活在神的眼光裡？'
+    },
+    verse:'「我被你們論斷，或被別人論斷，我都以為極小的事；連我自己也不論斷自己。」',
+    verseRef:'—— 哥林多前書 4:3',
+    scene:'哥林多教會的人在評論保羅——比較他和亞波羅，議論他的言語和行事。保羅說了一句讓人意外的話：你們怎麼看我，對我來說是極小的事。不是因為他不在乎人，而是因為他知道真正的審判者是誰。',
+    q:'你在生活中，有沒有一件事你一直很在意別人怎麼看你、怎麼評論你？',
+    choices:[
+      {k:'A',text:'有——我很在意某個人或某些人對我的看法，他們的評論會影響我很久。'},
+      {k:'B',text:'有——我在意的不是特定的人，而是一種「被人評論」的感覺，我很怕被誤解。'},
+      {k:'C',text:'我知道不應該太在意，但做起來很難，我還在學習怎麼放下。'},
+      {k:'D',text:'老實說，我有時候連自己也不放過自己，我對自己的論斷比別人還嚴苛。'}
+    ],
+    responses:{
+      A:'那個人的評論在你心裡佔了多少空間？保羅說他把這件事看作「極小」——不是因為他麻木，而是因為他知道誰的話才算數。今天，你願不願意把那個人的評論放在神面前，問祂：「祢怎麼看我？」',
+      B:'「怕被誤解」說明你其實很想被真正看見。保羅也被誤解，但他選擇把自己交給那位真正了解他的神。今天，你願不願意告訴神：「我很怕被誤解，但我選擇相信祢看見我真實的樣子」？',
+      C:'「知道但做不到」是信仰成長最誠實的狀態。今天，有沒有一個你一直放不下的評論？你願不願意就帶著它禱告，不用先放下，就說：「神，我還放不下，但我想試試」？',
+      D:'「對自己最嚴苛」——保羅說「連我自己也不論斷自己」，這句話對你說的是：你不需要當自己的法官。今天，你願不願意對自己說一句你最需要聽到的話？'
+    },
+    reflectionTitle:'誰的眼光',
+    reflection:'保羅說「我被你們論斷，或被別人論斷，我都以為極小的事」——這不是冷漠，而是一種深深的自由。他知道在神面前，人的評論和自我評論都不是最終的裁決。\n\n你生命中有沒有一個評論——來自別人或來自你自己——你一直沒能放下？今天，你願不願意把那個評論帶到神面前，問祂：「祢怎麼說？」',
+    baseItem:{emoji:'⚖️',name:'公義的天秤',desc:'「我被你們論斷，或被別人論斷，我都以為極小的事。」',slot:'hand'},
+    bonusItem:{emoji:'👑',name:'主的審判台',desc:'「那時，各人要從神那裡得著稱讚。」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 5 ──
+  {
+    chapter:'COR1_5', sceneEmoji:'🚪',
+    readTime:3,
+    guide:{
+      intro:'哥林多前書5章，保羅處理一件教會裡發生的嚴重事件——有人與繼母同居，而教會不但沒有處理，反而還自誇。保羅嚴肅指出：教會對罪的態度，關係到整個群體的健康。',
+      outline:[
+        {nodes:'1-5節', text:'保羅指責教會的驕傲——這樣的事應該哀痛，要把犯罪的人交給撒但'},
+        {nodes:'6-8節', text:'酵的比喻——一點酵能使全團發起，要把舊酵除盡，用無酵餅守節'},
+        {nodes:'9-13節', text:'保羅澄清他的意思——不是叫你們不與世上犯罪的人來往，而是不與教會裡犯罪的弟兄來往'}
+      ],
+      focus:'今日情境題聚焦在6-8節——「一點酵能使全團發起」。這讓我們思考：我們生命裡有沒有一些「小事」，其實正在悄悄影響整個生命的走向？'
+    },
+    verse:'「你們既是無酵的麵，應當把舊酵除淨，好使你們成為新團；因為我們逾越節的羔羊基督，已經被殺獻祭了。」',
+    verseRef:'—— 哥林多前書 5:7',
+    scene:'保羅用一個猶太節期的比喻說話——逾越節前，家裡所有的酵都要除盡。哪怕只是一點點酵，也能讓整團麵發起來。他說：你們已經是無酵的麵了，那就活出無酵的樣子。',
+    q:'「一點酵能使全團發起」——你生命裡有沒有一個你知道應該處理、但一直沒有處理的「小事」？',
+    choices:[
+      {k:'A',text:'有——我知道那件事，我也知道它在影響我，但我一直在拖，因為處理它很麻煩。'},
+      {k:'B',text:'有——我一直告訴自己「這只是小事」，但心裡其實知道它不小。'},
+      {k:'C',text:'我不確定是哪一件事，但我隱約感覺生命裡有什麼地方不太對，說不清楚。'},
+      {k:'D',text:'老實說，我現在想不到，但這個問題讓我想認真想一想。'}
+    ],
+    responses:{
+      A:'「因為處理它很麻煩」——這是最誠實的理由。但保羅說要把舊酵除盡，不是因為容易，而是因為值得。今天，那件事裡，有沒有一個最小的第一步，你今天可以做？',
+      B:'「心裡知道它不小」——你其實已經知道答案了。今天，你願不願意把那件事說出來——對神，或對一個你信任的人說：「我一直在逃避這件事」？',
+      C:'「隱約感覺不太對」是一個很重要的訊號，值得認真對待。今天，你願不願意安靜下來，讓神指給你看——就禱告說：「神，祢看見我生命裡那個地方，請祢告訴我」？',
+      D:'願意認真想一想，就已經是開始了。今天，給自己五分鐘的安靜，問神：「祢想讓我看見什麼？」不用急著找答案，就讓這個問題在心裡停留一下。'
+    },
+    reflectionTitle:'除盡舊酵',
+    reflection:'保羅說「你們既是無酵的麵，應當把舊酵除淨」——這句話的邏輯很特別：不是「你們要努力成為無酵的麵」，而是「你們已經是無酵的麵了，現在活出你們本來的樣子」。\n\n你生命裡有沒有一個「舊酵」——一個習慣、一段關係、一個模式——你知道它不屬於你現在的身份，但你還沒有認真處理它？今天，你願不願意帶著那件事禱告，就說：「神，我知道這個需要處理，我需要祢的幫助」？',
+    baseItem:{emoji:'🍞',name:'無酵的新餅',desc:'「所以，我們守這節不可用舊酵，也不可用惡毒、邪惡的酵，只用誠實真正的無酵餅。」',slot:'hand'},
+    bonusItem:{emoji:'🐑',name:'逾越節的羔羊',desc:'「你們既是無酵的麵，應當把舊酵除淨，好使你們成為新團；因為我們逾越節的羔羊基督，已經被殺獻祭了。」',slot:'bg'}
+  },
+
+  // ── 哥林多前書 6 ──
+  {
+    chapter:'COR1_6', sceneEmoji:'⚡',
+    readTime:4,
+    guide:{
+      intro:'哥林多前書6章，保羅處理兩個問題：一是信徒彼此告上法庭，二是身體的聖潔。這兩個看似不同的問題，保羅用同一個核心回答：你們的身體是聖靈的殿，你們是用重價買來的。',
+      outline:[
+        {nodes:'1-8節', text:'信徒彼此告狀——為什麼不情願吃虧呢？在外邦人面前打官司是羞恥'},
+        {nodes:'9-11節', text:'不義的人不能承受神的國——但你們奉主耶穌的名，並藉著神的靈，已經洗淨、成聖、稱義了'},
+        {nodes:'12-20節', text:'身體的聖潔——身體不是為淫亂，乃是為主；你們的身子就是聖靈的殿'}
+      ],
+      focus:'今日情境題聚焦在19-20節——「你們的身子就是聖靈的殿」。核心不是身體管理，而是主權與歸屬：你不屬於自己，你是重價買來的。'
+    },
+    verse:'「豈不知你們的身子就是聖靈的殿嗎？這聖靈是從神而來，住在你們裡頭的；並且你們不是自己的人，因為你們是重價買來的。所以，要在你們的身子上榮耀神。」',
+    verseRef:'—— 哥林多前書 6:19-20',
+    scene:'哥林多是一座道德風氣非常開放的城市，「凡事都可行」是當時流行的口號。保羅說：是的，凡事都可行，但不都有益處。然後他說了一句話，把整個討論拉到另一個層次：你們的身子就是聖靈的殿。',
+    q:'「你們不是自己的人，因為你們是重價買來的」——這句話讓你有什麼感受？',
+    choices:[
+      {k:'A',text:'這句話讓我感到被珍視——我的價值不是由我的表現決定的，而是在十字架上就定了。'},
+      {k:'B',text:'這句話讓我有點慚愧——我常常活得好像自己是自己的主人，沒有考慮到神。'},
+      {k:'C',text:'老實說，我跟自己的身體關係很複雜，這句話讓我有點感動，但也有點掙扎。'},
+      {k:'D',text:'我知道這個道理，但在生活的壓力下，我常常忘記自己是屬於神的。'}
+    ],
+    responses:{
+      A:'「重價買來的」——這個價值是十字架定的，不是你的表現決定的。今天，有沒有一個你覺得自己「不夠好」的地方，你願不願意帶著它對神說：「但祢說我是重價買來的」？',
+      B:'「活得好像自己是自己的主人」——這是很誠實的狀態。今天，有沒有一個你一直自己做主的地方，你願不願意把它交給神，說：「這裡也是祢的」？',
+      C:'「有點感動，也有點掙扎」——這兩個感受可以同時存在。今天，你願不願意帶著這個掙扎告訴神：「我不太喜歡自己的身體，但謝謝祢住在裡面」？',
+      D:'「常常忘記」——不是你沒有信心，而是生活太快。今天，你願不願意讓這句話在心裡停留一下：「我是重價買來的，我不是自己的人」？'
+    },
+    reflectionTitle:'重價買來的',
+    reflection:'保羅說「你們不是自己的人，因為你們是重價買來的」——這句話翻轉了所有關於「我的身體我做主」的邏輯。不是說身體不重要，而是說身體比你以為的更重要，重要到神願意用祂兒子的命來買回它。\n\n你今天對待自己的方式，反映出你相信自己的價值是什麼？今天，你願不願意帶著這個問題安靜片刻，讓神告訴你：「你在我眼中是重價買來的」？',
+    baseItem:{emoji:'🏛️',name:'聖靈的殿',desc:'「但與主聯合的，便是與主成為一靈。」',slot:'bg'},
+    bonusItem:{emoji:'🫧',name:'奉主名的洗淨',desc:'「你們中間也有人從前是這樣；但如今你們奉主耶穌基督的名，並藉著我們神的靈，已經洗淨，成聖，稱義了。」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 7 ──
+  {
+    chapter:'COR1_7', sceneEmoji:'💍',
+    readTime:6,
+    guide:{
+      intro:'哥林多前書7章是聖經裡對婚姻與獨身討論最完整的一章。保羅的核心不是「結婚好還是獨身好」，而是：無論哪種狀態，都是神給的恩賜，都可以全心事奉神。',
+      outline:[
+        {nodes:'1-9節', text:'婚姻與獨身——各有各的恩賜，若不能自制就應當嫁娶'},
+        {nodes:'10-16節', text:'已婚者的原則——不可離婚；若配偶不信，仍當與他同住'},
+        {nodes:'17-24節', text:'各人當照神所呼召的過活——無論什麼狀態，都可以在其中與神同行'},
+        {nodes:'25-40節', text:'獨身的好處——可以不分心地事奉主，但這是建議，不是命令'}
+      ],
+      focus:'今日情境題聚焦在17-24節——「各人當照神所呼召他的過活」。這讓我們思考：我們現在的生命狀態，是我們與神同行的地方，還是我們一直想逃離的地方？'
+    },
+    verse:'「各人蒙召的時候是什麼身分，仍要守住這身分。」',
+    verseRef:'—— 哥林多前書 7:20',
+    scene:'哥林多教會有人問保羅：我應該結婚嗎？我應該離婚嗎？我應該維持現狀嗎？保羅的回答出乎意料：不管你現在是什麼狀態，那個狀態本身就是神呼召你的地方。問題不是「我在哪裡」，而是「我在這裡怎麼與神同行」。',
+    q:'保羅說「各人蒙召的時候是什麼身分，仍要守住這身分」——你現在的生命狀態，是你願意全心投入的地方，還是你一直想逃離的地方？',
+    choices:[
+      {k:'A',text:'我大致上接受現在的狀態，但有時候會羨慕別人的處境，覺得那樣比較好。'},
+      {k:'B',text:'我現在的狀態讓我很掙扎，我很難說這是神給我的呼召，感覺更像是困住我的地方。'},
+      {k:'C',text:'我在學習接受現在的狀態，但這個過程比我想像的難很多。'},
+      {k:'D',text:'老實說，我還沒認真想過「在這個狀態裡與神同行」是什麼意思。'}
+    ],
+    responses:{
+      A:'羨慕別人的處境是很人性的感受，不需要為此自責。但保羅說的「守住這身分」不是叫你假裝滿足，而是邀請你在這裡找到神。今天，你現在的狀態裡，有沒有一件事是只有你在這個位置才能做的？',
+      B:'「困住我的地方」——這個感受非常真實，保羅沒有否定這種掙扎。他說的不是「你要喜歡你的狀態」，而是「神在這裡與你同在」。今天，你願不願意帶著這個掙扎告訴神：「我不喜歡現在的狀態，但我願意讓祢在這裡找到我」？',
+      C:'「比我想像的難」——接受現實有時候需要很長的時間，這不是信心不夠，而是人心很真實。今天，這個過程裡，有沒有一個最難的地方，你願不願意把它說出來——對神，或對一個你信任的人？',
+      D:'「還沒認真想過」是一個很誠實的起點。今天，你願不願意帶著這個問題安靜片刻：「神，祢呼召我在這個狀態裡，祢要我做什麼？」'
+    },
+    reflectionTitle:'蒙召的地方',
+    reflection:'保羅說「各人蒙召的時候是什麼身分，仍要守住這身分」——這句話不是叫人認命，而是叫人看見：你現在站的地方，就是神呼召你的地方。不需要先到另一個狀態，才能開始與神同行。\n\n你現在的生命狀態——無論是婚姻、單身、工作、家庭——有沒有一個地方，是你還沒有邀請神進來的？今天，你願不願意把那個地方打開，對神說：「這裡也是祢的地方」？',
+    baseItem:{emoji:'💍',name:'蒙召的印記',desc:'「各人蒙召的時候是什麼身分，仍要守住這身分。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'不分心的事奉',desc:'「沒有娶妻的，是為主的事掛慮，想怎樣叫主喜悅。」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 8 ──
+  {
+    chapter:'COR1_8', sceneEmoji:'🍖',
+    readTime:3,
+    guide:{
+      intro:'哥林多教會吵起來了——市場上的肉很多是先拜過偶像才賣出來的，吃還是不吃？保羅沒有給一個簡單的「可以」或「不可以」，而是把焦點從「我有沒有自由」轉到「我的自由會不會讓弟兄跌倒」。這一章的張力，是知識與愛心的對話。',
+      outline:[
+        {nodes:'1-3節', text:'開場——知識叫人自高自大，惟有愛心能造就人'},
+        {nodes:'4-6節', text:'真理層面——偶像算不得甚麼，神只有一位'},
+        {nodes:'7-9節 ✦', text:'轉折——有人良心軟弱，你的自由可能成為他的絆腳石'},
+        {nodes:'10-13節', text:'結論——若食物叫弟兄跌倒，我就永遠不吃肉'}
+      ],
+      focus:'今日情境題聚焦在 7-13節——當「我有自由」遇上「弟兄會跌倒」，保羅選了愛心。'
+    },
+    verse:'「所以，食物若叫我弟兄跌倒，我就永遠不吃肉，免得叫我弟兄跌倒了。」',
+    verseRef:'—— 哥林多前書 8:13',
+    scene:'哥林多市場裡的肉，大半是廟裡拜過才送出來賣的。有人說「偶像又不是真的，吃了沒事」；也有人剛信主，看別人吃完心裡就動搖：「是不是我也可以回去拜一下？」保羅沒有罵任何一邊，他只問——你的自由，要不要為了那個還站不穩的弟兄停一下？',
+    q:'你身邊有沒有一件事，你「可以做、做了也沒事」，但有個信主沒多久的朋友看到會困惑？這時候你會怎麼處理？',
+    choices:[
+      {k:'A',text:'我會繼續做，但找機會解釋給他聽——讓他知道這件事的界線在哪。'},
+      {k:'B',text:'在他面前我會收一點，私下做沒關係——不想讓他卡關。'},
+      {k:'C',text:'我會直接停掉，反正也不是非做不可，省得心裡有疙瘩。'},
+      {k:'D',text:'老實說，我之前沒想那麼多——我以為「我的事」就是我的事。'}
+    ],
+    responses:{
+      A:'解釋是好的，但保羅在這章看見一件事——有些人聽得懂道理，心還是過不去。下次你打算解釋之前，先問問他：「你看到的時候，心裡怎麼想？」也許他要的不是答案，是被看見。',
+      B:'這已經是愛了。保羅說「我就永遠不吃肉」——他不是在演什麼，他是真的在意那個弟兄。你願意在他面前收一點，就是同樣的東西。',
+      C:'這個選擇很乾脆，也很愛弟兄。只是有時候我們停下來之後，心裡會默默記著「我為他犧牲了什麼」。今天如果有這個念頭浮上來，能不能試著對主說，而不是放在心裡記著？',
+      D:'這個誠實很珍貴。大多數人都是這樣長大的——先學會「我可以」，後來才學會「我為誰而做」。下次你做某件事之前，問自己一句就好：「身邊有沒有人，會因為我這樣做而困惑？」這一句就是起點。'
+    },
+    reflectionTitle:'為他停一下',
+    reflection:'保羅有自由可以吃肉——他知道偶像算不得甚麼。但他選擇不吃，不是因為怕罪，是因為怕弟兄跌倒。這是一種把別人放在自己自由之前的愛。\n\n你最近有沒有一件事，你「可以做」但有人在旁邊看？你願不願意為了那個人，把這件事先放一放？',
+    baseItem:{emoji:'❤️',name:'造就人的愛心',desc:'「但知識是叫人自高自大，惟有愛心能造就人。」',slot:'body'},
+    bonusItem:{emoji:'🪨',name:'不絆腳的腳步',desc:'「只是你們要謹慎，恐怕你們這自由竟成了那軟弱人的絆腳石。」',slot:'hand'}
+  },
+
+  // ── 哥林多前書 9 ──
+  {
+    chapter:'COR1_9', sceneEmoji:'🏃',
+    readTime:5,
+    guide:{
+      intro:'哥林多前書9章，保羅用自己的生命示範了一件事：他有權利得到支持，但他放棄了這個權利，為的是讓福音暢行無阻。然後他用運動員的比喻說：屬靈的競賽需要嚴格的自律。',
+      outline:[
+        {nodes:'1-14節', text:'使徒的權利——保羅有權利得到支持，但他沒有用這個權利'},
+        {nodes:'15-23節', text:'保羅放棄權利的原因——為要得更多的人，向什麼人就作什麼人'},
+        {nodes:'24-27節', text:'運動員的比喻——跑步要得獎賞、打拳要有目標，保羅攻克己身，免得傳福音給別人，自己反被棄絕'}
+      ],
+      focus:'今日情境題聚焦在24-27節——不是為了自律而自律，而是因為有更重要的目標在前面。這讓我們思考：我們在信仰裡有沒有那個讓我們願意約束自己的目標？'
+    },
+    verse:'「豈不知在場上賽跑的都跑，但得獎賞的只有一人？你們也當這樣跑，好叫你們得著獎賞。」',
+    verseRef:'—— 哥林多前書 9:24',
+    scene:'保羅把信仰生命比作一場運動競賽。運動員為了得獎賞，在各事上節制——不是因為那些事是壞的，而是因為有更重要的目標在前面。保羅說：我也是這樣跑的，不是無定向地跑，而是有目標地跑。',
+    q:'保羅說他「攻克己身」，為的是不讓自己在傳福音之後反而被棄絕——你生命裡有沒有一個「攻克己身」的功課，是你知道需要操練但一直沒有認真面對的？',
+    choices:[
+      {k:'A',text:'有——我知道那個功課，我也知道它影響著我的信仰，但我一直沒有找到方法認真面對它。'},
+      {k:'B',text:'有——我曾經認真操練過，但最近鬆懈了，感覺自己在退步。'},
+      {k:'C',text:'我不確定我的「攻克己身」是什麼，我的信仰生活感覺比較像是隨波逐流，沒有明確的方向。'},
+      {k:'D',text:'老實說，「自律」這件事對我來說很沉重，我怕自己做不到，所以乾脆不去想。'}
+    ],
+    responses:{
+      A:'「知道但沒有方法」——有時候不是方法的問題，而是還沒有認真開始。今天，那個功課裡，有沒有一個最小的行動，小到你今天就可以做一次？',
+      B:'「鬆懈了」——這是很多人信仰旅程中真實的循環。保羅說的不是「永遠不能失敗」，而是「繼續跑」。今天，你願不願意重新開始——不是從頭，而是從現在這一步？',
+      C:'「隨波逐流」說明你其實渴望有方向。保羅說他「不是無定向地跑」——今天，你願不願意問神：「祢要我操練的是什麼？」',
+      D:'「怕做不到所以不去想」——這是很誠實的自我保護。但保羅說的自律不是靠意志力，而是有目標地跑。今天，你願不願意先問自己：「我的目標是什麼？」——不用先想怎麼做到。'
+    },
+    reflectionTitle:'有目標地跑',
+    reflection:'保羅說「我是攻克己身，叫身服我，恐怕我傳福音給別人，自己反被棄絕了」——這句話不是出於恐懼，而是一種對自己狀態很清醒的警覺。他知道信仰不是一個人的事，他的生命狀態會影響他帶給別人的福音。\n\n你現在的信仰生命，是有方向地跑，還是隨著環境飄？今天，你願不願意問神：「祢要我操練的那件事，我今天可以從哪裡開始？」',
+    baseItem:{emoji:'🏃',name:'競賽者的步伐',desc:'「豈不知在場上賽跑的都跑，但得獎賞的只有一人？你們也當這樣跑，好叫你們得著獎賞。」',slot:'bg'},
+    bonusItem:{emoji:'🏆',name:'不能朽壞的冠冕',desc:'「他們不過是要得能壞的冠冕，我們卻是要得不能壞的冠冕。」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 10 ──
+  {
+    chapter:'COR1_10', sceneEmoji:'🪨',
+    readTime:5,
+    guide:{
+      intro:'哥林多前書10章，保羅用以色列人在曠野的故事作警戒——他們都蒙了恩典，卻因為貪戀惡事、拜偶像、行淫、試探主而倒斃。保羅說：這些事都是鑑戒，寫在聖經裡是為了警戒我們。',
+      outline:[
+        {nodes:'1-13節', text:'以色列人的鑑戒——他們蒙了恩典卻倒斃，我們不要貪戀惡事；神是信實的，不讓你們受試探過於所能受的'},
+        {nodes:'14-22節', text:'逃避偶像——你們不能喝主的杯，又喝鬼的杯'},
+        {nodes:'23-33節', text:'凡事都可行，但不都有益處——為了別人的益處，不求自己的喜悅'}
+      ],
+      focus:'今日情境題聚焦在13節——「神是信實的，必不叫你們受試探過於所能受的」。這讓我們思考：在我們最掙扎的試探裡，我們真的相信神為我們開了出路嗎？'
+    },
+    verse:'「你們所遇見的試探，無非是人所能受的。神是信實的，必不叫你們受試探過於所能受的；在受試探的時候，總要給你們開一條出路，叫你們能忍受得住。」',
+    verseRef:'—— 哥林多前書 10:13',
+    scene:'保羅提醒哥林多人：以色列人在曠野蒙了神很大的恩典——過紅海、吃嗎哪、喝磐石的水——但他們仍然倒下了。不是因為神不夠好，而是因為他們在試探來的時候選擇了不順服的路。保羅說：那條出路是真實的。',
+    q:'「神必不叫你們受試探過於所能受的，總要給你們開一條出路」——你現在生命裡最大的試探或掙扎，你相信神有為你開出路嗎？',
+    choices:[
+      {k:'A',text:'我相信，但有時候在那個掙扎最深的時刻，我感覺不到那條出路在哪裡。'},
+      {k:'B',text:'我知道這個應許，但老實說，我有時候懷疑它是不是真的適用在我這個情況。'},
+      {k:'C',text:'我現在面對的掙扎讓我很疲倦，我不確定我還有力氣去找那條出路。'},
+      {k:'D',text:'老實說，我現在沒有特別大的試探，但我想為將來做準備。'}
+    ],
+    responses:{
+      A:'「感覺不到出路」和「出路不存在」是兩件不同的事。保羅說神「總要給你們開一條出路」——不是有時候，是總要。今天，你願不願意在那個掙扎裡禱告一次：「神，我看不到出路，但我相信祢開了一條」？',
+      B:'「懷疑它是不是適用在我這個情況」——這是很誠實的信心狀態。今天，你願不願意把這個懷疑直接告訴神：「我不確定這個應許是不是給我的，但我想相信」？',
+      C:'「很疲倦」——這個感受非常真實。保羅說的出路不是要你更努力，而是神為你開的。今天，你願不願意就帶著這個疲倦禱告，不用先振作，就說：「神，我很累了，請祢帶我找到那條路」？',
+      D:'為將來做準備是很有智慧的姿態。今天，你願不願意把這節經文記在心裡，讓它在將來試探來的時候成為你的錨？'
+    },
+    reflectionTitle:'那條出路',
+    reflection:'保羅說神「總要給你們開一條出路，叫你們能忍受得住」——這句話的重點不是「試探會消失」，而是「出路是真實存在的」。以色列人的問題不是試探太大，而是他們在試探裡沒有選擇神的路。\n\n你現在生命裡最大的掙扎，你有沒有認真去找那條出路？今天，你願不願意帶著那個掙扎安靜片刻，問神：「祢開的那條出路，在哪裡？」',
+    baseItem:{emoji:'🪨',name:'磐石的活水',desc:'「也都喝了一樣的靈水。所喝的，是出於隨著他們的靈磐石；那磐石就是基督。」',slot:'bg'},
+    bonusItem:{emoji:'🙌',name:'凡事榮耀神',desc:'「所以，你們或吃或喝，無論做甚麼，都要為榮耀神而行。」',slot:'hand'}
+  },
+
+  // ── 哥林多前書 11 ──
+  {
+    chapter:'COR1_11', sceneEmoji:'🍷',
+    readTime:5,
+    guide:{
+      intro:'哥林多前書第11章處理兩個問題：禮拜時的蒙頭問題，以及聖餐時的混亂。後半段保羅嚴肅地重述主設立聖餐的經過，提醒信徒：這不是普通的聚餐，而是紀念主的死，直等到祂來。',
+      outline:[
+        {nodes:'1-16節', text:'禮拜中蒙頭的教導——反映當時文化中的秩序觀念'},
+        {nodes:'17-22節', text:'聖餐的混亂——有人先吃喝醉，有人沒有食物，這不是吃主的晚餐'},
+        {nodes:'23-26節', text:'主設立聖餐的經過——這是我的身體，為你們捨的；這杯是用我的血所立的新約'},
+        {nodes:'27-34節', text:'人應當自己省察——不按理吃喝的，就是吃喝自己的罪了'}
+      ],
+      focus:'今日情境題聚焦在23-29節——聖餐的意義和「自己省察」的邀請。'
+    },
+    verse:'「你們每逢吃這餅，喝這杯，是表明主的死，直等到他來。」',
+    verseRef:'—— 哥林多前書 11:26',
+    scene:'哥林多教會的聚餐變質了——有錢人帶著豐盛的食物先吃先喝，甚至喝醉，窮人卻餓著肚子。保羅說：這樣做不是吃主的晚餐。然後他重述了耶穌設立聖餐的那個夜晚——「這是我的身體，為你們捨的。」每一次聖餐，都是在重新記念那個夜晚。',
+    q:'保羅說聖餐前「人應當自己省察」——如果今天要你在領聖餐之前安靜省察，你心裡最先浮現的是什麼？',
+    choices:[
+      {k:'A',text:'我想到的是一段關係——有一個人我知道我需要和好，但我一直沒有面對。'},
+      {k:'B',text:'我想到的是一個習慣或狀態——有一件事我知道不對，但我一直在逃避處理。'},
+      {k:'C',text:'老實說，我對聖餐的感覺已經變成一種儀式，我好像很久沒有真正被「這是我的身體」這句話觸動了。'},
+      {k:'D',text:'我想到的是感恩——省察不只是看見罪，也是看見恩典。我想起神在我生命中做的事。'}
+    ],
+    responses:{
+      A:'那段關係浮現在你心裡，可能就是聖靈在提醒你。保羅說「先省察，再吃這餅」——不是要你完美才來，而是要你誠實地面對。今天，你願不願意為那個人禱告一次，就說：「神，幫我找到和好的勇氣」？',
+      B:'「知道不對但一直逃避」——省察就是把燈打開，讓自己看見那個角落。保羅不是要你先處理完才來領聖餐，而是要你不帶著假裝來。今天，你願不願意把那件事帶到神面前，不用先解決，就先承認：「這件事我一直在逃」？',
+      C:'「變成儀式」是很誠實的狀態，也是很多信徒走過的階段。保羅重述聖餐的設立，就是要我們回到那個原點——一個人，在被出賣的那一夜，拿起餅說：「這是為你們捨的。」今天，你願不願意用最慢的速度，重新讀一次這段話，讓它再觸動你一次？',
+      D:'省察不只是認罪，也是數恩典——這個角度很重要。今天，你心裡浮現的那件恩典，你願不願意把它說出來——對神，或對一個你信任的人？'
+    },
+    reflectionTitle:'省察與記念',
+    reflection:'「你們每逢吃這餅，喝這杯，是表明主的死，直等到他來。」——聖餐不是過去式的回憶，而是現在式的宣告：主的死是真實的，祂的再來也是真實的。在這兩個真實之間，我們活著。\n\n下一次你領聖餐的時候，你想帶著什麼樣的心去領？你願不願意現在就開始那個省察——不是等到聖餐桌前，而是現在，在這裡？',
+    baseItem:{emoji:'🍷',name:'立約的杯',desc:'「這杯是用我的血所立的新約，你們每逢喝的時候，要如此行，為的是記念我。」',slot:'hand'},
+    bonusItem:{emoji:'🍞',name:'擘開的餅',desc:'「這是我的身體，為你們捨的，你們應當如此行，為的是記念我。」',slot:'bg'}
+  },
+
+  // ── 哥林多前書 12 ──
+  {
+    chapter:'COR1_12', sceneEmoji:'🫂',
+    readTime:5,
+    guide:{
+      intro:'哥林多前書12章是保羅最著名的比喻之一——教會是基督的身體，每個信徒是不同的肢體。哥林多人在比較恩賜的大小，保羅說：眼不能對手說我不需要你，頭也不能對腳說我不需要你。',
+      outline:[
+        {nodes:'1-11節', text:'屬靈恩賜的多樣性——聖靈隨己意分給各人，都是為了叫人得益處'},
+        {nodes:'12-20節', text:'身體的比喻——肢體雖多，身子是一個；腳不能說我不是手就不屬身子'},
+        {nodes:'21-26節', text:'彼此需要——眼不能對手說我不需要你；看似軟弱的肢體更不可少'},
+        {nodes:'27-31節', text:'你們就是基督的身子——神在教會中設立不同的職分，要追求更大的恩賜'}
+      ],
+      focus:'今日情境題聚焦在12-26節——你在群體中覺得自己是哪一種「肢體」？'
+    },
+    verse:'「你們就是基督的身子，並且各自作肢體。」',
+    verseRef:'—— 哥林多前書 12:27',
+    scene:'哥林多教會的人在比較恩賜——會說方言的覺得自己比較屬靈，不會的覺得自己不重要。保羅說：身體不能只有一個肢體。腳不能因為不是手就說「我不屬於身體」，眼也不能對手說「我不需要你」。每一個肢體都不可少。',
+    q:'保羅說教會是基督的身體，每個人是不同的肢體——你在你的信仰群體裡，覺得自己比較像哪一種肢體？',
+    choices:[
+      {k:'A',text:'我覺得自己是比較不起眼的肢體——默默做事，不太被注意到，但少了我好像也沒差。'},
+      {k:'B',text:'我不太確定自己的「功能」是什麼，我還在找自己在群體裡的位置。'},
+      {k:'C',text:'我覺得自己在群體裡有一定的角色，但有時候會羨慕別人的恩賜，覺得他們的更重要。'},
+      {k:'D',text:'老實說，我現在沒有一個穩定的信仰群體，這個比喻讓我意識到我可能需要找到一個。'}
+    ],
+    responses:{
+      A:'保羅特別提到「那看似軟弱的肢體更是不可少的」——不起眼不等於不重要。今天，你願不願意問問身邊的人：「你覺得我在這個群體裡帶來了什麼？」也許答案會讓你意外。',
+      B:'還在找位置是一個真實的過程，不是問題。保羅說聖靈「隨自己的意思」分給各人——你的位置不需要你去發明，而是去發現。今天，有沒有一件你做起來特別自然的事，你願不願意在群體裡試試？',
+      C:'羨慕別人的恩賜很人性，但保羅的重點是：眼不能對手說我不需要你。每個恩賜的價值不在大小，而在它是否被使用。今天，你願不願意把羨慕放下，問自己：「我手上已經有的，我有沒有好好用？」',
+      D:'信仰不是設計來獨自走的——身體需要肢體，肢體也需要身體。今天，你願不願意踏出一步，去參加一次小組或聚會，讓自己被連結？'
+    },
+    reflectionTitle:'不可少的肢體',
+    reflection:'保羅說「若一個肢體受苦，所有的肢體就一同受苦；若一個肢體得榮耀，所有的肢體就一同快樂」——這是群體最美的樣子。\n\n你現在的信仰群體裡，有沒有一個正在受苦的肢體？你有沒有注意到？今天，你願不願意主動關心他一下？',
+    baseItem:{emoji:'🫂',name:'肢體的連結',desc:'「若一個肢體受苦，所有的肢體就一同受苦；若一個肢體得榮耀，所有的肢體就一同快樂。」',slot:'hand'},
+    bonusItem:{emoji:'🧩',name:'安排的智慧',desc:'「但如今，神隨自己的意思把肢體俱各安排在身上了。」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 13 ──
+  {
+    chapter:'COR1_13', sceneEmoji:'❤️',
+    readTime:3,
+    guide:{
+      intro:'哥林多前書13章——聖經裡最著名的「愛的篇章」。保羅剛談完恩賜，現在說：就算你有最大的恩賜，沒有愛，就什麼都不是。然後他定義了愛：不是感覺，而是一連串的動詞。',
+      outline:[
+        {nodes:'1-3節', text:'沒有愛，一切都是虛空——說萬人的方言、有先知的能力、甚至捨己，若沒有愛就算不得什麼'},
+        {nodes:'4-7節', text:'愛的定義——恆久忍耐、有恩慈、不嫉妒、不自誇、凡事包容、凡事相信、凡事盼望、凡事忍耐'},
+        {nodes:'8-12節', text:'愛是永不止息——先知講道、說方言都會歸於無有，但愛永不止息'},
+        {nodes:'13節', text:'如今常存的有信、有望、有愛，其中最大的是愛'}
+      ],
+      focus:'今日情境題聚焦在4-7節——愛的定義裡，哪一個對你來說最難做到？'
+    },
+    verse:'「如今常存的有信，有望，有愛這三樣，其中最大的是愛。」',
+    verseRef:'—— 哥林多前書 13:13',
+    scene:'保羅用一連串的動詞定義愛：忍耐、恩慈、不嫉妒、不自誇、不張狂、不求自己的益處、不輕易發怒、不計算人的惡。這不是浪漫的感覺，而是每一天的選擇。然後他說：信心和盼望都很重要，但最大的是愛。',
+    q:'「愛是恆久忍耐，又有恩慈...不輕易發怒，不計算人的惡」——這些定義裡，哪一個對你來說最難做到？',
+    choices:[
+      {k:'A',text:'「不輕易發怒」——我知道不應該，但有些人或有些事就是會讓我一秒失控。'},
+      {k:'B',text:'「不計算人的惡」——我很難忘記別人傷害我的事，就算嘴上說原諒了，心裡的帳還在。'},
+      {k:'C',text:'「不求自己的益處」——我常常不自覺地先想到自己，然後才想到對方。'},
+      {k:'D',text:'「恆久忍耐」——短期我可以，但長期面對同一個人同一個問題，我的耐心會用完。'}
+    ],
+    responses:{
+      A:'「一秒失控」說明那個觸發點碰到了你心裡很深的地方。保羅說的「不輕易」不是「永遠不」，而是有一個停頓的空間。今天，下次那個時刻來的時候，你願不願意在反應之前，給自己三秒鐘？',
+      B:'「心裡的帳還在」——這是最誠實的狀態。「不計算人的惡」不是失憶，而是選擇不再拿那筆帳來定義那個人。今天，那筆帳，你願不願意對神說：「我還放不下，但我不想再被它綁住」？',
+      C:'「先想到自己」是人的本能，不是你特別自私。但保羅說愛是一個不同的方向——從自己轉向對方。今天，有沒有一個具體的情境，你可以刻意先問：「對方需要什麼？」',
+      D:'「耐心用完」是真實的極限，不是信心不夠。保羅說「恆久」不是靠意志力撐，而是每天重新從神那裡支取。今天，你願不願意為那個讓你耐心用完的人禱告：「神，給我明天的耐心就好」？'
+    },
+    reflectionTitle:'最大的是愛',
+    reflection:'保羅說「如今常存的有信，有望，有愛這三樣，其中最大的是愛」——信心會變成眼見，盼望會變成實現，但愛永遠不會過時。\n\n你現在最需要操練的，是信、望、還是愛？你今天可以在哪一段關係裡，讓愛多走一步？',
+    baseItem:{emoji:'❤️',name:'愛的篇章',desc:'「愛是恆久忍耐，又有恩慈；愛是不嫉妒；愛是不自誇，不張狂。」',slot:'hand'},
+    bonusItem:{emoji:'🪞',name:'面對面的盼望',desc:'「我們如今彷彿對着鏡子觀看，模糊不清，到那時就要面對面了。」',slot:'bg'}
+  },
+
+  // ── 哥林多前書 14 ──
+  {
+    chapter:'COR1_14', sceneEmoji:'🗣️',
+    readTime:6,
+    guide:{
+      intro:'哥林多前書14章處理方言和先知講道的問題。哥林多人追捧說方言，保羅說：方言是對神說的，先知講道是造就人的。聚會的目的不是展示恩賜，而是彼此造就。凡事都要規規矩矩地按次序行。',
+      outline:[
+        {nodes:'1-5節', text:'先知講道比方言更造就教會——說方言是對神說的，先知講道是造就、安慰、勸勉人'},
+        {nodes:'6-19節', text:'方言若沒有翻出來，對聽的人沒有益處——寧可說五句能教導人的話'},
+        {nodes:'20-25節', text:'方言是不信之人的證據，先知講道是信徒的造就'},
+        {nodes:'26-40節', text:'聚會的秩序——凡事都當造就人，神不是叫人混亂，乃是叫人安靜'}
+      ],
+      focus:'今日情境題聚焦在26節——「凡事都當造就人」。在你的信仰群體裡，你帶來的是造就，還是混亂？'
+    },
+    verse:'「凡事都要規規矩矩地按着次序行。」',
+    verseRef:'—— 哥林多前書 14:40',
+    scene:'哥林多教會的聚會很混亂——大家同時說方言、搶著發言、沒有人翻譯。保羅說：神不是叫人混亂的神。聚會的每一個環節——詩歌、教訓、啟示、方言——都應該以「造就人」為目標，而不是展示自己。',
+    q:'保羅說聚會時「凡事都當造就人」——在你參與的聚會或小組裡，你覺得自己的參與是在造就別人，還是比較像在完成一個義務？',
+    choices:[
+      {k:'A',text:'我覺得我的參與有在造就人，但有時候我不確定別人是否真的被幫助到。'},
+      {k:'B',text:'老實說，我在聚會裡比較像旁觀者，我不太主動貢獻什麼。'},
+      {k:'C',text:'我有時候會在聚會裡說太多，事後才想到可能應該多聽少說。'},
+      {k:'D',text:'我參加聚會主要是為了自己的需要，「造就別人」這個角度我沒有認真想過。'}
+    ],
+    responses:{
+      A:'願意造就人，但不確定效果——這份謙卑很好。今天，你願不願意在下次聚會後問一個人：「剛才我說的那些，對你有沒有幫助？」直接的回饋比猜測更有用。',
+      B:'「比較像旁觀者」——有時候是因為不知道怎麼參與。保羅說各人「或有詩歌，或有教訓」——你不需要很厲害才能貢獻。今天，下次聚會你願不願意試試主動說一句：「我最近在想...」？',
+      C:'「說太多」的自覺本身就是成長。保羅說寧可說五句能教導人的話。今天，下次聚會前，你願不願意先問自己：「我等一下要說的，是為了造就人，還是為了被聽見？」',
+      D:'「為了自己的需要」不是壞事——我們都需要被餵養。但保羅提醒我們：聚會是雙向的。今天，你願不願意在下次聚會裡，除了接受，也試著給出一些什麼？'
+    },
+    reflectionTitle:'造就的聚會',
+    reflection:'保羅說「凡事都當造就人」——這個原則不只適用在教會聚會，也適用在每一次你跟人的互動。\n\n回想你最近一次參加的聚會或小組，你帶走了什麼？你留下了什麼？今天，你願不願意在下一次聚會前禱告：「神，讓我成為造就人的那一個」？',
+    baseItem:{emoji:'🗣️',name:'造就人的言語',desc:'「但作先知講道的，是對人說，要造就、安慰、勸勉人。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'安靜的秩序',desc:'「因為神不是叫人混亂，乃是叫人安靜。」',slot:'bg'}
+  },
+
+  // ── 哥林多前書 15 ──
+  {
+    chapter:'COR1_15', sceneEmoji:'🌅',
+    readTime:8,
+    guide:{
+      intro:'哥林多前書15章是整本書信的神學高峰——復活。有人質疑死人復活的事，保羅從基督的復活開始論證：如果基督沒有復活，我們的信就是枉然。然後他描述了復活的榮耀：必朽壞的變成不朽壞的，最後一個仇敵——死——也要被毀滅。',
+      outline:[
+        {nodes:'1-11節', text:'基督復活的見證——照聖經所說死了、埋葬了、第三天復活了，有五百多人見過'},
+        {nodes:'12-19節', text:'若基督沒有復活——我們的信便是枉然，我們就比眾人更可憐'},
+        {nodes:'20-34節', text:'基督是初熟的果子——在亞當裡眾人都死了，在基督裡眾人也都要復活'},
+        {nodes:'35-49節', text:'復活的身體——天上的形體和地上的形體不同，血肉之體變成靈性的身體'},
+        {nodes:'50-58節', text:'最後的勝利——死被得勝吞滅了！感謝神使我們得勝，所以你們務要堅固'}
+      ],
+      focus:'今日情境題聚焦在55-58節——「死啊，你得勝的權勢在哪裏？」復活的盼望如何影響你今天的生活？'
+    },
+    verse:'「所以，我親愛的弟兄們，你們務要堅固，不可搖動，常常竭力多做主工；因為知道，你們的勞苦在主裏面不是徒然的。」',
+    verseRef:'—— 哥林多前書 15:58',
+    scene:'保羅用整章的篇幅論證復活，最後到達高潮：「死啊！你得勝的權勢在哪裏？死啊！你的毒鈎在哪裏？」然後他說：感謝神，使我們藉着主耶穌基督得勝。因為復活是真實的，所以你今天做的每一件事，都不是徒然的。',
+    q:'保羅說「你們的勞苦在主裏面不是徒然的」——你有沒有一個時刻，覺得自己做的事好像沒有意義，徒勞無功？',
+    choices:[
+      {k:'A',text:'有——我在服事或工作中覺得看不見果效，有時候會懷疑這一切有什麼意義。'},
+      {k:'B',text:'有——我在某段關係裡付出很多，但對方好像沒有改變，我開始覺得是不是白費了。'},
+      {k:'C',text:'「不是徒然的」這句話讓我重新看我的日常——也許意義不是馬上看見的，而是在主裏面被記念的。'},
+      {k:'D',text:'老實說，我現在的狀態比較像是疲倦，不是懷疑。我知道有意義，但我好累。'}
+    ],
+    responses:{
+      A:'看不見果效的服事是最需要信心的服事。保羅說「不是徒然的」——不是說馬上會看見結果，而是說在主裏面，沒有一滴汗水會被浪費。今天，你願不願意對神說：「我看不見，但我相信祢在用」？',
+      B:'在關係裡付出卻看不見改變——這是很深的疲倦。但保羅說的「不是徒然」不是指對方會改變，而是你的付出在神眼中被看見。今天，你願不願意把那份疲倦交給神：「這段關係的結果，我交給祢」？',
+      C:'「在主裏面被記念」——這是一個很深的安慰。你今天做的每一件小事，在神的帳本裡都不是零。今天，有沒有一件你覺得「沒人看見」的事，你願不願意帶著「神看見了」的心去做？',
+      D:'疲倦不是不信，是人的極限。保羅自己也說「我今日成了何等人，是蒙神的恩才成的」——他的力量不是自己的。今天，你願不願意允許自己休息，然後對神說：「我累了，但我還在這裡」？'
+    },
+    reflectionTitle:'不是徒然的',
+    reflection:'「死啊！你得勝的權勢在哪裏？」——保羅用這句話宣告：死亡不是終點。因為復活是真實的，所以你今天的每一個選擇、每一份付出、每一次忍耐，都有永恆的重量。\n\n你現在生命裡最「看起來徒然」的那件事是什麼？你願不願意帶著復活的盼望重新看它一次？',
+    baseItem:{emoji:'🌅',name:'復活的晨光',desc:'「但基督已經從死裏復活，成為睡了之人初熟的果子。」',slot:'bg'},
+    bonusItem:{emoji:'🏆',name:'得勝的凱歌',desc:'「死啊！你得勝的權勢在哪裏？死啊！你的毒鈎在哪裏？」',slot:'hat'}
+  },
+
+  // ── 哥林多前書 16 ──
+  {
+    chapter:'COR1_16', sceneEmoji:'✋',
+    readTime:3,
+    guide:{
+      intro:'哥林多前書的最後一章——保羅處理完所有神學和倫理問題後，用實際的安排結束：捐獻的事、旅行計畫、對同工的推薦。最後他留下一句簡短有力的勸勉：「你們務要警醒，在真道上站立得穩，要作大丈夫，要剛強。凡你們所做的都要憑愛心而做。」',
+      outline:[
+        {nodes:'1-4節', text:'為耶路撒冷聖徒的捐獻——每逢七日的第一日，各人按進項收起來'},
+        {nodes:'5-12節', text:'保羅的旅行計畫——經馬其頓到哥林多，提摩太和亞波羅的行程'},
+        {nodes:'13-14節', text:'最後的勸勉——警醒、站穩、剛強、憑愛心做一切'},
+        {nodes:'15-24節', text:'對司提法那一家的推薦、問安、保羅親筆的祝福'}
+      ],
+      focus:'今日情境題聚焦在13-14節——保羅給哥林多教會最後的叮嚀，這也是他對你說的話。'
+    },
+    verse:'「你們務要警醒，在真道上站立得穩，要作大丈夫，要剛強。凡你們所做的都要憑愛心而做。」',
+    verseRef:'—— 哥林多前書 16:13-14',
+    scene:'保羅寫完了這封長信——處理了分黨、淫亂、訴訟、婚姻、偶像、聖餐、恩賜、復活。在信的最後，他把所有的教導濃縮成兩節話：警醒、站穩、剛強——然後加了一句：凡你們所做的都要憑愛心而做。剛強不能沒有愛，愛也需要剛強。',
+    q:'保羅最後的叮嚀是「警醒、站穩、剛強、憑愛心」——這四個裡面，你現在最需要哪一個？',
+    choices:[
+      {k:'A',text:'「警醒」——我覺得自己最近在信仰上有點鬆懈，需要重新提高注意力。'},
+      {k:'B',text:'「站立得穩」——我最近面對一些挑戰，讓我的信心有點搖晃。'},
+      {k:'C',text:'「剛強」——我知道該做什麼，但我缺乏勇氣去行動。'},
+      {k:'D',text:'「憑愛心」——我最近做事比較靠責任感驅動，愛的成分變少了。'}
+    ],
+    responses:{
+      A:'「鬆懈」是一個溫水煮青蛙的過程，你能意識到，就是警醒的開始。今天，有沒有一個你最近忽略的屬靈習慣——禱告、讀經、聚會——你願不願意今天就恢復一次？',
+      B:'信心搖晃不代表信心消失——搖晃中還站著的人，比從來沒搖過的人更堅強。今天，你願不願意把那個讓你搖晃的挑戰帶到神面前，就說：「我在搖，但我還站著」？',
+      C:'缺乏勇氣是很真實的感受。保羅說「要作大丈夫，要剛強」——但緊接著說「憑愛心而做」。真正的勇氣不是硬撐，而是因為愛所以願意踏出去。今天，那件你缺乏勇氣做的事，是為了誰？想到那個人，會不會讓你多一點動力？',
+      D:'「責任感驅動」做久了會枯竭——因為責任是有限的燃料，愛才是可以持續的源頭。今天，你願不願意在做那件「應該做的事」之前，先停下來想：「我為什麼開始做這件事的？」回到起初的愛。'
+    },
+    reflectionTitle:'最後的叮嚀',
+    reflection:'「凡你們所做的都要憑愛心而做。」——這是保羅給哥林多教會最後一句勸勉。整封信談了那麼多問題，最後的答案只有一個字：愛。\n\n如果你要給自己寫一封信，最後一句勸勉會是什麼？你現在最需要聽到的那句話是什麼？今天，你願不願意把那句話說給自己聽？',
+    baseItem:{emoji:'✋',name:'最後的叮嚀',desc:'「你們務要警醒，在真道上站立得穩，要作大丈夫，要剛強。」',slot:'hand'},
+    bonusItem:{emoji:'💌',name:'愛心的印記',desc:'「凡你們所做的都要憑愛心而做。」',slot:'hat'}
+  },
+
+  // ── 哥林多後書 1 ──
+  {
+    chapter:'COR2_1', sceneEmoji:'🤗',
+    readTime:5,
+    guide:{
+      intro:'哥林多後書是保羅最私密的一封信。他開篇就談到安慰——不是抽象的神學概念，而是他自己剛經歷過的苦難。他說：神安慰我們，是要我們能去安慰別人。',
+      outline:[
+        {nodes:'1-7節', text:'安慰的神——神在我們一切患難中安慰我們，使我們能安慰那遭各樣患難的人'},
+        {nodes:'8-11節', text:'保羅在亞細亞遭遇的苦難——被壓太重，力不能勝，甚至連活命的指望都絕了'},
+        {nodes:'12-14節', text:'保羅的良心——在世為人是靠神的聖潔和誠實'},
+        {nodes:'15-24節', text:'保羅改變行程的原因——不是反覆無常，而是為了寬容他們'}
+      ],
+      focus:'今日情境題聚焦在3-7節——安慰的循環：你受過的安慰，如何成為別人的安慰？'
+    },
+    verse:'「我們在一切患難中，他就安慰我們，叫我們能用神所賜的安慰去安慰那遭各樣患難的人。」',
+    verseRef:'—— 哥林多後書 1:4',
+    scene:'保羅剛經歷了一場嚴重的苦難——在亞細亞被壓太重，連活命的指望都絕了。但他沒有從苦難裡退縮，反而說：神安慰了我，所以我現在可以去安慰你們。安慰不是停在自己身上的，它有一個流動的方向。',
+    q:'保羅說「神安慰我們，是要我們能去安慰別人」——你有沒有一段被安慰的經歷，後來成為你安慰別人的資源？',
+    choices:[
+      {k:'A',text:'有——我走過的某段低谷，後來讓我能理解別人類似的處境，我的陪伴變得更真實。'},
+      {k:'B',text:'我還在被安慰的階段，我現在的狀態還沒有能力去安慰別人。'},
+      {k:'C',text:'我不太習慣接受安慰，覺得應該自己撐過去，所以安慰也比較少流到別人那裡。'},
+      {k:'D',text:'老實說，我覺得有些痛苦太深了，我不確定它真的能變成安慰別人的資源。'}
+    ],
+    responses:{
+      A:'你走過的低谷，成了別人的路標——這是安慰最美的循環。今天，有沒有一個正在低谷的人，你可以跟他說：「我懂，因為我也走過」？',
+      B:'「還在被安慰的階段」是完全合理的——你不需要痊癒了才能被使用。今天，你願不願意接受一個安慰，不急著給出去，就讓自己先被照顧？',
+      C:'「自己撐過去」有時候是因為不想麻煩別人，有時候是因為怕脆弱。保羅說安慰是神賜的——它需要先被接受才能流動。今天，有沒有一個人，你願意讓他看見你不那麼堅強的一面？',
+      D:'有些痛苦確實很深，保羅自己也說「連活命的指望都絕了」。但他後來發現，正是那個最深的地方，安慰也最深。今天，你願不願意帶著那份痛對神說：「祢能用這個嗎？」'
+    },
+    reflectionTitle:'安慰的循環',
+    reflection:'保羅說安慰有一個方向：從神→到我→到別人。它不是停在我身上的禮物，而是經過我流到別人生命裡的河流。\n\n你生命裡最深的安慰，是從哪裡來的？那份安慰，有沒有流到別人那裡？今天，有誰需要你把那份安慰傳遞給他？',
+    baseItem:{emoji:'🤗',name:'安慰的手',desc:'「我們在一切患難中，他就安慰我們，叫我們能用神所賜的安慰去安慰那遭各樣患難的人。」',slot:'hand'},
+    bonusItem:{emoji:'🕯️',name:'患難中的光',desc:'「我們從前被壓太重，力不能勝，甚至連活命的指望都絕了。」',slot:'bg'}
+  },
+
+  // ── 哥林多後書 2 ──
+  {
+    chapter:'COR2_2', sceneEmoji:'🌸',
+    readTime:3,
+    guide:{
+      intro:'哥林多後書第2章，保羅處理一個具體的教會紀律事件——之前犯罪的弟兄已經悔改，保羅說：夠了，現在應該赦免他、安慰他，免得他被憂愁吞滅。然後保羅談到基督的香氣。',
+      outline:[
+        {nodes:'1-4節', text:'保羅沒有去哥林多是因為不忍心讓他們憂愁——他寫信是出於愛'},
+        {nodes:'5-11節', text:'赦免犯罪的弟兄——懲罰已經夠了，現在要赦免安慰他，免得被撒但利用'},
+        {nodes:'12-13節', text:'保羅在特羅亞傳福音，但掛念提多，沒有心安'},
+        {nodes:'14-17節', text:'基督的香氣——在得救的人和滅亡的人身上有不同的作用'}
+      ],
+      focus:'今日情境題聚焦在5-11節——赦免的功課：懲罰之後，什麼時候該赦免？'
+    },
+    verse:'「倒不如赦免他，安慰他，免得他憂愁太過，甚至沉淪了。」',
+    verseRef:'—— 哥林多後書 2:7',
+    scene:'哥林多教會之前有人犯了嚴重的罪，教會按照保羅的指示進行了紀律處理。現在那個人悔改了，但教會的人還在排擠他。保羅說：夠了，現在是赦免和接納的時候了。如果繼續排擠，撒但會趁虛而入。',
+    q:'保羅說對悔改的人要「赦免他、安慰他」——你有沒有一段關係，對方已經道歉了，但你心裡還是過不去？',
+    choices:[
+      {k:'A',text:'有——我知道應該赦免，但「知道」和「做到」之間有一段很長的距離。'},
+      {k:'B',text:'有——我嘴上說原諒了，但每次想起那件事，情緒還是會回來。'},
+      {k:'C',text:'我反而是需要被赦免的那方——我做過傷害人的事，不確定對方是否真的原諒了我。'},
+      {k:'D',text:'老實說，我覺得有些事情不是「赦免」就能解決的，傷害太深了。'}
+    ],
+    responses:{
+      A:'「知道和做到之間的距離」——赦免不是一個瞬間的決定，往往是一個過程。今天，你願不願意走出一小步——不是忘記，而是決定不再用那件事來懲罰對方？',
+      B:'「情緒還是會回來」不代表你沒有原諒——記憶和赦免是兩件事。赦免是選擇不追討，不是選擇失憶。今天，下次那個情緒回來的時候，你願不願意對自己說：「我已經選擇赦免了，這個情緒會過去的」？',
+      C:'需要被赦免的感覺很沉重。保羅說教會應該「安慰他」——你也值得被安慰。今天，你願不願意主動問那個人：「你真的原諒我了嗎？」有時候，確認比猜測更能帶來平安。',
+      D:'有些傷害確實很深，保羅沒有否定這一點。但他提醒：不赦免，撒但會利用——不是利用對方，是利用你。今天，你願不願意把那份傷帶到神面前，說：「我還做不到赦免，但我不想被這份傷繼續綑綁」？'
+    },
+    reflectionTitle:'赦免的時候',
+    reflection:'保羅說「免得他憂愁太過，甚至沉淪了」——赦免不只是為了對方，也是為了群體的健康，更是為了你自己的自由。\n\n你心裡有沒有一個「還沒赦免」的重擔？今天，你願不願意把它放在神面前，讓祂幫你一步一步走向赦免？',
+    baseItem:{emoji:'🌸',name:'赦免的花',desc:'「倒不如赦免他，安慰他，免得他憂愁太過，甚至沉淪了。」',slot:'hand'},
+    bonusItem:{emoji:'🌿',name:'基督的香氣',desc:'「因為我們在神面前，無論在得救的人身上或滅亡的人身上，都有基督馨香之氣。」',slot:'hat'}
+  },
+
+  // ── 哥林多後書 3 ──
+  {
+    chapter:'COR2_3', sceneEmoji:'📝',
+    readTime:4,
+    guide:{
+      intro:'哥林多後書第3章，保羅用舊約和新約的對比來說明他的職事。摩西的臉在西奈山上發光，但那光會褪去。基督的約帶來的榮光是永不褪去的。保羅說：主的靈在哪裡，哪裡就得以自由。',
+      outline:[
+        {nodes:'1-6節', text:'你們就是我的推薦信——不是寫在石版上，而是寫在心版上；字句叫人死，精意叫人活'},
+        {nodes:'7-11節', text:'舊約的榮光會褪去，新約的榮光長存——那廢掉的尚且有榮光，長存的更有榮光'},
+        {nodes:'12-16節', text:'摩西蒙臉的帕子——以色列人心裡有帕子，但歸向主時帕子就除去'},
+        {nodes:'17-18節', text:'主的靈在哪裡，哪裡就得以自由——我們眾人敞著臉得以看見主的榮光，就變成主的形狀'}
+      ],
+      focus:'今日情境題聚焦在17-18節——「主的靈在哪裡，那裡就得以自由」。什麼是真正的自由？'
+    },
+    verse:'「主就是那靈；主的靈在哪裏，那裏就得以自由。」',
+    verseRef:'—— 哥林多後書 3:17',
+    scene:'保羅比較摩西的約和基督的約。摩西從西奈山下來，臉上發光，但他要用帕子蒙住臉，因為那光會褪去。保羅說：我們不需要帕子了。在基督裡，帕子已經除去，我們可以敞著臉面對神的榮光，而且我們自己也在慢慢變成那個形狀。',
+    q:'保羅說「主的靈在哪裏，那裏就得以自由」——你生命裡有沒有一個地方，你渴望自由但還沒有得到？',
+    choices:[
+      {k:'A',text:'有——有一個習慣或心態一直綑綁著我，我知道不對但掙脫不了。'},
+      {k:'B',text:'有——我常常活在別人的期待裡，很少有真正做自己的感覺。'},
+      {k:'C',text:'我不確定「自由」對我來說是什麼意思，我的信仰生活有時候感覺更像是規矩和義務。'},
+      {k:'D',text:'保羅說我們「變成主的形狀」——這讓我想到：自由不是隨心所欲，而是越來越像基督。'}
+    ],
+    responses:{
+      A:'綑綁的感覺很真實。保羅說的自由不是靠你自己掙脫，而是「主的靈」帶來的。今天，你願不願意把那個綑綁指名帶到神面前：「這件事我自己掙脫不了，我需要祢的靈」？',
+      B:'活在別人的期待裡，就像摩西蒙著帕子——遮住了真實的自己。保羅說帕子可以除去。今天，有沒有一個你一直戴著的「帕子」，你願不願意在神面前把它放下？',
+      C:'「信仰像規矩」——這正是保羅說的「字句叫人死」。規矩不是壞事，但它不是目的。今天，你願不願意問神：「祢要給我的自由是什麼樣子？」',
+      D:'「越來越像基督」——這是自由最深的定義。不是不受限制，而是活出本來被造的樣子。今天，你覺得自己在哪一方面正在「變成主的形狀」？那個改變，感謝神。'
+    },
+    reflectionTitle:'得以自由',
+    reflection:'保羅說「我們眾人既然敞著臉得以看見主的榮光，好像從鏡子裡返照，就變成主的形狀，榮上加榮，如同從主的靈變成的」——自由不是一個終點，而是一個過程。\n\n你生命裡有沒有一個「帕子」——一個遮住你看見神榮光的東西？今天，你願不願意讓主的靈幫你把它拿開？',
+    baseItem:{emoji:'📝',name:'心版上的信',desc:'「你們明顯是基督的信，藉着我們修成的。不是用墨寫的，乃是用永生神的靈寫的。」',slot:'hand'},
+    bonusItem:{emoji:'✨',name:'榮上加榮',desc:'「我們眾人既然敞着臉得以看見主的榮光，好像從鏡子裏返照，就變成主的形狀，榮上加榮，如同從主的靈變成的。」',slot:'bg'}
+  },
+
+  // ── 哥林多後書 4 ──
+  {
+    chapter:'COR2_4', sceneEmoji:'🏺',
+    readTime:4,
+    guide:{
+      intro:'哥林多後書第4章是保羅最有名的篇章之一。他說：我們有這寶貝放在瓦器裡——神的榮耀放在脆弱的人裡面。我們四面受敵卻不被困住，心裡作難卻不至失望。外體雖然毀壞，內心卻一天新似一天。',
+      outline:[
+        {nodes:'1-6節', text:'保羅的傳道方式——不用詭詐手段，而是把真理表明出來'},
+        {nodes:'7-12節', text:'瓦器裡的寶貝——四面受敵卻不被困住，打倒了卻不至死亡'},
+        {nodes:'13-15節', text:'信心使我們說話——知道復活的主也必叫我們復活'},
+        {nodes:'16-18節', text:'外體毀壞，內心更新——至暫至輕的苦楚，要為我們成就極重無比的榮耀'}
+      ],
+      focus:'今日情境題聚焦在7-10節——「瓦器裡的寶貝」：你的脆弱裡，有沒有看見神的能力？'
+    },
+    verse:'「我們有這寶貝放在瓦器裏，要顯明這莫大的能力是出於神，不是出於我們。」',
+    verseRef:'—— 哥林多後書 4:7',
+    scene:'保羅承認自己的脆弱——四面受敵、心裡作難、遭逼迫、被打倒。但他說：正是因為我們是瓦器（脆弱的、容易碎的），才能顯明寶貝的價值。如果容器是金的，人會注意容器；容器是瓦的，人才會注意裡面的寶貝。',
+    q:'保羅說「我們有這寶貝放在瓦器裏」——你生命裡有沒有一個脆弱的地方，後來反而讓別人看見了神？',
+    choices:[
+      {k:'A',text:'有——我曾經在最軟弱的時候，反而對別人說出最真實的話，那個真實比我堅強時更有力量。'},
+      {k:'B',text:'我不太確定。我覺得自己的脆弱就是脆弱，我不知道神怎麼用它。'},
+      {k:'C',text:'我更有感的是「外體毀壞，內心一天新似一天」——我現在正在經歷某種衰退，但內心確實有什麼在更新。'},
+      {k:'D',text:'老實說，我現在的感覺比較像「四面受敵」的那個階段，我還沒看見「不被困住」的那一面。'}
+    ],
+    responses:{
+      A:'最軟弱的時候說出最真實的話——這就是瓦器的力量。不是你變強了，是寶貝透出來了。今天，你願不願意繼續允許自己脆弱，讓神的能力在你的不足裡彰顯？',
+      B:'「脆弱就是脆弱」——這是最誠實的感受。但保羅說的重點不是脆弱會變成力量，而是寶貝已經在瓦器裡面了。今天，你願不願意對神說：「我很脆弱，但祢的寶貝在我裡面」？',
+      C:'「外體毀壞，內心更新」——你正在經歷的就是保羅說的。那個更新不是你的努力，而是神在做的。今天，那個正在更新的部分，你能描述它是什麼嗎？把它說出來就是一種感恩。',
+      D:'「四面受敵」是真實的狀態。保羅沒有說「不會受敵」，他說「卻不被困住」。今天，你願不願意在那個受困的感覺裡禱告：「神，我被圍住了，但請祢不要讓我被困住」？'
+    },
+    reflectionTitle:'瓦器裡的寶貝',
+    reflection:'「至暫至輕的苦楚，要為我們成就極重無比、永遠的榮耀。」——保羅不是否定苦楚的真實，而是把它放在更大的框架裡看。\n\n你現在正在經歷的苦楚，你能把它放在「永恆的榮耀」這個框架裡看嗎？今天，你願不願意嘗試一次：不是忽略苦楚，而是讓它被更大的盼望包圍？',
+    baseItem:{emoji:'🏺',name:'瓦器的寶貝',desc:'「我們有這寶貝放在瓦器裏，要顯明這莫大的能力是出於神，不是出於我們。」',slot:'hand'},
+    bonusItem:{emoji:'🌅',name:'永恆的榮耀',desc:'「我們這至暫至輕的苦楚，要為我們成就極重無比、永遠的榮耀。」',slot:'bg'}
+  },
+
+  // ── 哥林多後書 5 ──
+  {
+    chapter:'COR2_5', sceneEmoji:'🦋',
+    readTime:5,
+    guide:{
+      intro:'哥林多後書第5章包含兩個最著名的宣告：「若有人在基督裏，他就是新造的人」和「與神和好的職分」。保羅說我們現在是行事為人憑著信心，不是憑著眼見。然後他說：神把和好的使命交給了我們。',
+      outline:[
+        {nodes:'1-5節', text:'地上的帳棚若拆毀了，必得神在天上永存的房屋——等候被穿上'},
+        {nodes:'6-10節', text:'行事為人是憑著信心，不是憑著眼見——我們立志要得主的喜悅'},
+        {nodes:'11-15節', text:'基督的愛激勵我們——一人替眾人死，眾人就都死了；活著不再為自己活'},
+        {nodes:'16-21節', text:'新造的人——若有人在基督裏就是新造的人，舊事已過都變成新的了；和好的職分'}
+      ],
+      focus:'今日情境題聚焦在17節——「若有人在基督裏，他就是新造的人」。你生命裡有沒有真實感受到「新造」的經歷？'
+    },
+    verse:'「若有人在基督裏，他就是新造的人，舊事已過，都變成新的了。」',
+    verseRef:'—— 哥林多後書 5:17',
+    scene:'保羅用「新造的人」來描述信主後的生命——不是修補，是重造。舊事已過，都變成新的了。然後他說：這個新造不是為了自己，而是為了和好的使命——神透過我們，把和好的信息帶給世界。',
+    q:'「若有人在基督裏，他就是新造的人，舊事已過，都變成新的了」——這句話對你來說，是已經經歷的真實，還是還在等待的盼望？',
+    choices:[
+      {k:'A',text:'我確實感受過「新造」——信主前後的我有明顯的不同，雖然不完美，但方向變了。'},
+      {k:'B',text:'「舊事已過」對我來說很掙扎——有些舊事還是會回來纏繞我，我不確定它們真的「過了」。'},
+      {k:'C',text:'我覺得「新造」是一個持續的過程，不是一次性的事件。我每天都在被更新，但也每天都在掙扎。'},
+      {k:'D',text:'老實說，我羨慕那些有明顯「前後對比」的見證，我的改變比較安靜、不戲劇化。'}
+    ],
+    responses:{
+      A:'方向變了——這可能是「新造」最真實的描述。不是變完美了，而是面對的方向不同了。今天，你願不願意回想一下：你的方向是在什麼時候轉的？那個轉彎是神做的。',
+      B:'「舊事會回來」不代表你不是新造的——它代表你還活在舊世界裡。保羅說「舊事已過」是身份的宣告，不是感覺的描述。今天，下次舊事回來的時候，你願不願意對自己說：「我是新造的人，這不是我的身份了」？',
+      C:'「持續的過程」——這其實是最合乎聖經的理解。新造是一個起點，更新是每天的旅程。今天，你生命裡最近被更新的一個地方是什麼？看見它，就是感恩。',
+      D:'安靜的改變不代表不真實——水滴穿石比爆炸更持久。不是每個人的見證都要很戲劇化。今天，你願不願意把你「安靜的改變」說出來？它可能比你以為的更有力量。'
+    },
+    reflectionTitle:'新造的人',
+    reflection:'「若有人在基督裏，他就是新造的人，舊事已過，都變成新的了。」——這不是說你不會再犯錯，而是說你的身份已經不同了。你不再是「努力變好的舊人」，而是「正在成長的新人」。\n\n你今天願不願意用「新造的人」這個身份來看自己？有什麼事情，是「舊的你」會做但「新的你」可以選擇不做的？',
+    baseItem:{emoji:'🦋',name:'新造的翅膀',desc:'「若有人在基督裏，他就是新造的人，舊事已過，都變成新的了。」',slot:'bg'},
+    bonusItem:{emoji:'🤝',name:'和好的使者',desc:'「一切都是出於神；他藉着基督使我們與他和好，又將勸人與他和好的職分賜給我們。」',slot:'hand'}
+  },
+
+  // ── 哥林多後書 6 ──
+  {
+    chapter:'COR2_6', sceneEmoji:'🫂',
+    readTime:5,
+    guide:{
+      intro:'哥林多後書6章是保羅情感最直接外露的一章。前半段他列出新約執事的真實處境——榮耀與羞辱、貧窮卻叫人富足、一無所有卻樣樣都有。然後他突然停下來，對哥林多人說了一句近乎呼喊的話：「我們向你們，口是張開的，心是寬宏的。」這不是教義，是一個父親在拜託他的孩子們把心打開。',
+      outline:[
+        {nodes:'1-2節', text:'與神同工的勸勉——現在正是悅納的時候，現在正是拯救的日子'},
+        {nodes:'3-10節', text:'保羅事工的真實處境——患難、鞭打、監禁中仍歡喜，貧窮卻叫許多人富足'},
+        {nodes:'11-13節', text:'保羅的真情告白——「我們向你們，口是張開的，心是寬宏的」 ✦'},
+        {nodes:'14-16節', text:'不要與不信的同負一軛——我們是永生神的殿'},
+        {nodes:'17-18節', text:'神的應許——你們從他們中間出來，我就作你們的父，你們作我的兒女'}
+      ],
+      focus:'今日情境題聚焦在11-13節——保羅說「你們狹窄，原不在乎我們，是在乎自己的心腸狹窄」。是什麼讓我們的心慢慢變窄了？'
+    },
+    verse:'「哥林多人哪，我們向你們，口是張開的，心是寬宏的。你們狹窄，原不在乎我們，是在乎自己的心腸狹窄。」',
+    verseRef:'—— 哥林多後書 6:11-12',
+    scene:'保羅剛剛述說完自己事工中所經歷的鞭打、患難、貧窮——然後他停下來，對哥林多人說了一句真情的話：「我的心是寬宏的，不是我向你們關上了什麼，是你們自己把心關上了。」這像是一個父親拜託孩子：請你也把心打開一點。',
+    q:'保羅說哥林多人「狹窄，是在乎自己的心腸狹窄」——你有沒有感覺自己的心，比以前更窄了一點？',
+    choices:[
+      {k:'A',text:'有——某些人或某些事讓我受過傷，現在我很難像以前那樣輕易打開心。'},
+      {k:'B',text:'有——我以為自己只是「變成熟」，但有時候會懷疑，那其實是變冷了。'},
+      {k:'C',text:'老實說，我覺得「心寬宏」很危險，這個世界讓我越來越不敢敞開。'},
+      {k:'D',text:'我反而是被別人說「心太寬」的那個——我不確定那是優點還是缺點。'}
+    ],
+    responses:{
+      A:'受傷之後心會收窄，這是身體的自我保護，不是你的錯。保羅自己被打、被監禁、被誤解，他有一千個理由把心關上——但他沒有。也許不用一次就重新打開所有的門，但今天你願不願意問自己：「有沒有一個人，我可以先把那一道小門打開一點點？」',
+      B:'「以為是成熟，其實是變冷」——這個誠實很珍貴，很多人一輩子分不清楚這兩件事。成熟是看清現實之後仍然選擇去愛，冷漠是看清現實之後決定不再去愛。你願意這樣問自己嗎：「我最近一次真的被一個人感動，是什麼時候？」',
+      C:'你說的「危險」是真實的——敞開的心確實會受傷，這不是想像。但保羅在這一章告訴我們，他的「寬宏」不是因為世界對他溫柔，他的處境比我們大多數人都艱難。寬宏不是天真，是一個選擇。今天，你不需要對全世界寬宏，但有沒有一個你信任的人，是你願意稍微鬆開那道防備的？',
+      D:'「被說心太寬」——這背後可能有一個沒被看見的代價。心寬宏的人，往往是那些把痛吞下去的人。今天，這句話也許是給你的：「你願不願意對自己也寬宏一點？」'
+    },
+    reflectionTitle:'心的寬窄',
+    reflection:'保羅說：「你們狹窄，原不在乎我們，是在乎自己的心腸狹窄。」心會在不知不覺中收窄——通常不是因為一件大事，而是一連串小小的失望、誤解、自我保護。\n\n回想一下，你的心是從什麼時候開始變窄的？那個讓你決定「以後不要這麼容易相信人」的時刻，是什麼樣的？如果今天可以對那時候的自己說一句話，你會說什麼？',
+    baseItem:{emoji:'💗',name:'寬宏的心',desc:'「哥林多人哪，我們向你們，口是張開的，心是寬宏的。」',slot:'body'},
+    bonusItem:{emoji:'👨‍👧',name:'父的應許',desc:'「我要作你們的父；你們要作我的兒女。這是全能的主說的。」',slot:'bg'}
+  },
+
+  // ── 哥林多後書 7 ──
+  {
+    chapter:'COR2_7', sceneEmoji:'😢',
+    readTime:3,
+    guide:{
+      intro:'哥林多後書第7章，保羅終於見到提多，聽到好消息：哥林多教會讀了他的信之後悔改了。保羅高興得不得了。他區分了兩種憂愁：依著神的意思憂愁（生出悔改和救恩），和世俗的憂愁（只生出死亡）。',
+      outline:[
+        {nodes:'1-4節', text:'保羅的勸勉——潔淨自己的心靈和肉體，在敬畏神之中成為聖潔'},
+        {nodes:'5-7節', text:'在馬其頓見到提多——神安慰喪氣的人，提多帶來好消息'},
+        {nodes:'8-12節', text:'兩種憂愁——依著神的意思憂愁生出悔改來，世俗的憂愁生出死來'},
+        {nodes:'13-16節', text:'保羅為哥林多教會歡喜——提多的心因他們而安慰'}
+      ],
+      focus:'今日情境題聚焦在8-11節——兩種憂愁的區別：你的憂愁帶你往哪裡走？'
+    },
+    verse:'「因為依着神的意思憂愁，就生出沒有後悔的懊悔來，以致得救；但世俗的憂愁是叫人死。」',
+    verseRef:'—— 哥林多後書 7:10',
+    scene:'保羅之前寫了一封很嚴厲的信給哥林多教會，寫完之後他很後悔——怕傷了他們。但提多帶回來的消息是：他們讀了信之後真的悔改了。保羅說：有一種憂愁是好的，它會帶你走向悔改和生命；另一種憂愁只會讓你越陷越深。',
+    q:'保羅說有兩種憂愁——一種帶來悔改，一種帶來死亡。你最近經歷的憂愁，帶你往哪個方向走？',
+    choices:[
+      {k:'A',text:'我最近的憂愁讓我看見了需要改變的地方——它是一個提醒，不是終點。'},
+      {k:'B',text:'老實說，我最近的憂愁比較像世俗的那種——它讓我越來越沮喪，沒有方向。'},
+      {k:'C',text:'我分不太清楚自己的憂愁是哪一種。有時候覺得有出路，有時候覺得沒有。'},
+      {k:'D',text:'我最近沒有特別憂愁，但這個區分讓我為將來做準備——下次憂愁來的時候，我想分辨它是哪一種。'}
+    ],
+    responses:{
+      A:'憂愁成了提醒——這是「依著神的意思」的標記。它不讓你停在那裡，而是推你往前走。今天，那個需要改變的地方，你的第一步是什麼？',
+      B:'「越來越沮喪，沒有方向」——這是世俗憂愁的特徵。它會告訴你「沒有用了」，但那是謊言。今天，你願不願意找一個人說出你的狀態，讓光照進那個角落？',
+      C:'分不清楚是正常的——有時候兩種憂愁會混在一起。一個簡單的辨別方式：你的憂愁有沒有帶你靠近神，還是離開神？今天，你願不願意帶著這個憂愁禱告，問神：「這個憂愁要帶我去哪裡？」',
+      D:'提前做準備很有智慧。保羅的區分可以成為你的工具——下次憂愁來的時候問自己：「這個憂愁讓我想改變，還是讓我想放棄？」把這個問題記住。'
+    },
+    reflectionTitle:'兩種憂愁',
+    reflection:'保羅說依著神的意思憂愁「生出沒有後悔的懊悔」——意思是：那個憂愁帶來的改變，你不會後悔。它是痛的，但它是好的。\n\n你最近有沒有一個「痛但是好的」的經歷？那個經歷帶你改變了什麼？今天，你願不願意感謝神：那份痛是有目的的？',
+    baseItem:{emoji:'😢',name:'悔改的淚',desc:'「因為依着神的意思憂愁，就生出沒有後悔的懊悔來，以致得救。」',slot:'hand'},
+    bonusItem:{emoji:'😊',name:'安慰的喜樂',desc:'「但那安慰喪氣之人的神藉着提多來安慰了我們。」',slot:'hat'}
+  },
+
+  // ── 哥林多後書 8 ──
+  {
+    chapter:'COR2_8', sceneEmoji:'💰',
+    readTime:4,
+    guide:{
+      intro:'哥林多後書8-9章是保羅談奉獻最完整的段落。他用馬其頓教會的榜樣——他們在極窮之間仍然慷慨——來鼓勵哥林多教會。核心不是金額，而是心態：基督本來富足，卻為你們成了貧窮。',
+      outline:[
+        {nodes:'1-7節', text:'馬其頓教會的榜樣——在患難中有滿足的快樂，在極窮之間格外顯出樂捐的厚恩'},
+        {nodes:'8-9節', text:'基督的榜樣——他本來富足，卻為你們成了貧窮，叫你們因他的貧窮可以成為富足'},
+        {nodes:'10-15節', text:'奉獻的原則——按力量，不是勉強；按所有的，不是按所沒有的'},
+        {nodes:'16-24節', text:'保羅派提多和弟兄去收捐獻——光明正大，在神和人面前都是好的'}
+      ],
+      focus:'今日情境題聚焦在8-9節——基督的榜樣和奉獻的動機：你的給予是出於什麼？'
+    },
+    verse:'「你們知道我們主耶穌基督的恩典：他本來富足，卻為你們成了貧窮，叫你們因他的貧窮，可以成為富足。」',
+    verseRef:'—— 哥林多後書 8:9',
+    scene:'保羅告訴哥林多人一個讓他驚嘆的故事：馬其頓的教會非常窮，但他們捐獻的慷慨超出了保羅的預期。他們不是因為有多餘才給，而是因為愛所以給。然後保羅說：看看基督的榜樣——他放棄了一切來給你。',
+    q:'保羅說基督「本來富足，卻為你們成了貧窮」——在你的生活中，你有沒有為了別人放棄過什麼？那個經驗是什麼感覺？',
+    choices:[
+      {k:'A',text:'有——我為了家人或朋友放棄過一些東西，雖然不容易，但我覺得值得。'},
+      {k:'B',text:'老實說，我在「給」這件事上比較保守，我常常擔心自己給了之後不夠用。'},
+      {k:'C',text:'我覺得奉獻不只是金錢，也是時間和精力——我比較常給的是後面這些。'},
+      {k:'D',text:'這節話讓我重新想「富足」的定義——也許真正的富足不是擁有多少，而是願意給多少。'}
+    ],
+    responses:{
+      A:'「覺得值得」——這就是保羅說的甘心。不是因為義務，而是因為愛。今天，有沒有一個機會，你可以再為某個人「給」一次——不一定是錢，可能是時間、陪伴、或一句鼓勵？',
+      B:'「擔心不夠用」是很真實的考量。保羅說的不是「把自己掏空」，而是「按力量」。今天，有沒有一件你其實給得起、但一直沒給的東西？那個東西可能比你以為的小。',
+      C:'時間和精力往往比金錢更珍貴——因為它們是不可再生的。今天，你願不願意問自己：「我把最好的時間和精力給了誰？」那個答案會告訴你什麼最重要。',
+      D:'「願意給多少」——這個定義很接近保羅的意思。基督的富足不是他擁有的，而是他願意給的。今天，你願不願意問神：「祢要我給出什麼？」'
+    },
+    reflectionTitle:'成了貧窮',
+    reflection:'「他本來富足，卻為你們成了貧窮」——這不是一個關於錢的教導，而是一個關於愛的示範。基督給的方式，是放下自己。\n\n你今天可以怎樣「成為貧窮」一點——不是自虐，而是為了讓別人因為你的給予而富足？那個人是誰？那件事是什麼？',
+    baseItem:{emoji:'💰',name:'慷慨的心',desc:'「你們知道我們主耶穌基督的恩典：他本來富足，卻為你們成了貧窮，叫你們因他的貧窮，可以成為富足。」',slot:'hand'},
+    bonusItem:{emoji:'🎁',name:'樂捐的恩',desc:'「因為他們是按着力量，而且也過了力量，自己甘心樂意地捐助。」',slot:'hat'}
+  },
+
+  // ── 哥林多後書 9 ──
+  {
+    chapter:'COR2_9', sceneEmoji:'🌾',
+    readTime:3,
+    guide:{
+      intro:'哥林多後書第9章延續奉獻的主題。保羅用農業的比喻：少種的少收，多種的多收。然後說出那句最著名的奉獻經文：「各人要隨本心所酌定的，不要作難，不要勉強，因為捐得樂意的人是神所喜愛的。」',
+      outline:[
+        {nodes:'1-5節', text:'保羅提醒哥林多人預備好捐獻——不要到時候才手忙腳亂'},
+        {nodes:'6-9節', text:'少種少收，多種多收——捐得樂意的人是神所喜愛的；神能多多加恩'},
+        {nodes:'10-11節', text:'神會供應你所需——叫你們凡事常常充足，能多行各樣善事'},
+        {nodes:'12-15節', text:'這供給的事不但補聖徒的缺乏，也叫許多人感謝神——感謝神，他有說不盡的恩賜'}
+      ],
+      focus:'今日情境題聚焦在6-8節——「捐得樂意的人」：你的給予是出於樂意，還是出於壓力？'
+    },
+    verse:'「各人要隨本心所酌定的，不要作難，不要勉強，因為捐得樂意的人是神所喜愛的。」',
+    verseRef:'—— 哥林多後書 9:7',
+    scene:'保羅說奉獻有一個簡單的原則：不勉強。不是「你應該給多少」，而是「你心裡酌定多少就給多少」。神不是看金額，是看心態。然後他說：你不用怕給了之後不夠——因為神能多多加恩給你們。',
+    q:'「不要作難，不要勉強，因為捐得樂意的人是神所喜愛的」——你在「給」的時候，通常是樂意的，還是有壓力的？',
+    choices:[
+      {k:'A',text:'我給的時候通常是樂意的，但偶爾會在給了之後有點心疼。'},
+      {k:'B',text:'老實說，我在教會裡的奉獻有時候是出於壓力或習慣，不太確定是不是「樂意」。'},
+      {k:'C',text:'我覺得「樂意」是可以培養的——一開始不樂意，但做了之後慢慢感受到喜樂。'},
+      {k:'D',text:'這段話讓我鬆了一口氣——原來神不是要我給到痛，而是要我給得開心。'}
+    ],
+    responses:{
+      A:'「給了之後心疼」很真實——那個心疼有時候是捨不得，有時候是信心還在成長。今天，下次那個心疼出現的時候，你願不願意跟神說：「我給了，但我有點不確定，請祢堅固我的信心」？',
+      B:'「出於壓力」的給不是神要的——保羅說得很清楚。今天，你願不願意重新問自己：「如果沒有任何壓力，我想給多少？」那個數字可能比你以為的更真實。',
+      C:'「樂意是可以培養的」——這是一個很成熟的觀察。有時候行動走在感覺前面。今天，有沒有一件你本來不太想做的善事，你願不願意先做了再看看心裡的感覺？',
+      D:'「給得開心」——是的，神不需要你的犧牲感，祂要的是你的心。今天，有沒有一個你可以「開心地給」的機會？找到它，享受那個給予。'
+    },
+    reflectionTitle:'樂意的給予',
+    reflection:'保羅說「神能將各樣的恩惠多多地加給你們，使你們凡事常常充足，能多行各樣善事」——給不會讓你變窮，因為神會補足。\n\n你最近有沒有一個「樂意的給予」經驗？那個經驗讓你學到什麼？今天，你可以怎樣再經歷一次那種喜樂？',
+    baseItem:{emoji:'🌾',name:'多種的種子',desc:'「少種的少收，多種的多收。」',slot:'hand'},
+    bonusItem:{emoji:'🎉',name:'說不盡的恩賜',desc:'「感謝神，因他有說不盡的恩賜！」',slot:'hat'}
+  },
+
+  // ── 哥林多後書 10 ──
+  {
+    chapter:'COR2_10', sceneEmoji:'⚔️',
+    readTime:4,
+    guide:{
+      intro:'從第10章開始，保羅的語氣明顯變了——變得嚴厲。有人批評他「見面時軟弱，寫信時大膽」。保羅回應：我們爭戰的兵器不是屬世的，而是在神面前有能力，可以攻破堅固的營壘。',
+      outline:[
+        {nodes:'1-6節', text:'保羅的爭戰——兵器不是屬血氣的，乃是在神面前有能力，攻破堅固的營壘'},
+        {nodes:'7-11節', text:'保羅的權柄——不是為了拆毀，而是為了建立；寫信時大膽，見面時也大膽'},
+        {nodes:'12-18節', text:'不要自我推薦——不以別人的功勞誇口，得主稱許的才是蒙悅納的'}
+      ],
+      focus:'今日情境題聚焦在3-5節——「攻破堅固的營壘」：你心裡有沒有一個「營壘」需要被攻破？'
+    },
+    verse:'「我們爭戰的兵器本不是屬血氣的，乃是在神面前有能力，可以攻破堅固的營壘。」',
+    verseRef:'—— 哥林多後書 10:4',
+    scene:'有人在哥林多教會散布對保羅的批評：他寫信時很兇，但見了面就軟弱。保羅說：你們不要誤會我的溫柔。我們爭戰用的不是屬世的方法——不是辯論、不是權力——而是在神面前有能力的兵器，可以攻破那些攔阻人認識神的堅固營壘。',
+    q:'保羅說要「攻破堅固的營壘」——「營壘」是那些深根在心裡、攔阻你認識神的想法或模式。你心裡有沒有一個這樣的營壘？',
+    choices:[
+      {k:'A',text:'有——我心裡有一個根深蒂固的想法：「我不夠好，神不會真的接納我。」'},
+      {k:'B',text:'有——我對某些事情有很強的控制慾，很難把主權交給神。'},
+      {k:'C',text:'有——我對人有不信任感，這影響了我跟神的關係，因為我也很難信任神。'},
+      {k:'D',text:'老實說，我不太確定自己有什麼營壘。但也許看不見的才是最堅固的。'}
+    ],
+    responses:{
+      A:'「我不夠好」是最常見的營壘之一——它用你的失敗來定義你的價值。保羅說這個營壘可以被攻破。今天，你願不願意對那個聲音說：「你不是真的。神說我是重價買來的」？',
+      B:'控制慾的背後通常是恐懼——怕失控就怕失去。把主權交給神不是放棄控制，而是把控制交給更可靠的那一位。今天，有沒有一件你一直抓著不放的事，你願不願意試著鬆手？',
+      C:'不信任的營壘往往來自過去被傷害的經歷。它很堅固，因為它曾經保護過你。但保羅說神的兵器可以攻破它。今天，你願不願意對神說：「我想信任祢，但我很怕。請祢耐心地帶我」？',
+      D:'「看不見的才最堅固」——這個自覺本身就是營壘開始鬆動的跡象。今天，你願不願意問神：「我心裡有沒有一個我看不見的營壘？請祢指給我看」？'
+    },
+    reflectionTitle:'堅固的營壘',
+    reflection:'保羅說要「將各樣的計謀，各樣攔阻人認識神的那些自高之事，一概攻破了，又將人所有的心意奪回，使他都順服基督」——營壘不只是壞習慣，更是那些根深蒂固的想法和信念。\n\n你心裡最堅固的那個營壘是什麼？今天，你願不願意讓神的兵器對準它？',
+    baseItem:{emoji:'⚔️',name:'屬靈的兵器',desc:'「我們爭戰的兵器本不是屬血氣的，乃是在神面前有能力，可以攻破堅固的營壘。」',slot:'hand'},
+    bonusItem:{emoji:'🏰',name:'攻破的營壘',desc:'「將各樣的計謀，各樣攔阻人認識神的那些自高之事，一概攻破了。」',slot:'bg'}
+  },
+
+  // ── 哥林多後書 11 ──
+  {
+    chapter:'COR2_11', sceneEmoji:'💪',
+    readTime:5,
+    guide:{
+      intro:'哥林多後書11章，保羅被迫為自己辯護。有「超級使徒」在哥林多教會自我推銷，保羅用反諷的方式說：你們要聽誇口嗎？好，那我就誇我的軟弱。然後他列出一長串他受過的苦。',
+      outline:[
+        {nodes:'1-6節', text:'保羅的「愚妄話」——他怕哥林多人被假使徒引誘偏離純一的心'},
+        {nodes:'7-15節', text:'保羅不接受哥林多的供養——那些假使徒裝作光明的天使'},
+        {nodes:'16-21節', text:'保羅的反諷——你們容忍人強取、侮慢、打你們的臉'},
+        {nodes:'22-33節', text:'保羅的受苦清單——被打、被囚、遇船難、在各樣危險中，還有為眾教會掛心'}
+      ],
+      focus:'今日情境題聚焦在22-30節——保羅誇的不是成就，而是苦難。這翻轉了「成功」的定義。'
+    },
+    verse:'「我若必須自誇，就誇那關乎我軟弱的事便了。」',
+    verseRef:'—— 哥林多後書 11:30',
+    scene:'保羅被那些「超級使徒」挑戰——他們比較學歷、比較口才、比較成就。保羅說：好吧，要比就比。我被打過五次四十減一下、被棍打過三次、被石頭打過一次、遇過三次船難、在海裡漂過一晝一夜。你們要跟我比嗎？',
+    q:'保羅說「我若必須自誇，就誇那關乎我軟弱的事」——在你的生命中，有沒有一個你的「軟弱」反而成了你最真實的見證？',
+    choices:[
+      {k:'A',text:'有——我在最軟弱的時候，反而經歷了神最真實的同在和幫助。'},
+      {k:'B',text:'我不太習慣談自己的軟弱，我怕被人看不起或失去信任。'},
+      {k:'C',text:'「誇軟弱」這個概念對我來說很新——我一直以為信仰是要越來越強大。'},
+      {k:'D',text:'老實說，我覺得保羅說的軟弱跟我的不一樣——他的是為了福音受苦，我的是個人的問題。'}
+    ],
+    responses:{
+      A:'在軟弱裡經歷神——這正是保羅要說的。神的能力不需要你的強大才能運作，反而在你最弱的時候最清晰。今天，你願不願意把這個見證跟一個正在軟弱的人分享？',
+      B:'「怕被看不起」——這是為什麼保羅的做法如此反文化。世界說：展示你的強。保羅說：展示你的弱，讓神的強被看見。今天，有沒有一個安全的人，你願意讓他看見你不堅強的一面？',
+      C:'「越來越強大」是世界的邏輯，不是福音的邏輯。福音說：你越承認自己的軟弱，神的能力越能在你身上彰顯。今天，你願不願意把「我要更強」改成「我需要祢」？',
+      D:'保羅的軟弱和你的軟弱，在神眼裡都是一樣的——都是「人做不到」的地方。不需要比較誰的軟弱比較屬靈。今天，你願不願意把你「個人的問題」帶到神面前，讓祂在那裡工作？'
+    },
+    reflectionTitle:'誇軟弱',
+    reflection:'保羅說「我若必須自誇，就誇那關乎我軟弱的事」——世界說強者才值得被聽見，保羅說軟弱的人才讓神的能力被看見。\n\n你生命裡最不想讓人知道的軟弱是什麼？如果那個軟弱成為神彰顯能力的地方，你會怎麼看待它？',
+    baseItem:{emoji:'💪',name:'軟弱的力量',desc:'「有誰軟弱，我不軟弱呢？有誰跌倒，我不焦急呢？」',slot:'hand'},
+    bonusItem:{emoji:'🩹',name:'苦難的印記',desc:'「我比他們多受勞苦，多下監牢，受鞭打是過重的，冒死是屢次有的。」',slot:'body'}
+  },
+
+  // ── 哥林多後書 12 ──
+  {
+    chapter:'COR2_12', sceneEmoji:'🌹',
+    readTime:4,
+    guide:{
+      intro:'哥林多後書12章包含保羅最私密的啟示——他被提到第三層天的經歷。但緊接著，他談到了一根「刺」加在他的肉體上。他三次求主拿走它，主說：我的恩典夠你用的。',
+      outline:[
+        {nodes:'1-6節', text:'保羅被提到第三層天——聽到隱祕的言語，是人不可說的'},
+        {nodes:'7-10節', text:'肉體上的刺——三次求主拿走，主說：我的恩典夠你用的，我的能力在人的軟弱上顯得完全'},
+        {nodes:'11-13節', text:'保羅的使徒印記——在你們中間行了百般的忍耐，用神蹟奇事異能證明'},
+        {nodes:'14-21節', text:'保羅第三次要去哥林多——不是求你們的財物，乃是求你們的心'}
+      ],
+      focus:'今日情境題聚焦在7-10節——「我的恩典夠你用的」：你有沒有一根「刺」，求神拿走但祂沒有？'
+    },
+    verse:'「他對我說：「我的恩典夠你用的，因為我的能力是在人的軟弱上顯得完全。」所以，我更喜歡誇自己的軟弱，好叫基督的能力覆庇我。」',
+    verseRef:'—— 哥林多後書 12:9',
+    scene:'保羅有過最高的屬靈經歷——被提到第三層天。但神為了讓他不驕傲，給了他一根「刺」。保羅三次求主拿走它。主的回答不是「好，拿走了」，而是「我的恩典夠你用的」。那根刺沒有消失，但恩典在那裡。',
+    q:'保羅三次求主拿走那根刺，主說「我的恩典夠你用的」——你有沒有一件事，你反覆求神改變，但祂到現在都沒有？',
+    choices:[
+      {k:'A',text:'有——有一個處境我禱告了很久，但一直沒有改變。我開始懷疑神有沒有在聽。'},
+      {k:'B',text:'有——我慢慢接受那件事可能不會改變，但我在學習在那裡面找到恩典。'},
+      {k:'C',text:'我覺得「我的恩典夠你用」是最難接受也最美的回答——它不拿走問題，但它給你撐下去的力量。'},
+      {k:'D',text:'老實說，我現在更需要的不是「恩典夠用」，而是「那根刺拿走」。我知道這不太屬靈，但這是我的真實。'}
+    ],
+    responses:{
+      A:'「懷疑神有沒有在聽」——保羅也求了三次，第三次才得到回答。神的沉默不是拒絕，有時候是在等你準備好聽一個不同的答案。今天，你願不願意問神：「祢的答案是什麼，即使它不是我想要的？」',
+      B:'「在裡面找到恩典」——這是保羅最終走到的地方。刺還在，但恩典也在。今天，那個恩典的樣子是什麼？你能把它描述出來嗎？說出來就是在見證神的信實。',
+      C:'「最難接受也最美」——你說的正是福音的矛盾。十字架也是最醜也最美的東西。今天，你生命裡有沒有一個「難但美」的地方？你願不願意在那裡停留一下，感受神的同在？',
+      D:'「我想要拿走」——這份真實比假裝屬靈好一百倍。保羅也是想拿走的，他不是第一次就說「恩典夠了」。今天，你願不願意繼續求，同時也說：「但如果答案不同，請給我接受的力量」？'
+    },
+    reflectionTitle:'恩典夠用',
+    reflection:'「我的恩典夠你用的」——這是整本聖經最安慰的句子之一。它不承諾問題會消失，但它承諾：無論發生什麼，恩典都在。\n\n你生命裡的那根「刺」是什麼？今天，你願不願意在那根刺旁邊，也看見恩典？就對神說：「我不喜歡這根刺，但謝謝祢的恩典一直在」。',
+    baseItem:{emoji:'🌹',name:'刺中的恩典',desc:'「他對我說：「我的恩典夠你用的，因為我的能力是在人的軟弱上顯得完全。」」',slot:'hand'},
+    bonusItem:{emoji:'☁️',name:'第三層天',desc:'「我認得一個在基督裏的人，他前十四年被提到第三層天上去。」',slot:'bg'}
+  },
+
+  // ── 哥林多後書 13 ──
+  {
+    chapter:'COR2_13', sceneEmoji:'🙏',
+    readTime:2,
+    guide:{
+      intro:'哥林多後書的最後一章——保羅最後的警告和祝福。他要求他們自我省察：「你們總要自己省察有信心沒有，也要自己試驗。」然後以三一神的祝福結束這封最私密的書信。',
+      outline:[
+        {nodes:'1-4節', text:'保羅的警告——我第三次到你們那裡去，要憑兩三個見證人的口定準'},
+        {nodes:'5-6節', text:'自我省察——你們總要自己省察有信心沒有，也要自己試驗'},
+        {nodes:'7-10節', text:'保羅的心意——不是要顯出自己有權柄，而是要你們行善'},
+        {nodes:'11-14節', text:'最後的勸勉和祝福——要喜樂、要完全、要安慰、要同心、要和睦；願主耶穌基督的恩惠、神的慈愛、聖靈的感動，常與你們眾人同在'}
+      ],
+      focus:'今日情境題聚焦在5節和14節——省察與祝福：你的信仰現在是什麼狀態？'
+    },
+    verse:'「願主耶穌基督的恩惠、神的慈愛、聖靈的感動，常與你們眾人同在！」',
+    verseRef:'—— 哥林多後書 13:14',
+    scene:'保羅寫完了這封最私密的信——談了安慰、赦免、自由、瓦器、新造、奉獻、軟弱、恩典。最後，他留下了基督教最常使用的祝福語：「願主耶穌基督的恩惠、神的慈愛、聖靈的感動，常與你們眾人同在。」',
+    q:'保羅在信的結尾說「你們總要自己省察有信心沒有」——如果現在做一個信仰健康檢查，你會給自己什麼評語？',
+    choices:[
+      {k:'A',text:'我覺得我的信仰是活的，但有時候會疲倦，需要休息和充電。'},
+      {k:'B',text:'老實說，我的信仰最近比較像在「維持」，沒有什麼成長的感覺。'},
+      {k:'C',text:'我正在經歷一個信仰上的掙扎期，但我覺得掙扎本身也是信仰的一部分。'},
+      {k:'D',text:'保羅最後的祝福讓我很感動——恩惠、慈愛、感動，這三個我現在最需要的是哪一個？'}
+    ],
+    responses:{
+      A:'「活的但疲倦」——這是最真實的信仰狀態。你不需要永遠充滿能量。今天，你願不願意允許自己休息，然後對神說：「我累了，但我還在這裡」？',
+      B:'「在維持」——有時候維持本身就是信心的表現。在看不見成長的季節裡還在走，這不是停滯，是忍耐。今天，你願不願意問神：「祢在我看不見的地方，有沒有在做什麼？」',
+      C:'「掙扎也是信仰的一部分」——完全正確。不掙扎的信仰是還沒被考驗的信仰。今天，你願不願意把那個掙扎具體說出來，讓它從「模糊的不安」變成「可以禱告的題目」？',
+      D:'恩惠、慈愛、感動——三位一體的祝福。今天，你最需要哪一個？恩惠（基督的禮物）、慈愛（父神的擁抱）、還是感動（聖靈的觸摸）？找到那個，讓它成為你今天的禱告。'
+    },
+    reflectionTitle:'常與你同在',
+    reflection:'「願主耶穌基督的恩惠、神的慈愛、聖靈的感動，常與你們眾人同在！」——這是保羅能給的最好的祝福。不是「願你成功」，不是「願你健康」，而是「願三一神與你同在」。\n\n今天，你願不願意接受這個祝福？就安靜一下，讓這句話停在心裡：恩惠、慈愛、感動，常與你同在。',
+    baseItem:{emoji:'🙏',name:'三一的祝福',desc:'「願主耶穌基督的恩惠、神的慈愛、聖靈的感動，常與你們眾人同在！」',slot:'hand'},
+    bonusItem:{emoji:'🔍',name:'省察的鏡子',desc:'「你們總要自己省察有信心沒有，也要自己試驗。」',slot:'hat'}
+  },
+
+  // ── 加拉太書 1 ──
+  {
+    chapter:'GAL1', sceneEmoji:'⚡',
+    readTime:3,
+    guide:{
+      intro:'加拉太書是保羅最激烈的一封信。一開頭沒有客套，他直接質問加拉太人——為什麼這麼快就離開那位藉著恩典召你們的，去從別的福音？接著辯護：他傳的福音不是從人來的，是從耶穌基督直接的啟示。',
+      outline:[
+        {nodes:'1-5節', text:'問安——並不是從人來的使徒，乃是因耶穌基督和叫他從死裡復活的父神'},
+        {nodes:'6-10節', text:'譴責——你們這麼快離開那召你們的去從別的福音；若是討人喜歡，就不是基督的僕人'},
+        {nodes:'11-17節', text:'保羅蒙召的見證——他傳的福音不是從人領受的，乃是從耶穌基督啟示來的'},
+        {nodes:'18-24節', text:'三年後保羅才上耶路撒冷見彼得，然後到外邦地'}
+      ],
+      focus:'今日情境題聚焦在 10 節——你內心的「審判席」上，最常坐著的是誰：神，還是其他人？'
+    },
+    verse:'「我豈是討人的喜歡嗎？若仍舊討人的喜歡，我就不是基督的僕人了。」',
+    verseRef:'—— 加拉太書 1:10',
+    scene:'保羅寫信通常開頭都很溫暖——但這一封，他連客套都不講。他剛聽到加拉太教會被另一群人帶偏了：他們改了福音的條件，加上「你還必須遵守某些規矩才算數」。保羅整個被點燃——不是為他自己，是為福音的純度。',
+    q:'想想你最近一次「為了不被誤解，把真話吞下去」——當時你心裡擔心的是什麼？',
+    choices:[
+      {k:'A',text:'怕關係變僵——對方是我重要的人，我不想因為一句話讓彼此尷尬。'},
+      {k:'B',text:'怕被貼標籤——「太宗教」「太偏激」這種誤解一旦貼上去就洗不掉。'},
+      {k:'C',text:'其實我也不確定那是不是真話，所以乾脆不說，安全。'},
+      {k:'D',text:'我沒有把真話吞下去——但我發現自己常常在語氣上就先軟掉了。'}
+    ],
+    responses:{
+      A:'關係的代價是真實的，這不是軟弱，是愛的成本。但保羅的提醒是：如果你發現自己在每段重要關係裡都不敢說真話，那不是體貼，是綁架。今天，你願不願意問自己：「最近一次我吞下去的話，神看見了嗎？」',
+      B:'「太宗教」這個標籤很重，我懂。但保羅遇到的標籤更重——他被當成叛徒、瘋子、危險人物。他的回答是：「若仍舊討人的喜歡，我就不是基督的僕人了。」今天，你願不願意把那個「我怕被貼上的標籤」對神講一次？',
+      C:'「不確定就不說」是誠實的，這比硬講漂亮話好。但保羅這封信整本都在說：有些事是確定的——基督為我們捨了自己。今天，你願不願意找一件你「確定的事」開口告訴一個人？',
+      D:'「語氣先軟掉」這個自我觀察很細——很多人到死都沒看到自己這層。保羅有時也軟，他會「對甚麼樣的人，我就作甚麼樣的人」。但有些核心他絕不軟。今天，你願不願意分清楚：哪些可以軟，哪些不行？'
+    },
+    reflectionTitle:'不討人喜歡',
+    reflection:'保羅說：「若仍舊討人的喜歡，我就不是基督的僕人了。」——這句話刺人。因為我們大部分人，從小被訓練的就是「要做別人喜歡的人」。\n\n今天問自己一個誠實的問題：上一次你做了「神喜歡但別人不喜歡」的決定，是什麼時候？如果想不起來——保羅這封信可能就是寫給你的。',
+    baseItem:{emoji:'📜',name:'啟示的福音',desc:'「因為我不是從人領受的，也不是人教導我的，乃是從耶穌基督啟示來的。」',slot:'hand'},
+    bonusItem:{emoji:'🌟',name:'歸榮耀的見證',desc:'「他們就為我的緣故，歸榮耀給神。」',slot:'bg'}
+  },
+
+  // ── 加拉太書 2 ──
+  {
+    chapter:'GAL2', sceneEmoji:'✝️',
+    readTime:3,
+    guide:{
+      intro:'保羅在這章公開回憶了一件不舒服的事——他當面責備過彼得。原因：彼得本來跟外邦弟兄一起吃飯，但「奉割禮的人」一來，彼得就退開裝樣子。保羅說這是「不正直，不合福音的真理」。然後他講出整封信最有名的宣告：因信稱義，不廢掉神的恩。',
+      outline:[
+        {nodes:'1-10節', text:'保羅與雅各、彼得、約翰交通——他們承認他傳的福音，向外邦傳；他們向受割禮的傳'},
+        {nodes:'11-14節', text:'保羅當面責備彼得——你既是猶太人，若隨外邦人行事，怎麼還勉強外邦人隨猶太人呢？'},
+        {nodes:'15-21節', text:'因信稱義的核心——人稱義不是因行律法，乃是因信耶穌基督；我已經與基督同釘十字架；我不廢掉神的恩'}
+      ],
+      focus:'今日情境題聚焦在 11-14 節+21 節——你有沒有為了「混進某個圈子」，把自己原本的樣子調掉，或把恩典做小？'
+    },
+    verse:'「我不廢掉神的恩；義若是藉着律法得的，基督就是徒然死了。」',
+    verseRef:'—— 加拉太書 2:21',
+    scene:'保羅描述的場面非常具體：彼得本來在安提阿，跟外邦信徒一起吃飯——這在當時的猶太人是禁忌。但有一天，從雅各那邊來了一群「保守派」，彼得馬上退開、不再跟外邦人吃飯。其他猶太信徒看了也跟著退。保羅看不下去——他在大家面前指著彼得：「你這是什麼？」',
+    q:'你曾經為了「不被某個圈子排擠」，把自己的某一部分藏起來嗎——就算那一部分明明是真的？',
+    choices:[
+      {k:'A',text:'有過——在某些場合我會隱藏自己的信仰，怕被當成異類。'},
+      {k:'B',text:'相反——在某些場合我會「裝得比較屬靈」，怕被當成不夠認真。'},
+      {k:'C',text:'我發現我兩種都做過，看是哪個圈子。'},
+      {k:'D',text:'沒有——但我有看過別人這樣做，那畫面其實很心疼。'}
+    ],
+    responses:{
+      A:'隱藏信仰是一種「向下的偽裝」。彼得在安提阿做的就是這個——他不想被「保守派」當成過度開放。但保羅說：這不只是社交策略，是「不合福音的真理」。今天，你願不願意對神說：「我下次想試著不藏」？',
+      B:'「向上的偽裝」其實更累——你要時時刻刻表演「我很屬靈」。神不需要你表演。今天，你願不願意找一個你信任的人，把那個「裝出來的部分」告訴他？',
+      C:'「看圈子調整自己」是社交本能，不是壞事——但保羅的提醒是：在福音的核心上不要這樣做。今天，你願不願意問自己：「有沒有哪件事，是我在所有圈子裡都應該一致的？」',
+      D:'「看別人這樣很心疼」是有感受力的人才會有的反應。下次你再看到，能不能多做一點——不是責備那個人，是讓他在你面前不需要表演。今天，你願不願意對某個人說一句：「在我面前，你不用裝。」'
+    },
+    reflectionTitle:'不廢掉的恩',
+    reflection:'保羅說：「我不廢掉神的恩；義若是藉着律法得的，基督就是徒然死了。」——這句話刺到一個我們都會掉進去的試探：以為「我多努力一點，神就會更愛我」。\n\n但這恰恰是「廢掉神的恩」——把白白的禮物當成可以賺的工資。今天找一件你心裡覺得「我做好了神才愛我」的事，把順序倒過來：「神愛我，所以我做」。順序對了，恩典就活了。',
+    baseItem:{emoji:'🌱',name:'向神活着',desc:'「我因律法，就向律法死了，叫我可以向神活着。」',slot:'body'},
+    bonusItem:{emoji:'💝',name:'捨己的愛',desc:'「他是愛我，為我捨己。」',slot:'hat'}
+  },
+
+  // ── 加拉太書 3 ──
+  {
+    chapter:'GAL3', sceneEmoji:'🌌',
+    readTime:4,
+    guide:{
+      intro:'保羅這一章用力推到極致——回到亞伯拉罕。他說：律法是後來才加的，亞伯拉罕本來就是「因信稱義」。律法不是壞的，但它的功能是「啟蒙的師傅」——把你帶到基督那裡，然後它的工作就結束了。',
+      outline:[
+        {nodes:'1-9節', text:'亞伯拉罕因信稱義——你們既是聖靈起首，難道現在要靠肉身成全嗎？'},
+        {nodes:'10-14節', text:'律法的咒詛——基督既為我們受了咒詛，就贖出我們脫離律法的咒詛'},
+        {nodes:'15-25節', text:'律法是訓蒙的師傅——引我們到基督那裡，使我們因信稱義'},
+        {nodes:'26-29節', text:'你們在基督裡都是神的兒子——並不分猶太人、希臘人，自主的、為奴的，或男或女'}
+      ],
+      focus:'今日情境題聚焦在 28 節——「在基督裡都成為一」——這對你今天的人際關係意味著什麼？'
+    },
+    verse:'「並不分猶太人、希臘人，自主的、為奴的，或男或女，因為你們在基督耶穌裏都成為一了。」',
+    verseRef:'—— 加拉太書 3:28',
+    scene:'保羅在第一世紀講這句話有多激進，現代人很難體會。當時的世界把人分成：猶太人 vs 外邦人、自由人 vs 奴隸、男人 vs 女人——這三條線是當時社會的硬壁。保羅說：在基督裡這三條線都被打通了。不是說差異消失了，是說在「神面前的價值」上，這些都不算數。',
+    q:'你最近一次因為「身份」感覺被定義或被低估，是什麼時候？',
+    choices:[
+      {k:'A',text:'工作上——我的職位／資歷讓某些人不太把我的話當回事。'},
+      {k:'B',text:'家庭裡——「你是老幾」這個位置好像永遠決定了我能說什麼。'},
+      {k:'C',text:'信仰圈——我覺得我的「屬靈資歷」不夠，所以發言時會自我懷疑。'},
+      {k:'D',text:'我比較常做的是相反的事——用身份去定義或低估別人。'}
+    ],
+    responses:{
+      A:'職位是現實的——它真的會影響別人怎麼聽你——但保羅的提醒是：神不是按職位聽你。今天，你願不願意把那段「沒被聽見」的對話對神講一次，讓祂聽？',
+      B:'家庭最難——身份是從小定的，要改寫很慢。但「在基督裡都成為一」這句話的意思之一是：你在神眼中不是「老幾」，是兒子／女兒。今天，你願不願意先在禱告裡領受這個身份，再回去面對家裡？',
+      C:'「屬靈資歷」是一個很奇怪的東西——它本來不該存在於福音裡。保羅說「在基督裡都成為一」就是要打掉這個。今天，你願不願意試著像「年輕的弟兄／姐妹」那樣發言一次——不要先預設自己沒資格？',
+      D:'這個自覺很重要——很多人一輩子沒看到自己這層。下次你發現自己在用身份框別人時，停一秒，問自己：「我這樣看他，神也這樣看他嗎？」今天，找一個你最近用身份框過的人，重新看他一次。'
+    },
+    reflectionTitle:'都成為一',
+    reflection:'保羅說：「在基督耶穌裏都成為一了。」——「都成為一」不是說大家都變一樣，是說你跟那個你看不順眼的人、那個讓你覺得自己不夠好的人、那個你覺得高你一階的人——你們在神面前是同一個層次。\n\n今天找一個你心裡有距離的人——不管是高是低——在禱告裡，把他放在你旁邊，看神怎麼看你們兩個。',
+    baseItem:{emoji:'🌳',name:'以信得福',desc:'「可見那以信為本的人和有信心的亞伯拉罕一同得福。」',slot:'bg'},
+    bonusItem:{emoji:'⭐',name:'因信的兒子',desc:'「所以，你們因信基督耶穌都是神的兒子。」',slot:'hat'}
+  },
+
+  // ── 加拉太書 4 ──
+  {
+    chapter:'GAL4', sceneEmoji:'👨‍👦',
+    readTime:4,
+    guide:{
+      intro:'保羅這章把「律法 vs 恩典」用一個家庭的比喻講清楚——你以前是奴僕，現在是兒子。然後他用亞伯拉罕的兩個兒子（夏甲生的以實瑪利、撒拉生的以撒）來對比——一個按肉體生的，一個憑應許生的。',
+      outline:[
+        {nodes:'1-7節', text:'從奴僕到兒子——神就差他兒子的靈進入你們的心，呼叫：阿爸！父！'},
+        {nodes:'8-20節', text:'保羅的痛心——你們從前不認識神的時候，為奴僕；現在認識了，怎麼又轉去歸回那懦弱無用的小學？'},
+        {nodes:'21-31節', text:'兩個約的比喻——夏甲與撒拉，奴僕與自主，律法與恩典'}
+      ],
+      focus:'今日情境題聚焦在 6-7 節——「兒子的靈」——你現在跟神的關係，是兒子的關係還是奴僕的關係？'
+    },
+    verse:'「你們既為兒子，神就差他兒子的靈進入你們的心，呼叫：『阿爸！父！』」',
+    verseRef:'—— 加拉太書 4:6',
+    scene:'「阿爸」是亞蘭文，是當時小孩叫爸爸的口語——不是「父親」這個正式的稱呼，是「爸爸」、「爹地」這種親密的叫法。保羅刻意用這個字——他在說：你跟神的關係不是員工跟老闆，不是奴僕跟主人，是孩子跟爸爸。',
+    q:'最近一次你跟神講話，比較像「員工跟老闆」報告，還是「孩子跟爸爸」聊天？',
+    choices:[
+      {k:'A',text:'大部分時候像員工——我會記得「該做的禱告」，但很少有「想跟祂說話」的衝動。'},
+      {k:'B',text:'比較像「客戶跟客服」——我有需要才找祂，沒事就不打擾。'},
+      {k:'C',text:'有時候像孩子——但通常是我心情不好、需要被抱的時候。'},
+      {k:'D',text:'其實我從來不確定該怎麼跟神講話，所以一直在試。'}
+    ],
+    responses:{
+      A:'「員工模式」是很多人靈修生活的真相——做完該做的就交差。但「兒子的靈」呼叫的是「阿爸」，不是「老闆」。今天，你願不願意在禱告開頭省略「天父啊」，直接喊一聲「爸」？',
+      B:'「有事才找」其實也是一種承認——你知道祂在。但兒子的關係是：沒事也可以打。今天，你願不願意找一個沒目的的時間——不求什麼、不解決什麼——就是想跟祂坐一下？',
+      C:'「需要被抱才像孩子」是好事——至少你在脆弱的時候找對人。但如果只有脆弱才能來，恩典就被你做小了。今天，你願不願意在「沒有特別需要」的時候，也回家一次？',
+      D:'「一直在試」是最誠實的開始。耶穌教門徒禱告就一句「我們在天上的父」——剩下都是練習。今天，你願不願意只跟神講一句話：「爸，我在這裡」，然後安靜一分鐘？'
+    },
+    reflectionTitle:'阿爸父',
+    reflection:'保羅說：「神就差他兒子的靈進入你們的心，呼叫：『阿爸！父！』」——「阿爸」這個字背後是一個畫面：小孩跑到爸爸腿邊、抱住、喊爸爸。不是禮儀，是依附；不是請求，是回家。\n\n今天，閉上眼睛，試著喊一聲「爸」——那個你心裡覺得彆扭的感覺，就是你還沒完全進入兒子身份的證據。慢慢來，祂等你。',
+    baseItem:{emoji:'🏠',name:'兒子的後嗣',desc:'「可見，從此以後，你不是奴僕，乃是兒子了；既是兒子，就靠着神為後嗣。」',slot:'body'},
+    bonusItem:{emoji:'💛',name:'基督成形',desc:'「我小子啊，我為你們再受生產之苦，直等到基督成形在你們心裏。」',slot:'hat'}
+  },
+
+  // ── 加拉太書 5（5+6合併） ──
+  {
+    chapter:'GAL5', sceneEmoji:'🍇',
+    readTime:4,
+    guide:{
+      intro:'加拉太書5章是整封信的轉折——前面保羅一直在拆「靠律法稱義」的假福音，這章他正面講：那真正的自由是什麼？他給了一個很多人會誤解的定義——基督釋放我們得自由，但這自由不是「想做什麼就做什麼」，而是「用愛心互相服事」。然後他畫出兩條路：放縱情慾的事（一長串很現實的清單）vs 順著聖靈而行（仁愛、喜樂、和平、忍耐、恩慈、良善、信實、溫柔、節制）。',
+      outline:[
+        {nodes:'1-12節', text:'真自由 vs 律法的軛——基督釋放了你，不要再回去戴枷鎖'},
+        {nodes:'13-15節', text:'自由不是放縱——你蒙召得自由，只是要用愛心互相服事，不是相咬相吞'},
+        {nodes:'16-26節', text:'順著聖靈而行——情慾與聖靈相爭，但聖靈所結的果子，沒有律法禁止 ✦'}
+      ],
+      focus:'今日情境題聚焦在 16、22-23 節——「順著聖靈而行」與「聖靈所結的果子」——真實生活裡，「順著聖靈」不是飄渺的感覺，是某一刻你選了忍耐而不是發火、選了恩慈而不是回嘴。'
+    },
+    verse:'「弟兄們，你們蒙召是要得自由，只是不可將你們的自由當作放縱情慾的機會，總要用愛心互相服事。」',
+    verseRef:'—— 加拉太書 5:13',
+    scene:'保羅在這章列了兩張清單。一張是「情慾的事」——仇恨、爭競、忌恨、惱怒、結黨、嫉妒這些，每一個都很日常，不是什麼驚天大罪，就是你我每天會冒出來的反應。另一張是「聖靈所結的果子」——仁愛、喜樂、和平、忍耐、恩慈、良善、信實、溫柔、節制。保羅說的「順著聖靈而行」，不是進入某種屬靈狀態，是在那個你快要回嘴、快要翻臉的瞬間，選了另一條路。',
+    q:'回想最近一次你「差一點就發作」——快回嗆、快翻白眼、快爆氣——後來怎麼了？',
+    choices:[
+      {k:'A',text:'我忍下來了，但心裡其實一直在重播那一幕，沒有真的放下。'},
+      {k:'B',text:'我沒忍住，發作了，事後有點後悔，但當下覺得「他活該」。'},
+      {k:'C',text:'我表面平靜，但用很冷淡的方式回應——沒爆，但也談不上有愛。'},
+      {k:'D',text:'老實說，「順著聖靈」對我太抽象了，我根本分不清那是聖靈還是我在壓抑自己。'}
+    ],
+    responses:{
+      A:'「忍下來但一直重播」——這其實是很多人的真相，外面風平浪靜，裡面還在打仗。保羅說的果子裡有「忍耐」，但忍耐後面還有「平安」——光忍不夠，那口氣得有地方去。今天，你願不願意找個沒人的時候，把那句你沒說出口的話，原原本本講給神聽一次？講完，問祂：「這個我可以放下了嗎？」',
+      B:'「他活該」這四個字很誠實——大部分發作的當下，我們都覺得自己有理。保羅沒有罵發脾氣的人是壞人，他只是把「惱怒、爭競」跟「溫柔、節制」並排放著，讓你自己看。今天不用逼自己道歉，但你願不願意誠實問一句：「就算他活該，這樣回應之後，我自己有比較好過嗎？」',
+      C:'冷淡是最難被抓到的一種——它不犯規，但它也不結果子。保羅那張清單裡沒有「冷漠」，因為冷漠連爭都懶得爭了，它是悄悄關門。今天，你願不願意對那個你冷淡對待的人，做一件小到不像和好的事——一句正常的問候、一個不帶刺的回覆——先把那道門推開一條縫？',
+      D:'你這個分不清，比那些以為自己很屬靈的人誠實太多了。其實連保羅都說「情慾和聖靈相爭」——裡面有兩股力量在拉，分不清是正常的，不是你信得不好。今天先不用分辨那麼多，只挑一件事：下一次你快發作時，先在心裡停三秒，跟神說一句「這個我不想自己處理」，然後再決定怎麼回應。一次就好。'
+    },
+    reflectionTitle:'快發作時',
+    reflection:'保羅把「情慾的事」和「聖靈的果子」兩張清單並排放著——不是要你背起來，是要你照鏡子。仇恨、爭競、惱怒這些不是別人的罪，是我們每天在通訊軟體上、在飯桌上、在開車時冒出來的反應。而「順著聖靈而行」，往往就濃縮在那關鍵的幾秒鐘——你選了哪一條。\n\n回想最近一次你「差一點就發作」的場景，把它在腦中重播一次。如果可以回到那三秒，你會希望自己怎麼回應？把那個畫面帶到神面前，告訴祂：下一次遇到同樣的時刻，我想試試另一條路。',
+    baseItem:{emoji:'🍇',name:'聖靈的果子',desc:'「聖靈所結的果子，就是仁愛、喜樂、和平、忍耐、恩慈、良善、信實、溫柔、節制。這樣的事沒有律法禁止。」',slot:'bg'},
+    bonusItem:{emoji:'⛓️‍💥',name:'釋放的自由',desc:'「基督釋放了我們，叫我們得以自由。所以要站立得穩，不要再被奴僕的軛挾制。」',slot:'body'}
+  },
+
+  // ── 加拉太書 6（5+6合併取6） ──
+  {
+    chapter:'GAL6', sceneEmoji:'🌾',
+    readTime:3,
+    guide:{
+      intro:'加拉太書最後一章——保羅給出非常實際的指導。彼此擔當重擔、各人察驗自己、種甚麼收甚麼、行善不可喪志。這是一封怒火滿天的信的結尾，但結尾異常溫柔——他用親手寫的字結束：「願恩惠常在你們的心裡」。',
+      outline:[
+        {nodes:'1-5節', text:'彼此擔當重擔——若有人被過犯所勝，你們屬靈的人就當用溫柔的心把他挽回過來'},
+        {nodes:'6-10節', text:'種與收——人種的是甚麼，收的也是甚麼；行善，不可喪志；若不灰心，到了時候就要收成'},
+        {nodes:'11-18節', text:'保羅親手寫的結語——但我斷不以別的誇口，只誇我們主耶穌基督的十字架；願恩常在你們心裏'}
+      ],
+      focus:'今日情境題聚焦在 9 節——「行善，不可喪志」——你最近有沒有想放棄什麼好的事？'
+    },
+    verse:'「我們行善，不可喪志；若不灰心，到了時候就要收成。」',
+    verseRef:'—— 加拉太書 6:9',
+    scene:'這節經文寫給已經做了一段時間、開始懷疑「值得嗎？」的人。保羅沒有用「加油」、「堅持」這種表面話——他用了一個農夫的比喻：你撒了種，就要等。等的時候看不到任何進展，但種子在地下動。「到了時候」——不是按你的時間表，是按神的時間表——你會收成。',
+    q:'你最近有沒有想放棄一件「明明是好的、但看不到回報」的事？',
+    choices:[
+      {k:'A',text:'有——某段關係（家人／同事／某個朋友），我一直在付出，但對方好像沒在乎。'},
+      {k:'B',text:'有——一個習慣（讀經／運動／早睡），做了一陣子覺得沒什麼差，想停了。'},
+      {k:'C',text:'有——一個服事（小組／義工／教會的角色），我已經累到不知道為什麼還在做。'},
+      {k:'D',text:'其實我的問題不是想放棄——是已經放棄太多次了，現在連「該不該繼續」都懶得想。'}
+    ],
+    responses:{
+      A:'付出沒被看見的痛是真的。保羅說「到了時候就要收成」——這個「時候」可能不是你想像的樣子，可能不是對方變了，是你在這個過程裡變得更像基督。今天，你願不願意把這段付出當成「不是給對方，是給神」？',
+      B:'好習慣的中後期最難熬——前期靠新鮮感、後期靠意志、中期是地獄。保羅的話不是「再撐一下」，是「種子在動，你看不到」。今天，你願不願意降低標準（不是停止），給自己一個「最低限度也算數」的版本？',
+      C:'服事到累的時候，最容易忘記為什麼開始。「不可喪志」不是「不准累」——是「累的時候，記得你在收成的路上」。今天，你願不願意找一個信任的人，讓他幫你看一下——你現在這個累，是該休息，還是該停？兩個都是合理的選擇。',
+      D:'「懶得想」其實是最深的累——已經累到沒力氣評估「該不該繼續」。保羅這節經文不是寫給有力氣的人，是寫給快放手的人。今天，你不需要決定任何事——只需要對神說一句：「我快沒力了，祢看著辦。」'
+    },
+    reflectionTitle:'到了時候',
+    reflection:'保羅說：「我們行善，不可喪志；若不灰心，到了時候就要收成。」——「到了時候」這四個字最關鍵。不是「快了」，不是「明天」，是「到了時候」——按神的曆，不是你的曆。\n\n今天，把你那件「想放棄但又捨不得放棄」的事帶到神面前。不必逼自己決定繼續，只問祂：「現在是什麼時候？」',
+    baseItem:{emoji:'🤝',name:'擔當的重擔',desc:'「你們各人的重擔要互相擔當，如此，就完全了基督的律法。」',slot:'hand'},
+    bonusItem:{emoji:'🙏',name:'結尾的恩',desc:'「弟兄們，願我主耶穌基督的恩常在你們心裏。阿們！」',slot:'hat'}
+  },
+
+  // ── 以弗所書 1 ──
+  {
+    chapter:'EPH1', sceneEmoji:'🎁',
+    readTime:4,
+    guide:{
+      intro:'以弗所書第一章——保羅一開口就停不下來。希臘原文 3 到 14 節是一個超長的句子，他像在數一份清單：揀選、預定、救贖、赦免、印記、得基業……全都不是「你做到才有」，而是「在基督裡，你早就有了」。後半段（15-23 節）他換成禱告：求神打開你心裡的眼睛，讓你真的看見自己擁有什麼。',
+      outline:[
+        {nodes:'1-2節', text:'問安——保羅寫信給在以弗所的聖徒，願恩惠平安歸與你們'},
+        {nodes:'3-14節', text:'在基督裡的屬靈福氣大清單——揀選、預定、救贖、赦免、受聖靈為印記、得基業，一句接一句都是「在他裡面」 ✦'},
+        {nodes:'15-19節', text:'保羅的禱告——求神照明你心中的眼睛，叫你知道蒙召的指望、基業的豐盛、能力的浩大'},
+        {nodes:'20-23節', text:'這能力大到使基督從死裡復活、坐在神的右邊，作教會萬有之首'}
+      ],
+      focus:'今日情境題聚焦在 3-14節——這串「你早就擁有」的福氣清單，碰上一個很現實的問題：擁有這麼多，為什麼還是常常覺得空？'
+    },
+    verse:'「願頌讚歸與我們主耶穌基督的父神！他在基督裡曾賜給我們天上各樣屬靈的福氣。」',
+    verseRef:'—— 以弗所書 1:3',
+    scene:'保羅寫這封信的時候，人正關在監獄裡。照理說該抱怨的是他，但他開頭沒提自己一句苦，反而一連串地數：在基督裡，我們被揀選、被收養、被救贖、被赦免、蓋了聖靈的印記、領了將來的基業。這不是一張等你達標才發的清單——是一份你信主那天就已經到手、卻常常忘了自己有的禮物。',
+    q:'說真的，當你聽到「你在基督裡已經擁有這麼多」，你心裡第一個反應是什麼？',
+    choices:[
+      {k:'A',text:'有點感動，但也有點心虛——道理我知道，可是日常生活裡我感覺不太到。'},
+      {k:'B',text:'說實話，我常常覺得空。擁有再多屬靈名詞，也補不了那個空。'},
+      {k:'C',text:'我比較在意「揀選」這兩個字——憑什麼是我？我配嗎？這念頭一直跑出來。'},
+      {k:'D',text:'老實說我沒什麼感覺。這種「你已經擁有一切」的話，我聽過太多次，已經麻木了。'}
+    ],
+    responses:{
+      A:'「知道」和「感覺到」中間，常常隔著一段很長的路——這不是你信得不夠，是這份禮物太大，需要時間一點一點認領。保羅後面那段禱告就是為你這種人寫的：「求神照明你心中的眼睛。」今天不必逼自己有感覺，只挑一樣（被赦免，或被揀選），對神說一句：「這個我先信，求祢讓我慢慢看見。」',
+      B:'這個「空」很誠實，也很重要——它不是信心出問題，是它在提醒你：屬靈名詞如果只停在腦袋，是填不滿心的。保羅數的不是名詞，是一個關係：「在基督裡」。今天，與其再讀一遍清單，不如安靜下來問祂一句：「祢在這裡嗎？我想要的不是清單，是祢。」',
+      C:'「我配嗎」這個問題，本身就證明你聽懂了恩典——因為揀選的重點剛好是「不憑你配不配」。經文說神是「按著自己意旨所喜悅的」揀選你，不是按你的表現。今天，當「憑什麼是我」又跑出來時，試著不要急著回答它，只回一句：「對，我不配，但祂選了。」這句話可以說很多次。',
+      D:'麻木不是你的錯——一句話聽太多次而沒被真實對待，本來就會鈍掉。保羅不是要你再激動一次，他是在禱告求神「照明你心中的眼睛」，意思是：看不見，本來就需要被打開，不是你自己硬擠。今天你什麼都不用感覺，只需要說一句最誠實的話：「神，我麻木了，如果這些是真的，求祢讓我重新看見一次。」'
+    },
+    reflectionTitle:'已經擁有',
+    reflection:'保羅在監獄裡，卻一口氣數出在基督裡擁有的一切：揀選、救贖、赦免、聖靈的印記、將來的基業。他沒有說「你要努力得到」，他說的是「你已經有了」——只是常常忘了，或從沒真的相信過。\n\n今天，從那份清單裡挑一樣你最不敢相信是真的（也許是「被赦免」，也許是「被揀選」）。把它寫下來，然後誠實告訴神：你信這個信到幾分？卡在哪裡？不必假裝全信，祂要的是真話。',
+    baseItem:{emoji:'🩸',name:'救贖的恩典',desc:'「我們藉這愛子的血得蒙救贖，過犯得以赦免，乃是照他豐富的恩典。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'聖靈的印記',desc:'「你們既聽見真理的道，就是那叫你們得救的福音，也信了基督，既然信他，就受了所應許的聖靈為印記。」',slot:'hat'}
+  },
+
+  // ── 以弗所書 2 ──
+  {
+    chapter:'EPH2', sceneEmoji:'🧱',
+    readTime:4,
+    guide:{
+      intro:'以弗所書第 2 章是整本聖經裡最濃縮的「翻轉」現場。前半段講個人——你本來是死的（死在過犯罪惡中），是神的恩典把你叫活過來，這份救恩「不是出於自己」，免得有人自誇。後半段話鋒一轉，講群體——猶太人和外邦人之間有一道又厚又久的牆，基督用自己的身體把它拆了，讓兩群本來互看不順眼的人，變成「同國」、變成「一家人」。一句話：恩典不只救你個人，還要把你跟那個你不想靠近的人，黏成一家。',
+      outline:[
+        {nodes:'1-3節', text:'你的出身——本來死在過犯罪惡中，隨從今世的風俗，本為可怒之子，和別人一樣，沒有例外'},
+        {nodes:'4-10節', text:'神的介入——然而神既有豐富的憐憫，叫我們與基督一同活過來；你們得救是本乎恩，不是出於行為，免得有人自誇'},
+        {nodes:'11-13節', text:'從前的距離——你們從前與基督無關，在以色列國民以外，沒有指望，沒有神；如今卻靠著他的血得親近了'},
+        {nodes:'14-18節', text:'拆牆的工程——他使我們和睦，拆毀了中間隔斷的牆，使兩下歸為一體，與神和好 ✦'},
+        {nodes:'19-22節', text:'新的身分——你們不再作外人和客旅，是與聖徒同國，是神家裡的人，同被建造成為神居住的所在'}
+      ],
+      focus:'今日情境題聚焦在 14-18節——基督「拆毀了中間隔斷的牆」。不是你心裡的牆，是你和另一個具體的人之間那道牆。'
+    },
+    verse:'「你們從前遠離神的人，如今卻在基督耶穌裡，靠著他的血，已經得親近了。」',
+    verseRef:'—— 以弗所書 2:13',
+    scene:'保羅在這一章畫了一道牆。不是比喻——當時猶太人和外邦人之間有真實的敵意，甚至聖殿裡有實體的隔斷，外邦人越線會被處死。保羅說，基督「拆毀了中間隔斷的牆」，把兩群恨彼此恨了幾百年的人，變成一家人。這節經文逼著我們問一個很私人的問題：那道牆，在你的生活裡，是誰？',
+    q:'你現在的生活裡，有沒有一個人，是你和他之間有一道牆——不一定吵架，但就是過不去？',
+    choices:[
+      {k:'A',text:'有——是家裡的人。傷得太深、太久了，表面客氣，心裡那道牆沒拆過。'},
+      {k:'B',text:'有——是教會或小組裡的某個人。我們都信耶穌，但我就是沒辦法跟他親近。'},
+      {k:'C',text:'有——但與其說是某個人，不如說是「某一類人」。我心裡對他們有條線，過不去。'},
+      {k:'D',text:'老實說，牆我看得到，但要我去拆？我做不到，也還不想。先放著吧。'}
+    ],
+    responses:{
+      A:'家人之間的牆最痛，因為本來該是最近的。保羅沒有說「你去把牆拆了」——他說的是「他（基督）拆毀了」。拆牆的不是你，是祂；你的功課只是不再親手往上加磚。今天，先不急著修復關係，只做一件小事：對神說出那個人的名字，一個字都不用多。',
+      B:'信同一位主，卻親近不起來，這種尷尬很多人有，只是沒人講。保羅說基督把「兩下歸為一體」——不是叫你們變熟，是叫你們同屬一個身體，就算還不喜歡彼此。今天，下次再見到那個人，試試看在心裡對自己說一句：「我們是同一家的。」不用笑得很真，先承認這件事就好。',
+      C:'對「一類人」有條線，比對單一個人更難察覺，因為它躲在「我只是不喜歡那種人」後面。保羅當年拆的，正是「猶太人 vs 外邦人」這種整群對整群的牆。今天，給那條線一個具體的臉——想一個屬於「那類人」的真實名字，光是讓他從「一類」變回「一個人」，牆就鬆了一塊。',
+      D:'謝謝你沒有假裝。「我做不到，也還不想」是這一章最誠實的回應——保羅自己以前也是親手砌牆的人，是基督先動的工，不是他先願意的。所以你「還不想」沒有把你關在門外。今天什麼都不用做，只要把這句話原封不動帶到神面前：「那道牆我知道，但我現在拆不動，也還不想，祢看著辦。」'
+    },
+    reflectionTitle:'那道牆',
+    reflection:'保羅說，基督「拆毀了中間隔斷的牆」，把兩群恨了彼此幾百年的人變成一家。他強調拆牆的是基督，不是靠人努力修復關係——這對「不想原諒、也修復不來」的人，其實是鬆綁，不是壓力。\n\n今天，想那一個人，或那一類人——你和他之間的牆。先不問「我該怎麼拆」，只問神一個問題：「這道牆，祢想從哪一塊磚開始？」然後安靜聽，不急著有答案。',
+    baseItem:{emoji:'🎁',name:'本乎恩的禮',desc:'「你們得救是本乎恩，也因著信；這並不是出於自己，乃是神所賜的；」',slot:'hat'},
+    bonusItem:{emoji:'🏠',name:'神家的門牌',desc:'「這樣，你們不再作外人和客旅，是與聖徒同國，是神家裡的人了；」',slot:'bg'}
+  },
+  {
+    chapter:'EPH3', sceneEmoji:'🙏',
+    readTime:4,
+    guide:{
+      intro:'以弗所書第 3 章很特別——保羅在 v.1 開頭說「因此，我為你們屈膝禱告」，但話講到一半被自己岔題，跑去解釋一個藏了很多世代的奧秘：原來外邦人也能跟猶太人一樣，靠著耶穌成為神的家人。講完這 12 節，他才在 v.14 回到原本要做的禱告：求神「叫你們心裡的力量剛強起來」，讓你們真的體會到基督的愛有多長闊高深。最後他用一句很大的話收尾——神能照著運行在你心裡的大力，成就超過你所求所想的。',
+      outline:[
+        {nodes:'1-6節', text:'奧秘揭曉——外邦人也在福音裡同為後嗣、同為一體、同蒙應許，這是藏了好多世代才公開的事'},
+        {nodes:'7-13節', text:'保羅的身分——他本來是聖徒裡最小的，卻被派去把「基督那測不透的豐富」傳給外邦人'},
+        {nodes:'14-19節', text:'保羅的禱告——求神叫你心裡的力量剛強起來，讓你能體會基督的愛是何等長闊高深 ✦'},
+        {nodes:'20-21節', text:'結尾頌讚——神能照著運行在我們心裡的大力，成就超過我們所求所想的'}
+      ],
+      focus:'今日情境題聚焦在 14-20節——保羅的禱告不是「願神保守你」這種客套話，他求的是一件很具體又很挑戰的事：你真的相信祂在你心裡有大能嗎？'
+    },
+    verse:'「神能照著運行在我們心裡的大力充充足足地成就一切，超過我們所求所想的。」',
+    verseRef:'—— 以弗所書 3:20',
+    scene:'保羅在監獄裡，本來要為以弗所信徒禱告，結果一講就停不下來。他先把「外邦人也能成為神家裡的人」這件事講完，才回到禱告——而且這個禱告很大膽：他不是求神讓你少受點苦，他求的是「叫你心裡的力量剛強起來」、「使基督住在你心裡」、「叫你能體會基督的愛何等長闊高深」。最後他說了一句幾乎像在打賭的話：神能在你心裡成就的，遠遠超過你敢求、敢想的。',
+    q:'說真的，當你聽到「神能成就超過你所求所想」這句話，你心裡第一個反應是什麼？',
+    choices:[
+      {k:'A',text:'有點感動，但說實話，我已經很久沒求過什麼大的事了——好像不敢期待，怕失望。'},
+      {k:'B',text:'我有在求，但每次求完就懷疑：祂真的在聽嗎？「超過所求所想」聽起來離我好遠。'},
+      {k:'C',text:'這句話我聽過太多次，已經變成口號了——道理我懂，但日常生活裡我感覺不到那個「大力」。'},
+      {k:'D',text:'老實說，我現在卡在一件具體的事，已經求很久了，看不到答案。這句經文對我有點刺。'}
+    ],
+    responses:{
+      A:'「不敢期待」常常不是信心問題，是過去失望累積出來的自我保護——你不是不信祂能，是怕再被自己的期待傷一次。保羅這句經文沒有要你立刻變勇敢，他用的詞是「運行在我們心裡的大力」——重點是祂在裡面動工，不是你先把期待調高。今天，與其勉強自己「敢求大事」，不如做一件小事：對神說一句「我不敢期待了，但這件事我先告訴祢」，然後把那件事的名字說出來。',
+      B:'「我有在求，但懷疑祂有沒有在聽」——這種糾結很多在禱告路上走久的人都有，你不是信心差，是你還在認真。保羅這節經文有個容易漏掉的細節：神成就的方式是「照著運行在我們心裡的大力」——不一定是外面馬上變、而是裡面先動。今天先不急著要答案，試著問祂一句：「祢在我心裡動的是什麼？是不是有什麼我還沒看見？」',
+      C:'「道理懂、感覺不到」是這個世代最普遍的靈性疲勞，不是你信得淺，是話聽太多、心鈍掉了。保羅的禱告反而是給你這種人寫的——他求的不是「你振作起來」，他求「神叫你心裡的力量剛強起來」，主詞是神，不是你。今天什麼都不用感覺，只需要說一句最誠實的話：「神，這句話我已經麻木了，如果祢真的在裡面動，求祢讓我重新感覺到一次。」',
+      D:'那一節經文對你「有點刺」——這個感覺很重要，不要急著壓下去。當你正在求一件具體的事、又看不到答案時，「超過所求所想」聽起來像在嘲諷，這是真的。但保羅寫這節時人正關在監獄裡——他求的不是被放出來，他求的是「在裡面被剛強」。今天，把那件求很久的事，原封不動帶到神面前，加一句：「答案我還沒看到，但求祢先在我裡面成就一件——讓我撐得住等。」'
+    },
+    reflectionTitle:'裡面的大力',
+    reflection:'保羅在監獄裡為以弗所信徒禱告，他沒有求神改變他們外面的處境，他求的是「叫你們心裡的力量剛強起來」、「使基督住在你們心裡」。然後他用一句很大的話收尾——神能照著運行在我們心裡的大力，成就超過我們所求所想的。重點是「運行在我們心裡」——祂動工的位置，先在裡面。\n\n今天，想一件你最近在求、卻看不到動靜的事。先不問「為什麼還沒成就」，改問一句：「神，這段等的日子，祢在我裡面動的是什麼？」然後安靜下來聽，不急著有答案。',
+    baseItem:{emoji:'🙏',name:'坦然的禱告',desc:'「我們因信耶穌，就在他裡面放膽無懼，篤信不疑地來到神面前。」',slot:'hand'},
+    bonusItem:{emoji:'🌱',name:'有根有基的愛',desc:'「使基督因你們的信，住在你們心裡，叫你們的愛心有根有基，」',slot:'body'}
+  },
+  {
+    chapter:'EPH4', sceneEmoji:'🌅',
+    readTime:5,
+    guide:{
+      intro:'以弗所書第 4 章是整封信的轉折點。前半段（1-16 節）保羅講教會的「合一」——但他講的合一不是「大家變一樣」，是「有人作使徒、有人作先知、有人作牧師教師」，各盡其職卻同連於元首基督。後半段（17-32 節）話鋒一轉，從天上拉回地上的日常：脫去舊人、穿上新人。怎麼脫？保羅列得很具體——不撒謊、不含怒到日落、不偷竊、污穢的言語不出口、彼此饒恕。一句話：合一不是空話，是從「今晚這口氣要不要吞下去」開始的。',
+      outline:[
+        {nodes:'1-6節', text:'合一的根基——一主、一信、一洗、一神，凡事謙虛溫柔忍耐，用愛心互相寬容'},
+        {nodes:'7-16節', text:'恩賜的多樣——他賜下使徒、先知、傳福音的、牧師和教師，各盡其職，連於元首基督'},
+        {nodes:'17-24節', text:'舊人與新人——脫去從前因私慾漸漸變壞的舊人，穿上照神形像造的新人'},
+        {nodes:'25-32節', text:'新人的日常——棄絕謊言、生氣卻不要犯罪、不可含怒到日落、污穢的言語一句不可出口、以恩慈相待彼此饒恕 ✦'}
+      ],
+      focus:'今日情境題聚焦在 26-27節——「不可含怒到日落」。不是叫你不准生氣，是不要把那口氣帶過夜，給魔鬼留地步。'
+    },
+    verse:'「生氣卻不要犯罪；不可含怒到日落，」',
+    verseRef:'—— 以弗所書 4:26',
+    scene:'保羅沒有說「基督徒不可以生氣」——他承認生氣是真的、會發生。但他加了一句很狠的提醒：不要含怒到日落。意思是，今天的氣，不要帶到明天。氣本身不是罪，可是當你把它捂著、餵著、過夜留著，它就會慢慢變成另一個東西，給魔鬼留下做工的縫隙。今晚熄燈前，你心裡有沒有一口還沒消的氣？',
+    q:'你最近是不是有一口氣，已經帶過好幾個晚上了？想到那個人或那件事，胸口還會悶一下？',
+    choices:[
+      {k:'A',text:'有——而且不只一個晚上，是好幾個禮拜、甚至好幾個月了。我也知道該放下，但就是放不下。'},
+      {k:'B',text:'有，但我覺得我有理由生氣。對方真的做錯了，憑什麼我先消氣？'},
+      {k:'C',text:'有，但我表面上裝沒事。我自己以為過去了，可是聽到那個名字心還是會抽一下。'},
+      {k:'D',text:'老實說我做不到「日落前消氣」。今天能不爆出來已經很努力了，要我當天放下？不可能。'}
+    ],
+    responses:{
+      A:'帶過幾個月的那口氣，已經不是「氣」了，是住進你心裡的房客——保羅說「不可給魔鬼留地步」就是這個意思，那塊地原本不是給它的。今天先不急著「放下」（那是個太大的詞），只做一件小事：把那個人的名字、或那件事的關鍵字，誠實寫一行帶到神面前，告訴祂：「祢知道我為什麼還在氣，我先不假裝沒事。」承認它住在你裡面，是它搬走的第一步。',
+      B:'「我有理由」很可能是真的——保羅也沒否認你的氣有來源，他只說「不要犯罪」、「不要含怒到日落」。理由成立，不代表代價要你一個人扛過夜。今晚試一句話：「神，我的理由我留著，但這口氣我先寄放在祢這裡，明早再說。」不是放棄立場，是不讓那口氣替你決定怎麼睡覺、怎麼開明天的會。',
+      C:'「裝沒事」是最累的一種累——因為要同時應付那口氣、和「不能承認自己還有氣」這兩件事。心會抽一下，就是身體比腦袋先誠實。今天，找一個只有自己的時間（散步、洗澡、開車都行），對自己說出來：「我其實還在意。」光是這句話被你自己聽見，就鬆開一塊。',
+      D:'你說得很真——保羅這節經文常被讀成標準，但他的原意更像是「警報」：氣本身不是罪，過夜才有危險。如果你今天能不爆出來，那已經是一場勝仗，神看見了。今晚熄燈前，不要逼自己消氣，只做一件事——對神說一句：「這口氣我搞不定，今晚祢替我看著它，別讓它在我睡著的時候做工。」交出去，比解決它更重要。'
+    },
+    reflectionTitle:'過夜的氣',
+    reflection:'保羅在以弗所書 4 章說「生氣卻不要犯罪；不可含怒到日落」——他不是叫人不准生氣，是說氣不要過夜。一過夜，它就不只是情緒了，會變成牆、變成偏見、變成「我跟那個人之間從此不一樣」的那道縫。所以他接著說「不可給魔鬼留地步」——那道縫，就是地步。\n\n今晚熄燈前，安靜一下：心裡那口還沒消的氣，是給了誰？把那個名字、或那件事，悄悄帶到神面前——不必馬上原諒，不必裝大方，只告訴祂：「這口氣我先交給祢，今晚別讓它替我做任何決定。」',
+    baseItem:{emoji:'🤲',name:'恩慈相待的手',desc:'「並要以恩慈相待，存憐憫的心，彼此饒恕，正如神在基督裡饒恕了你們一樣。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'寬容的外袍',desc:'「凡事謙虛、溫柔、忍耐，用愛心互相寬容，」',slot:'body'}
+  },
+  {
+    chapter:'EPH5', sceneEmoji:'⏳',
+    readTime:4,
+    guide:{
+      intro:'以弗所書第 5 章，保羅從「該效法神、憑愛心行事」開頭，一路往下講「光明的子女」要怎麼活。中段（15-17 節）他丟出一個很現實的提醒：你們要謹慎行事，當像智慧人，要愛惜光陰——因為現今的世代邪惡。「愛惜光陰」原文有「把握時機、買回時間」的味道，不是叫你不准休息，而是問你：那些被偷走的時間，你想不想把它買回來？',
+      outline:[
+        {nodes:'1-2節', text:'總綱——你們該效法神，憑愛心行事，正如基督為我們捨了自己'},
+        {nodes:'3-7節', text:'光明子女的反面——淫亂、貪婪、戲笑的話都不相宜；不要與悖逆之子同夥'},
+        {nodes:'8-14節', text:'從暗昧到光明——你們從前是暗昧的，如今在主裡面是光明的，光明所結的果子就是良善、公義、誠實'},
+        {nodes:'15-17節', text:'愛惜光陰——你們要謹慎行事，要愛惜光陰，要明白主的旨意如何 ✦'},
+        {nodes:'18-21節', text:'被聖靈充滿——用詩章靈歌彼此對說，凡事奉主名感謝父神，存敬畏基督的心彼此順服'},
+        {nodes:'22-33節', text:'家庭關係——夫妻之間如同基督與教會（今日略過，留給家庭主題日）'}
+      ],
+      focus:'今日情境題聚焦在 15-17節——「要愛惜光陰」碰上一個你心裡其實很清楚、但一直拖著沒處理的問題：你的時間，到底被誰偷走了？'
+    },
+    verse:'「要愛惜光陰，因為現今的世代邪惡。」',
+    verseRef:'—— 以弗所書 5:16',
+    scene:'保羅這段話寫得很直接：你們要謹慎行事，不要像愚昧人，當像智慧人，要愛惜光陰。「愛惜光陰」的原文有「贖回、買回時間」的意思——好像時間被人偷走了，你要把它買回來。保羅沒有說「快點做更多事」，他說的是「明白主的旨意如何」。重點不是塞滿行程，是問自己：神今天要的，跟我今天在做的，是同一件事嗎？',
+    q:'說真的，過去這一週，你的時間最常被什麼偷走？',
+    choices:[
+      {k:'A',text:'手機。一滑就一兩個小時，回神才發現晚上又沒做想做的事。'},
+      {k:'B',text:'工作或學業。表面是「該做的」，但塞太滿，連靜下來的空間都沒有。'},
+      {k:'C',text:'人際應酬。不太想去卻不好意思拒絕，回家又累又空虛。'},
+      {k:'D',text:'老實說我沒被偷——是我自己「不想做該做的事」，賴著、拖著、躺著。'}
+    ],
+    responses:{
+      A:'手機是這個時代最公平的小偷——它不挑人，連自律的人也擋不太住。保羅說「愛惜光陰」原文是「贖回」的意思，意思是：時間已經被偷走了，沒關係，問題是你想不想買回來。今天不要逼自己戒，只挑一個時段（例如睡前 30 分鐘），對自己說一句：「這段時間我想要回來。」做不到也沒關係，光是「想要回來」這個念頭，就是起點。',
+      B:'「該做的事」最會偷時間，因為它有理直氣壯的外衣。保羅問的不是「你做得夠不夠多」，是「你明不明白主的旨意」——這兩個問題的答案可能差很遠。今天，挑一件你正在做、但其實沒人逼你做的事，誠實問一句：「這真的是神要的，還是我自己給自己加的？」答案不一定要馬上動手改，光是看見就夠了。',
+      C:'「不好意思拒絕」這四個字，藏了很多人的疲憊。保羅說要「明白主的旨意」——不是叫你變得冷漠，是邀請你分清楚：哪些應酬是愛的延伸，哪些是你怕讓人失望。今天，想一個下週的邀約，先不急著回覆，給自己一晚的時間問神：「這個我去，是為了愛，還是為了不被討厭？」答案出來再回。',
+      D:'謝謝你說實話——這個答案比前三個都需要勇氣。「躺著拖著」常常不是懶，是心裡有什麼還沒過去（累、失望、提不起勁）。保羅說「不要作糊塗人，要明白主的旨意」，但他沒說「要立刻振作」。今天什麼都不用做，只把這句話帶到神面前：「我知道時間在流，但我現在動不了，祢來看我。」這就是一步了。'
+    },
+    reflectionTitle:'贖回時間',
+    reflection:'保羅說「要愛惜光陰」——原文的意思是「贖回、買回時間」。他預設你的時間已經被偷走了，沒有人時間是滿格的。重點不是責備你「為什麼浪費」，是邀請你問：「我想不想把它買回來？」\n\n今天，想一段你最常流失的時間（睡前？通勤？週末某個下午？）。先不急著定計畫，只問神一句：「這段時間，祢想跟我一起做什麼？」聽聽看，答案可能很小——可能只是「陪我安靜五分鐘」。',
+    baseItem:{emoji:'💡',name:'光明的衣',desc:'「從前你們是暗昧的，但如今在主裡面是光明的，行事為人就當像光明的子女。」',slot:'body'},
+    bonusItem:{emoji:'🎵',name:'感謝的詩歌',desc:'「凡事要奉我們主耶穌基督的名常常感謝父神。」',slot:'hat'}
+  },
+  {
+    chapter:'EPH6', sceneEmoji:'🛡️',
+    readTime:5,
+    guide:{
+      intro:'以弗所書到了第 6 章——保羅整本書到這裡收網。前半段他繼續講家裡和職場上的關係：兒女與父母（1-4 節）、僕人與主人（5-9 節）。然後他話鋒一轉，把整本書最有名的一段話放在最後：「要穿戴神所賜的全副軍裝」（10-20 節）。注意保羅沒有叫你去打仗、去攻擊誰；他用了一個很安靜的動詞——「站立得穩」。屬靈爭戰不是戲劇化的妖魔鬼怪，是日常的撐住、警醒、禱告。最後他用一封短短的問安收尾（21-24 節）。',
+      outline:[
+        {nodes:'1-4節', text:'家裡的次序——兒女在主裡聽從父母，父親不要惹兒女的氣，要照著主的教訓和警戒養育他們'},
+        {nodes:'5-9節', text:'職場的次序——僕人甘心事奉好像服事主，主人也要記得「他們和你們同有一位主在天上」'},
+        {nodes:'10-13節', text:'剛強壯膽——你們要靠著主，倚賴他的大能大力作剛強的人；要拿起神所賜的全副軍裝，好在磨難的日子還能站立得住 ✦'},
+        {nodes:'14-17節', text:'軍裝六件——真理的腰帶、公義的護心鏡、平安福音的鞋、信德的盾牌、救恩的頭盔、聖靈的寶劍'},
+        {nodes:'18-20節', text:'壓軸是禱告——靠著聖靈，隨時多方禱告祈求；並要在此警醒不倦，為眾聖徒祈求，也為我祈求'},
+        {nodes:'21-24節', text:'結語問安——推基古會把保羅的景況告訴你們；願平安、仁愛、信心、恩惠歸與弟兄們'}
+      ],
+      focus:'今日情境題聚焦在 10-13節——保羅說「要站立得住」。注意他用的動詞不是衝鋒、不是攻擊，是「站住」。這句話對「現在快撐不住」的你，是一個很重要的提醒。'
+    },
+    verse:'「所以，要拿起神所賜的全副軍裝，好在磨難的日子抵擋仇敵，並且成就了一切，還能站立得住。」',
+    verseRef:'—— 以弗所書 6:13',
+    scene:'保羅在這段沒有給你一份「打怪攻略」。他用的關鍵動詞，從頭到尾都是「站」——「能抵擋」「站立得住」「站穩了」。他知道你面對的不是看得見的對手，而是那種讓人慢慢洩氣、慢慢妥協、慢慢失去站立力氣的東西。所以軍裝不是用來衝鋒的，是用來「在磨難的日子，還能站著」的。今天的問題很簡單：你現在最需要哪一件，讓你今天可以不倒下？',
+    q:'這陣子的你，最需要哪一件「軍裝」，才能在當下的處境裡站著？',
+    choices:[
+      {k:'A',text:'真理的腰帶——我最近有點被謊言纏住（包括自己騙自己的那種），需要一句真話把自己束起來。'},
+      {k:'B',text:'平安福音的鞋——我不是要衝去哪，我只是需要走出門、走完今天，腳底下踩得穩一點。'},
+      {k:'C',text:'信德的盾牌——那些火箭一直射過來：質疑、焦慮、自我懷疑，我需要擋住，不然會被點燃。'},
+      {k:'D',text:'老實說我連穿軍裝的力氣都沒有了。叫我「剛強壯膽」？我現在只想躺平。'}
+    ],
+    responses:{
+      A:'你願意承認「被謊言纏住」，本身已經是真理在動工——很多人連這層都看不到。保羅說「用真理當作帶子束腰」，腰帶是內衣，不外顯，但少了它整套都鬆掉。今天不必處理一大堆謊言，挑一句最常騙自己的話（譬如「我不夠好」「沒人在乎」），對神說：「這句話我聽太多次了，今天我想換一句真的。」然後安靜等祂給你那一句。',
+      B:'保羅用的不是「跑步鞋」，是「預備走路的鞋」——他知道你不是要衝刺，是要走得完。「平安的福音」當鞋的意思是：你今天踩出去的每一步，底下都有一個事實在撐你——「神已經和你和好了」。今天出門前，低頭看一眼你的腳，對自己說一句：「我今天只要走完，不必走得漂亮。」',
+      C:'那些「火箭」最狠的地方，是它們聽起來都很像你自己的聲音——所以你以為要跟自己吵架。保羅說盾牌叫「信德」，不是叫你變強，是叫你「擋」，把那些不屬於你的話擋在身分之外。今天當下一支火箭飛過來時，先不要急著反駁它，只說一句：「這不是神對我說的話。」這句話就是盾牌。',
+      D:'謝謝你沒有假裝穿得起來。保羅說「要靠著主，倚賴他的大能大力作剛強的人」——重點不在「作剛強的人」，重點在「倚賴他的」。「剛強」不是你擠出來的，是被祂撐起來的。所以你「躺平」不是失敗，是承認自己沒力——這正是這節經文的起點。今天什麼都不必穿，只說一句：「我沒力了，祢撐我。」這就是穿軍裝的第一步。'
+    },
+    reflectionTitle:'站著就好',
+    reflection:'保羅整段講「全副軍裝」，但他沒有叫你去打仗——他的動詞一直是「站立得住」「站穩了」。屬靈爭戰不是戲劇化的妖魔鬼怪，是日常的、安靜的「在磨難的日子，還能站著」。對很多人來說，今天能不倒下，就已經是勝利。\n\n今天，想一下你「最需要哪一件軍裝」——真理、平安、信德、救恩、神的道，或就只是「站著」的力氣。把它寫下來，然後告訴神：你現在站著的力氣有幾分？卡在哪裡？不必裝剛強，祂要的是真話。',
+    baseItem:{emoji:'💪',name:'剛強的源頭',desc:'「我還有末了的話：你們要靠著主，倚賴他的大能大力作剛強的人。」',slot:'body'},
+    bonusItem:{emoji:'🙏',name:'警醒的禱告',desc:'「靠著聖靈，隨時多方禱告祈求；並要在此警醒不倦，為眾聖徒祈求，」',slot:'hand'}
+  },
+  // ── 腓立比書 1 ──
+  {
+    chapter:'PHP1', sceneEmoji:'⛓️',
+    readTime:4,
+    guide:{
+      intro:'腓立比書第一章——保羅人在羅馬的監獄裡，捆鎖在身（v.7、v.13、v.17 都提到），照理該是抱怨、求援、撐不下去的場景，但他寫出來的整章，從頭到尾飄著一種怪怪的喜樂。他說「我每逢想念你們，就感謝我的神」（v.3），他說「我為你們大家祈求的時候，常是歡歡喜喜的」（v.4），他甚至說「無論是生是死，總叫基督在我身上照常顯大」（v.20）。這不是粉飾太平的正能量，是把「我被關著」這件事誠實放在桌上，然後仍然說「我喜樂」。',
+      outline:[
+        {nodes:'1-2節', text:'問安——保羅與提摩太寫信給腓立比的眾聖徒，願恩惠平安歸與你們'},
+        {nodes:'3-11節', text:'感謝與禱告——每逢想念你們就感謝神，深信那在你們心裡動了善工的，必成全這工'},
+        {nodes:'12-18節', text:'捆鎖叫福音興旺——我所遭遇的事更是叫福音興旺，連御營全軍都知道我是為基督受捆鎖'},
+        {nodes:'19-26節', text:'活著就是基督——無論是生是死，總叫基督在我身上照常顯大；因我活著就是基督，我死了就有益處 ✦'},
+        {nodes:'27-30節', text:'勸勉——你們行事為人要與基督的福音相稱；你們蒙恩，不但得以信服基督，並要為他受苦'}
+      ],
+      focus:'今日情境題聚焦在 19-26節——保羅在監獄裡說「我活著就是基督」。這句話不是英雄宣言，是一個被困住的人，仍然找到活下去的方向。'
+    },
+    verse:'「因我活著就是基督，我死了就有益處。」',
+    verseRef:'—— 腓立比書 1:21',
+    scene:'保羅寫這封信的時候，正被羅馬政府關在牢裡，前途未卜——可能被釋放，也可能被處死。一般人在這種處境會做兩件事：抱怨、或求被救出去。保羅兩件都沒做。他寫的是：「無論是生是死，總叫基督在我身上照常顯大。」然後接一句更重的話——「因我活著就是基督，我死了就有益處。」他不是不在乎自己會怎樣，他是把「自己會怎樣」這件事，鬆手交給神，然後在等待的時間裡，繼續活著。',
+    q:'最近有沒有一個處境，你卡在裡面、覺得撐不下去，但又走不開——你會怎麼跟自己說「再撐一下」？',
+    choices:[
+      {k:'A',text:'我會告訴自己這是神給的功課，學會了就會過去。但說實話，講久了我自己也半信半疑。'},
+      {k:'B',text:'我不太跟自己對話，就是硬撐——上班、做家事、回訊息，把每天填滿，不讓自己想太多。'},
+      {k:'C',text:'我會試著找意義感——「至少還能陪家人」「至少還有工作」——但有時候連這個都找不到。'},
+      {k:'D',text:'老實說我撐不住，常常想「乾脆放掉算了」。「活著就是基督」這句話，現在的我說不出口。'}
+    ],
+    responses:{
+      A:'「講久了自己也半信半疑」——這句話比任何屬靈格言都誠實。保羅不是用一句口號撐過監獄的，他是在每一天的捆鎖裡，一點一點重新發現「基督還在這裡」。你不必每次都全信，半信半疑的時候，可以對神說：「我今天先信一半，剩下那半，請祢自己證明。」',
+      B:'把日子填滿是一種生存策略——不是逃避，是先讓自己活下來。但保羅在監獄裡沒辦法填滿，他只能面對。今天不必逼自己停下來面對全部，只挑一個十分鐘的空檔（睡前、坐車時），不滑手機，問自己一句：「我現在真的還好嗎？」答案不必馬上有，問了就好。',
+      C:'找得到意義感的時候很珍貴，找不到的時候不是你失敗了，是處境真的太重。保羅在監獄裡找到的意義感不是「至少還有什麼」，是「基督還在這裡」——當所有「至少」都消失，祂仍在。今天，當你又找不到意義感時，試試看不去找，只說一句：「神，今天我只能撐到這裡，剩下祢看著辦。」',
+      D:'「乾脆放掉算了」這句話如果你有人可以說、有地方可以說，就先說出來——對神說、對信得過的人說、對自己說都可以。保羅寫這章時也不是滿格的，他寫過「情願離世」（v.23），就是「我也想放掉」的意思。但他最後沒放，是因為他發現「仍住在肉身對你們更是要緊」（v.24）——還有人需要他。今天不必逼自己活得有力，只問一句：「我活著，對誰是要緊的？」一個名字也好。'
+    },
+    reflectionTitle:'仍然活著',
+    reflection:'保羅在監獄裡寫下「我活著就是基督，我死了就有益處」——這句話聽起來像勝利宣言，但它真實的脈絡是一個前途未卜的囚徒，每天醒來都要重新決定「我今天為什麼還在這裡」。他沒有粉飾自己的處境，他誠實地說「情願離世」（v.23）；但他也誠實地說「仍住在肉身對你們更是要緊」（v.24）。喜樂不是因為他不痛苦，而是因為他在痛苦裡找到了一個不會消失的對象——基督。\n\n今天，想一個你現在卡著的處境——不必是大事，可能就是一段疲憊、一個關係、一份說不出口的失望。誠實寫下：你現在「為什麼還在這裡」？不必有漂亮的答案，半句話也可以。神看得懂半句話。',
+    baseItem:{emoji:'🌱',name:'動了善工的應許',desc:'「我深信那在你們心裡動了善工的，必成全這工，直到耶穌基督的日子。」',slot:'hat'},
+    bonusItem:{emoji:'⛓️',name:'蒙恩的捆鎖',desc:'「因為你們蒙恩，不但得以信服基督，並要為他受苦。」',slot:'body'}
+  },
+  // ── 腓立比書 2 ──
+  {
+    chapter:'PHP2', sceneEmoji:'🤝',
+    readTime:6,
+    guide:{
+      intro:'腓立比 2 章是整本聖經最重要的基督論段落之一。保羅先勸腓立比信徒「凡事不可結黨，不可貪圖虛浮的榮耀」（v.3），叫他們「看別人比自己強」、「也要顧別人的事」（v.4）——然後筆鋒一轉，給出宇宙級的範本：基督本來與神同等，卻取了奴僕的形像，降卑、順服、死，且死在十字架上（v.6-8）。這個「向下」的方向，就是要信徒跟著走的方向。注意：「虛己」不是「貶低自我」，是「主動放下尊榮去服事」；保羅沒有叫你看輕自己，他是叫你把眼光也分一些給別人。',
+      outline:[
+        {nodes:'1-2節', text:'若在基督裡還有勸勉、安慰、交通、慈悲憐憫，就要意念相同、愛心相同，使保羅的喜樂可以滿足'},
+        {nodes:'3-4節', text:'凡事不可結黨、不可貪圖虛浮的榮耀，存心謙卑看別人比自己強；不要單顧自己的事，也要顧別人的事 ✦'},
+        {nodes:'5-8節', text:'基督的虛己——本有神的形像，卻取了奴僕的形像、成為人的樣式，自己卑微、存心順服，以至於死在十字架上'},
+        {nodes:'9-11節', text:'所以神將他升為至高，賜給他超乎萬名之上的名，叫一切在天上、地上、地底下的，無不屈膝、無不口稱耶穌基督為主'},
+        {nodes:'12-16節', text:'恐懼戰兢作成得救的工夫——因為是神在你們心裡運行；凡所行的不要發怨言、起爭論，好像明光照耀'},
+        {nodes:'17-30節', text:'保羅、提摩太、以巴弗提——三個「顧別人的事」的真實範本，與 v.4 的勸勉互相對照'}
+      ],
+      focus:'今日情境題聚焦在 3-4 節——「各人看別人比自己強」「也要顧別人的事」。這不是叫你看輕自己，是叫你把眼光也分一些給別人。重點在那個「也」字。'
+    },
+    verse:'「凡事不可結黨，不可貪圖虛浮的榮耀；只要存心謙卑，各人看別人比自己強。」',
+    verseRef:'—— 腓立比書 2:3',
+    scene:'保羅在監獄裡寫這封信，但他不是叫腓立比信徒可憐他，他擔心的是他們之間「結黨」「貪圖虛浮的榮耀」——教會內看不見的爭功、比較、互相不爽。他開的藥方不是「不要在意自己」，是「也要顧別人的事」（v.4）。注意那個「也」字——保羅沒有叫你只顧別人、不顧自己，他是叫你把眼光也分一些出去。最近這幾天，有沒有一個人需要你關注一下，但你只想到自己？',
+    q:'最近這陣子，有沒有一個人其實需要你關注一下，但你大部分時間只想到自己？',
+    choices:[
+      {k:'A',text:'有，腦海裡馬上跳出一個人的臉——我知道我該關心他，但我一直找理由拖。'},
+      {k:'B',text:'其實我已經在顧別人了，顧到累——現在反而是「我需要有人顧我一下」。'},
+      {k:'C',text:'我最近自己的事都自顧不暇，連抬頭看別人的力氣都沒有。'},
+      {k:'D',text:'老實說我也不太想看別人比自己強，那是我心裡卡很久的點。'}
+    ],
+    responses:{
+      A:'你能說出「那個人的臉」就跳出來，已經比大部分人誠實了——保羅說「各人不要單顧自己的事」，重點在「不要單顧」，不是「不准顧自己」。聖靈會把人放在心裡，是邀請不是控訴。今天不必修補整段關係，只做一件最小的事：傳一句訊息，或撥一通電話，問他一句「最近怎麼樣？」——三秒鐘的動作，比一個禮拜的內疚有用。',
+      B:'你說的是真的——「看別人比自己強」這節經文，從來不是寫給已經透支的人的，是寫給「結黨、貪圖虛浮的榮耀」的人的（v.3 上半）。你顧別人顧到累，本身已經走在這條路上很遠了。今天不用再多顧誰，反過來——對神說一句：「祢看見我累了，我也需要被顧。」你不是退步，你是在學保羅 v.4 那個「也」字的另一半：「也要顧自己」，因為你也是別人要顧的「別人」。',
+      C:'自顧不暇不是失敗，是真實。基督的虛己（v.7）是「主動放下尊榮去服事」，不是「把自己壓到底」——所以你現在沒力氣看別人，不要再多加一條「我應該」上去。今天只做一件事：把你「自顧不暇」的那件事，老實對神講一遍。等你心裡有一點點空間了，再抬頭看別人不遲。對自己說一句：「我先把今天過完，再說。」',
+      D:'謝謝你沒有假裝。「看別人比自己強」對很多人來說，聽起來就像「承認我比較差」——但保羅寫這句話的脈絡是 v.3 上半的「結黨、貪圖虛浮的榮耀」，他要對付的不是你的自尊，是教會裡那種暗暗較勁。基督的虛己是「本來就強，卻主動放下」（v.6-7），不是「我什麼都不值」。今天可以對神說一句：「我心裡卡在這個點很久了，祢知道為什麼——我不假裝不在意，我把這個給祢。」承認卡點，本身就是鬆動的開始。'
+    },
+    reflectionTitle:'那個「也」字',
+    reflection:'保羅在 v.4 寫的是「各人不要單顧自己的事，也要顧別人的事」——重點在那個「也」字。他沒有叫你不顧自己，他是叫你把眼光分一些出去。基督的虛己也是這樣：祂「本有神的形像」（v.6），是有的，是滿的——祂是從「有」裡面願意放下，不是從「沒有」裡面被掏空。\n\n今天，想一個你最近其實心裡有印象、但一直沒去顧的人。你不必馬上解決什麼，只問自己一句：「現在，我有沒有三秒鐘可以為他做一件最小的事？」一句訊息、一個禱告、一個記得他名字的時刻——都算。把它寫下來，告訴神你打算什麼時候做。',
+    baseItem:{emoji:'💛',name:'基督的心',desc:'「你們當以基督耶穌的心為心。」',slot:'hat'},
+    bonusItem:{emoji:'⚙️',name:'裡面的運行',desc:'「因為你們立志行事，都是神在你們心裡運行，為要成就他的美意。」',slot:'body'}
+  },
+  // ── 腓立比書 3 ──
+  {
+    chapter:'PHP3', sceneEmoji:'🏃',
+    readTime:5,
+    guide:{
+      intro:'腓立比 3 章是保羅的「反履歷」。他把自己原本最值得誇耀的身分、學歷、熱心，一條一條列出來，然後說：「這些我現在當作糞土。」不是因為它們不好，而是因為他遇見了一個更好的——基督。但保羅不是裝清高的人。寫到後面他自己承認：「我不是以為自己已經得著了。」他還在路上。他只是學會了一件事：不被背後困住，向著標竿直跑。',
+      outline:[
+        {nodes:'1-3節', text:'要靠主喜樂——保羅警告要防備「犬類」、那些妄行割禮的人；真受割禮的是我們以神的靈敬拜的'},
+        {nodes:'4-6節', text:'保羅的「履歷」——若論肉體可誇的，他都有：第八天受割禮、便雅憫支派、希伯來人、法利賽人、熱心逼迫教會'},
+        {nodes:'7-11節', text:'反過來看——我先前以為與我有益的，我現在因基督都當作有損的；不但如此，我也將萬事當作有損的'},
+        {nodes:'12-14節', text:'保羅的誠實——我不是以為自己已經得著了；我只有一件事：忘記背後，努力面前，向著標竿直跑 ✦'},
+        {nodes:'15-21節', text:'我們是天上的國民，等候救主從天降臨；他要將我們這卑賤的身體改變形狀，和他自己榮耀的身體相似'}
+      ],
+      focus:'今日情境題聚焦在 12-14節——保羅一面說「忘記背後」，一面承認自己「還沒得著」。重點不是逼你放下，是邀請你不被困住。'
+    },
+    verse:'「向著標竿直跑，要得神在基督耶穌裡從上面召我來得的獎賞。」',
+    verseRef:'—— 腓立比書 3:14',
+    scene:'你打開抽屜，看見一張多年前的舊照片。那段日子有些事你還沒完全放下——可能是一次失敗、一段關係、一句別人說過的話、一個自己當年的選擇。它不是每天都跳出來，但只要被觸動，胸口還是會悶一下。保羅在這章說「忘記背後」，但他自己也承認「我不是以為自己已經得著了」——他不是要你假裝沒事，是要你別被困在那裡。',
+    q:'面對那些「還回頭看」的事，你現在最誠實的狀態是？',
+    choices:[
+      {k:'A',text:'我以為早就過去了，但今天打開抽屜還是會卡一下。'},
+      {k:'B',text:'我知道該往前，但腳像被黏住，走不動。'},
+      {k:'C',text:'我願意往前，只是還沒準備好把那件事「放下」。'},
+      {k:'D',text:'老實說，我不確定自己想不想往前——回頭看比較安全。'}
+    ],
+    responses:{
+      A:'原來「過去了」跟「不再被觸動」是兩件事。保羅沒有說「忘記背後」就是要你刪除記憶——他自己在 v.5-6 還能一條一條列出他的過去。差別是：他不再把過去當作他「現在的身分」。今天不用逼自己什麼都放下，先承認一句：「這件事還會痛，但它不再決定我是誰。」',
+      B:'腳被黏住的感覺很真實。保羅在 v.12 說「我不是以為自己已經得著了，我乃是竭力追求」——他承認自己也還在追，不是已經到了。今天不用一次走十步，只走一步：把那件事寫下來，或對一個信任的人說出口。動起來，黏的地方才會慢慢鬆開。',
+      C:'這個誠實很珍貴。「放下」這個詞其實有點重，好像要你一刀切。保羅用的是「忘記背後努力面前」——重點不是擦掉背後，是把眼睛轉向前面。今天不用處理那件事，只做一件：問自己「我現在最想往哪個方向走？」往那個方向，先抬一次頭。',
+      D:'老實說「回頭看比較安全」的人，其實已經在面對自己了，這比假裝往前的人勇敢。回頭有時候不是逃避，是還沒準備好。保羅自己也是在認識基督之後，才捨得把舊履歷當糞土——他不是用意志力放下的，是因為看見更好的。今天不用強迫自己往前，先求一件事：「讓我看見值得我往前的那個東西。」'
+    },
+    reflectionTitle:'還在跑的人',
+    reflection:'保羅在 v.13-14 寫「忘記背後，努力面前，向著標竿直跑」，但他在 v.12 先誠實承認：「我不是以為自己已經得著了。」他不是已經到終點的人，他是還在跑的人。重點不是「忘記」，是「不被困住」；不是「假裝沒事」，是「把臉轉向前面」。\n\n今天，想一件你心裡那件「還會回頭看」的事——不必現在處理它，只問自己一句：它對我來說，還有什麼份量？而我，願意把臉轉向前面多少？半步也算。寫下來，告訴神你今天願意走的那半步是什麼。',
+    baseItem:{emoji:'🎽',name:'竭力追求的跑者',desc:'「這不是說我已經得著了，已經完全了；我乃是竭力追求，或者可以得著基督耶穌所以得著我的。」',slot:'body'},
+    bonusItem:{emoji:'⚖️',name:'重新秤過的天平',desc:'「只是我先前以為與我有益的，我現在因基督都當作有損的。」',slot:'hand'}
+  },
+  // ── 腓立比書 4 ──
+  {
+    chapter:'PHP4', sceneEmoji:'🌬️',
+    readTime:4,
+    guide:{
+      intro:'保羅寫這封信時，人在羅馬的監牢裡。他不是站在岸上對我們喊「不要焦慮」，他是浸在水裡，說「我學了怎麼活在水裡」。第 4 章是整卷腓立比書的收束，金句密度高到嚇人——喜樂、平安、知足、凡事都能作，每一句都被引用到爛。但拿掉勵志的濾鏡，這章其實在講一件很具體的小事：當你心裡裝著一件放不下的擔憂，你可以怎麼做。',
+      outline:[
+        {nodes:'1-3節', text:'對腓立比教會的最後叮嚀——靠主站立得穩，兩個女人要在主裡同心'},
+        {nodes:'4-5節', text:'靠主常常喜樂，謙讓的心叫眾人知道，因為主已經近了'},
+        {nodes:'6-7節', text:'一無掛慮，凡事禱告祈求感謝，神的平安必保守你的心懷意念 ✦'},
+        {nodes:'8-9節', text:'思念真實、可敬、清潔、可愛的事，賜平安的神就與你們同在'},
+        {nodes:'10-13節', text:'我學了在卑賤豐富裡都知足；凡事都能作的祕訣不是想做什麼都成，是在景況裡能站住'},
+        {nodes:'14-20節', text:'感謝腓立比人多次的供給，我的神必照他榮耀的豐富使你們充足'},
+        {nodes:'21-23節', text:'結語問安，願主耶穌基督的恩常在你們心裡'}
+      ],
+      focus:'今日情境題聚焦在 6-7節——那些你怎麼禱告也放不下的事，保羅說可以一件件交出去，不是因為神保證會照你想的成全，而是平安會先來。'
+    },
+    verse:'「應當一無掛慮，只要凡事藉著禱告、祈求，和感謝，將你們所要的告訴神。」',
+    verseRef:'—— 腓立比書 4:6',
+    scene:'深夜十一點多，你躺在床上滑手機。明天那件事還沒著落——可能是工作的回覆、孩子的狀況、家人的健檢報告、一段尷尬的關係。你已經為它禱告過好幾次了，可是每次禱告完，過十分鐘焦慮又回來。手機螢幕亮了又暗，你嘆口氣，把它放到枕頭旁邊。',
+    q:'面對這件「禱告了還是放不下」的事，你今晚會怎麼做？',
+    choices:[
+      {k:'A',text:'再禱告一次，把細節說得更清楚，連最壞的結果也交給神。'},
+      {k:'B',text:'寫下來。把擔心的事一條一條列在紙上，旁邊寫一句「這條我交了」。'},
+      {k:'C',text:'老實說我做不到「一無掛慮」，但我願意把擔憂跟神講，至少不是一個人扛。'},
+      {k:'D',text:'我已經很累了，今天先睡，明天再說。先求一個能睡著的夜晚。'}
+    ],
+    responses:{
+      A:'把最壞的結果也說出口，是很有勇氣的禱告。很多時候我們不敢這樣禱告，是因為怕說出口就成真——但保羅說的「將你們所要的告訴神」，包含那個你最不敢講的版本。講完不一定立刻有答案，但你會發現心裡的重量，從「我一個人扛」變成「有人聽見了」。今晚試著在禱告最後加一句：「就算不是我想的那樣，求祢的平安先到。」',
+      B:'寫下來這個動作本身就有療癒力。焦慮在腦裡會自己繁殖——一件變三件、三件變十件；寫在紙上它就只有那麼多，而且你可以看見「原來就這些」。在每一條旁邊寫「這條我交了」，不是儀式而已，是給自己一個視覺的提醒：這件事的主權，不在我這裡。明天早上再看一次那張紙，看哪幾條神已經接住了。',
+      C:'謝謝你誠實。「一無掛慮」這四個字，老實說沒幾個人真的做得到——保羅自己也不是天生會的，他說「這是我已經學會了」（v.11），學會就表示原本不會。你願意把擔憂跟神講，就已經在學了。重點不是達標，是不要關門。今晚就用最白話的方式跟神說：「祢知道我在擔心什麼，我交不出去，但我跟祢講了。」這樣就夠了。',
+      D:'先睡是對的。「神所賜出人意外的平安」這節經文，緊接在「一無掛慮」後面——平安不是你掙來的，是神給的。你的身體現在最需要的不是再禱告一輪，是闔眼。睡前可以只說一句：「神，這件事先放在祢那裡過夜，明天我再來想。」交託有時候不是長禱告，是允許自己關燈。願你今晚睡個好覺。'
+    },
+    reflectionTitle:'今晚那條放不下的',
+    reflection:'保羅在獄裡寫下「一無掛慮」的時候，他自己手腳上應該還銬著鎖鏈。他不是沒有處境，是學會在處境裡禱告。「應當一無掛慮」（v.6）緊接著「神所賜出人意外的平安，必在基督耶穌裡保守你們的心懷意念」（v.7）——禱告之後不是事情變了，是心被守住了。\n\n停一分鐘，想一件最近一直在你心裡轉、怎麼禱告也放不下的事。不用想怎麼解，只想一句話——你今晚願意怎麼跟神說這件事？寫下來，或在心裡輕輕說一次也好。',
+    baseItem:{emoji:'🛡️',name:'心懷意念的護盾',desc:'「神所賜出人意外的平安，必在基督耶穌裡保守你們的心懷意念。」',slot:'body'},
+    bonusItem:{emoji:'🎒',name:'知足的祕訣',desc:'「我並不是因缺乏說這話；我無論在甚麼景況都可以知足，這是我已經學會了。」',slot:'hat'}
+  },
+  // ── 歌羅西書 1 ──
+  {
+    chapter:'COL1', sceneEmoji:'🕯️',
+    readTime:5,
+    guide:{
+      intro:'歌羅西書是保羅在監獄裡寫的信。他從沒見過這群人，卻為他們禱告、為他們流淚。整章像一封情書，又像一份禮物——他把「住在你心裡的基督」這個祕密，輕輕放進信封裡。',
+      outline:[
+        {nodes:'1-2節', text:'問安——寫給一群保羅沒見過、卻牽掛的弟兄姊妹'},
+        {nodes:'3-14節', text:'感謝與代禱——謝謝神在他們身上動工，求他們滿心知道神的旨意，照他榮耀的權能在各樣的力上加力'},
+        {nodes:'15-20節', text:'基督至高——他是不能看見之神的像，萬有都是靠他造的、為他造的'},
+        {nodes:'21-27節', text:'福音的奧祕——那位創造萬有的基督，如今住在你心裡，成了有榮耀的盼望 ✦'},
+        {nodes:'28-29節', text:'保羅的勞苦——要把各人在基督裡完完全全的引到神面前'}
+      ],
+      focus:'今日情境題聚焦在 21-27節——那位「萬有靠他而立」的基督，竟然挑了「你的心」作為祂的住處；當你發現自己對信仰只剩道理、沒剩溫度，這節經文怎麼讀？'
+    },
+    verse:'「就是基督在你們心裡成了有榮耀的盼望。」',
+    verseRef:'—— 歌羅西書 1:27',
+    scene:'你坐在熟悉的位置上，週報拿在手裡，詩歌唱完了，講員在台上講道。你跟著翻聖經、跟著低頭禱告，一切都很正常。只是回家的路上你忽然發現——心裡是空的。不是懷疑，不是憤怒，就是......沒火。信很久了，道理都懂，但「基督在你心裡」這句話，你已經很久沒有真的感覺到了。',
+    q:'當「基督在你心裡」變成一句你會背、卻感受不到的話，你會怎麼面對這個禮拜的自己？',
+    choices:[
+      {k:'A',text:'想辦法重燃——找退修會、找特會、找一個能再被感動的方法。'},
+      {k:'B',text:'老實承認：我現在心裡沒火，但我不想假裝有。'},
+      {k:'C',text:'提醒自己「感覺不是重點」，繼續按時間表讀經禱告。'},
+      {k:'D',text:'等小組或某個朋友先把我拉一把，我自己一個人撐不住。'}
+    ],
+    responses:{
+      A:'想重燃，是因為你還記得火曾經是什麼樣子——這份記憶本身就是恩典。只是要小心，特會帶來的熱度像營火，會旺、也會熄；而 v.27 說的「在你們心裡」是一個更安靜的東西，比較像爐子的餘溫。今天不一定要找到大火，可以先問自己：上一次心裡有一點點被觸動，是什麼時候、為了什麼事？把那個小火苗找回來，比衝去點一場新的煙火更要緊。',
+      B:'謝謝你願意這樣說。整本歌羅西書最珍貴的地方，是保羅沒有要你「裝有」——他是寫給一群他相信「基督已經住進去」的人，即便他們自己感覺不到。「在你心裡」不是因為你有火才成立，是基督自己選擇住下來。你今天不用勉強感動，只要承認「我現在這樣」，這份誠實本身就是禱告。今晚睡前，可以對神說一句：「我知道祢在，雖然我感覺不到。」這樣就夠了。',
+      C:'「感覺不是重點」這句話一半對、一半危險。對的是——信心確實不靠感覺撐著；危險的是，它有時候會變成我們麻痺自己的藉口，讓「沒感覺」變成不去處理的理由。v.27 用的詞是「有榮耀的盼望」，盼望本來就帶著一點溫度，不是冷冰冰的義務。今天的功課不是逼自己有感覺，是允許自己問一句：「主，我這份冷淡，祢看見了嗎？」把冷淡端到祂面前，比假裝沒事更接近祂。',
+      D:'會想等人拉一把，不丟臉——保羅自己也是在監獄裡靠著代禱活下來的。但你心裡其實知道，再好的朋友也只能拉到門口，門裡面的那盞燈，要由住在裡面的那位點起來。今天不用一個人硬撐，可以傳訊息給一個你信任的人說「我最近有點空」；同時也試著留五分鐘，安靜地對心裡那位說：「祢還在嗎？」這兩件事一起做，不矛盾。'
+    },
+    reflectionTitle:'寫給住在我心裡的那位',
+    reflection:'保羅說「基督在你們心裡成了有榮耀的盼望」——那位創造萬有、托住萬有的，竟然挑了「我的心」作住處。不是因為我心裡夠乾淨、夠熱，而是祂自己願意。\n\n如果此刻祂正坐在我心裡那把舊椅子上，我會想對祂說什麼？是抱怨最近的冷淡，是承認我已經很久沒認真看祂，還是只是安靜地坐下來，陪祂一會兒？把心裡那句最真實的話寫下來，不用漂亮，只要是真的。',
+    baseItem:{emoji:'💪',name:'忍耐寬容的力',desc:'「照他榮耀的權能，得以在各樣的力上加力，好叫你們凡事歡歡喜喜的忍耐寬容；」',slot:'body'},
+    bonusItem:{emoji:'🗝️',name:'愛子國的鑰匙',desc:'「他救了我們脫離黑暗的權勢，把我們遷到他愛子的國裡。」',slot:'hand'}
+  },
+  // ── 歌羅西書 2 ──
+  {
+    chapter:'COL2', sceneEmoji:'🌬️',
+    readTime:4,
+    guide:{
+      intro:'保羅在這一章按下暫停鍵。他說：你們已經接受了基督，現在最該小心的不是外面的敵人，是那些聽起來很有道理、卻悄悄把你從基督身邊帶走的聲音。',
+      outline:[
+        {nodes:'1-5節', text:'保羅遠遠掛心他們，盼望他們在愛裡聯絡、在悟性中站穩'},
+        {nodes:'6-8節', text:'既然接受了主，就在祂裡面生根；要謹慎，免得被理學和妄言擄去 ✦'},
+        {nodes:'9-15節', text:'神一切的豐盛都在基督裡，你也在祂裡面得了豐盛、與祂同死同活'},
+        {nodes:'16-23節', text:'外在的規條像影兒，真正的形體是基督；不要在影子裡轉圈'}
+      ],
+      focus:'今日情境題聚焦在 6-8節——當你已經有了基督，誰還在悄悄把你帶走？'
+    },
+    verse:'「你們要謹慎，恐怕有人用他的理學，和虛空的妄言，不照著基督，乃照人間的遺傳，和世上的小學，就把你們擄去。」',
+    verseRef:'—— 歌羅西書 2:8',
+    scene:'夜裡十一點半，你又一次在手機上滑到停不下來。剛剛那支影片講「成功的人都這樣做」，再上一支說「真正屬靈的人不會這樣」，再上一支是某個你不太熟的網紅在評論教會。你忽然發現，這一個小時你聽了很多聲音，但沒有一個聲音是耶穌的。',
+    q:'回頭看這一週，有哪個聲音最常住在你腦袋裡，悄悄把你從基督那邊帶走？',
+    choices:[
+      {k:'A',text:'是「別人在做什麼」——演算法餵的、誰又成功了、誰又怎樣了。'},
+      {k:'B',text:'是「我應該更屬靈」——某個屬靈榜樣、某種看起來更虔誠的樣子。'},
+      {k:'C',text:'其實沒注意過，今天才發現腦袋裡那麼吵。'},
+      {k:'D',text:'我知道，但那聲音比耶穌大太多，我拉不回來。'}
+    ],
+    responses:{
+      A:'演算法不是中性的，它一直在告訴你「你不夠」、「別人都在前面」。這些不算「妄言」嗎？不一定。但當它住進你腦袋的時間比基督的話多很多，它就已經在擄你了。今晚睡前，把手機放在離床遠一點的地方，給耶穌一個進來的安靜。',
+      B:'想更像耶穌不是錯，但「想更像某個屬靈的樣子」很容易變成另一種轄制——你不是在跟基督建立關係，是在追一個版本的自己。今天為自己禱告一句：「主，我要的是祢，不是更好版本的我。」',
+      C:'能在這裡停下來、發現腦袋很吵，已經是聖靈在動工了。不用急著處理，先承認就好。今晚找三分鐘，什麼都不做，只在心裡說：「主，我在這裡。」這就是生根的第一步。',
+      D:'謝謝你誠實。保羅說「擄去」這個字本來就很重——被擄的人不是不想回家，是回不去。你不需要先變強才能來找耶穌，你可以就帶著那個拉不回來的自己來。今天只做一件事：把這句話念出聲——「主，我被帶走了，請祢來找我。」'
+    },
+    reflectionTitle:'今天，我聽見的聲音裡，哪一個其實不是祢？',
+    reflection:'主，我以為我是自由的，但我發現我的腦袋裡塞滿了不是祢的聲音。那些聲音聽起來都很有道理，所以我沒察覺它們悄悄把我帶離了祢。\n\n求祢幫助我，在祢裡面生根，比在任何聲音裡都更深。今晚就先做一件最小的事：把手機放遠一點，給祢一個進來的安靜。',
+    baseItem:{emoji:'🌱',name:'遵行的根',desc:'「你們既然接受了主基督耶穌，就當遵他而行；」',slot:'body'},
+    bonusItem:{emoji:'🏛️',name:'生根的柱',desc:'「在他裡面生根建造，信心堅固，正如你們所領的教訓，感謝的心也更增長了。」',slot:'bg'}
+  },
+  // ── 歌羅西書 3 ──
+  {
+    chapter:'COL3', sceneEmoji:'🏠',
+    readTime:6,
+    guide:{
+      intro:'保羅在第 3 章接續上一章的提醒——你們已經與基督一同復活了，那就活得像個復活的人。他用一個強烈的畫面：脫去舊人，穿上新人。但這不是換衣服那麼簡單。真正的考驗不在教會、不在同工群組，而在你打開家門、放下包包、看見最親近的那個人那一刻。',
+      outline:[
+        {nodes:'1-4節', text:'與基督一同復活的人，要思念上面的事；生命已經與基督一同藏在神裡面，這是新人的根'},
+        {nodes:'5-11節', text:'治死舊人的肢體：淫亂、惱恨、忿怒、毀謗、說謊；脫下舊的，穿上新的——這新人在知識上漸漸更新'},
+        {nodes:'12-15節', text:'新人穿什麼？憐憫、恩慈、謙虛、溫柔、忍耐；最要緊的是愛心，是聯絡全德的，叫基督的平安在心裡作主 ✦'},
+        {nodes:'16-17節', text:'把基督的道理豐豐富富存在心裡，無論作甚麼，都奉主耶穌的名'},
+        {nodes:'18-25節', text:'夫妻、親子、主僕——保羅把新人帶回家。在外面對人「以恩相待」很容易，回到最親近的人面前還能不能持續？這才是試金石'}
+      ],
+      focus:'今日情境題聚焦在 12-15節——你說你已經穿上新人了，那回到家裡，那份憐憫、恩慈、忍耐還能不能持續？'
+    },
+    verse:'「在這一切之外，要存著愛心；愛心就是聯絡全德的。」',
+    verseRef:'—— 歌羅西書 3:14',
+    scene:'晚上九點，你剛回到家。客廳燈是暗的，只有廚房一盞小燈。同住的家人（配偶、父母、室友、或孩子——你心裡浮現的那個人）坐在那裡，沒抬頭。你心裡知道，今天早上出門前你們有點不愉快，話沒講完。你今天在外面對同事很客氣，對小組成員很有愛心，剛剛還在群組裡傳了一句鼓勵的話。但現在——你站在玄關，背包還沒放下。',
+    q:'你打開家門的那一刻，你還是同一個人嗎？',
+    choices:[
+      {k:'A',text:'放下包包，先過去輕輕問一句「你還好嗎？」——對外的耐心，回家也要有。'},
+      {k:'B',text:'我也累了。先不講話，洗個澡冷靜一下，明天再說。'},
+      {k:'C',text:'心裡默禱：主，我對外面的人比對家人還好，求祢憐憫我這個落差。'},
+      {k:'D',text:'老實說，我現在連回家都覺得累。對家人「彼此包容」這幾個字，我做不到。'}
+    ],
+    responses:{
+      A:'你做了一件很小但很難的事——把對外的那份溫柔，帶回了玄關。多數人剛好相反：在外面披得整整齊齊，一進門就把新人脫在門口。你今天沒有脫。那句「你還好嗎」可能不會立刻化解什麼，對方甚至可能還是沒抬頭。沒關係，憐憫從來不是為了立刻有回應，是因為基督先這樣對你。今晚就算只多陪坐五分鐘，也夠了。',
+      B:'你選擇了一個誠實的距離。這不是逃避——有時候在情緒滿載的時候硬講話，反而把舊人又穿回去了。保羅說「存忍耐的心」，忍耐有時就是給自己和對方一點空間。但記得「明天」要真的來——洗完澡躺下前，跟主說一句「明天我願意先開口」，別讓這個冷靜變成另一場冷戰的開頭。',
+      C:'你看見了那個落差，這已經是新人在工作了。多少人對外笑臉，回家板臉，卻從不覺得有什麼問題。你願意在主面前承認這件事，本身就是「穿上謙虛」的動作。今晚不用急著補救什麼，先讓這個禱告停留久一點——求主把你對小組成員的那份耐心，分一點回給家裡的人。明天醒來，從一個小動作開始就好。',
+      D:'謝謝你說出來。回家累、對最親的人耐心耗光、連「包容」兩個字都覺得沉重——這不是信仰失敗，這是你已經撐了很久。保羅寫 v.15 不是說「你要有平安」，是說「叫基督的平安在你們心裡作主」——主動權在祂，不在你硬擠出來。今晚不用做任何事，就把這份累放在祂面前。如果連禱告都說不出口，就坐著，讓祂陪你坐。'
+    },
+    reflectionTitle:'回到家的那一刻，你是同一個人嗎？',
+    reflection:'保羅列出新人的五件衣服——憐憫、恩慈、謙虛、溫柔、忍耐——然後立刻把場景拉回家裡。他知道，信仰最容易掉漆的地方，從來不是世界，是家門口。\n\n今晚，不要急著當一個更好的家人。先停下來想一件事：那個你今天對外人特別溫柔的瞬間，是不是也可以分一點點，留給那個跟你同住的人？哪怕只是放下手機，多看他一眼。基督的平安會慢慢作主，從這一眼開始。',
+    baseItem:{emoji:'🧥',name:'五色新衣',desc:'「所以你們既是神的選民，聖潔蒙愛的人，就要存憐憫、恩慈、謙虛、溫柔、忍耐的心。」',slot:'body'},
+    bonusItem:{emoji:'🕊️',name:'心中作主的平安',desc:'「又要叫基督的平安在你們心裡作主；你們也為此蒙召，歸為一體；且要存感謝的心。」',slot:'hat'}
+  },
+  // ── 歌羅西書 4 ──
+  {
+    chapter:'COL4', sceneEmoji:'🧂',
+    readTime:4,
+    guide:{
+      intro:'歌羅西書最後一章，保羅從天上的高度落到地上的日常。前面三章談基督是萬有的元首、新人的樣式、家庭與職場的次序，到了第四章，他把鏡頭轉向兩件最近身的事：禱告生活，還有「你怎麼跟人說話」。',
+      outline:[
+        {nodes:'1節', text:'對僕人公平——延續第三章家庭職場篇的尾聲'},
+        {nodes:'2-4節', text:'恆切禱告，儆醒感恩——保羅請求代禱，求神開傳道的門'},
+        {nodes:'5-6節', text:'用智慧與外人交往，言語要像用鹽調和——保羅用「鹽」比喻一種既有味道又不腐敗的對話品格 ✦'},
+        {nodes:'7-18節', text:'結語問安——推基古、阿尼西母、馬可、路加等同工問候，最後親筆署名'}
+      ],
+      focus:'今日情境題聚焦在 5-6節——「用鹽調和」的言語，最難的不是對陌生人，而是回家面對最熟的人。'
+    },
+    verse:'「你們的言語要常常帶著和氣，好像用鹽調和，就可知道該怎樣回答各人。」',
+    verseRef:'—— 歌羅西書 4:6',
+    scene:'同事在會議裡踩你一句，你笑笑帶過，還補一句「沒關係啦」。下班回家，家人問你晚餐要吃什麼，你脫口而出：「都可以啊，你決定，每次都問我很煩耶。」走進房間關門那刻，你愣住了。',
+    q:'為什麼你能對外人「言語帶著和氣」，卻對最親的人最沒耐心？',
+    choices:[
+      {k:'A',text:'因為對外人是社交禮貌，對家人才是真實的我。'},
+      {k:'B',text:'老實說我沒想過這件事，被你一問才發現。'},
+      {k:'C',text:'在外面忍太多了，回家才有地方可以鬆下來。'},
+      {k:'D',text:'我不覺得這是問題，家人本來就該包容彼此。'}
+    ],
+    responses:{
+      A:'你這句話戳到一個關鍵：如果「和氣」只是社交禮貌，那它就只是表演，不是品格。保羅說「言語要常常帶著和氣」——「常常」這兩個字很狠，意思是它得能穿過家門。先別急著改，今晚先注意一個瞬間：回家後第一句話的語氣。光是看見，就是改變的起點。',
+      B:'誠實是這題最珍貴的答案。很多事情我們做了很多年都沒想過，一旦被照出來，就回不去了。今天不用立刻變得溫柔，只要做一件小事：晚餐時對家人說一句「謝謝你」——哪怕只是謝謝對方倒了一杯水。鹽，是一點一點調進去的。',
+      C:'你說的是真的，外面忍太多，家是唯一不用裝的地方。但「不用裝」跟「可以亂講」是兩件事。或許今天可以試試：回家前在門口深呼吸三秒，把外面的疲憊先放下，再開門。家人不該承接你一整天的氣，但他們值得你帶著還沒散掉的溫柔回家。',
+      D:'家人之間確實有包容的空間，這沒錯。但包容不該是單方面被消耗——你被包容的同時，對方也在默默吞下你的話。今天的邀請很小：留意一下，最近一次你對家人說重話，對方的表情。不是要你愧疚，是要你看見。看見了，就有機會。'
+    },
+    reflectionTitle:'帶著和氣回家',
+    reflection:'保羅用「鹽」這個比喻很妙。鹽有兩個作用：調味，讓食物有味道；防腐，讓食物不會壞。「言語像鹽調和」的意思是——你說的話，要讓關係有味道（不無聊、不冷漠），也要讓關係不腐敗（不刻薄、不傷人）。\n\n回想最近一次你對家人講話的語氣。如果把同樣那句話、同樣那個音量，搬到公司對同事講，你還敢講嗎？如果不敢——那不是家人該承受的，是你還沒學會把「鹽」也帶回家。今晚回家，試著對家人說一句你今天對同事說過的客氣話。',
+    baseItem:{emoji:'🕯️',name:'儆醒的禱燭',desc:'「你們要恆切禱告，在此儆醒感恩。」',slot:'hand'},
+    bonusItem:{emoji:'⏳',name:'智慧的沙漏',desc:'「你們要愛惜光陰，用智慧與外人交往。」',slot:'bg'}
+  },
+  // ── 帖撒羅尼迦前書 1 ──
+  {
+    chapter:'TH1_1', sceneEmoji:'🔥',
+    readTime:4,
+    guide:{
+      intro:'帖撒羅尼迦前書是保羅最早的書信之一，寫給一群在患難中信主、卻信得火熱的年輕教會。第 1 章從感謝開始——保羅不是稱讚他們傳道技巧高明，而是看見他們在大難之中仍有喜樂，這份生命的改變自己就傳了開來，連保羅都不用再多說什麼。',
+      outline:[
+        {nodes:'1節', text:'問安——保羅、西拉、提摩太一同寫信，願恩惠平安歸給帖撒羅尼迦教會'},
+        {nodes:'2-4節', text:'感謝——保羅在神面前記念他們因信心所做的工夫、因愛心所受的勞苦、因盼望所存的忍耐 ✦'},
+        {nodes:'5-7節', text:'福音的果效——福音不只是言語，更帶著權能與聖靈，他們在患難中仍有喜樂，成了眾人的榜樣'},
+        {nodes:'8-10節', text:'活的見證——他們的信心向各處傳開，因為他們離棄偶像、歸向又真又活的神'}
+      ],
+      focus:'今日情境題聚焦在 2-4節——保羅記念的不是他們做了多少，而是信、愛、望如何在他們生命裡長出工夫、勞苦與忍耐。'
+    },
+    verse:'「並且你們在大難之中，蒙了聖靈所賜的喜樂，領受真道，就效法我們，也效法了主。」',
+    verseRef:'—— 帖撒羅尼迦前書 1:6',
+    scene:'保羅離開帖撒羅尼迦後，心裡掛念這群在患難中信主的人。但消息傳來——他們不只站住了，還活得喜樂，連周圍的人都看見了。保羅提筆寫的第一件事不是叮嚀，是感謝：你們的生命，自己就在說話。',
+    q:'保羅說，帖撒羅尼迦人信主之後，整個生命變得周圍人都看得見。你信主之後（或開始認真面對信仰之後），自己生命裡有哪一處變得不一樣了嗎？',
+    choices:[
+      {k:'A',text:'有——我看得出某個地方變柔軟了，雖然別人不一定知道原因。'},
+      {k:'B',text:'好像有，但很細微，我自己都不太確定那算不算「改變」。'},
+      {k:'C',text:'老實說我看不太出來，日子照舊過，信仰比較像放在心裡的一塊。'},
+      {k:'D',text:'我比較怕的是「被看見」這件事，好像信了就得活成榜樣，壓力很大。'}
+    ],
+    responses:{
+      A:'這個「變柔軟」很珍貴——它不是你刻意演出來的，是被慢慢改變的痕跡。帖撒羅尼迦人也是這樣，他們沒有要表演什麼，只是活著活著就不一樣了。下次你又感覺到那份柔軟時，可以悄悄跟神說一句：「這是你做的，我知道。」',
+      B:'細微到自己都不確定，其實是很真實的狀態。改變很少是轟轟烈烈的，多半是回頭才發現「我以前不是這樣的」。要不要試著想一件半年前的你會做、現在不太想做的小事？那可能就是答案。',
+      C:'謝謝你這麼老實。「放在心裡的一塊」其實也是一種真實的信——它沒有消失，只是還沒長到外面來。保羅讚美帖撒羅尼迦人不是因為他們表現好，是因為神在他們裡面動工。神的工作有自己的時間，不急。這禮拜，你願意給神一個小小的空間嗎，哪怕只是睡前一句話。',
+      D:'這個害怕很值得被聽見——很多人就是被「要活成榜樣」這句話壓得喘不過氣。但帖撒羅尼迦人不是因為表現完美才被稱讚，他們只是在患難中還能喜樂，那不是裝出來的。你不必當榜樣，你只要誠實地活著就好。能說出「我怕被看見」，本身已經很誠實了。'
+    },
+    reflectionTitle:'信心的工夫',
+    reflection:'保羅在神面前記念帖撒羅尼迦人的，不是他們的成就，而是三樣東西長出來的痕跡——因信心所做的工夫，因愛心所受的勞苦，因盼望所存的忍耐。信、愛、望不是掛在嘴上的詞，它們會在生活裡變成具體的動作、付出和等待。\n\n回想你信主以來，有沒有哪一件「工夫」「勞苦」或「忍耐」，是因為信仰才做得出來的？把它寫下來，那是神在你身上動工的證據。',
+    baseItem:{emoji:'🔥',name:'又真又活的記號',desc:'「你們是怎樣離棄偶像，歸向神，要服事那又真又活的神，」',slot:'hat'},
+    bonusItem:{emoji:'⏳',name:'盼望的忍耐',desc:'「因盼望我們主耶穌基督所存的忍耐。」',slot:'hand'}
+  },
+  // ── 帖撒羅尼迦前書 2 ──
+  {
+    chapter:'TH1_2', sceneEmoji:'🤱',
+    readTime:4,
+    guide:{
+      intro:'保羅回頭講他當初在帖撒羅尼迦的那段日子。他沒有炫耀講道多精彩，反而一直在講「我們是怎麼對待你們的」——不是用詭詐、不是討好、不是貪心。他說他像媽媽奶孩子那樣溫柔，像爸爸勸自己孩子那樣懇切。',
+      outline:[
+        {nodes:'1-4節', text:'保羅說：我們傳福音不是要討人喜歡，是要對得起那位察驗人心的神'},
+        {nodes:'5-8節', text:'他不用諂媚、不貪榮耀，反倒像母親乳養孩子，連性命都願意給出去 ✦'},
+        {nodes:'9-12節', text:'他親手做工不拖累人，像父親一樣勸勉、安慰、囑咐每一個人'},
+        {nodes:'13-20節', text:'他為這群人感謝神，說他們是他將來在主面前所盼望、所喜樂、所誇的冠冕'}
+      ],
+      focus:'今日情境題聚焦在 7-8節——保羅說他愛這群人愛到連命都願意給；今天想問你的是，你最近一次為一個人付出，是為了讓他「被看見」，還是為了讓他「被愛」？'
+    },
+    verse:'「我們既是這樣愛你們，不但願意將神的福音給你們，連自己的性命也願意給你們，因你們是我們所疼愛的。」',
+    verseRef:'—— 帖撒羅尼迦前書 2:8',
+    scene:'你最近為某個人花了不少心力——可能是孩子、學生、新來的同事，或是教會裡那個剛信主的人。你陪他、教他、替他擔心。某個累到不行的晚上，你忽然問自己一個有點扎心的問題：我這麼拼，到底是希望他好，還是希望別人看見「我把他帶得很好」？',
+    q:'你最近一次為一個人付出，心底比較靠近哪一邊——是想讓他「被看見」，還是想讓他「被愛」？',
+    choices:[
+      {k:'A',text:'說真的，有一部分是想被肯定——希望別人看見我付出了多少。'},
+      {k:'B',text:'我是真心想對他好，只是常常累到懷疑自己還撐得住。'},
+      {k:'C',text:'我也搞不清楚，兩個動機混在一起，分不出哪個多一點。'},
+      {k:'D',text:'老實說我現在連付出的力氣都沒有，光是顧好自己就很勉強了。'}
+    ],
+    responses:{
+      A:'願意承認「有一部分是想被肯定」，這比假裝自己很無私誠實多了。其實想被看見不是罪，是人之常情——我們都怕白費力氣、怕沒人知道。保羅厲害的地方不是他沒有這個渴望，是他把渴望交給了「那察驗人心的神」，讓神看見就夠了。今天可以試一句：「主，我做的這些，祢看見就好。」說出口，你會發現心鬆了一點。',
+      B:'你會累到懷疑，正是因為你給的是真的——假的付出不會痛。保羅說他「連自己的性命也願意給」，但他不是鐵打的，他也在腓立比被害受辱過。真心的愛本來就會把人掏空，所以你需要的不是更努力，是先讓自己被神乳養一次。今晚別再想那個人了，留十分鐘，只讓神疼你一下：問問自己「今天有誰來疼我嗎？」如果答案是沒有，就讓神來。',
+      C:'動機混在一起，幾乎是所有真心付出的人的常態——純度100%的愛只有神有。你不用先把自己洗乾淨才能繼續愛人，反而可以帶著這團分不清的心去找神。保羅的標準不是「動機要純」，是「願意被神察驗」。今天做一件小事就好：把那個人的名字放在禱告裡，然後加一句「主，我的心很混，請祢幫我分。」',
+      D:'謝謝你這麼老實。連顧自己都勉強的時候，還被要求去愛別人，那真的太重了。聖經這裡其實不是在催你付出更多——保羅是「先被神愛過」才有東西給人的。你現在不是失職，是空了，空的人需要先被填滿。今天什麼都不用為別人做，只做一件事：找一個能讓你喘口氣的人或角落，對神說一句「我空了，先來找祢。」這一步，也是愛——是愛自己。'
+    },
+    reflectionTitle:'被看見，還是被愛',
+    reflection:'保羅形容自己對帖撒羅尼迦人「如同母親乳養自己的孩子」——乳養是沒有觀眾的事，半夜餵奶沒有人鼓掌，純粹是因為愛。他說連性命都願意給，因為「你們是我們所疼愛的」。這份付出不為被看見，只為對方真的被愛。\n\n回想最近你為某個人做的一件事：如果這件事永遠不會有人知道、沒有人會謝你、沒有人會稱讚你，你還願意做嗎？把心裡最真實的答案寫下來，不論是「願意」還是「我不確定」，都帶到神面前。',
+    baseItem:{emoji:'📜',name:'領受的道',desc:'「為此，我們也不住地感謝神，因你們聽見我們所傳神的道就領受了；不以為是人的道，乃以為是神的道。」',slot:'hand'},
+    bonusItem:{emoji:'👑',name:'所誇的冠冕',desc:'「我們的盼望和喜樂，並所誇的冠冕是甚麼呢？豈不是我們主耶穌來的時候、你們在他面前站立得住嗎？」',slot:'hat'}
+  },
+  // ── 帖撒羅尼迦前書 3 ──
+  {
+    chapter:'TH1_3', sceneEmoji:'🤝',
+    readTime:3,
+    guide:{
+      intro:'保羅這一章不是在「關心」遠方的教會，而是在說一件更深的事——他的心跟帖撒羅尼迦人綁在一起。他因為太掛念、「無法再忍」，差派提摩太去看他們在患難中站得住嗎。提摩太帶回好消息，保羅整個人就活過來了。',
+      outline:[
+        {nodes:'1-5節', text:'無法再忍——保羅獨自留在雅典，差提摩太去堅固他們，恐怕他們被患難搖動'},
+        {nodes:'6-8節', text:'好消息回來了——提摩太報告他們的信心和愛心；保羅說「你們若靠主站立得穩，我們就活了」 ✦'},
+        {nodes:'9-13節', text:'禱告——晝夜切切祈求再見他們，又求主叫他們彼此相愛的心多而又多'}
+      ],
+      focus:'今日情境題聚焦在 7-8節——保羅在自己的患難裡，竟然是因為「別人站得穩」而得安慰。你生命裡有沒有一個人，他過得好不好，會直接牽動你的心？'
+    },
+    verse:'「你們若靠主站立得穩，我們就活了。」',
+    verseRef:'—— 帖撒羅尼迦前書 3:8',
+    scene:'保羅人在外地，自己正經歷困苦患難。但他在信裡說的不是「我撐得很辛苦」，而是把心思全放在帖撒羅尼迦那群人身上——他派提摩太專程去看他們還站得住嗎。提摩太回來報好消息：他們的信心、愛心都還在。保羅聽完，說了一句很重的話：「你們若靠主站立得穩，我們就活了。」他的命，是跟他們綁在一起的。',
+    q:'你生命裡有沒有一個人——他過得好不好，會直接決定你今天的心情？',
+    choices:[
+      {k:'A',text:'有，而且很明確——某個人一通電話報平安，我整天就鬆了；他出事，我也跟著垮。'},
+      {k:'B',text:'有，但我不太敢承認——把自己綁這麼緊，好像太依賴、太沉重了。'},
+      {k:'C',text:'好像沒有耶——我習慣把每個人都放在一個安全距離，誰都別太靠近。'},
+      {k:'D',text:'老實說，我現在連自己過得好不好都顧不太上，更別說為誰活了。'}
+    ],
+    responses:{
+      A:'這種「他好我才活得了」的綁定，正是保羅在說的。它不是不健康——它是愛真實的形狀，連使徒都逃不掉。只是這種愛會痛，因為你把自己交出去了一塊。今天可以對那個人說一句：「你最近還好嗎，我是真的會放在心上的那種。」',
+      B:'會怕「太依賴」，通常是因為以前被綁過、又被放掉過。但保羅把命跟人綁在一起，靠的不是對方夠不夠穩，是「靠主」站立得穩——重心在主，綁才不會把人壓垮。今天先不用做什麼，只要承認一件事：「我心裡其實是有那個人的。」',
+      C:'把每個人都放在安全距離，常常不是冷淡，是太知道靠近的代價。這沒有錯，是一種保護。但保羅活著的方式剛好相反——他選擇被牽動。你不用馬上拆掉那道牆，今天只要問自己：「如果哪天我願意讓一個人靠近一點，會是誰？」',
+      D:'連自己都顧不上的時候，要你為誰活，太重了。先別急。保羅寫這封信時自己也在患難裡——他不是行有餘力才去愛，是在自己也撐著的時候被人撐住。今天這一步只跟你有關：「我願意先讓主把我扶穩。」其他的，之後再說。'
+    },
+    reflectionTitle:'命綁在一起',
+    reflection:'保羅人在患難中，照理該是他需要被安慰。但他說的卻是：「我們在一切困苦患難之中，因著你們的信心就得了安慰」——讓他活過來的，不是自己的處境變好，是聽見「你們還站得住」。他的生命，早就跟那群人綁在一起了。\n\n停下來想一個人：他過得好不好，會真的牽動你的人。不是你「應該」關心的人，是你心裡真的綁著的那一個。你上一次讓他知道「你在我心上」，是什麼時候？',
+    baseItem:{emoji:'💌',name:'好消息的安慰',desc:'「所以弟兄們，我們在一切困苦患難之中，因著你們的信心就得了安慰。」',slot:'hand'},
+    bonusItem:{emoji:'💞',name:'多而又多的愛',desc:'「又願主叫你們彼此相愛的心，並愛眾人的心，都能增長、充足。」',slot:'bg'}
+  },
+  // ── 帖撒羅尼迦前書 4 ──
+  {
+    chapter:'TH1_4', sceneEmoji:'🌾',
+    readTime:4,
+    guide:{
+      intro:'帖撒羅尼迦前書 4 章，保羅寫信給一群信主不久、卻活在外邦城市裡的新信徒。他像帶過一程的朋友，一句句叮嚀他們怎麼把信仰活進日常——怎麼過聖潔的生活、怎麼彼此相愛，也包括一段很實際的勸勉：別老想著出人頭地，安安靜靜把自己的本分做好。章末他談到已經過世的弟兄姊妹，安慰他們不要像沒有指望的人那樣憂傷。',
+      outline:[
+        {nodes:'1-2節', text:'勸勉他們照著已經領受的教訓，行事為人更討主的喜悅'},
+        {nodes:'3-8節', text:'神的旨意是要他們成為聖潔，在身體與情慾上分別為聖'},
+        {nodes:'9-12節', text:'弟兄相愛已經在做了，更要立志作安靜人、親手做工，在外人面前行事端正 ✦'},
+        {nodes:'13-18節', text:'論到已經睡了的人——主再來時，在基督裡死了的人必先復活，用這些話彼此勸慰'}
+      ],
+      focus:'今日情境題聚焦在 11-12節——「又要立志作安靜人，辦自己的事，親手做工」。在一個習慣比較、人人都被推著往前衝的時代，「安靜把自己的事做好」其實是一件很不容易的事。'
+    },
+    verse:'「叫你們可以向外人行事端正，自己也就沒有甚麼缺乏了。」',
+    verseRef:'—— 帖撒羅尼迦前書 4:12',
+    scene:'你滑著手機，又看到一個同齡的人換了新工作、買了房、孩子得獎。你關掉螢幕，心裡有點悶——好像自己怎麼努力都慢半拍。保羅卻對一群新信徒說了一句很反潮流的話：立志作安靜人，把自己的事做好，親手做工就好。不是要你躺平，是不被那股「一定要贏過誰」的節奏綁架。',
+    q:'在這個很容易跟人比較、覺得自己「不夠好」的時代，「立志作安靜人，把自己的事做好」對你來說，難在哪裡？',
+    choices:[
+      {k:'A',text:'難在停不下來。一安靜下來，就覺得自己落後了，好像在浪費時間。'},
+      {k:'B',text:'難在別人的眼光。我其實知道自己在做什麼，但很在意別人覺得我「不夠拼」。'},
+      {k:'C',text:'其實我蠻嚮往安靜過日子，但現實逼著我一直追，根本停不下來。'},
+      {k:'D',text:'老實說我做不到。比較和焦慮已經是我的預設值，我不知道怎麼開始安靜。'}
+    ],
+    responses:{
+      A:'那種「一安靜就覺得在浪費時間」的感覺，其實很多人都有，只是不敢說。但你有沒有發現，保羅把「安靜」當成一件要「立志」去做的事——它不是偷懶，是需要刻意練習的功課。停下來不等於落後，有時候是讓自己看清楚到底在追什麼。今天找一個十分鐘，什麼都不做，就坐著，不滑手機。看看那十分鐘裡，焦慮會不會慢慢鬆一點。',
+      B:'在意別人眼光，是因為你心裡有一把尺，而那把尺是別人遞給你的。保羅說「向外人行事端正」，重點不是讓外人覺得你夠拼，是讓他們看見你活得踏實、不虛。你不欠任何人一個「夠努力」的證明。今天試著對自己說一次：「我把今天的本分做好，這樣就夠了。」說出口，聽聽看心裡有沒有比較安穩一點。',
+      C:'被現實推著跑，停不下來——這不是你不夠想安靜，是你真的累了。保羅這句話本來就是寫給活在忙碌城市裡的普通人的，他懂那種身不由己。安靜不一定是辭職或躲起來，有時候只是在追趕的縫隙裡，給自己留一個喘息的角落。今天睡前，把手機放遠一點，問自己一句：「我這麼拚，是為了什麼？」不用馬上有答案，先讓問題陪你一晚。',
+      D:'謝謝你這麼誠實。比較和焦慮成了預設值，這不是你的錯——整個時代都在這樣運轉，你只是被泡在裡面。保羅說「立志作安靜人」，用「立志」這個詞，就表示它本來就不是自然會的事，是要一點一點學的。你不用一次戒掉焦慮，先從承認開始。今天就跟神說一句：「我停不下來，也不知道怎麼安靜，求祢幫我。」光是把這句話講出來，就已經是第一步了。'
+    },
+    reflectionTitle:'安靜作工',
+    reflection:'保羅寫這封信時，帖撒羅尼迦教會裡有些人因為期待主快回來，索性不做工、到處張羅閒事。保羅的勸勉很實際：「又要立志作安靜人，辦自己的事，親手做工」（v.11）。在那個時代，「親手做工」是指靠自己的勞力過日子、不白白依賴別人——重點不是「不工作的人沒價值」，而是「安靜地、踏實地、靠自己的本分過活」這件事本身，就是一種美好的見證。\n\n停一分鐘，想想最近讓你最焦慮、最想跟別人比的那一件事。如果今天你願意暫時把那把「跟別人比」的尺放下，只專心把眼前的本分做好——你心裡會多出一點什麼？少掉一點什麼？輕輕跟神說說看。',
+    baseItem:{emoji:'🌾',name:'安靜人的本分',desc:'「又要立志作安靜人，辦自己的事，親手做工，正如我們從前所吩咐你們的，」',slot:'hand'},
+    bonusItem:{emoji:'😊',name:'討主喜悅的腳步',desc:'「你們原曉得，我們憑主耶穌傳給你們甚麼命令。」',slot:'hat'}
+  },
+  // ── 帖撒羅尼迦前書 5 ──
+  {
+    chapter:'TH1_5', sceneEmoji:'🌅',
+    readTime:4,
+    guide:{
+      intro:'這是保羅寫給帖撒羅尼迦教會的信的最後一章。前半段他談「主再來的日子」像夜裡的賊，提醒這群人是「光明之子」，要儆醒、要謹守；後半段他像臨走前在門口一連串叮嚀，丟出一句句很短的命令——彼此和睦、不要以惡報惡、要常常喜樂、不住地禱告、凡事謝恩，最後用一段祝福收尾。短句很多，但別把它們讀成「待辦清單」，它們是一個牧者對他放不下的人說的話。',
+      outline:[
+        {nodes:'1-11節', text:'主的日子像夜間的賊，但你們是光明之子，不在黑暗裡——所以要儆醒、要謹守，彼此勸慰、互相建立'},
+        {nodes:'12-15節', text:'敬重在你們中間勞苦的人，彼此和睦；警戒不守規矩的、勉勵灰心的、扶助軟弱的，不要以惡報惡'},
+        {nodes:'16-18節', text:'要常常喜樂，不住地禱告，凡事謝恩——這是神在基督耶穌裡向你們所定的旨意 ✦'},
+        {nodes:'19-22節', text:'不要消滅聖靈的感動，不要藐視先知的講論，但要凡事察驗，善美的持守、惡事禁戒'},
+        {nodes:'23-28節', text:'結語祝福——願賜平安的神親自使你們全然成聖，那召你們的本是信實的，他必成就這事'}
+      ],
+      focus:'今日情境題聚焦在 16-18節——「要常常喜樂」這句話被引用到我們耳朵都長繭了，但當你現在就是喜樂不起來的時候，這節經文到底是責備，還是一個歸宿？焦點不在「你達標了沒」，而在「神在這裡」。'
+    },
+    verse:'「要常常喜樂，不住地禱告，凡事謝恩；因為這是神在基督耶穌裡向你們所定的旨意。」',
+    verseRef:'—— 帖撒羅尼迦前書 5:16-18',
+    scene:'這幾天你過得不太好。可能是一場病、一段關係、一個還沒好起來的失去，或就是說不上來的低落。偏偏小組查經今晚讀到這節——「要常常喜樂」。你看著這六個字，心裡有點堵：我現在連笑都笑不太出來，這節經文是不是在說，我不夠喜樂，所以我不夠屬靈？',
+    q:'當「要常常喜樂」這句話，現在讀起來像責備而不是安慰時，你會怎麼面對自己？',
+    choices:[
+      {k:'A',text:'提醒自己這是命令也是應許，試著數算還能感恩的小事，慢慢把心轉過來。'},
+      {k:'B',text:'去把這三句的上下文讀清楚——保羅是在什麼處境對誰說這話的，再決定怎麼讀。'},
+      {k:'C',text:'我做不到「常常」，但我可以「不住地禱告」這一句——至少把難過跟神講。'},
+      {k:'D',text:'老實說我現在喜樂不起來，勉強裝出來只會更累。我想先讓自己不用假裝。'}
+    ],
+    responses:{
+      A:'數算小事是真的有力量的——它不是叫你否認難過，是幫你把視線挪一寸。但要小心一件事：喜樂如果變成「我必須擠出正向情緒」，反而會壓垮你。保羅這句「常常喜樂」底下，其實還壓著一個更穩的東西：喜樂的源頭不是你的心情，是「神在這裡」。今晚數感恩之前，可以先說一句：「神，我今天能感謝的不多，但我知道祢在。」從這裡開始，比硬擠笑容真實。',
+      B:'這個直覺很好——這三句被單獨抽出來引用太多次，久了就變成屬靈口號。回到脈絡你會發現：保羅寫信的對象是一群正在受逼迫、剛失去親人（4:13）、活在患難裡的人。他不是站在順境對失意的人喊「開心點」，他是在患難裡對患難中的人說：喜樂不靠處境，靠那位不變的神。讀懂這個，「常常喜樂」就不再是責備，是陪你站在難處裡的一句話。今晚帶著這個背景，再把 16-18 節輕輕讀一遍。',
+      C:'你抓到了一個很重要的東西——這三句是連在一起的。「常常喜樂」前面做不到沒關係，後面那句「不住地禱告」你做得到：難過的時候不轉身離開神，反而轉向他，把堵在心裡的話倒出來，這本身就是一種喜樂的雛形。你不用先變開心才能禱告，你可以哭著禱告。今晚就用最白話的方式跟神說：「我喜樂不起來，但我還在跟祢講話。」這一句，神聽得比任何漂亮的感謝都清楚。',
+      D:'謝謝你這麼誠實，這需要勇氣。先說清楚一件事：這節經文不是在說「喜樂不起來的人不夠屬靈」。聖經裡滿是喜樂不起來的人——詩篇一半在哭，耶穌自己也曾「心裡甚是憂傷」。「常常喜樂」不是要你否認痛苦，是要你知道，就算現在笑不出來，那位神也沒有離開。你不用假裝，神要的從來不是表演。今晚你可以什麼感謝都不說，只跟他講一句：「我現在很難過，但我把這個樣子的我交給祢。」喜樂不起來的你，神一樣抱著。'
+    },
+    reflectionTitle:'喜樂不起來時',
+    reflection:'「要常常喜樂，不住地禱告，凡事謝恩」（5:16-18）是保羅整封信的結尾，寫給一群在逼迫和喪親之痛裡的人。關鍵在第 18 節後半句——「因為這是神在基督耶穌裡向你們所定的旨意」。神所定的旨意，不是要你時時刻刻情緒高昂，而是要你在任何處境裡都不切斷與他的連線。喜樂、禱告、謝恩，三件事其實是同一件事的三個面：無論光景如何，神都在這裡。\n\n停一分鐘，誠實地問自己：最近有沒有一件事，讓你喜樂不起來？你不用先把它變好、也不用先擠出感恩，只要試著把現在這個「笑不出來的你」帶到神面前。你今晚願意怎麼跟他說這件事？',
+    baseItem:{emoji:'🕊️',name:'信實的應許',desc:'「那召你們的本是信實的，他必成就這事。」',slot:'hat'},
+    bonusItem:{emoji:'🌿',name:'全然成聖的祝福',desc:'「願賜平安的神親自使你們全然成聖！又願你們的靈與魂與身子得蒙保守，在我們主耶穌基督降臨的時候，完全無可指摘！」',slot:'body'}
+  },
+  // ── 帖撒羅尼迦後書 1 ──
+  {
+    chapter:'TH2_1', sceneEmoji:'⚖️',
+    readTime:3,
+    guide:{
+      intro:'帖撒羅尼迦後書緊接著前書，寫給同一群在逼迫中持守信仰的信徒。第 1 章保羅先為他們在患難中「仍舊存忍耐和信心」感謝神，再安慰他們：你們現在受的苦，神都看見了，神是公義的，必不誤事。最後是保羅為他們的一段禱告。',
+      outline:[
+        {nodes:'1-2節', text:'問安——保羅、西拉、提摩太一同寫信，願恩惠平安歸給帖撒羅尼迦教會'},
+        {nodes:'3-4節', text:'感謝與誇口——保羅為他們信心增長、彼此相愛感謝神，更為他們在一切逼迫患難中仍存忍耐和信心而誇口 ✦'},
+        {nodes:'5-10節', text:'神是公義的——你們現在為神的國受苦，神看見了，公義的神必不誤事'},
+        {nodes:'11-12節', text:'保羅的禱告——求神看他們配得所蒙的召，成就他們一切所羨慕的良善'}
+      ],
+      focus:'今日情境題聚焦在 3-4節——保羅誇口的不是他們有多堅強，而是他們在看不到盡頭的患難裡，仍然沒有放掉忍耐和信心。'
+    },
+    verse:'「甚至我們在神的各教會裡為你們誇口，都因你們在所受的一切逼迫患難中，仍舊存忍耐和信心。」',
+    verseRef:'—— 帖撒羅尼迦後書 1:4',
+    scene:'帖撒羅尼迦的信徒一邊信主、一邊還在被逼迫，日子撐得很辛苦，難免會想：神到底看不看得見？保羅寫信來，第一件事不是叫他們再忍耐一點，而是說——你們撐住的這件事，我們在各教會裡到處說，因為神都看見了。',
+    q:'你有沒有一段撐了很久、卻看不到盡頭的處境——工作、關係、身體、或某個禱告很久的事？在那裡面，你會不會偷偷懷疑：神到底看不看得見我？',
+    choices:[
+      {k:'A',text:'會，但我還是選擇相信祂看見了，只是時候還沒到。'},
+      {k:'B',text:'我撐著，可是心裡常常在問「還要多久」，信和累是同時存在的。'},
+      {k:'C',text:'老實說我已經有點麻了，懷疑久了，連懷疑的力氣都快沒了。'},
+      {k:'D',text:'我最氣的是——好像認真撐的人在受苦，不在乎的人反而過得好。'}
+    ],
+    responses:{
+      A:'這份「時候還沒到」的相信，其實很有重量——它不是看不見痛，是痛著還願意把時間交給神。保羅誇口帖撒羅尼迦人，誇的正是這個。今晚可以跟神說一句：「我還在等你，但我沒有走。」',
+      B:'信和累同時存在，這不是信心不足，這是真實在撐的人才有的樣子。保羅沒有要他們假裝不累，他只說「你們的忍耐，神都看在眼裡」。你不用把「還要多久」這句話藏起來——它可以直接帶到神面前問。今天就把這句問出口，不用先想好答案。',
+      C:'謝謝你說得這麼老實。「麻了」不是你不夠堅強，是你已經撐太久了，累到這個地步是真的。保羅安慰受苦的人，從來不是叫他們再用力一點，而是說「神看見了」。所以這幾天，你什麼都不用做，只要讓神看著你麻掉的這個樣子就好。要不要試著對神說一句：「我撐不動了，剩下的你看著辦。」',
+      D:'這個氣很真實，也很多人不敢講出來——明明該是好人有好報，現實卻常常相反。聖經沒有要你把這口氣吞下去，保羅自己也在處理同一個問題，他的答案是：神是公義的，祂沒有睡著，也沒有算錯。你不必假裝不在意，但可以把這份不平交給那位看得比你更清楚的神。要不要跟祂說：「這不公平，我把它交給你，因為我自己扛不動。」'
+    },
+    reflectionTitle:'神看見了',
+    reflection:'保羅在各教會裡為帖撒羅尼迦人誇口，誇的不是他們做了多大的事，而是他們在一切逼迫患難中，仍舊存忍耐和信心。他沒有對受苦的人說「忍忍就過去了」，他說的是——你們撐住的這件事，神看見了，神是公義的。受苦時最難的不是痛本身，是那種「好像沒人看見」的孤單。\n\n你現在有沒有一處正在撐、卻覺得沒人看見的地方？把它寫下來，不用美化，也不用先找到意義。只是把它放在神面前，讓那位看得見的神，看見你。',
+    baseItem:{emoji:'⚖️',name:'公義的明證',desc:'「這正是神公義判斷的明證，叫你們可算配得神的國，你們就是為這國受苦。」',slot:'bg'},
+    bonusItem:{emoji:'🙏',name:'代禱的羨慕',desc:'「又用大能成就你們一切所羨慕的良善，和一切因信心所做的工夫。」',slot:'hand'}
+  },
+  // ── 帖撒羅尼迦後書 2 ──
+  {
+    chapter:'TH2_2', sceneEmoji:'📰',
+    readTime:4,
+    guide:{
+      intro:'帖撒羅尼迦的信徒被一個謠言嚇壞了——有人說「主的日子已經到了」，弄得大家心慌意亂。保羅寫這一章，不是要嚇他們，反而是要他們冷靜下來：不要輕易動心，也不要驚慌。最後他求主親自安慰他們的心。',
+      outline:[
+        {nodes:'1-2節', text:'有謠言說主的日子已經到了，叫信徒驚慌；保羅勸他們不要輕易動心，也不要驚慌 ✦'},
+        {nodes:'3-12節', text:'保羅提醒那日子來到前會發生的事，叫他們不要被人迷惑'},
+        {nodes:'13-15節', text:'神從起初就揀選了你們，所以要站立得穩，凡所領受的教訓都要堅守'},
+        {nodes:'16-17節', text:'保羅為他們禱告：但願主親自安慰你們的心，在一切善行善言上堅固你們'}
+      ],
+      focus:'今日情境題聚焦在 1-2節——當「你該怕」的消息滿天飛，你的心怎麼站得穩，不被驚慌帶走？'
+    },
+    verse:'「我勸你們：無論有靈、有言語、有冒我名的書信，說主的日子現在到了，不要輕易動心，也不要驚慌。」',
+    verseRef:'—— 帖撒羅尼迦後書 2:2',
+    scene:'你正在做事，手機跳出一則訊息：某個你信任的人轉來一段話，說「情況很嚴重，你最好趕快準備」。你心跳忽然快了一下。接下來半小時，你一直在看相關的消息，越看越慌——有人說會更糟，有人說已經來不及了。你說不上來是真是假，但那股「我是不是該怕」的感覺，已經在心裡住下來了。',
+    q:'當一則「你該怕」的消息忽然讓你心慌，那一刻你通常會怎麼反應？',
+    choices:[
+      {k:'A',text:'整個人被抓住，停不下來地一直查、一直滑，想確認到底有多嚴重。'},
+      {k:'B',text:'心裡知道不該慌，但身體已經先慌了，要很久才平復。'},
+      {k:'C',text:'會先深呼吸，提醒自己「先別急著反應」，再去查證。'},
+      {k:'D',text:'老實說，我超容易被嚇到，一慌起來根本想不起神在哪裡。'}
+    ],
+    responses:{
+      A:'那股「一直查」的衝動，其實是恐慌在找出口——它以為只要查夠多，心就會安。但消息越查越多，心反而越亂。保羅對一群被謠言嚇壞的人說：不要輕易動心。今天試一件小事：下次心跳開始變快時，先把手機蓋起來十秒，問自己一句「我現在是在求真相，還是在餵恐慌？」',
+      B:'你說的這個落差很真實——道理我懂，可是身體比腦袋先慌。這不是信心不夠，這是人。保羅沒有罵那些驚慌的信徒，他只是溫柔地把他們的心重新扶穩。今天給自己一句話帶在身上：「我可以慢慢平復，神沒有在計時。」',
+      C:'你已經有一個很寶貴的本能——在反應之前先停一下。但有時候連你都會被某些消息打中，那種時候別怪自己。保羅求主「安慰你們的心」，連最穩的人也需要被安慰。今天為一個比你更容易慌的人禱告一句，把你的穩定分一點出去。',
+      D:'謝謝你這麼老實。你不是軟弱，你只是誠實地說出很多人不敢承認的事——慌起來的時候，神好像整個消失了。但保羅這章正是寫給「已經驚慌」的人，不是寫給從不害怕的人。你不用先冷靜下來才配得到安慰。今天只做一件事：在最慌的那一刻，把這句話念出聲——「主，我慌了，求祢安慰我的心。」'
+    },
+    reflectionTitle:'我慌的時候，誰扶我的心？',
+    reflection:'主，這個世界有太多「你該怕」的聲音了——壞消息、末日的傳言、各種讓人心慌的訊息。我常常還沒查清楚是真是假，心就已經先亂了。保羅當年寫信，正是因為有人被謠言嚇壞，他要他們不要輕易動心，也不要驚慌。\n\n求祢親自安慰我的心。當我又被某則消息抓住、停不下來的時候，幫助我記得回頭看祢。今晚就先做一件最小的事：把一個讓我心慌的消息放下，安靜一分鐘，對祢說「我把心交回給祢」。',
+    baseItem:{emoji:'🪨',name:'站穩的腳',desc:'「所以，弟兄們，你們要站立得穩，凡所領受的教訓，不拘是我們口傳的，是信上寫的，都要堅守。」',slot:'body'},
+    bonusItem:{emoji:'🤲',name:'被安慰的心',desc:'「安慰你們的心，並且在一切善行善言上堅固你們。」',slot:'hat'}
+  },
+  // ── 帖撒羅尼迦後書 3 ──
+  {
+    chapter:'TH2_3', sceneEmoji:'🌱',
+    readTime:3,
+    guide:{
+      intro:'這是保羅寫給帖撒羅尼迦教會的信的最後一章，也是全書的收尾。他先請大家為他禱告，好叫福音傳得開、也叫他脫離惡人的攪擾；接著他把焦點轉回這群人身上，說了一句很穩的話——「主是信實的，要堅固你們，保護你們脫離那惡者」。中段他處理了教會裡一些不守規矩的人的問題，但別停在那裡——保羅最後丟下的重點是一句短短的叮嚀：「你們行善不可喪志。」這封信以平安的祝福作結。',
+      outline:[
+        {nodes:'1-2節', text:'請你們為我們禱告，好叫主的道理快快傳開、得著榮耀，也叫我們脫離無理的惡人'},
+        {nodes:'3-5節', text:'但主是信實的，要堅固你們、保護你們脫離那惡者；願主引導你們的心，叫你們愛神並學基督的忍耐'},
+        {nodes:'6-12節', text:'勸戒教會裡不按規矩、甚麼工都不作、反倒專管閒事的少數人，要安靜作工'},
+        {nodes:'13節', text:'弟兄們，你們行善不可喪志——別因為少數人的問題就灰心，繼續做對的事 ✦'},
+        {nodes:'14-18節', text:'對不聽勸的人要記下、卻不可當仇人；結語祝福——願賜平安的主隨時隨事親自給你們平安'}
+      ],
+      focus:'今日情境題聚焦在 13節——「你們行善不可喪志」。這句話不是要你咬牙硬撐，焦點在它前面那節：主是信實的，他會堅固你。當你長期付出卻看不到回報、開始懷疑「還有意義嗎」的時候，撐住你的不是意志力，是那位不變的神。'
+    },
+    verse:'「弟兄們，你們行善不可喪志。」',
+    verseRef:'—— 帖撒羅尼迦後書 3:13',
+    scene:'有一件好事，你已經默默做了很久。可能是照顧家裡一個生病的人，可能是教會裡那個一直沒人想接的服事，可能是你每週都去、卻好像沒人在乎的探訪。一開始你做得很甘心，但日子久了，你開始累，也開始懷疑：我這樣做，到底還有沒有意義？有沒有人看見？要不要乾脆放掉算了？',
+    q:'當你做了很久的一件好事，做到開始懷疑「還有意義嗎」、想放棄的時候，你會怎麼面對自己？',
+    choices:[
+      {k:'A',text:'提醒自己這是對的事，神都看在眼裡，調整一下心態，繼續做下去。'},
+      {k:'B',text:'我想搞清楚這節經文的力氣是從哪來的——保羅憑甚麼叫人「不可喪志」？'},
+      {k:'C',text:'我撐不住「一直做」，但我可以先跟神說我累了，求他堅固我，再走一步看看。'},
+      {k:'D',text:'老實說我已經喪志了。我有點想放棄，也對「再撐一下」這種話有點麻木了。'}
+    ],
+    responses:{
+      A:'你願意繼續，這份心很珍貴。但有一件事想跟你說：保羅叫人「行善不可喪志」，他的底氣不是「你要更努力、更正向」，是前面那一句——「主是信實的，要堅固你們」。如果繼續做下去靠的是你咬牙撐，你遲早會被掏空；但如果是靠那位看見你、也堅固你的神，你就還有後路。今晚調整心態之前，可以先把這件事交回給神：「這件事我做累了，求祢堅固我，不是叫我硬撐。」這跟「我再加把勁」很不一樣。',
+      B:'這個問題問得很好——「不可喪志」這四個字，如果沒有來源，就只是一句口號。回到上下文你會看見，保羅在第 3 節先說了「主是信實的，要堅固你們，保護你們脫離那惡者」，第 5 節又說「願主引導你們的心，叫你們愛神並學基督的忍耐」，然後才說「行善不可喪志」。順序很關鍵：先有那位信實的神托住你，「不喪志」才不是叫你逞強，是有人在背後撐著你。今晚帶著這個順序，再把 13 節讀一遍，你會聽見不一樣的語氣。',
+      C:'你抓到了一個很真實的東西——「一直做」這種承諾太大了，大到讓人光想就累。但你說的這一步剛剛好：先承認累，再求神堅固，然後走一步。這正是保羅的邏輯——不喪志的力量不是從你裡面擠出來的，是從「主是信實的，要堅固你們」來的。你不用先變得有力氣才能繼續，你可以累著繼續，因為托住你的不是你自己。今晚就用最白話的方式跟神說：「我累了，但我還沒走。求祢堅固我，陪我走下一步。」',
+      D:'謝謝你這麼誠實，喪志了還願意說出來，這本身就不簡單。先把一件事說清楚：「行善不可喪志」這句話，不是在責備已經喪志的你。保羅寫這句時，旁邊還站著一句更重要的話——「主是信實的，要堅固你們」。意思是，當你自己撐不住了，神的信實沒有跟著垮掉。你可以想放棄、可以對「再撐一下」麻木，這些都不會把你踢出神的眼界之外。今晚你甚麼都不用決定，不用承諾繼續、也不用逼自己重新有動力，只跟神說一句：「我喪志了，我把這個累壞的我交給祢。」剩下的，讓那位信實的神接手。'
+    },
+    reflectionTitle:'行善喪志時',
+    reflection:'「弟兄們，你們行善不可喪志」（3:13）這句話，前面緊接著保羅處理教會裡少數人不做工、專管閒事的問題。但保羅沒有讓那群人成為焦點——他轉過頭來對其餘繼續默默付出的人說：別因為少數人的問題就灰心。而這句「不可喪志」真正的支撐，藏在第 3 節：「主是信實的，要堅固你們，保護你們脫離那惡者。」行善不喪志的力量，從來不是「再累也要撐下去」的意志力，是那位信實的神親自堅固你、把你托住。\n\n停一分鐘，誠實地問自己：最近有沒有一件你做了很久、卻開始懷疑「還有意義嗎」的好事？你不用先讓自己重新有動力，也不用承諾「我會繼續」，只要試著把這個累了的自己帶到神面前。你今晚願意怎麼跟他說這件事？',
+    baseItem:{emoji:'🛡️',name:'信實的堅固',desc:'「但主是信實的，要堅固你們，保護你們脫離那惡者。」',slot:'hat'},
+    bonusItem:{emoji:'🕊️',name:'隨時隨事的平安',desc:'「願賜平安的主隨時隨事親自給你們平安！願主常與你們眾人同在！」',slot:'bg'}
+  },
+  // ── 提摩太前書 1 ──
+  {
+    chapter:'TIM1_1', sceneEmoji:'🕊️',
+    readTime:4,
+    guide:{
+      intro:'這是保羅寫給他屬靈兒子提摩太的第一封信。提摩太當時牧養以弗所教會，年輕、責任重。保羅在開頭提醒他要面對教會裡的假教師，但話鋒一轉，談起自己——這個曾經逼迫教會的人，怎麼會蒙神憐憫、被神使用。第 1 章的核心，是「連最不配的人，神都還要用」。',
+      outline:[
+        {nodes:'1-2節', text:'問安——保羅以使徒身分寫信給「因信主作我真兒子」的提摩太'},
+        {nodes:'3-11節', text:'囑咐——要對抗那些教導異端、爭辯無謂家譜的人，並說明律法的正當用途'},
+        {nodes:'12-14節', text:'見證——保羅回顧自己從前褻瀆、逼迫人，卻蒙了憐憫，主的恩格外豐盛'},
+        {nodes:'15-17節', text:'核心——「基督耶穌降世，為要拯救罪人」，保羅自稱罪魁，蒙憐憫成了榜樣 ✦'}
+      ],
+      focus:'今日情境題聚焦在 15-16節——保羅稱自己是「罪魁」卻蒙了憐憫，這份恩典是給每個覺得自己「不配」的人看的。'
+    },
+    verse:'「『基督耶穌降世，為要拯救罪人。』這話是可信的，是十分可佩服的。在罪人中我是個罪魁。」',
+    verseRef:'—— 提摩太前書 1:15',
+    scene:'保羅寫信給年輕的提摩太，談著談著，竟談起了自己——這個曾經親手逼迫教會、抓拿信徒的人。他沒有把過去藏起來，反而說：在罪人中我是個罪魁。然後他說，正是這樣的我，神還是憐憫了，還是用了。這封信一開始，就把「不配」和「蒙恩」放在同一句話裡。',
+    q:'保羅說「在罪人中我是個罪魁」，卻說自己蒙了憐憫。你心裡有沒有一件事，是你覺得「神大概不會原諒這個」的？',
+    choices:[
+      {k:'A',text:'有，有一件事我幾乎沒跟人講過，連禱告時都會自動跳過它。'},
+      {k:'B',text:'道理上我知道神會原諒，但心裡那個「我不配」的感覺一直拿不掉。'},
+      {k:'C',text:'我比較難相信的不是神原諒「別人」，而是神願意原諒「我」。'},
+      {k:'D',text:'老實說我沒在想原諒這件事，我連自己哪裡需要被原諒都還沒看清楚。'}
+    ],
+    responses:{
+      A:'有一件事連禱告都會繞過去，那它在你心裡其實很重。保羅把他最不堪的過去寫進聖經裡，不是因為他不痛，是因為他發現「攤在神面前」比「藏著」輕鬆。你願不願意，今天就在心裡，第一次把那件事的名字，安靜地對神講一次？',
+      B:'「道理知道、感覺拿不掉」——這幾乎是每個誠實的人都會卡的地方。憐憫不是先有感覺才成立的，保羅是先信了「這話是可信的」，感覺才慢慢跟上。下次那個「我不配」又冒出來時，試著不跟它吵，只回一句：「對，我不配，但祂還是要我。」',
+      C:'這句話很多人不敢承認——相信神愛世人很容易，相信神愛「我」很難。但保羅特意說「在罪人中我是個罪魁」，就是要讓你知道：如果神連他都要，那「我」這個字裡面，一定有你。你覺得，是什麼讓你把自己排在神的憐憫之外？',
+      D:'這份誠實其實很乾淨，沒有假裝。不是每個人都要從「罪疚感」進門，有些人是慢慢才看清楚自己。你不用急著生出懊悔，今天只要帶著一個問題去讀就好：神，如果有一件我還沒看見的，求你讓我看見。'
+    },
+    reflectionTitle:'罪魁蒙恩',
+    reflection:'保羅曾經是教會最大的敵人——他抓人、逼迫信徒、看著司提反被打死。如果有誰「不配」被神使用，那應該是他。但他在這裡說，正因為這樣的我都蒙了憐憫，後來的人就有了榜樣：原來神的恩，連罪魁都接得住。\n\n你心裡有沒有一個「神大概不會用這種人」的標準？如果那個標準對保羅都不成立，它對你還成立嗎？',
+    baseItem:{emoji:'🕊️',name:'憐憫的印記',desc:'「然而，我蒙了憐憫，是因耶穌基督要在我這罪魁身上顯明他一切的忍耐，給後來信他得永生的人作榜樣。」',slot:'hat'},
+    bonusItem:{emoji:'🌊',name:'格外豐盛的恩',desc:'「並且我主的恩是格外豐盛，使我在基督耶穌裡有信心和愛心。」',slot:'bg'}
+  },
+  // ── 提摩太前書 2 ──
+  {
+    chapter:'TIM1_2', sceneEmoji:'🙏',
+    readTime:4,
+    guide:{
+      intro:'提摩太前書第 2 章，保羅教導教會「禱告」這件事。他說禱告的範圍要很寬——為萬人禱告，連君王、在上位的、跟我們不同立場的人都要為他們求。因為神的心意是「願意萬人得救」，這份愛沒有把任何人排除在外。',
+      outline:[
+        {nodes:'1-2節', text:'要為萬人禱告，連君王和在位的也要為他們代求 ✦'},
+        {nodes:'3-4節', text:'這在神面前是好的，因為神願意萬人得救、明白真道'},
+        {nodes:'5-6節', text:'只有一位神、一位中保，就是為人捨命的基督耶穌'},
+        {nodes:'7-8節', text:'保羅自述蒙召作外邦人的師傅；男人禱告要無忿怒爭論'},
+        {nodes:'9-15節', text:'對會眾敬拜與生活的其他叮嚀'}
+      ],
+      focus:'今日情境題聚焦在 1-2節——保羅要我們為「萬人」禱告，特別是為在上位、跟我們立場不同的人代求。'
+    },
+    verse:'「我勸你，第一要為萬人懇求、禱告、代求、祝謝，」',
+    verseRef:'—— 提摩太前書 2:1',
+    scene:'保羅寫信給在以弗所牧養教會的提摩太。一開頭談禱告，他沒有先教人怎麼為自己求，而是把眼光拉到「萬人」——包括掌權的、在上位的。在一個立場對立、人人有敵人的時代，這份「為所有人禱告」的呼召，格外不容易。',
+    q:'想一個你很難認同、甚至有點討厭的人（立場相反的、傷害過你的、你就是看不順眼的）。你願意為他禱告嗎？',
+    choices:[
+      {k:'A',text:'願意，我相信為他禱告會先改變我自己的心。'},
+      {k:'B',text:'可以試試看，但我大概只能擠出一句「神祢看著辦」這種禱告。'},
+      {k:'C',text:'理智上知道該做，情感上很抗拒，會卡在那裡禱告不出來。'},
+      {k:'D',text:'老實說我做不到，要我為那個人禱告，我心裡就是過不去。'}
+    ],
+    responses:{
+      A:'這是一個很成熟的看見——為對方禱告，往往是神先動工在我們心裡。你不必假裝已經原諒了，光是願意把他的名字帶到神面前，就是一個真實的開始。今天就試著只說一句：「神，我把他交給祢。」',
+      B:'「神祢看著辦」其實已經是禱告了——你願意把這個人從你手裡放到神手裡，這比你想的更不容易。不用勉強自己說漂亮話。就照你能說出口的講，神聽得懂那句卡卡的、不情願的禱告。',
+      C:'理智和情感打架，是很誠實的狀態，不是信心不夠。你不用先處理好情緒才能禱告——可以把那份抗拒本身帶進去：「神，我很不想為他禱告，這份不想，我也交給祢。」承認卡住，就是鬆動的開始。',
+      D:'過不去就是過不去，這不是你的失敗，傷害是真的，你的感受也是真的。神沒有要你今天就為他祝福。也許今天能做的，只是對神說一句：「我還沒辦法為他禱告。」光是把這句話說出來，神就在那裡聽著了。'
+    },
+    reflectionTitle:'為萬人',
+    reflection:'保羅要提摩太「第一要為萬人懇求」，連君王、在位的都包括在內——而當時的羅馬皇帝，正是逼迫教會的人。神的心意是「願意萬人得救」，這份愛沒有把任何人排除在名單外。\n\n你的禱告名單上，有沒有一個你一直跳過、不想提起的名字？如果今天願意把他放進來，哪怕只是放上去、還沒有祝福，你會寫下誰？',
+    baseItem:{emoji:'📜',name:'萬人代求的禱告',desc:'「他願意萬人得救，明白真道。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'中保的恩典',desc:'「因為只有一位神，在神和人中間，只有一位中保，乃是降世為人的基督耶穌；」',slot:'hat'}
+  },
+  // ── 提摩太前書 3 ──
+  {
+    chapter:'TIM1_3', sceneEmoji:'🪟',
+    readTime:4,
+    guide:{
+      intro:'提摩太前書第 3 章，保羅列出教會裡「監督」和「執事」這些服事者該有的樣子。但你仔細看那張清單——無可指責、有節制、端正、溫和、不爭競、不貪財、在教外有好名聲——其實講的不是「當官的條件」，而是一個成熟的人會長成的模樣。最後保羅用一首詩收尾：「就是神在肉身顯現」，把敬虔的核心指向了基督。',
+      outline:[
+        {nodes:'1-7節', text:'監督該有的樣子——無可指責、有節制、端正、溫和、不爭競、不貪財，連在信仰圈外也要有好名聲 ✦'},
+        {nodes:'8-13節', text:'執事也是如此——端莊、不一口兩舌、存清潔的良心、固守真道'},
+        {nodes:'14-15節', text:'教會是永生神的家，是真理的柱石和根基'},
+        {nodes:'16節', text:'敬虔的奧祕——這一切的核心，是神在肉身顯現'}
+      ],
+      focus:'今日情境題聚焦在 7節——把「在教外有好名聲」翻成一個你我都會被問的問題：在沒人是基督徒的場合，別人會怎麼形容你這個人？'
+    },
+    verse:'「監督也必須在教外有好名聲，恐怕被人毀謗，落在魔鬼的網羅裡。」',
+    verseRef:'—— 提摩太前書 3:7',
+    scene:'保羅寫信給年輕的提摩太，談教會裡服事的人該有的樣子。寫到監督時，他多補了一句很有意思的話：這個人不只在教會裡要好，「在教外」——在那些根本沒人信主的地方——也要有好名聲。換句話說，信仰圈外的人怎麼看你，也是真實的一部分。',
+    q:'在一個「沒人是基督徒」的場合（公司、社群、陌生的飯局），如果別人要形容你這個人，你猜他們會怎麼說？',
+    choices:[
+      {k:'A',text:'應該還行吧——溫和、好相處，至少不會讓人覺得難搞。'},
+      {k:'B',text:'我在教會裡是一個樣子，在外面好像是另一個樣子，這落差讓我有點不安。'},
+      {k:'C',text:'老實說我沒想過別人怎麼看我，我光是把自己顧好就很累了。'},
+      {k:'D',text:'我其實滿在意口碑的，但有時候會發現，我在意的是「面子」而不是「真實的好」。'}
+    ],
+    responses:{
+      A:'「溫和、好相處」——這正是保羅清單裡的詞（不爭競、溫和）。能讓人不覺得難搞，已經是一種安靜的見證了。今天，如果要再往前一小步，你願意對某個共事的人，多一點點主動的善意嗎？哪怕只是記得對方說過的一件小事。',
+      B:'那個落差，你願意誠實看見它，已經很不容易了。保羅說「在教外有好名聲」，不是要你演得更像，而是讓裡外慢慢長成同一個人。今天，你能不能挑一個「在外面」的場合，試著用你在教會裡那個比較柔軟的自己去面對？',
+      C:'光顧好自己就很累——這是很誠實的話，謝謝你說出來。其實保羅那張清單，與其說是壓力，不如說是描述一個「不必那麼用力」的人會有的樣子。今天不用想別人怎麼看你，只問一句就好：此刻的我，最需要被誰好好對待一下？',
+      D:'你能分辨「面子」和「真實的好」，這個自覺本身就很珍貴。很多人一輩子卡在面子裡都不知道。今天，找一個沒人會看見、沒人會稱讚的小地方——做一件對的事，只給神看。那一次，你會嘗到「真實的好」是什麼味道。'
+    },
+    reflectionTitle:'教外口碑',
+    reflection:'保羅列監督資格時補了一句：「在教外有好名聲」。在那個信徒是少數、隨時可能被毀謗的時代，他知道——信仰圈外的人怎麼看你，會直接影響別人怎麼看你所信的神。你的為人，是別人認識神的一扇窗。\n\n在那些沒人跟你談信仰的地方，你是個什麼樣的人？有沒有一個具體的場合，你希望自己「在外面」也能活得更像神所盼望的樣子？',
+    baseItem:{emoji:'🕊️',name:'溫和的器皿',desc:'「不因酒滋事，不打人，只要溫和，不爭競，不貪財；」',slot:'hat'},
+    bonusItem:{emoji:'🏛️',name:'真理的柱石',desc:'「這家就是永生神的教會，真理的柱石和根基。」',slot:'bg'}
+  },
+  // ── 提摩太前書 4 ──
+  {
+    chapter:'TIM1_4', sceneEmoji:'💪',
+    readTime:4,
+    guide:{
+      intro:'保羅寫信給年輕的傳道人提摩太，提醒他防備那些用「禁止結婚、不准吃某些食物」來綁住人的假教導，回到真正重要的事：在敬虔上操練自己。保羅用了一個健身的比喻——敬虔不是天生的，是像肌肉一樣練出來的。最後他鼓勵被人嫌年輕、資歷淺的提摩太：別讓人看輕你，反而要活出榜樣。',
+      outline:[
+        {nodes:'1-5節', text:'防備假教導：有人禁止嫁娶、禁戒食物，把神所造的好東西說成不潔'},
+        {nodes:'6-10節', text:'操練敬虔：操練身體益處還少，惟獨敬虔凡事都有益處，因有今生和來生的應許'},
+        {nodes:'11-16節', text:'不要叫人小看你年輕，總要在言語行為上作榜樣；不要輕忽所得的恩賜，殷勤去作使人看出你的長進 ✦'}
+      ],
+      focus:'今日情境題聚焦在 11-16節——當你因為年輕、資歷淺、不夠格而被人看輕時，保羅說的不是「等你夠格再說」，而是「現在就活出來」。'
+    },
+    verse:'「不可叫人小看你年輕，總要在言語、行為、愛心、信心、清潔上，都作信徒的榜樣。」',
+    verseRef:'—— 提摩太前書 4:12',
+    scene:'提摩太被派去帶領一群比他年長的信徒，常常有人因為他年紀輕、資歷淺，私下不太把他當一回事。保羅沒有要他去爭一個頭銜，也沒叫他裝老成——而是告訴他：別人怎麼看是一回事，你能做的，是用你的言語、行為、愛心，一點一點讓人看見。',
+    q:'你有沒有因為「年輕／資歷淺／不夠格」而被人看輕過？那時候你心裡是什麼反應？',
+    choices:[
+      {k:'A',text:'有，我會很想證明自己，憋著一口氣要做給他們看'},
+      {k:'B',text:'有，但我會默默退到後面，覺得「算了，反正輪不到我」'},
+      {k:'C',text:'老實說我也常覺得自己不夠格，是真的有點心虛'},
+      {k:'D',text:'我盡量不去管別人怎麼看，把該做的做好就好'}
+    ],
+    responses:{
+      A:'那口氣其實藏著一個渴望——你想被認真對待。這沒有錯。只是保羅給提摩太的路不是「爭一場」，而是「活出來」：言語、行為、愛心，這些不是一次證明，是慢慢被看見的。也許你不用急著贏，可以先問自己：今天，我願意在哪一件小事上，誠實地把它做好？',
+      B:'退到後面的時候，心裡是不是有個聲音說「我講了也沒用」？那個聲音很真實，也很累。但保羅看著年輕的提摩太說的是「不可叫人小看你」——不是要你硬撐，是捨不得你把自己縮小。下次想退的時候，試著留在原地多待一下下，哪怕只是把心裡那句話，輕輕說出口。',
+      C:'謝謝你說了實話，這比裝得很有把握難多了。其實「覺得自己不夠格」幾乎是每個被神使用的人都有過的心情，提摩太也是。敬虔不是等你夠格才開始，是邊做邊長出來的——你不必先變強，只要願意先走一小步。今天，有沒有一件你一直覺得「我不夠格做」、但其實可以試試看的小事？',
+      D:'把該做的做好，這本身就是一種底氣，保羅也很看重這個。只是偶爾留意一下：不在意別人的眼光，會不會有時候也悄悄關上了「被人影響、被人鼓勵」的門？作榜樣不只是做好自己，也包括讓別人看見、被你帶動。也許可以想想：有沒有一個人，其實正在默默看著你怎麼做？'
+    },
+    reflectionTitle:'操練敬虔',
+    reflection:'保羅用了一個很妙的比喻：操練身體益處還少，惟獨敬虔凡事都有益處。健身的人都知道，肌肉不是一天長出來的，是一次次、不完美地練出來的。敬虔也一樣——它不是「自律滿分的人」的特權，而是給願意持續、哪怕一週只動了三天的人留的位置。重點從來不是完美，是不放棄地回來。\n\n回頭看你的信仰，你是把它當成「應該會自動長好」的東西，還是願意像操練一樣，持續地、笨拙地練？如果做不到每天靈修讓你有點罪惡感，那也沒關係——今天你能回來，就已經是在操練了。哪一個小小的、做得到的習慣，是你願意這禮拜先撿起來的？',
+    baseItem:{emoji:'💪',name:'操練的肌理',desc:'「只是要棄絕那世俗的言語和老婦荒渺的話，在敬虔上操練自己。」',slot:'body'},
+    bonusItem:{emoji:'🌱',name:'長進的印記',desc:'「這些事你要殷勤去作，並要在此專心，使眾人看出你的長進來。」',slot:'hat'}
+  },
+  // ── 提摩太前書 5 ──
+  {
+    chapter:'TIM1_5', sceneEmoji:'👨‍👩‍👧‍👦',
+    readTime:4,
+    guide:{
+      intro:'這一章保羅在教提摩太一件很實際的事——怎麼跟教會裡各種不同的人相處。他一開頭就給了一個很溫暖的原則：對待不同年紀的人，要像對待自己的家人一樣（勸老年人如同父親，勸少年人如同弟兄）。接著他談到怎麼照顧失去丈夫的婦女、怎麼敬重那些辛苦帶領大家的長老。整章的底色是：在信仰群體裡，我們不是陌生人，是一家人。',
+      outline:[
+        {nodes:'1-2節', text:'對待不同年齡的人，用家人的方式——勸老年人如同父親，勸少年人如同弟兄，勸老年婦女如同母親，勸少年婦女如同姊妹，總要清清潔潔的 ✦'},
+        {nodes:'3-16節', text:'怎麼照顧那些失去倚靠的寡婦，教會與家人各自該擔起的責任'},
+        {nodes:'17-21節', text:'敬重那些善於帶領、勞苦傳道的長老；處理控告與責備時，不可存成見、也不可有偏心'},
+        {nodes:'22-25節', text:'按手立人不可急促，要看清楚——有些人的好與壞一眼看得出來，有些要日久才顯明'}
+      ],
+      focus:'今日情境題聚焦在 1-2節——保羅說，對待老年人、年輕人、長輩、同輩，都要「像對家人那樣」。這不是叫你裝親切，是換一種眼光看人：那個讓你不耐煩的長輩、那個讓你皺眉的年輕人，如果他是你爸、你弟、你媽、你妹，你會怎麼說話？'
+    },
+    verse:'「勸老年婦女如同母親，勸少年婦女如同姊妹；總要清清潔潔的。」',
+    verseRef:'—— 提摩太前書 5:2',
+    scene:'生活裡總有那麼一兩種人，特別容易踩到你的線。可能是長輩反覆的叮嚀、不停的「我這都是為你好」；可能是年輕人那種你看不懂的態度；也可能是同輩之間，那種藏在客氣底下的比較。對著別人你都還能好好說話，偏偏對「這種人」，你的耐心就是特別短。',
+    q:'有沒有哪個年齡層、哪一種人，你特別容易對他失去耐心？如果把他當成自己的家人來看，你的反應會不一樣嗎？',
+    choices:[
+      {k:'A',text:'有，但我會提醒自己用尊重的態度，盡量把對方當家人看，好好說話。'},
+      {k:'B',text:'我想先搞懂——保羅為甚麼要用「父親、弟兄、母親、姊妹」這種家人的比喻來講相處？'},
+      {k:'C',text:'我知道該把對方當家人，但情緒上來的那一刻，我常常做不到，事後才後悔。'},
+      {k:'D',text:'老實說，有些人我就是受不了。叫我把他當家人，我現在還真的做不到。'}
+    ],
+    responses:{
+      A:'你願意用尊重的態度去待人，這已經是很成熟的選擇了。不過保羅這句話裡藏了一個更柔軟的東西——他沒說「要有禮貌」，他說的是「如同父親」「如同母親」。禮貌是一種距離，家人是一種靠近。對家人，我們會嘮叨、會直接、有時也會不耐煩，但底下有一份「我們是一起的」。今晚可以挑一個你最近覺得難相處的人，試著在心裡問一句：如果他是我的長輩、我的手足，我會怎麼跟他說這句話？光是換這個角度，語氣可能就軟下來了。',
+      B:'這個問題問得很細——保羅大可以說「要對人客氣」，他卻偏偏用了「父親、弟兄、母親、姊妹」。為甚麼？因為在那個時代，信主的人來自四面八方，有奴隸有自由人、有老有少，彼此可能根本不熟。保羅是在重新定義這群人的關係：你們不是同一個社團的會員，你們是一家人。家人不會因為一句話不中聽就翻臉，因為底下有割不斷的連結。今晚帶著這個角度，把第 1、2 節再讀一遍，你會發現他講的不是「相處技巧」，是「你眼中的對方，到底是誰」。',
+      C:'你說的這個「情緒上來那一刻就做不到」，太真實了——道理我們都懂，難的永遠是當下那幾秒。先別急著責備自己，能在事後後悔，代表你心裡其實很在乎要好好待人。保羅這句話不是一道要你當場滿分的考題，它更像一個方向：慢慢地，讓「他也是我的家人」這個念頭，比「他又來了」更先冒出來。今晚不用要求自己下次一定做到，只要記住一個畫面就好——下次情緒快上來時，先在心裡看一眼：他如果是我爸、我媽、我弟、我妹。光是多看這一眼，就已經在轉彎了。',
+      D:'謝謝你這麼誠實，這種話很多人心裡有、卻不敢說出口。先講清楚：保羅這句「如同父親、如同母親」，不是在審判「你怎麼連這個都做不到」。有些人確實傷過你、踩過你的底線，受不了是有原因的，這份感受是真的，不用假裝沒事。把人當家人看，從來不是要你立刻原諒、立刻親近，那太重了。今晚你甚麼都不用勉強，只要對神誠實說一句就好：「這個人我現在真的當不了家人，我把這份受不了交給祢。」能把難關係交到神手上，本身就是一小步——剩下的，不用今晚就走完。'
+    },
+    reflectionTitle:'當他是家人',
+    reflection:'「不可嚴責老年人，只要勸他如同父親；勸少年人如同弟兄」（5:1），保羅接著說「勸老年婦女如同母親，勸少年婦女如同姊妹」（5:2）。他在教提摩太一件很實際的事——年輕的傳道人面對年長的會友，很容易要嘛畏縮、要嘛擺出權威。保羅給的不是技巧，是一種眼光：把每一個人，都放回家人的位置上去看。對父親不會疾言厲色，對母親會多一份體貼，對手足會有一份直接卻不傷人的親近。當你把對方看成家人，你說話的方式自然就不一樣了。\n\n停一分鐘，想想你生活裡最容易失去耐心的那種人——某個年齡層、某種態度的人。如果他就是你的長輩、你的手足，你會怎麼重新看他、怎麼重新跟他說話？你今晚願意先為哪一個人，試著換上這副「家人的眼光」？',
+    baseItem:{emoji:'🤝',name:'家人的眼光',desc:'「不可嚴責老年人，只要勸他如同父親；勸少年人如同弟兄；」',slot:'hat'},
+    bonusItem:{emoji:'⚖️',name:'無偏心的囑咐',desc:'「我在神和基督耶穌並蒙揀選的天使面前囑咐你：要遵守這些話，不可存成見，行事也不可有偏心。」',slot:'hand'}
+  },
+  // ── 提摩太前書 6 ──
+  {
+    chapter:'TIM1_6', sceneEmoji:'⚖️',
+    readTime:4,
+    guide:{
+      intro:'提摩太前書最後一章，保羅直接談「錢」。在一個敬虔被當成發財門路的環境裡，他提醒提摩太：真正的大利不是財富，而是「敬虔加上知足的心」。這章也囑咐富足的人不要倚靠錢財，要樂善好施。',
+      outline:[
+        {nodes:'1-5節', text:'提防那些把敬虔當成「得利門路」的人——表面虔誠，骨子裡是為了好處'},
+        {nodes:'6-10節', text:'知足的心便是大利：我們沒有帶甚麼到世上來，也不能帶甚麼去；貪財（不是錢本身）是萬惡之根 ✦'},
+        {nodes:'11-16節', text:'囑咐提摩太逃避貪婪，追求公義敬虔，為真道打那美好的仗'},
+        {nodes:'17-21節', text:'囑咐今世富足的人不要倚靠無定的錢財，要在好事上富足、甘心施捨'}
+      ],
+      focus:'今日情境題聚焦在 6-8節——「敬虔加上知足的心便是大利」「只要有衣有食，就當知足」，談那個在這時代裡讓人「永遠覺得不夠」的焦慮。'
+    },
+    verse:'「只要有衣有食，就當知足。」',
+    verseRef:'—— 提摩太前書 6:8',
+    scene:'保羅在信末談一件很現實的事——錢。他見過有人把信仰當成發財的門路，也見過有人因為貪戀錢財，「用許多愁苦把自己刺透了」。然後他說了一句很安靜的話：我們來的時候甚麼都沒帶，走的時候也帶不走。只要有衣有食，就當知足。',
+    q:'保羅說「只要有衣有食，就當知足」。在這個好像永遠覺得「還不夠」的時代，你上一次真心覺得「這樣，就夠了」，是什麼時候？',
+    choices:[
+      {k:'A',text:'最近有過——某個很普通的時刻，突然覺得自己擁有的其實已經很多了。'},
+      {k:'B',text:'很難想起來。我好像總在追下一個目標，達到了又馬上看向更遠的地方。'},
+      {k:'C',text:'老實說，我覺得「知足」聽起來很美，但我做不到——帳單和比較一直在提醒我「不夠」。'},
+      {k:'D',text:'我會區分：物質上我其實夠了，但心裡那個「不夠」的聲音，跟錢沒太大關係。'}
+    ],
+    responses:{
+      A:'那個「突然覺得已經很多了」的瞬間，其實很珍貴——它不是因為你那天得到了什麼，而是因為你那天看見了什麼。保羅說的知足就是這種看見。今天，要不要把那個時刻記下來，下次「不夠」的聲音又響起時，拿出來提醒自己？',
+      B:'「達到了又馬上看向更遠」——這不是你的毛病，這幾乎是這個時代的呼吸方式。追求本身沒有錯，保羅自己也在「打那美好的仗」。只是有時候，停下來問一句會很不一樣：「我現在手上的這些，我有真的好好享受過嗎？」今天，挑一樣你早就擁有、卻一直沒空感謝的東西，多看它一眼。',
+      C:'謝謝你這麼誠實。知足從來不是叫你假裝帳單不存在，也不是叫你接受不該接受的處境——保羅不是在說「窮一點才屬靈」。他要對付的，是那個無論擁有多少都喊「不夠」的焦慮。今天不用做到知足，只要做一件小事：把那個「不夠」的聲音，說給神聽一次——「我心裡一直覺得不夠，這讓我很累。」',
+      D:'你摸到了這章最深的一層——保羅警告的是「貪財」，是心裡的那個追逐，不是錢本身。物質夠了，心卻還在喊餓，這是很多人不敢承認的真實。今天，要不要試著問那個聲音一句話：「你到底在怕什麼？」答案往往不是錢。'
+    },
+    reflectionTitle:'帶不走的',
+    reflection:'保羅說「我們沒有帶甚麼到世上來，也不能帶甚麼去」。這不是叫人看輕擁有，而是把擁有放回它真正的位置——它是路上用的，不是要抓著進墳墓的。看清這一點，反而讓人鬆一口氣：原來不必把全部的安全感都壓在會帶不走的東西上。\n\n如果今晚就要兩手空空地離開，你會發現哪些一直追的東西其實沒那麼重要？又有哪些你一直忽略、卻真正帶得走的東西，值得你現在多投資一點？',
+    baseItem:{emoji:'⚖️',name:'知足的心',desc:'「然而，敬虔加上知足的心便是大利了；」',slot:'hat'},
+    bonusItem:{emoji:'🏃',name:'屬神之人的追求',desc:'「但你這屬神的人，要逃避這些事，追求公義、敬虔、信心、愛心、忍耐、溫柔。」',slot:'body'}
+  },
+  // ── 提摩太後書 1 ──
+  {
+    chapter:'TIM2_1', sceneEmoji:'🔥',
+    readTime:4,
+    guide:{
+      intro:'這是保羅在獄中，寫給屬靈兒子提摩太的最後一封信的開頭。保羅快走到生命盡頭，提摩太還年輕、還在恐懼裡。保羅沒有先講大道理，而是提起一件溫暖的事——提摩太裡面那份信，是外祖母羅以、母親友妮基一代一代傳下來的。然後他輕輕地說：不要膽怯，因為你不是孤單一個人在信。',
+      outline:[
+        {nodes:'1-2節', text:'問安——保羅以使徒身分，寫信給「我親愛的兒子」提摩太'},
+        {nodes:'3-5節', text:'感恩——保羅想念提摩太的眼淚，也想到那從外祖母、母親傳下來的「無偽之信」'},
+        {nodes:'6-7節', text:'提醒——把神所給的恩賜如火挑旺起來，因為神給的不是膽怯的心，乃是剛強、仁愛、謹守 ✦'},
+        {nodes:'8-12節', text:'呼召——不要以見證為恥，要為福音同受苦難；保羅自己受苦，卻不以為恥，因為「知道我所信的是誰」 ✦'},
+        {nodes:'13-18節', text:'囑咐——守住純正的話語，靠聖靈牢牢守著所交託的善道'}
+      ],
+      focus:'今日情境題聚焦在 5-7節與 12節——在恐懼與羞辱面前，仍能因「知道所信的是誰」而把害怕託付出去；這份信，是被人一代代傳下來的。'
+    },
+    verse:'「因為知道我所信的是誰，也深信他能保全我所交付他的，直到那日。」',
+    verseRef:'—— 提摩太後書 1:12',
+    scene:'保羅這封信是在監牢裡寫的，他大概知道自己快走到盡頭了。收信的提摩太還年輕，正在恐懼和退縮裡。保羅沒有逼他堅強，反而提起一件很溫柔的事：你裡面那份信，是外祖母羅以、母親友妮基傳給你的，你不是孤單一個人在信。然後他說：我也在受苦，也會被人看不起，但我不羞愧，因為我知道我所信的是誰。',
+    q:'保羅在牢裡還能說「我知道我所信的是誰」。你有沒有一件正在害怕、卻又不知道能交給誰的事？',
+    choices:[
+      {k:'A',text:'有，而且我已經學會把它一點一點交出去，雖然手還是會發抖。'},
+      {k:'B',text:'我知道理論上可以交給神，但真的把害怕放手，對我來說好難。'},
+      {k:'C',text:'我容易焦慮、容易怕，有時會覺得「會這麼怕，是不是我信得不夠」。'},
+      {k:'D',text:'老實說我現在就是很怕，還沒辦法交給誰，只能先撐著。'}
+    ],
+    responses:{
+      A:'手會發抖，但你還是交出去了——這不是不怕，是怕著還願意鬆手，這比假裝勇敢珍貴太多。保羅也是在鎖鍊裡寫下那句話的，他不是不痛，是知道「交付」的那一位接得住。今天交的時候，可以對神說一句：「我還是會抖，但我選擇相信祢接得住。」',
+      B:'「知道可以、但放不了手」幾乎是每個人的真實處境。放手難，是因為那件事對你很重要，不是因為你信得差。你不用一次全放，試著只鬆開一根手指就好——今天挑那件事的一個小角落，對神說：「這一塊，我先交給祢。」',
+      C:'先停一下——會怕、會焦慮，跟「信得不夠」不是同一件事。保羅說神給的不是膽怯的心，不是在罵會害怕的人，而是在說：你不用靠自己硬撐出勇敢。一個容易焦慮的人，照樣可以是有信心的人。今天試著把那句責備自己的話換掉，改成：「我很怕，但我還在這裡，這就夠了。」',
+      D:'很怕、還撐著——光是你今天還在這裡，就已經是一種力量了，不是軟弱。神沒有要你現在就勇敢起來，也沒有要你馬上把它交出去。你能做的，也許只是對神說一句：「我很怕，我先把『我很怕』這件事告訴祢。」把害怕說出口，神就在那裡聽著了。'
+    },
+    reflectionTitle:'傳下來的信',
+    reflection:'保羅在獄中提醒提摩太：你心裡那份信，是先在外祖母羅以、母親友妮基心裡的。原來信心不是憑空長出來的，是被人一代一代傳下來、活給你看的。在你最害怕、最想退縮的時候，那份從別人手裡接過來的信，會悄悄扶住你。\n\n回頭看，你的信是從誰那裡接過來的？有沒有一個人，曾經活出一種讓你想跟著信下去的樣子？如果你想得到，他叫什麼名字？',
+    baseItem:{emoji:'🔥',name:'剛強的心',desc:'「因為神賜給我們，不是膽怯的心，乃是剛強、仁愛、謹守的心。」',slot:'hat'},
+    bonusItem:{emoji:'🕯️',name:'無偽之信',desc:'「這信是先在你外祖母羅以和你母親友妮基心裡的，我深信也在你的心裡。」',slot:'bg'}
+  },
+  // ── 提摩太後書 2 ──
+  {
+    chapter:'TIM2_2', sceneEmoji:'🤲',
+    readTime:4,
+    guide:{
+      intro:'保羅在監獄裡寫信給他的屬靈兒子提摩太，知道自己時日不多。這一章的核心，是「傳承」——把領受的好東西，交託給下一個忠心的人。保羅用了三個比喻：當兵的精兵、比武的選手、勞力的農夫，講的都是同一件事：忠心，是要忍耐、要堅持的，不是一時的表現。最後他留下一句安慰：就算我們軟弱失信，神仍然是可信的。',
+      outline:[
+        {nodes:'1-2節', text:'要在恩典上剛強，把所領受的教導交託給那忠心能教導別人的人 ✦'},
+        {nodes:'3-7節', text:'三個比喻——精兵不被世務纏身、比武要按規矩、農夫先得糧食，都在講忍耐與忠心 ✦'},
+        {nodes:'8-13節', text:'記念復活的基督；保羅為福音受捆綁，但神的道不被捆綁；縱然失信，神仍可信'},
+        {nodes:'14-26節', text:'勸提摩太作無愧的工人，遠避虛談，溫柔待人'}
+      ],
+      focus:'今日情境題聚焦在 1-7節——把自己領受的好東西，忠心地交託、傳給下一個人，重點是忠心傳承，不是自己要先夠完美。'
+    },
+    verse:'「我們縱然失信，他仍是可信的，因為他不能背乎自己。」',
+    verseRef:'—— 提摩太後書 2:13',
+    scene:'保羅在牢裡寫信，知道自己快走到盡頭了。他沒有交代財產，他交代的是「把你從我這裡聽見的，再傳給下一個忠心的人」。他用精兵、比武的選手、勞力的農夫三個畫面，講同一件事：忠心是要忍耐的。然後他輕輕補上一句：就算你軟弱、失信了，神也不會因此離開你——因為他不會背叛他自己。',
+    q:'你心裡有沒有一個好東西（一段信仰、一個提醒、一份愛），是你很想傳給某個人，卻覺得「我自己都做不好，哪有資格教別人」的？',
+    choices:[
+      {k:'A',text:'有，我心裡有個對象，只是一直在等自己「夠好」才敢開口。'},
+      {k:'B',text:'我想傳，但很怕對方覺得我言行不一，乾脆就不講了。'},
+      {k:'C',text:'我比較相信「以身作則」，與其用講的，不如自己默默做好。'},
+      {k:'D',text:'老實說我自己都還在掙扎，根本沒想過要傳什麼給誰。'}
+    ],
+    responses:{
+      A:'「等自己夠好」這個念頭，會讓人等一輩子。保羅在監獄裡、戴著鎖鏈，他也不是「夠好」了才交託——他是知道時間不多了，所以現在就傳。你不用等到無懈可擊，你只要願意把手裡那個好東西，先遞出去。今天可以先想一件事：那個對象，你想先跟他分享的是哪一句話？',
+      B:'怕言行不一，其實是因為你很看重這件事的真實——這不是壞事。但傳承從來不是「我做到了所以我教你」，而是「我也在路上，我們一起走」。你可以很誠實地對那個人說：「這個我自己也還在學，但我覺得對你有用。」誠實本身，就是最好的言行一致。',
+      C:'以身作則很珍貴，但有時候人需要的，是你親口說的那一句。默默做好，對方不一定看得懂你在做什麼；說出來，他才知道那是可以學的。你不用變成愛說教的人，只要在某個自然的時刻，把你做這件事的「為什麼」講給他聽。今天可以留意：有沒有一個適合開口的時機？',
+      D:'還在掙扎，就先別急著傳什麼——這份誠實很好。保羅也不是先把自己整理好了才有資格說話，他是一邊受苦、一邊軟弱，一邊還是把好東西傳下去。也許你現在能傳的，不是答案，而是「我也在掙扎」這件事本身。今天先對神說一句：「我自己都還沒站穩，但我願意。」'
+    },
+    reflectionTitle:'忠心傳承',
+    reflection:'保羅在生命的末了，最掛念的不是自己的安危，而是「福音有沒有人接下去」。他要提摩太把聽見的，交託給「那忠心能教導別人的人」——注意，他要的是「忠心」，不是「完美」、不是「有恩賜」、不是「夠資格」。傳承這條線能不能延續，靠的是一棒一棒願意忠心的人，而不是每一棒都很強。\n\n你會不會也常常覺得「等我自己做好了再說」？如果忠心而不是完美才是傳承的條件，那你現在手裡，有沒有一個好東西，其實已經可以開始傳出去了？你會想先傳給誰？',
+    baseItem:{emoji:'🤲',name:'交託的囑咐',desc:'「你在許多見證人面前聽見我所教訓的，也要交託那忠心能教導別人的人。」',slot:'hand'},
+    bonusItem:{emoji:'💪',name:'剛強的恩典',desc:'「我兒啊，你要在基督耶穌的恩典上剛強起來。」',slot:'body'}
+  },
+  // ── 提摩太後書 3 ──
+  {
+    chapter:'TIM2_3', sceneEmoji:'⚓',
+    readTime:4,
+    guide:{
+      intro:'保羅寫信給年輕的提摩太，提醒他末後的世代人心會變得很亂、很自我。但保羅沒有停在描述混亂，而是把提摩太引回一個從小就可靠的定錨——神的話。世界再怎麼晃，這本聖經不會晃。',
+      outline:[
+        {nodes:'1-5節', text:'末世人心的寫照：專顧自己、有敬虔的外貌卻沒有實意。保羅誠實地說出時代的混亂'},
+        {nodes:'6-13節', text:'保羅提醒那些偷進人家、迷惑人的假教師終必顯露，也坦白敬虔度日的人會受逼迫、世界越來越複雜'},
+        {nodes:'14-17節', text:'轉折與出口：回到你從小所學的聖經。它是神所默示的、於人有益，能在動盪裡使你站立得穩 ✦'}
+      ],
+      focus:'今日情境題聚焦在 14-17節——當外面一切都在搖晃，那個從小可以倚靠、不會動搖的定錨在哪裡。'
+    },
+    verse:'「並且知道你是從小明白聖經，這聖經能使你因信基督耶穌，有得救的智慧。」',
+    verseRef:'—— 提摩太後書 3:15',
+    scene:'保羅老了，在監獄裡，世界正亂。他寫信給年輕的提摩太，沒有叫他去對抗誰、糾正誰，只說了一句很溫柔的話：別忘了你從小所學的。那些你還是孩子時就握在手裡的話，到現在還能撐住你。',
+    q:'當你覺得周遭很亂、心也跟著晃的時候，你會本能地抓住什麼？',
+    choices:[
+      {k:'A',text:'我會想起一句經文或一首詩歌，它好像真的能穩住我。'},
+      {k:'B',text:'我會找人聊，但聊完還是有點空。'},
+      {k:'C',text:'老實說我什麼都抓不住，就只是硬撐過去。'},
+      {k:'D',text:'我以前有過那種「被話穩住」的經驗，只是最近離得有點遠。'}
+    ],
+    responses:{
+      A:'那句話、那首歌會冒出來，不是你記性好，是它早就住在你裡面了。下次它又浮上來的時候，停一下，把它輕輕說出口一次——讓它從腦袋走到嘴邊。',
+      B:'聊完還是空，不代表你找錯人，只是有些重量人接不住。今晚睡前，試著把那個「聊完還是空」的感覺，直接講給神聽一句，哪怕只是「我還是覺得空」。',
+      C:'硬撐其實很費力，你已經撐了很久了。沒有抓住什麼也沒關係，先承認「我現在抓不住」這件事本身，就已經是誠實。要不要找一節最短的經文，先放在手機螢幕上，不用懂，先放著。',
+      D:'那個「被話穩住」的經驗沒有不見，它只是在等你回頭。你不用一次補回所有距離，今天先翻開一節從小就熟的經文，像回老地方一樣，讀一遍就好。'
+    },
+    reflectionTitle:'從小的話',
+    reflection:'保羅提醒提摩太：你是從小明白聖經的。在一個越來越混亂、人人專顧自己的世代裡，保羅給的定錨不是更強的意志力，而是那本從小就陪著他的話。神的話是神所默示的，於人有益，它不隨世界搖晃。\n\n回想看看，有沒有哪一句經文、哪一個信仰的記憶，是你很小的時候就埋下的？最近這段日子，你離那個定錨是更近了，還是更遠了？今天可以做哪一件很小的事，往它靠回去一點？',
+    baseItem:{emoji:'⚓',name:'心裡的定錨',desc:'「但你所學習的，所確信的，要存在心裡。」',slot:'hat'},
+    bonusItem:{emoji:'📖',name:'神所默示的話',desc:'「聖經都是神所默示的，於教訓、督責、使人歸正、教導人學義都是有益的。」',slot:'hand'}
+  },
+  // ── 提摩太後書 4 ──
+  {
+    chapter:'TIM2_4', sceneEmoji:'🏁',
+    readTime:4,
+    guide:{
+      intro:'這是保羅人生最後一封信的最後一章，寫於羅馬的監獄裡，他知道自己快要被處死了。他先鄭重囑咐提摩太要堅持傳道、無論順不順都要忠心；接著話鋒一轉，開始回顧自己的一生——「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了」。但別把這想成風光的告別：這時候同伴底馬離棄了他，第一次上法庭沒有一個人來幫他。然而他說，就在那最孤單的時刻，「主站在我旁邊，加給我力量」。信的最後是一連串想念的名字和平安的祝福。',
+      outline:[
+        {nodes:'1-5節', text:'保羅鄭重囑咐提摩太：務要傳道，無論得時不得時都要忠心，凡事謹慎、忍受苦難、盡你的職分'},
+        {nodes:'6-8節', text:'保羅回顧自己走過的路——那美好的仗已經打過、當跑的路已經跑盡、所信的道已經守住，有公義的冠冕為他存留'},
+        {nodes:'9-15節', text:'交代近況：底馬貪愛世界離棄了他，只剩路加在身邊；請提摩太快來、把馬可和那件外衣帶來'},
+        {nodes:'16-18節', text:'第一次上法庭沒有人來幫他、都離棄了他，但主站在他旁邊加給他力量，把他從獅子口裡救出來 ✦'}
+      ],
+      focus:'今日情境題聚焦在 7-8 節與 16-17 節——保羅說「那美好的仗我已經打過了」，不是站在領獎台上說的，是在獄中等死、被同伴離棄、第一次上庭沒人來幫的時候說的。重點不是「我贏了」，是「我守住了，一步一步走到了這裡」。就算狼狽、就算孤單，主一直站在旁邊。'
+    },
+    verse:'「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了。」',
+    verseRef:'—— 提摩太後書 4:7',
+    scene:'保羅在監獄裡，知道自己快要被處死了。這時候，跟過他的同伴底馬離開了他，第一次上法庭時，沒有一個人站出來幫他說話。就在這樣孤單、狼狽、走到盡頭的時刻，他回頭看自己這一生，說了一句話：「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了。」這不是勝利的宣言，是一個累壞了、卻一路守住了的人，終於走到了終點。',
+    q:'回頭看你信主到現在走過的這段路，你會怎麼形容自己這一仗打得如何？',
+    choices:[
+      {k:'A',text:'有跌倒、有軟弱，但我還在，沒有離開神——這樣我願意說一聲「守住了」。'},
+      {k:'B',text:'我想弄懂保羅憑甚麼這樣說——他明明在等死、被人離棄，怎麼還說這是「美好的仗」？'},
+      {k:'C',text:'我不敢說自己打得好，但如果是「沒放棄、還在走」，那我大概勉強算數。'},
+      {k:'D',text:'老實說我覺得我沒打好這仗。我跌太多次了，根本不敢說自己守住了甚麼。'}
+    ],
+    responses:{
+      A:'「有跌倒、有軟弱，但我還在」——這句話比任何漂亮的見證都更接近保羅的意思。注意他說的是「守住了」，不是「我贏了」、不是「我做得很好」。守住，是在一切想讓你放手的力量底下，你還抓著沒鬆手。你跌倒過、軟弱過，但你沒走，這就是守住。今晚可以對神說一句很實在的話：「我這一路跌跌撞撞，但我還在祢這裡，謝謝祢一直沒放開我的手。」',
+      B:'這個問題問到核心了——保羅說「美好的仗」的時候，處境一點都不美好：他在牢裡等死，底馬離棄了他，上法庭沒人來幫。答案藏在 17 節：「惟有主站在我旁邊，加給我力量。」這仗之所以「美好」，不是因為過程順利、結局風光，是因為從頭到尾有主陪著走。所以「打過了」的重點不在戰績，在那個「陪你打完」的人。今晚帶著這個角度，把 7 節和 17 節連著讀一遍，你會聽見一個累壞了卻不孤單的人的聲音。',
+      C:'「沒放棄、還在走」——你知道嗎，這正是保羅整句話的重量所在。他用的詞是「跑盡了」，不是「跑贏了」；是「守住了」，不是「守得漂亮」。能一路走到這裡、沒有掉頭離開，這件事本身就不簡單，不需要你再加上「打得好不好」去評分。今晚不必逼自己交出一份漂亮成績單，只要對神說：「我走得不好看，但我還在路上，求祢繼續陪我走。」這一句，神聽得懂。',
+      D:'謝謝你這麼老實。「我覺得我沒打好這仗」——願意說出這句話，需要勇氣，而且我想先把一件事跟你說清楚：保羅說這話的時候，旁邊不是一群為他鼓掌的人，是一個離棄他的同伴和一個沒人來幫的法庭。他靠的也不是自己有多強，是「主站在我旁邊，加給我力量」。所以「守住」從來不是「我夠好」，是那位陪你走的主夠信實。你跌很多次、不敢說守住了甚麼，這都沒有把你踢出這條路——你還在這裡讀這段，本身就是還沒放手的證據。今晚甚麼都不用結算，只跟神說一句：「我覺得我打得很糟，但我把這個跌跌撞撞的我，交給祢。」'
+    },
+    reflectionTitle:'守住了',
+    reflection:'保羅寫「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了」（4:7）的時候，正坐在羅馬的監牢裡等候處死。緊接著的幾節說得很清楚：底馬貪愛世界離棄了他（4:10），第一次上法庭「沒有人前來幫助，竟都離棄我」（4:16）。這不是一個功成名就的人在台上回顧輝煌，是一個被同伴離棄、孤單赴死的人，在盡頭回頭看，承認自己一路守住了。而他守得住的真正原因在 4:17——「惟有主站在我旁邊，加給我力量」。重點從來不是「我贏了」，是「我沒放手，因為有主陪著我走到這裡」。\n\n停一分鐘，誠實地回頭看你信主到現在走過的路。你不用先給自己打一個漂亮的分數，也不用假裝這一仗打得好看。如果你覺得自己跌太多、不敢說守住了甚麼，那更要把這段話聽進去：守住，靠的不是你夠強，是那位一直站在你旁邊的主。今晚，你願意怎麼跟他說你這一路走來的感受？',
+    baseItem:{emoji:'🤝',name:'旁邊的同在',desc:'「惟有主站在我旁邊，加給我力量，使福音被我盡都傳明，叫外邦人都聽見；我也從獅子口裡被救出來。」',slot:'bg'},
+    bonusItem:{emoji:'👑',name:'公義的冠冕',desc:'「從此以後，有公義的冠冕為我存留，就是按著公義審判的主到了那日要賜給我的；不但賜給我，也賜給凡愛慕他顯現的人。」',slot:'hat'}
+  },
+  {
+    chapter:'TIT1', sceneEmoji:'🪨',
+    readTime:3,
+    guide:{
+      intro:'提多書是保羅寫給同工提多的信。保羅把提多留在克里特島，要他把教會「沒有辦完的事」整理好，並在各城設立長老。前半是長老、監督該有的品格；後半警告一種假教師——他們嘴上說認識神，做出來的事卻完全相反，還用敬虔的外表牟利。',
+      outline:[
+        {nodes:'1-4節', text:'問安——神的僕人、耶穌基督的使徒保羅，寫給共信之道作他真兒子的提多'},
+        {nodes:'5-9節', text:'設立長老的品格——監督既是神的管家，必須無可指責，不任性、不貪財，堅守所教真實的道理'},
+        {nodes:'10-14節', text:'警告假教師——有許多人說虛空話欺哄人，因貪財敗壞人的全家，要嚴嚴地責備'},
+        {nodes:'15-16節', text:'表裡的落差——他們說是認識神，行事卻和他相背，在各樣善事上是可廢棄的 ✦'}
+      ],
+      focus:'今日情境題聚焦在 16 節——誠實看看自己「相信的」和「活出來的」之間，那段距離有多遠。'
+    },
+    verse:'「他們說是認識神，行事卻和他相背；本是可憎惡的，是悖逆的，在各樣善事上是可廢棄的。」',
+    verseRef:'—— 提多書 1:16',
+    scene:'保羅在克里特島看到一種人：他們很會講屬靈的話，開口就是「我認識神」，可是日子怎麼過、怎麼對人，卻跟嘴上說的完全對不起來。保羅沒有要提多去戳破誰，而是提醒整個教會——信仰真不真，最後不是看你說了什麼，是看你活成什麼樣子。',
+    q:'你心裡有沒有某一塊，是「相信的」跟「真的活出來的」差得有點遠的？',
+    choices:[
+      {k:'A',text:'有——有些事我講得頭頭是道，但自己其實做不太到，想起來會心虛。'},
+      {k:'B',text:'好像還好——不過真要我細看，可能是我不太敢看那麼仔細。'},
+      {k:'C',text:'老實說我懶得對自己這麼誠實，這樣看下去太累了。'},
+      {k:'D',text:'我比較常拿這把尺去量別人——量自己的時候手就軟了。'}
+    ],
+    responses:{
+      A:'會心虛，其實是好事——代表你心裡那把尺還沒鈍掉。保羅講這段不是要你羞愧，是要你把那塊「說得到做不到」的地方，從藏起來變成可以攤開來面對。今天先挑一件最小的，對神說一句：「這件事我說的比做的多，我想讓它們靠近一點。」',
+      B:'「不敢看那麼仔細」這句話本身就已經很誠實了。我們常常怕一細看，就會發現自己沒有想像中那麼好。但神看你不是要扣分，是要陪你看。今天能不能只挑一個角落，輕輕問自己一句：「這裡，我是真的，還是裝的？」',
+      C:'會累是真的——一直審視自己像永遠交不完的作業。保羅這段其實不是要你拷問自己到精疲力盡，假教師的問題是「裝」，不是「不完美」。今天不用大掃除，只要一個很小的動作：對一個人，把你原本想包裝的話，講得老實一點點。',
+      D:'這個觀察很準——量別人的時候眼睛特別利，量自己就突然近視。這幾乎是每個人的本能，你能看見它，已經比很多人前面了。今天試試把那把尺轉個方向：「同一件事，如果是我做的，我會怎麼替自己解釋？」然後把那份體諒，留一點給自己，也留一點給別人。'
+    },
+    reflectionTitle:'說與做',
+    reflection:'保羅描述的假教師，毛病不在「不夠完美」，而在「表裡不一」——說是認識神，行事卻和他相背，還用敬虔的外表牟利。他要提多守住的，不是一份「夠不夠格」的考核表，而是信仰能不能老老實實地落到日子裡。\n\n今天不必跟那些假教師比，也不必拿長老的品格清單來打分數。只問自己一個誠實的問題：有沒有一件事，是我「相信」很久了，卻一直沒讓它「活出來」？把它寫下來——不是為了自責，是為了讓說的和做的，今天起靠近一步。',
+    baseItem:{emoji:'📖',name:'持守真道的口',desc:'「堅守所教真實的道理，就能將純正的教訓勸化人，又能把爭辯的人駁倒了。」',slot:'hand'},
+    bonusItem:{emoji:'🕊️',name:'無謊言的神',desc:'「盼望那無謊言的神在萬古之先所應許的永生，」',slot:'hat'}
+  },
+  {
+    chapter:'TIT2', sceneEmoji:'💞',
+    readTime:4,
+    guide:{
+      intro:'保羅繼續教提多怎麼牧養克里特島的教會。這一章先是一連串很具體的叮嚀：對老年人、老年婦人、少年婦人、少年人、還有當時社會裡作僕人的，各自該活出怎樣的樣子。然後話鋒一轉，講出全章的核心——「神救眾人的恩典已經顯明出來」，正是這恩典在教我們過自守、公義、敬虔的生活。重點不是一堆規矩在壓著你，是恩典在你裡面教你；而你怎麼活，會直接影響別人怎麼看這位救主。',
+      outline:[
+        {nodes:'1-5節', text:'保羅請提多按各人的身分勸勉：老年人要有節制、自守，老年婦人舉止恭敬、用善道教訓人，好指教少年婦人愛丈夫愛兒女、料理家務、待人有恩'},
+        {nodes:'6-10節', text:'勸少年人要謹守；提多自己凡事要作善行的榜樣、言語純全無可指責；當時作僕人的要忠誠、不私拿東西——這些都是為了「凡事尊榮我們救主－神的道」'},
+        {nodes:'11-12節', text:'全章的心臟：神救眾人的恩典已經顯明出來，正是這恩典在教訓我們除去不敬虔，在今世過自守、公義、敬虔的生活 ✦'},
+        {nodes:'13-15節', text:'我們一邊這樣活、一邊等候耶穌基督榮耀顯現；他為我們捨了自己、贖我們、潔淨我們，要我們作他熱心為善的子民'}
+      ],
+      focus:'今日情境題聚焦在 11-14 節——保羅前面講了一長串「該怎麼活」，但他沒有把這些當成壓人的規矩。他在 11 節掀開底牌：這一切的源頭，是「神救眾人的恩典已經顯明出來」，是恩典在「教訓我們」。所以今天問的不是「你守規矩了沒」，而是：在你真實的處境裡，那種出於被愛、被恩典推著走的誠實，長什麼樣子？'
+    },
+    verse:'「因為神救眾人的恩典已經顯明出來，教訓我們除去不敬虔的心和世俗的情慾，在今世自守、公義、敬虔度日，」',
+    verseRef:'—— 提多書 2:11-12',
+    scene:'保羅給克里特島的提多寫信，前面細細交代了各種人該活出的樣子，聽起來像一長串要求。然後他停下來，講出這一切背後真正的動力：「因為神救眾人的恩典已經顯明出來。」不是規矩在逼我們變好，是恩典先臨到我們，然後在我們裡面慢慢教我們，怎麼在這個世界誠實、乾淨地活。',
+    q:'在你真實的生活裡，有沒有哪一個地方，是你想活得更誠實、更乾淨，但很難？想想看，如果這不是規矩在壓你，而是有人已經先愛了你、想陪你慢慢來，那會差在哪？',
+    choices:[
+      {k:'A',text:'有一件事我一直想做對，以前覺得是該守的本分，現在好像能理解，這比較像是被愛之後自然想回應。'},
+      {k:'B',text:'我想弄懂「恩典教訓我們」是什麼意思——不是規矩，那到底是什麼東西在推著人改變？'},
+      {k:'C',text:'我大概知道誠實是好的，但老實說我多半還是靠「我應該」在撐，不是因為感受到什麼恩典。'},
+      {k:'D',text:'老實說我現在的處境，光是撐住就很難了，「自守、公義、敬虔」這些字離我好遠。'}
+    ],
+    responses:{
+      A:'你描述的這個轉變，正是保羅整章想說的——同一件事，從「我必須」變成「我想回應」，差別不在那件事本身，而在你心裡的源頭換了。11 節說恩典「已經顯明出來」，是先發生的事；你的誠實是後來的回應，不是換取愛的條件。這很珍貴，請別小看它。今晚可以對神說一句很具體的話：「這件事我以前是硬撐的，現在我想因為祢先愛了我，慢慢把它活對。」',
+      B:'這個問題問得很好，而且答案就藏在這幾節裡。「恩典教訓我們」這個「教訓」，不是拿著鞭子在後面趕，比較像一個你深愛、也深知道愛你的人，在你身邊一點一點地影響你——你會因為不想辜負這份愛，自己慢慢調整。14 節說得更清楚：他「為我們捨了自己」，是這份捨命的愛在裡面動工，不是條文在外面施壓。今晚帶著一個問題慢慢想：如果我相信有人已經為我付出到這個地步，我最想先誠實面對的，會是哪一件事？',
+      C:'謝謝你這麼誠實，「靠我應該在撐」這句話，其實很多認真的人都是這樣，包括很愛神的人。保羅不是要你否定「我應該」，而是想讓你知道，在那個「應該」的底下，還有一層更穩的東西——是神的恩典先臨到你，你才有力氣撐。撐久了會累，是因為只記得責任、忘了自己是被愛的。今晚不用勉強自己馬上「有感覺」，只要試著對神說一句：「我一直在硬撐，求祢讓我重新感受到，我是被祢愛著的，不只是被要求的。」',
+      D:'我聽見了，謝謝你願意說出「光是撐住就很難了」這句話。先說清楚一件事：保羅這段話不是要再壓你一個擔子，更不是要你在難處裡假裝自己很敬虔。如果「自守、公義、敬虔」這些字現在離你好遠，那很正常，這段話此刻對你的處境也許先不適用，沒關係。我更想讓你聽見的是 14 節——「他為我們捨了自己」。在你撐不太住的時候，重點不是你要再做到什麼，而是有一位已經為你捨命的主，正抓著你。今晚什麼都不用達成，只跟他說一句：「我現在很難，我先不談活得多好，我只想知道祢還在。」'
+    },
+    reflectionTitle:'恩典先到',
+    reflection:'提多書第2章前面有一長串很具體的叮嚀，對老年人、老年婦人、少年人，還有當時社會處境裡作僕人的，各自說該怎麼活。如果只讀這些，很容易以為基督信仰就是一套行為規範。但保羅在 11 節按下了真正的開關：「因為神救眾人的恩典已經顯明出來，教訓我們除去不敬虔的心和世俗的情慾，在今世自守、公義、敬虔度日」（2:11-12）。順序很重要——恩典「已經顯明」是先發生的，我們的改變是被這恩典「教訓」出來的回應。14 節說明這恩典的具體模樣：「他為我們捨了自己」。不是規矩在外面逼你，是捨命的愛在裡面教你。\n\n停一分鐘，想想你生活裡那個一直想活得更誠實、卻很難的地方。你是不是常常用「我應該」在硬撐？如果今晚換一個源頭——不是因為怕做不夠好，而是因為有一位已經為你捨了自己的主，正陪著你慢慢來——你會想先把哪一件事，誠實地交給他？',
+    baseItem:{emoji:'💞',name:'捨己的恩典',desc:'「他為我們捨了自己，要贖我們脫離一切罪惡，又潔淨我們，特作自己的子民，熱心為善。」',slot:'hat'},
+    bonusItem:{emoji:'🌅',name:'盼望的顯現',desc:'「等候所盼望的福，並等候至大的神和我們救主耶穌基督的榮耀顯現。」',slot:'bg'}
+  },
+  {
+    chapter:'TIT3', sceneEmoji:'🕊️',
+    readTime:3,
+    guide:{
+      intro:'提多書最後一章，保羅交代提多怎麼教導信徒「在世上怎麼活」——順服掌權的、預備行善、不毀謗人、向眾人溫柔。然後筆鋒一轉，講出全卷最溫暖的一段：我們從前也是無知、悖逆、被各樣私慾捆綁的人，但神救了我們，不是因我們做得好，乃是照他的憐憫。',
+      outline:[
+        {nodes:'1-2節', text:'怎麼待人——順服作官掌權的、預備行善、不毀謗、不爭競、向眾人大顯溫柔 ✦'},
+        {nodes:'3-7節', text:'我們從前也一樣——無知悖逆受迷惑；是神的恩慈和憐憫救了我們，不是因我們所行的義'},
+        {nodes:'8-11節', text:'勸提多把這些事講明，要遠避無益的辯論紛爭；分門結黨的人警戒過一兩次就棄絕'},
+        {nodes:'12-15節', text:'保羅的私人交代——打發同工、為西納和亞波羅送行、學習正經事業、問安'}
+      ],
+      focus:'今日情境題聚焦在 1-2 節，錨在 3-5 節——當你想對一個人嚴厲、想瞧不起誰時，記得「我從前也是這樣，是憐憫救了我」。'
+    },
+    verse:'「他便救了我們；並不是因我們自己所行的義，乃是照他的憐憫，藉著重生的洗和聖靈的更新。」',
+    verseRef:'—— 提多書 3:5',
+    scene:'保羅快寫完這封信了。他叫提多教導信徒怎麼在外人面前活——不要毀謗人、不要跟人爭、向所有人溫柔。但他沒有把信徒擺在道德高地上，反而立刻補一句：我們從前也是無知悖逆、被各樣私慾捆綁的人。一樣可恨、一樣彼此相恨。是神救了我們，不是因為我們夠好。',
+    q:'想想最近一個讓你「打從心裡瞧不起」或「特別想嚴厲對待」的人——是什麼讓你覺得自己站得比他高？',
+    choices:[
+      {k:'A',text:'他做的事我絕對做不出來，我跟他不一樣，這點我很確定。'},
+      {k:'B',text:'我嘴上沒說，但心裡確實在打分數——而且常常給人不及格。'},
+      {k:'C',text:'我知道不該瞧不起人，但「我從前也一樣」這種話，我講不出口，太假了。'},
+      {k:'D',text:'老實說我沒在想這些，誰惹到我我就煩誰，沒那麼多反省。'}
+    ],
+    responses:{
+      A:'「我跟他不一樣」——這句話我們都說過。但保羅把自己跟最不堪的人放在同一句裡：「我們從前也是無知、悖逆、受迷惑。」他不是裝謙虛，是真的記得自己被救之前的樣子。今天可以試試這句：「我跟他的差別，不是我比較好，是我先被救了。」',
+      B:'心裡默默打分數，其實是很多人共同的祕密——不說出口，但分數一直在算。保羅沒有罵這件事，他只是提醒：那位被你打不及格的人，神是「照他的憐憫」救人的，不是照分數。今天可以對神說一句：「我心裡給某某人打的那個分數，求你幫我放下。」',
+      C:'你不想講假話，這份誠實很難得——很多人「我也一樣」掛在嘴上，心裡根本不信。先不急著講出口，先讓它變成真的。今天可以問自己一個問題：「我被恩典救之前，是什麼樣子？」——想起來了，那句話就不假了。',
+      D:'這個誠實很痛快，至少你沒假裝自己很屬靈。誰惹你你就煩誰，這是人之常情。只是煩著煩著，人會越來越硬。今天不用勉強原諒誰，只要記得一件事就好：你也曾經是「那個讓人很煩的人」，而神沒有放棄你。'
+    },
+    reflectionTitle:'我也一樣',
+    reflection:'保羅在勸信徒對人溫柔、不毀謗之後，立刻把自己也擺進去：「我們從前也是無知、悖逆、受迷惑……」他沒有站在乾淨的地方對髒的人說教。他記得自己也是被救上岸的，所以對還在水裡的人，他只有憐憫，沒有鄙視。\n\n今天誠實地想一個人——那個你心裡偷偷瞧不起、或一想到就有氣的人。如果神對待你，是「照他的憐憫」而不是照你配不配——那你打算怎麼對待他？',
+    baseItem:{emoji:'🕊️',name:'溫柔的器皿',desc:'「不要毀謗，不要爭競，總要和平，向眾人大顯溫柔。」',slot:'body'},
+    bonusItem:{emoji:'⛓️',name:'蒙憐憫的記號',desc:'「我們從前也是無知、悖逆、受迷惑、服事各樣私慾，和宴樂，常存惡毒嫉妒的心，是可恨的，又是彼此相恨。」',slot:'hat'}
+  },
+  {
+    chapter:'PHM1', sceneEmoji:'⛓️',
+    readTime:3,
+    guide:{
+      intro:'腓利門書是保羅最短、也最私人的一封信——全卷只有一章 25 節，不是寫給教會，是寫給一個人。事情的背景很沉重：腓利門是個有錢人，家裡蓄奴；他的一個奴隸阿尼西謀逃跑了，輾轉跑到坐牢的保羅身邊，在那裡信了主。按當時羅馬的法律，逃跑的奴隸抓回去可以被烙印、甚至處死。保羅卻寫了這封信，請腓利門收他回去——而且不是當回奴隸，是當「親愛的兄弟」（v.16）。這封信沒有正面廢除奴隸制，但它在腓利門的家門口放了一顆炸彈：當福音把一個人從「財產」變回「弟兄」，主奴關係還站得住嗎？',
+      outline:[
+        {nodes:'1-7節', text:'問安與感謝——為基督被囚的保羅寫信給腓利門，先感謝他的愛心，說眾聖徒的心因他得了暢快'},
+        {nodes:'8-14節', text:'保羅的求情——他不用使徒權柄吩咐，寧可憑愛心求；阿尼西謀是他在捆鎖中所生的兒子，他本想留下他，卻不願勉強腓利門'},
+        {nodes:'15-18節', text:'不再是奴僕，乃是弟兄——求腓利門收納阿尼西謀如同收納保羅自己；阿尼西謀若虧負了他、欠了他甚麼，都記在保羅的帳上 ✦'},
+        {nodes:'19-25節', text:'保羅親筆擔保——「我必償還」，並提醒腓利門連他自己也虧欠於保羅；末了託付、問安、祝福'}
+      ],
+      focus:'今日情境題聚焦在 15-18節——保羅替一個破裂的主奴關係出面，求對方把曾經的「財產」當成弟兄收回去，還自願替對方的虧負買單。'
+    },
+    verse:'「不再是奴僕，乃是高過奴僕，是親愛的兄弟。」',
+    verseRef:'—— 腓利門書 1:16',
+    scene:'阿尼西謀是腓利門家的奴隸——在那個時代，奴隸是「財產」，不是「人」。他逃跑了，這是死罪等級的事。後來他遇見坐牢的保羅，信了主。保羅大可以替他求個從寬發落就好，但他求的遠不只這個：他求腓利門收他回去時，「不再是奴僕，乃是高過奴僕，是親愛的兄弟」。保羅沒有假裝這段關係沒裂過、沒有說「算了既往不咎」，他知道阿尼西謀真的虧負過腓利門。他做的是另一件事——「他若虧負你，或欠你甚麼，都歸在我的帳上」。福音在這裡做的，是把一個人從「財產」還原成「弟兄」，並且讓中間有人願意替那道裂痕買單。',
+    q:'你心裡有沒有一個人，是你很難再用「平等的、把他當人」的眼光去看的——可能你曾被他虧負，可能你們之間有一道很難跨的權力或身分落差？',
+    choices:[
+      {k:'A',text:'有，而且我知道問題不在他做了什麼，是在我心裡早就把他「歸類」了——歸到某一格，就懶得再認真看他這個人。'},
+      {k:'B',text:'有一個人確實虧負過我，我沒有恨他，但要我把他當「親愛的」，太遠了，我做不到。'},
+      {k:'C',text:'我比較像那個「欠人帳」的阿尼西謀——我知道我虧負過誰，只是一直沒勇氣面對，怕對方不肯收我。'},
+      {k:'D',text:'老實說，有些關係我根本不想修復，也不覺得非修不可。硬要我去和好，我會抗拒。'}
+    ],
+    responses:{
+      A:'把人「歸類」是我們省力氣的方式——歸到某一格，就不用每次重新認識他了。但保羅做的恰恰相反：他逼腓利門把阿尼西謀從「逃奴」那一格，移到「親愛的兄弟」那一格。這很費力，因為要重新看一個你以為早就看懂的人。今天不必移動整個人，先挑那個被你歸類的人，在心裡補一句你一直沒承認的話：「其實我不太認識現在的他。」承認這一句，格子就鬆了一點。',
+      B:'「我沒有恨他，但要當親愛的，太遠了」——這句話很誠實，也很重要。保羅沒有要求腓利門「假裝沒事」，他承認阿尼西謀真的虧負過人（v.18）。從「被虧負」到「親愛的」中間，隔著一段不能跳過的路，有些人走得完，有些人需要很久，有些人需要先立界線才走得動。今天你不必走到「親愛的」，只走到一句你說得出口的就好：「我還沒辦法當你親愛的，但我願意先不把你當敵人。」走得到這裡，已經是真的在走。',
+      C:'你看見了一個很多人看不見的角度——這封信不只是寫給「該不該原諒人」的腓利門，也是寫給「怕不被收回去」的阿尼西謀。他逃過、虧負過，卻還是回去了，因為有保羅說「都歸在我的帳上」。你不必獨自扛著那筆帳去面對對方。今天，先把那個名字、那件你虧負過的事，悄悄對神說出口：「這件事我一直不敢面對，我先在祢面前承認。」承認，是回去的第一步。',
+      D:'「我不想修復，也不覺得非修不可」——謝謝你說了實話，這比勉強自己說「我願意和好」要誠實太多。要說清楚：保羅在這封信裡求的是腓利門，神從不靠「逼你和好」來愛你。有些關係需要時間，有些需要界線，有些這輩子可能都修不回來，這都不等於你信得不夠。今天你完全不必處理那段關係，只問自己一個問題就好：「我抗拒的，是這個人，還是『被要求一定要原諒』這件事？」分清楚這兩個，你心裡會鬆一點。'
+    },
+    reflectionTitle:'歸在我帳上',
+    reflection:'腓利門書是保羅替一個逃跑的奴隸寫的求情信。阿尼西謀曾是腓利門的「財產」，逃跑、可能還虧負了主人，按律法回去凶多吉少。但保羅求腓利門收他回去時「不再是奴僕，乃是高過奴僕，是親愛的兄弟」（v.16），又說「他若虧負你，或欠你甚麼，都歸在我的帳上」（v.18）。這封短信沒有喊口號廢除奴隸制，卻做了更狠的一件事——它把一個被當成物品的人，還原成弟兄，並且讓一位中保自願替那道裂痕買單。這正是福音的形狀：有人替你欠的帳簽了名。\n\n今天，想一個你心裡那道難跨的關係——也許你是被虧負的那個，也許你才是欠帳的那個。你不必假裝裂痕不存在，也不必逼自己馬上和好。只誠實地問神一個問題：在這段關係裡，我最害怕面對的那一句話是什麼？把它寫下來，半句也好。神讀得懂還沒說完的話。',
+    baseItem:{emoji:'✉️',name:'求情的書信',desc:'「你若以我為同伴，就收納他，如同收納我一樣。」',slot:'hand'},
+    bonusItem:{emoji:'🧾',name:'歸我帳上的擔保',desc:'「他若虧負你，或欠你甚麼，都歸在我的帳上；」',slot:'bg'}
+  },
+  {
+    chapter:'HEB1', sceneEmoji:'🕊️', readTime:4,
+    guide:{
+      intro:'希伯來書一開頭就是一句大宣告：神一直都在說話。從前他藉著一個又一個先知，一點一點地對人說；到了如今這末後的日子，他親自藉著「兒子」對我們說話。這位兒子，就是那位創造世界，又用他的話托住萬有的主。',
+      outline:[
+        {nodes:'1-3節', text:'神開口說話了。從前藉先知，如今藉兒子。這位兒子是神榮耀的光輝，神本體的真像，托住萬有，也親自俯身向人說話。 ✦'},
+        {nodes:'4-9節', text:'這位兒子遠超過天使。神從來沒有對任何天使說「你是我的兒子」，卻對子說「神啊，你的寶座是永永遠遠的」。'},
+        {nodes:'10-14節', text:'天地都會像舊衣服一樣改變，唯有他永不改變，年數無窮。天使不過是服役的靈，奉差遣服事那將要承受救恩的人。'}
+      ],
+      focus:'今日情境題聚焦在 1-3節——那位托住萬有的，正親自開口向你說話，而你有沒有在聽。'
+    },
+    verse:'「就在這末世藉著他兒子曉諭我們；又早已立他為承受萬有的，也曾藉著他創造諸世界。」',
+    verseRef:'—— 希伯來書 1:2',
+    scene:'從前神說話，要透過一位又一位先知，隔著好幾層傳到人耳邊。但這封信一開頭就說，如今神不再隔著誰了，他親自藉著兒子，直接對你我說話。那位托住整個宇宙的主，竟然願意俯下身來，對一個渺小的你開口。',
+    q:'如果神真的此刻就在對你說話，你覺得自己最近，有在聽嗎？',
+    choices:[
+      {k:'A', text:'有，我最近確實感覺神在跟我說些什麼'},
+      {k:'B', text:'好像有，但我太忙了，常常沒空好好聽'},
+      {k:'C', text:'老實說我聽不到，甚至不太確定他在不在'},
+      {k:'D', text:'我比較怕聽到，怕他要我去做我做不到的事'}
+    ],
+    responses:{
+      A:'能感覺到神在說話，是很珍貴的。那不一定是大事，可能只是一句經文忽然有了重量，或心裡某個念頭格外清楚。今天可以試著回他一句：「我聽見了，謝謝你還願意對我說話。」',
+      B:'神不嫌你忙，他只是一直在那裡，等你停下來的那一刻。不用等到很有空，很屬靈才聽得到。今天就在最忙的縫隙裡，留三十秒問一句：「主啊，現在這一刻，你想對我說什麼？」',
+      C:'聽不到，不確定他在不在，這份誠實神都看得見，他不會因此走開。有時候不是他沒說話，是聲音被太多噪音蓋住了。你不必假裝聽得到，可以就這樣對他說：「如果你真的在，我願意被你找到。」',
+      D:'會怕，是因為你把神想成一個不斷對你提要求的人。但這一章說的那位，是先俯下身來，親自對你說話的主——他靠近你，不是為了壓垮你。今天可以對他說一句心裡話：「我怕聽到你，但我更不想錯過你。」'
+    },
+    reflectionTitle:'他向你說話',
+    reflection:'希伯來書的作者在開頭就鋪了一個對比：從前神藉著眾先知「多次多方地」說話，那是片片段段，隔了好幾手的。如今神藉著兒子說話，是親自，是直接，是面對面的。寫信的人要讓這群正在動搖，想放棄信仰的讀者重新看見——對他們說話的，不是一個遙遠的概念，而是那位托住萬有，又願意俯身就近他們的主。\n\n你心裡，是不是也常覺得神離得很遠，遠到他的話傳到你這裡早就模糊了？如果今天有一句話，一節經文，一個念頭，是神想親自對你說的，你覺得會是什麼？你願意先安靜下來，給他一個對你說話的機會嗎？',
+    baseItem:{emoji:'📜', name:'曉諭的話語', desc:'「神既在古時藉著眾先知多次多方地曉諭列祖，」', slot:'hand'},
+    bonusItem:{emoji:'✨', name:'本體的真像', desc:'「他是神榮耀所發的光輝，是神本體的真像，常用他權能的命令托住萬有。」', slot:'hat'}
+  },
+  {
+    chapter:'HEB2', sceneEmoji:'🤲', readTime:4,
+    guide:{
+      intro:'希伯來書第2章先給一個慎重的提醒：這麼大的救恩，別讓它從我們指縫間漏掉，隨流失去。然後筆鋒一轉，講到一件溫柔的事——耶穌甘願成為比天使小一點的，親自走過死亡，凡事與我們一樣，好成為一位真懂我們的大祭司。',
+      outline:[
+        {nodes:'1-4節', text:'作者鄭重提醒：不要隨流失去這麼大的救恩。這不是威脅，是因為神太鄭重，不想失去你。'},
+        {nodes:'5-9節', text:'耶穌成為比天使小一點的，為人人嘗了死味，受死的苦卻得了尊貴榮耀為冠冕。'},
+        {nodes:'10-13節', text:'救我們的元帥因受苦難得以完全，祂稱我們為弟兄，不以為恥。'},
+        {nodes:'14-18節', text:'祂親自成了血肉之體，凡事與弟兄相同，作慈悲忠信的大祭司，搭救受試探的人。 ✦'}
+      ],
+      focus:'今日情境題聚焦在 14-18節——有一位真的懂你此刻的難，因為祂也走過。'
+    },
+    verse:'「他自己既然被試探而受苦，就能搭救被試探的人。」',
+    verseRef:'—— 希伯來書 2:18',
+    scene:'有些苦說出來，怕別人只會給建議，卻沒真的懂過。希伯來書說，有一位大祭司不是隔著距離同情你——祂親自成了血肉之體，被試探過，受過苦，所以祂搭救你的時候，是從裡面懂的。',
+    q:'當你正走在一段很難的路上，最讓你撐得住的，是哪一種「被懂」？',
+    choices:[
+      {k:'A', text:'有人真的也走過同樣的苦，他懂'},
+      {k:'B', text:'知道神沒有走開，祂在'},
+      {k:'C', text:'老實說我現在沒感覺被誰懂，很孤單'},
+      {k:'D', text:'我還在懷疑，神真的懂我這種具體的難嗎'}
+    ],
+    responses:{
+      A:'「他也走過」這四個字，有時候比一百句安慰都有力量。耶穌正是這樣的一位——祂被試探過，受過苦，不是站在岸上喊你加油。今天如果有一個也走過這條路的人，你願不願意傳一句話給他，就說「我最近也在走這段，想到你」？',
+      B:'你抓住了最穩的那根繩子——不是感覺，是「祂在」這個事實。即使路還是難，祂沒走開。今晚睡前，可以對祂說一句很短的：「我知道你在，請陪我走過今天。」',
+      C:'孤單的時候硬說「我被懂」，反而更累。你不用假裝。希伯來書裡那位大祭司，恰恰是為了「沒人懂」的時刻來的——祂嘗過被離棄的味道。要不要先不急著找誰懂你，就把這句孤單，原原本本說給祂聽：「我現在很孤單，沒人懂。」',
+      D:'會問「祂真的懂我這種具體的難嗎」，代表你沒有用客套話打發自己，這很誠實。聖經的回答是：祂不是抽象地懂，是親自成了血肉之體，被試探，受過苦地懂。你可以把心裡最具體的那個難，挑一件，直接問祂：「這件事，你真的懂嗎？」把懷疑帶到祂面前，本身就是一種靠近。'
+    },
+    reflectionTitle:'祂也走過',
+    reflection:'希伯來書第2章說，耶穌「凡事該與他的弟兄相同」，親自成了血肉之體，被試探而受苦。祂不是隔著玻璃看你流淚的神，而是走進來，和你一樣經歷過軟弱與痛的那一位。所以當祂搭救你，是從裡面懂你的。\n\n你此刻正走的那段難路，最希望有人懂的是哪一個部分？如果耶穌此刻坐在你旁邊，祂是那位也走過的，你想先跟祂說哪一句？',
+    baseItem:{emoji:'🩹', name:'慈悲的大祭司', desc:'「所以，他凡事該與他的弟兄相同，為要在神的事上成為慈悲忠信的大祭司，為百姓的罪獻上挽回祭。」', slot:'body'},
+    bonusItem:{emoji:'🤝', name:'救拔的手', desc:'「他並不救拔天使，乃是救拔亞伯拉罕的後裔。」', slot:'hand'}
+  },
+  {
+    chapter:'HEB3', sceneEmoji:'🪨', readTime:4,
+    guide:{
+      intro:'希伯來書第3章把耶穌和摩西放在一起比較。摩西很偉大，但他是神家裡忠心的僕人；耶穌卻是治理這個家的兒子，所以更尊貴。接著作者引用以色列人在曠野的往事，提醒大家別重蹈覆轍，別讓心慢慢變硬。',
+      outline:[
+        {nodes:'1-6節', text:'耶穌比摩西更尊貴。摩西是神家中忠心的僕人，基督是治理這家的兒子，我們是屬於他的家。'},
+        {nodes:'7-11節', text:'聖靈借詩篇95篇提出警告，當年以色列人在曠野硬著心，試探神，結果不得進入神的安息。'},
+        {nodes:'12-15節', text:'別讓心剛硬。要趁著還有今日，天天彼此相勸，免得有人被罪迷惑，不知不覺心就硬了。 ✦'},
+        {nodes:'16-19節', text:'回顧那一代人為何進不去：說到底，是因為不信。神仍在等他們回頭，他們卻硬是不肯。'}
+      ],
+      focus:'今日情境題聚焦在 12-15節，特別是13節「趁著還有今日，天天彼此相勸」——心變硬不是一次崩壞，是一天天不知不覺的事。'
+    },
+    verse:'「總要趁著還有今日，天天彼此相勸，免得你們中間有人被罪迷惑，心裡就剛硬了。」',
+    verseRef:'—— 希伯來書 3:13',
+    scene:'心變硬，很少是某一天突然發生的。比較像一塊本來柔軟的土，被太陽曬久了，一點一點地乾掉，裂開，結成硬塊，連自己都沒察覺。聖經說，這事不會一夜之間，是「天天」累積的，所以也要「天天」彼此提醒。',
+    q:'最近的你，心裡有沒有某一塊，正在悄悄變硬，變麻木？',
+    choices:[
+      {k:'A', text:'有，對某個人或某件事，我已經懶得有感覺了'},
+      {k:'B', text:'好像有一點，但我說不太上來是哪裡'},
+      {k:'C', text:'老實說，就算發現硬了，我也不知道怎麼讓它軟回來'},
+      {k:'D', text:'我這陣子心還算柔軟，神講話我聽得進去'}
+    ],
+    responses:{
+      A:'你說得很誠實，麻木是真的，那不是你裝出來的。會麻木，常常是因為那裡曾經太痛，或失望太多次了。今天先不急著逼自己重新有感覺。你可以先輕輕對神說一句：「這裡我已經沒力氣了，你來。」',
+      B:'說不上來，反而是還來得及的訊號——表示那塊還沒完全結成硬塊，你還感覺得到一點不對勁。今天找個安靜的時刻問問自己：最近哪一個瞬間，我本來該有感覺，卻刻意把它滑過去了？',
+      C:'謝謝你把這句話說出來，這比假裝沒事勇敢多了。讓心軟回來，本來就不是我們自己使勁就能做到的，這正是「今日」這個邀請的意思——神還在說話，你不必先變好才靠近他。今天就帶著這份「我也不知道怎麼辦」去找他，這本身就是一步。',
+      D:'能保有這份柔軟，是很值得珍惜的。經文說心會硬是「天天」一點點來的，所以柔軟也需要天天顧。今天可以為身邊一個你知道正在累，正在硬起來的人禱告，或傳一句話去「彼此相勸」，陪他一段。'
+    },
+    reflectionTitle:'趁著今日',
+    reflection:'希伯來書借用以色列人出埃及後在曠野的往事當鏡子。他們親眼見過神蹟，卻在一次次的試探中硬著心，最後那一代人進不了應許之地。作者沒有要嚇唬讀者，而是反覆強調一個溫柔的字眼——「今日」。意思是：神現在還在說話，現在回應都還來得及。\n\n如果你發現自己心裡有一塊正在變硬，你願不願意趁著「還有今日」，誠實把它說給神聽？你不需要先讓它軟回來才開口；說不出怎麼軟回來，也可以原原本本地說。',
+    baseItem:{emoji:'🏠', name:'兒子的家業', desc:'「但基督為兒子，治理神的家；我們若將可誇的盼望和膽量堅持到底，便是他的家了。」', slot:'bg'},
+    bonusItem:{emoji:'🔔', name:'今日的回聲', desc:'「經上說：『你們今日若聽他的話，就不可硬著心，像惹他發怒的日子一樣。』」', slot:'hat'}
+  },
+  {
+    chapter:'HEB4', sceneEmoji:'👑', readTime:5,
+    guide:{
+      intro:'希伯來書第4章接著上一章談「安息」。作者提醒：神給的安息應許還沒過期，今天仍向你敞開，不要因為怕趕不上而硬著心。中段筆鋒一轉，說神的道是活潑的，能剖開人心，無一不顯露；但全章的高峰不是「被看穿」的可怕，而是末了那份安慰——我們有一位曾凡事受過試探，卻沒有犯罪的大祭司，所以可以坦然無懼地來到神面前。',
+      outline:[
+        {nodes:'1-11節', text:'進入神安息的應許仍然存留，今日若聽見就不要硬心；務必竭力進入，免得像曠野那代不信從的人跌倒。'},
+        {nodes:'12-13節', text:'神的道活潑有功效，比兩刃的劍更快，能剖開人心最深的思念，萬物在祂眼前都是赤露敞開的。'},
+        {nodes:'14-16節', text:'我們有一位體恤軟弱，凡事受過試探卻沒有犯罪的大祭司，所以只管坦然無懼地來到施恩的寶座前，得憐恤，蒙恩惠。 ✦'}
+      ],
+      focus:'今日情境題聚焦在 15-16節——因為這位大祭司「懂」你的軟弱，你不必先把自己整理好，就可以坦然地來。'
+    },
+    verse:'「所以，我們只管坦然無懼地來到施恩的寶座前，為要得憐恤，蒙恩惠，作隨時的幫助。」',
+    verseRef:'—— 希伯來書 4:16',
+    scene:'你心裡有件一直不敢端到神面前的事。可能是反覆跌倒的軟弱，可能是不太屬靈的情緒，也可能只是太累了。你總覺得，要先把自己收拾乾淨，表現好一點，才有資格來。但這一章說，那位坐在寶座上的，是一位曾經凡事受過試探，完全懂你的大祭司。',
+    q:'帶著還沒整理好的軟弱來到神面前，對你來說容易嗎？',
+    choices:[
+      {k:'A', text:'不容易。我總想先做好一點再來，不然會覺得羞愧'},
+      {k:'B', text:'我來，但會先在心裡解釋一堆，先道歉一輪才敢開口'},
+      {k:'C', text:'老實說，我有點怕被祂看穿，乾脆躲著不來'},
+      {k:'D', text:'我願意試試看，就帶著現在這個樣子來'}
+    ],
+    responses:{
+      A:'那份「要先夠好才有資格」的重量，神其實看見了。但這節經文說的是「坦然無懼」，不是「準備好了再來」。祂要的不是你修好的版本，是你真實的這個。今天可以對祂說一句：「我還沒整理好，但我就這樣來了。」',
+      B:'你願意來，已經很不容易了。只是你不必先繳一份檢討報告才被接納——那位大祭司「凡事受過試探，與我們一樣」，祂不是不懂才需要你解釋。下次來的時候，試著把開場白省掉，直接說那件最難說的事。',
+      C:'會怕被看穿，是因為你以為「被看見」等於「被定罪」。但這章把「神的道剖開人心」和「坦然來到施恩寶座」放在一起說：你被完全看見了，卻仍然被歡迎。被祂看穿的盡頭，不是審判，是憐恤。今天就帶著那件最怕被看見的事，來一次看看。',
+      D:'這一步很美。你不是因為夠好才來，是因為祂夠好你才敢來。「坦然無懼」這四個字，今天就是為你寫的。來到祂面前時，把那件你最想藏起來的事，第一個說出口。'
+    },
+    reflectionTitle:'坦然來到',
+    reflection:'希伯來書這一章先說了一件會讓人發抖的事：神的道能剖開人心，萬物在祂眼前都是赤露敞開的。沒有人能在神面前裝沒事。但作者沒有停在這份可怕裡——他立刻轉向一位大祭司，一位曾凡事受過試探，卻沒有犯罪，完全體恤你軟弱的大祭司。被全然看見，卻仍被全然歡迎，這就是「坦然無懼」的底氣。\n\n有沒有一件事，是你一直覺得「要先處理好才能拿到神面前」的？如果此刻不必先整理好自己，你會帶著這件事，對祂說什麼？',
+    baseItem:{emoji:'👑', name:'體恤的大祭司', desc:'「因我們的大祭司並非不能體恤我們的軟弱。他也曾凡事受過試探，與我們一樣，只是他沒有犯罪。」', slot:'hat'},
+    bonusItem:{emoji:'⚔️', name:'活潑的道', desc:'「神的道是活潑的，是有功效的，比一切兩刃的劍更快，甚至魂與靈，骨節與骨髓，都能刺入、剖開，連心中的思念和主意都能辨明。」', slot:'hand'}
+  },
+  {
+    chapter:'HEB5', sceneEmoji:'😭', readTime:4,
+    guide:{
+      intro:'希伯來書第五章承接大祭司的主題。作者說明大祭司是從人間挑選的，能體諒那些愚蒙失迷的人，因為他自己也有軟弱；接著指出基督照著神所定，照麥基洗德的等次作大祭司。最特別的是，這位大祭司在世時曾大聲哀哭，流淚禱告，在苦難中學了順從。末段話鋒一轉，責備讀者本該長進卻仍停在最基礎的地方。',
+      outline:[
+        {nodes:'1-4節', text:'大祭司從人間挑選，能體諒愚蒙失迷的人，因為自己也被軟弱所困；這尊榮不是自取，是蒙神所召。'},
+        {nodes:'5-10節', text:'基督照神所定作大祭司。祂在肉體時大聲哀哭流淚禱告，因所受的苦難學了順從，成了凡順從祂之人永遠得救的根源。 ✦'},
+        {nodes:'11-14節', text:'作者轉而責備：你們本該作師傅，如今卻還像只能吃奶的嬰孩，需要有人重新教導最基礎的開端。'}
+      ],
+      focus:'今日情境題聚焦在 7-9節——這位大祭司的禱告，也曾是大聲哀哭，流淚的；所以我們狼狽的禱告，祂懂。'
+    },
+    verse:'「基督在肉體的時候，既大聲哀哭，流淚禱告，懇求那能救他免死的主，就因他的虔誠蒙了應允。」',
+    verseRef:'—— 希伯來書 5:7',
+    scene:'我們常以為，禱告該是平靜的，有條理的，信心十足的。可是這一章說，基督自己的禱告，曾是大聲哀哭，流淚的——那是一個在苦難裡狼狽不堪的人，會發出的聲音。原來這位坐在天上的大祭司，懂得什麼叫哭著禱告。',
+    q:'當你最狼狽，最說不出漂亮話的時候，你還禱告得出來嗎？',
+    choices:[
+      {k:'A', text:'禱告得出來，但只剩眼淚和幾個字，連句子都拼不完整'},
+      {k:'B', text:'那種時候我反而安靜不下來，只能在心裡一直喊救命'},
+      {k:'C', text:'老實說我會躲開神，覺得這麼狼狽的自己不該出現在祂面前'},
+      {k:'D', text:'我會禱告，但會先把自己整理好，不想讓神看到我崩潰的樣子'}
+    ],
+    responses:{
+      A:'眼淚和幾個拼不完整的字，已經是禱告了。基督的禱告也曾是大聲哀哭，流淚的，神聽見的從來不是漂亮的句子，是那顆願意抬頭的心。下次哭著禱告時，可以對神說一句：這就是我現在所有的話了，求你聽。',
+      B:'喊救命也是禱告，而且是很真實的那一種。聖經沒有要求禱告必須安靜，基督自己也曾大聲哀哭，懇求那能救他免死的主。你心裡那聲喊，神都收到了。試著今天就把那句喊出來：神啊，我撐不住了，你在嗎。',
+      C:'你願意誠實說出這個躲，已經很不容易了。但這一章說，這位大祭司「能體諒那愚蒙的和失迷的人」——你狼狽的樣子，不會把祂嚇跑，那正是祂為你預備位置的地方。也許今天不用先變好，只要輕輕說一句：我來了，雖然我很狼狽。',
+      D:'想先整理好自己，是因為你很在乎這段關係，這份心意是好的。但基督流淚禱告的那一刻，並沒有先把自己整理好——神願意看見你崩潰的樣子。試著有一次，不先整理，就帶著原本的狼狽來，對祂說：今天我不想假裝了。'
+    },
+    reflectionTitle:'哭著禱告',
+    reflection:'希伯來書第五章描繪了一位很不一樣的大祭司。祂不是高高在上，不食人間煙火的，而是在肉體的時候，曾大聲哀哭，流淚禱告，懇求那能救祂免死的主。祂因所受的苦難學了順從，也因此能體諒那愚蒙失迷的人——包括還在最基礎的地方掙扎的我們。\n\n你上一次哭著禱告，是什麼時候？那時你覺得神離你很遠，還是很近？如果這位大祭司自己也哭過，那麼此刻你說不出口，只能流淚的那些，祂會怎麼接住？',
+    baseItem:{emoji:'🤲', name:'體諒的大祭司', desc:'「他能體諒那愚蒙的和失迷的人，因為他自己也是被軟弱所困。」', slot:'hat'},
+    bonusItem:{emoji:'🌅', name:'永遠得救的根源', desc:'「他既得以完全，就為凡順從他的人成了永遠得救的根源，」', slot:'bg'}
+  },
+  {
+    chapter:'HEB6', sceneEmoji:'⚓', readTime:5,
+    guide:{
+      intro:'希伯來書寫給一群信了主，卻信得很累，開始想往後退的人。第6章先講了全卷最讓人心驚的一段話：那些已經蒙光照，嘗過天恩，後來卻公然離棄的人，光景有多嚴重。但作者話沒停在這裡——他緊接著對讀信的人說「我深信你們強過這些」，最後把整章收在一個畫面上：神親自起了誓，要托住每一個逃向祂的人，這指望像一個錨，又堅固又牢靠。',
+      outline:[
+        {nodes:'1-3節', text:'別停在基礎道理上原地打轉，要往前進到完全的地步'},
+        {nodes:'4-8節', text:'全卷最嚴厲的警告——已經嘗過天恩卻公然離棄，把神兒子重釘十字架的人，光景如同長滿荊棘，必被廢棄的田地（這是經文忠實的呈現，不是對你的判決）'},
+        {nodes:'9-12節', text:'話鋒一轉——「親愛的弟兄們，我深信你們強過這些」；神不會忘記你所做的工和愛心，總要存著滿足的指望一直到底'},
+        {nodes:'13-20節', text:'神向亞伯拉罕起誓，又拿自己的誓言作保；憑這兩件不更改的事，逃往避難所的人可以大得勉勵，這指望如同靈魂的錨 ✦'}
+      ],
+      focus:'今日情境題聚焦在 9-11節與 18-19節——當你害怕自己是不是已經犯太多，回不去了，這段話把焦點從「我會不會失去救恩」轉到「神已經起了誓，祂不會放手」。'
+    },
+    verse:'「我們有這指望，如同靈魂的錨，又堅固又牢靠，且通入幔內。」',
+    verseRef:'—— 希伯來書 6:19',
+    scene:'有一段經文你一直不太敢讀，就是這章前面那幾節——「嘗過天恩卻離棄的人，不能叫他們重新懊悔」。你愈讀心愈涼，因為你想起自己也曾經離開過，也犯過一些你以為神不會原諒的事。一個聲音在心裡說：會不會我就是那種已經回不去的人？這一章如果只讀到第8節，是會讓人睡不著的。但作者沒有讓你停在那裡。',
+    q:'當你心裡冒出「我是不是已經沒救了」這種恐懼時，你通常怎麼處理它？',
+    choices:[
+      {k:'A', text:'我會拚命做更多，多禱告，多奉獻，多服事，想證明自己還在神這邊。'},
+      {k:'B', text:'我不敢深想，趕快把這念頭壓下去，假裝沒聽見。'},
+      {k:'C', text:'我會把這份害怕老實帶到神面前，問祂：我還能回來嗎？'},
+      {k:'D', text:'老實說，我真的很怕，我不確定自己到底還算不算得救。'}
+    ],
+    responses:{
+      A:'想用更多的努力把自己拉回安全地帶，這份拚命背後，是真的在乎——而「在乎」正是這段經文要你聽見的關鍵。6:4-6 講的那種「不能重新懊悔」，是一個人公然背棄，轉身把基督重釘十字架那樣決絕剛硬的狀態；一個還會擔心，還想靠近的人，恰恰不是那種人。你不需要用業績去贖回神的心，因為 6:17-18 說，神是親自起誓要托住你的。今天可以少做一件「證明自己」的事，多留五分鐘，只是安靜地待在祂面前，什麼都不必交。',
+      B:'把可怕的念頭壓下去，是一種本能的自保，不用為這個自責——有些恐懼太重，能先活下來已經不容易。只是壓住的東西不會消失，它會在半夜回來。這段經文其實很想對你說一句話：你會這麼怕，本身就說明你的心還在神這裡，還在乎祂怎麼看你；真正「回不去」的人，是連怕都不會怕的。下次那個念頭又冒出來時，試著不要立刻關掉它，而是輕輕對神說一句：「這個我自己扛不動，先交給祢。」',
+      C:'你願意把害怕直接端到神面前，開口問「我還能回來嗎」，這已經是一個很勇敢的動作了——而這個問題的答案，整段 6:18 早就寫好了：神為那些「逃往避難所」的人預備了確據。你問這句話的時候，其實就已經在往避難所跑了。回家的門從來不是你關上的，是祂一直開著的。今天可以把那句問話完整地對神說出來，然後加一句：「我聽見祢說門還開著了。」',
+      D:'謝謝你敢說出這句話，這比任何「我很好」都更靠近神。先放下一個重擔：這段經文不是要逼你「現在立刻確信自己得救」，也不是在對你下「再不悔改就來不及」的最後通牒——這些都不是它的意思。它真正在做的，是指著一件事實：神向承受應許的人「起誓為證」，祂用自己的誓言作保，好叫逃向祂的人「可以大得勉勵」。你不確定的時候，祂是確定的；你抓不住的時候，是祂抓住你。今天你不必逼自己相信「我一定得救」，只要做一件小事就好——對神說：「我不確定，但我來了。」來，就夠了。'
+    },
+    reflectionTitle:'靈魂的錨',
+    reflection:'這章前半段的警告是真的，作者沒有軟化它。但他寫那段話的對象，是「親愛的弟兄們」，而且他緊接著說「我深信你們強過這些」（6:9）。然後他把整章收在一個畫面上：神因為沒有比自己更大的可以指著起誓，就指著自己起誓，要托住每一個逃向祂的人。這份指望，像一個拋進深海，扣住磐石的錨——風浪再大，船不會漂走。\n\n你心裡有沒有一件事，讓你偷偷懷疑自己是不是已經被神放棄了？如果可以把那件事輕輕放到「神已經起誓」這個事實旁邊，你會發現它的份量變得不一樣。今天，你願不願意試著相信：抓住你的不是你的手，是祂起了誓的手？把你最怕的那句話寫下來，然後在旁邊寫上：「但祂起了誓。」',
+    baseItem:{emoji:'🏃', name:'逃往避難所的腳', desc:'「藉這兩件不更改的事，神決不能說謊，好叫我們這逃往避難所、持定擺在我們前頭指望的人可以大得勉勵。」', slot:'body'},
+    bonusItem:{emoji:'💗', name:'不被忘記的愛心', desc:'「因為神並非不公義，竟忘記你們所做的工和你們為他名所顯的愛心，就是先前伺候聖徒，如今還是伺候。」', slot:'hat'}
+  },
+  {
+    chapter:'HEB7', sceneEmoji:'🙏', readTime:4,
+    guide:{
+      intro:'希伯來書第7章在講一位很特別的祭司——麥基洗德。他在創世記裡只出現一下子，沒有記載父母，沒有族譜，沒有生死的開始與結束，作者說他「與神的兒子相似」，用他來預表基督。重點是：舊約的祭司靠的是血統，一代一代換，因為人會死；但基督這位大祭司不靠血統，不靠律法，而是憑「無窮之生命的大能」，永遠活著，職任永不更換。所以祂能把靠近神的人「拯救到底」，因為祂長遠活著，一直在替他們祈求。',
+      outline:[
+        {nodes:'1-10節', text:'麥基洗德是誰——他是撒冷王，至高神的祭司，無父無母，無族譜，連亞伯拉罕都向他獻上十分之一，領受他的祝福，可見他何等尊貴'},
+        {nodes:'11-19節', text:'為甚麼需要新的祭司——舊的祭司職任與律法不能使人完全，所以神照麥基洗德的等次另立一位，引進更美的指望，叫我們可以進到神面前'},
+        {nodes:'20-25節', text:'這位祭司永不換班——別的祭司會死，會換人，但耶穌是起誓立的，永遠常存，所以祂能把靠近神的人拯救到底，因為祂長遠活著，替他們祈求 ✦'},
+        {nodes:'26-28節', text:'祂正合我們所需——這位聖潔，無玷污，高過諸天的大祭司，只一次把自己獻上就成全了一切，是成全到永遠的'}
+      ],
+      focus:'今日情境題聚焦在 25節——撇開麥基洗德的譜系考據，鎖在一個很實在的安慰：此刻有一位永不下班，長遠活著的大祭司，正在替你祈求。'
+    },
+    verse:'「凡靠著他進到神面前的人，他都能拯救到底；因為他是長遠活著，替他們祈求。」',
+    verseRef:'—— 希伯來書 7:25',
+    scene:'這一章用了很多篇幅在論「等次」「血統」「律法」，讀起來像在上一堂神學課。但作者繞了一大圈，其實是要帶到一個很溫暖的結論：你有一位大祭司，祂不像地上的祭司會老，會死，會換班，祂永遠活著。而祂活著在做甚麼？經文說，祂「替他們祈求」。也就是說，此刻，當你在忙，在累，甚至忘了禱告的時候，有一位從不下班的，正在為你向神開口。',
+    q:'「此刻有一位一直在為你禱告，從不下班的大祭司」——這句話，現在的你聽進去是甚麼感覺？',
+    choices:[
+      {k:'A', text:'有點被安慰到。我常覺得自己禱告斷斷續續，原來有人一直替我補上。'},
+      {k:'B', text:'我想多懂一點——祂「替我祈求」到底是甚麼意思？是真的在為具體的我說話嗎？'},
+      {k:'C', text:'道理上知道，但感覺很遠。我很難真的相信「此刻」有誰在為我禱告。'},
+      {k:'D', text:'老實說無感。我連自己都顧不好了，很難想像有誰會一直惦記著我。'}
+    ],
+    responses:{
+      A:'被安慰到，是因為這句話正好接住了你心裡那個一直過不去的愧疚——「我禱告得太少，太斷續」。經文沒有要你先禱告得夠多才配被記得，它說的是：有一位「長遠活著」的，一直在替你開口，從沒停過。你的斷續，不會中斷祂的祈求。今晚可以很輕鬆地對祂說一句：「謝謝祢在我禱告不出來的時候，一直替我說話。」',
+      B:'這個想懂的心很好，而且答案就藏在那幾個字裡——「替他們祈求」。不是泛泛地為全世界，是「他們」，是一個一個進到神面前的人，包括此刻在讀這段的你。祂不是把你交給一份名單就走開，是長遠活著，親自為具體的你開口。這禮拜可以帶著一個問題去讀禱告：如果真有一位此刻正在為我祈求，祂最可能在為我求的是哪一件事？把那件事，今晚也自己向神說一次。',
+      C:'「道理上知道，但感覺很遠」——願意這樣說很誠實，而且這正是這章經文體貼的地方。它沒有叫你先「感覺到」才算數，它陳述的是一個事實：祂「長遠活著，替他們祈求」，不管你此刻感覺得到感覺不到，祂都在做這件事。感覺會起起伏伏，祂的代求不會。今晚不用勉強自己生出感動，只要試著對祂說一句：「我感覺不到，但如果祢真的在為我禱告，求祢讓我慢慢信得過。」',
+      D:'謝謝你這麼老實，「我連自己都顧不好」這句話裡的累，是真的。我想先慢下來跟你說：這章經文最溫柔的地方，正是它沒有要求你先有力氣，先顧好自己，才輪得到被惦記。它說有一位「長遠活著」的，此刻就在替你祈求——在你顧不動自己，無力開口的時候，祂替你撐著那個禱告。你不必先變好才被記得。今晚甚麼都不用做，只把這個累壞的自己擺在祂面前，說一句：「我顧不了了，這個我，先交給祢。」'
+    },
+    reflectionTitle:'替我祈求',
+    reflection:'希伯來書第7章繞著一個對比在走：地上的祭司「數目本來多，是因為有死阻隔，不能長久」（7:23），一代換一代；但基督這位大祭司「是永遠常存的，他祭司的職任就長久不更換」（7:24）。祂不靠血統，不靠律法，而是「照無窮之生命的大能」作祭司（7:16）。所以全章的結論落在25節這句安慰上——「凡靠著他進到神面前的人，他都能拯救到底；因為他是長遠活著，替他們祈求」。重點不是麥基洗德的譜系，是你有一位永不換班，此刻仍在為你開口的大祭司。\n\n停一分鐘，想想此刻你心裡最放不下，最沒力氣自己禱告的那一件事。經文說，有一位「長遠活著」的，正在替你向神祈求那件事——不是等你禱告夠多才開始，是此刻就在進行。如果真有一位從不下班，一直在為你代求的，這對現在的你意味著甚麼？你願意把哪一件交給祂，讓祂替你也替你自己向神說一次？',
+    baseItem:{emoji:'🔥', name:'無窮生命的大能', desc:'「他成為祭司，並不是照屬肉體的條例，乃是照無窮之生命的大能。」', slot:'hat'},
+    bonusItem:{emoji:'♾️', name:'永不換班的職任', desc:'「這位既是永遠常存的，他祭司的職任就長久不更換。」', slot:'body'}
+  },
+  {
+    chapter:'HEB8', sceneEmoji:'📜', readTime:4,
+    guide:{
+      intro:'希伯來書整卷在跟一群快要走回頭路的信徒說：耶穌比你以前熟悉的一切都更美。第8章把焦點放在「約」這個字上——約，就是兩方之間的承諾關係。作者說，耶穌作了一個「更美之約」的中保，這約最特別的地方在於：神不再把規矩刻在石版上要你照著做，而是把律法放進你心裡，還親口說「我不再記得你的罪」。這一章，是寫給每個總覺得自己達不到標準的人。',
+      outline:[
+        {nodes:'1-2節', text:'我們有這樣一位大祭司，已經坐在天上至大者寶座的右邊，在真帳幕裡服事'},
+        {nodes:'3-5節', text:'地上的祭司供奉的，本是天上事的形狀和影像，照著神在山上指示的樣式'},
+        {nodes:'6-7節', text:'耶穌所得的職任更美，作更美之約的中保，這約是憑更美之應許立的'},
+        {nodes:'8-9節', text:'神引耶利米書的話：日子將到，祂要與以色列家另立新約，不像從前那約'},
+        {nodes:'10-12節', text:'新約的內容——神要把律法寫在人心上，作他們的神，並且不再記念他們的罪愆 ✦'},
+        {nodes:'13節', text:'神既說「新約」，就表明祂主動向人重新立約的恩典臨到了'}
+      ],
+      focus:'今日情境題聚焦在 10 和 12節——神說祂要把律法寫進你心裡，還說祂「不再記念」你的罪愆；對一個總是記得自己每一次失敗的人，神選擇遺忘，是什麼感覺？'
+    },
+    verse:'「我要將我的律法放在他們裡面，寫在他們心上；我要作他們的神；他們要作我的子民。」',
+    verseRef:'—— 希伯來書 8:10',
+    scene:'夜深了，你又想起那件事。可能是很久以前說過的一句傷人的話，做過一個讓自己羞愧的決定，或某段你寧願沒發生過的關係。別人早就忘了，神也說祂「不再記念」，可是你自己記得清清楚楚，每次安靜下來它就浮上來。你信神已經赦免你了——道理你懂——但「被神選擇性地遺忘」這件事，你好像一直沒辦法真的領受。',
+    q:'神說祂「不再記念」你的罪愆，可是你自己一直記得。面對這個落差，你今晚會怎麼面對自己？',
+    choices:[
+      {k:'A', text:'試著相信神的版本：祂說忘了，那就是真的忘了，我不必比神更記得。'},
+      {k:'B', text:'把那件一直放不下的事，具體地對神說一次，問祂「這個，祢真的不記得了嗎」。'},
+      {k:'C', text:'老實說我做不到「原諒自己」，神忘了是神的事，我還是過不去。'},
+      {k:'D', text:'我連神到底有沒有真的赦免我都不太確定，更別說感覺到了。'}
+    ],
+    responses:{
+      A:'你願意相信神的版本，而不是自己的記憶，這是很大的一步。神說「不再記念」，用的是一個主動的，選擇性的動作——不是祂失憶，是祂決定不再翻舊帳。你比神更記得自己的罪，有時候不是謙卑，是不肯接受自己已經被放下了。今晚可以試著對神說一句：「祢說祢忘了，那我也學著，不再每天替祢記著。」',
+      B:'把那件具體的事說出口，比泛泛地說「求祢赦免我所有的罪」更需要勇氣，因為你得直視它。但神的「不再記念」從來不是對著一團模糊的罪，是對著你心裡那件最清楚，最不敢提的事說的。你今晚不用解決它，只要把它的名字輕輕講給神聽，然後問祂：「這一件，祢真的不記得了嗎？」聽聽看心裡的回答。',
+      C:'謝謝你這麼誠實。「神忘了，我卻過不去」——這種卡住的感覺，比假裝自己已經釋懷要真實得多。其實經文沒有要你「原諒自己」，它說的是神不再記念；你要做的不是放過自己，是慢慢相信神已經放過你了。這兩件事不一樣，後者輕省得多。今晚先不勉強，只要對神說：「我還過不去，但我聽見祢說祢過得去了。」這樣就好。',
+      D:'連有沒有被赦免都不確定，這種懸著的感覺其實很多人都有，只是不敢講。神在這章主動說話——是祂開口立約，祂說要寫在你心上，祂說不再記念，整件事的主動權都在祂那邊，不在你夠不夠相信。你今晚不用先擠出確據才能來到祂面前。可以就帶著這份不確定問祂：「祢說的這個約，也算我一份嗎？」把問題交出去，是禱告的開始。'
+    },
+    reflectionTitle:'祂選擇遺忘',
+    reflection:'希伯來書 8 章引用了耶利米書裡神的應許：祂要與人另立新約，「我要將我的律法放在他們裡面，寫在他們心上」（v.10），並且「不再記念他們的罪愆」（v.12）。這不是人努力修來的關係，是神主動開口，主動立約，主動選擇遺忘。律法從冰冷的石版，搬進了有溫度的人心；罪愆從一筆筆的記帳，變成神親口說的「我不記得了」。\n\n安靜一分鐘，想一件你一直替神記著，神卻說祂早已放下的事。如果此刻神就坐在你對面，溫柔地說「那件事，我真的不記得了」，你會有什麼反應——是鬆一口氣，是不敢相信，還是眼眶忽然熱了？把那句最真實的反應，寫下來或在心裡對祂說一次。',
+    baseItem:{emoji:'🤝', name:'更美之約的中保', desc:'「如今耶穌所得的職任是更美的，正如他作更美之約的中保；這約原是憑更美之應許立的。」', slot:'hand'},
+    bonusItem:{emoji:'🕊️', name:'被遺忘的罪愆', desc:'「我要寬恕他們的不義，不再記念他們的罪愆。」', slot:'hat'}
+  },
+  {
+    chapter:'HEB9', sceneEmoji:'🩹', readTime:5,
+    guide:{
+      intro:'希伯來書第九章把舊約的敬拜場景攤開來看：從前的大祭司一年一次，獨自帶著牛羊的血進到至聖所，為自己和百姓贖罪，年年如此，沒完沒了。但這一章話鋒一轉，宣告基督只一次用自己的血進入聖所，成了永遠贖罪的事。整章的重點不是血的沉重，而是一個釋放的好消息：祂一次就把事情辦成了，你不必再反覆地贖，反覆地還。',
+      outline:[
+        {nodes:'1-10節', text:'回顧舊約的會幕與條例：頭一層帳幕擺著燈臺，桌子，至聖所裡有約櫃。但那條例叫人看見，所獻的禮物祭物就著良心說，都不能叫敬拜的人真正得以完全。'},
+        {nodes:'11-14節', text:'基督作了大祭司，不用山羊牛犢的血，乃用自己的血，只一次進入聖所。祂的血更能洗淨你們的心，除去死行，使你們可以坦然事奉永生神。 ✦'},
+        {nodes:'15-22節', text:'祂作了新約的中保。經文也照實說，舊約立約，潔淨幾乎都用血，若不流血，罪就不得赦免；這份沉重，正襯托出新約的不一樣。'},
+        {nodes:'23-28節', text:'基督不像那大祭司年年獻祭，乃是在末世顯現一次，把自己獻為祭，好除掉罪；將來還要向等候祂的人第二次顯現，那一次與罪無關，乃是為了拯救。'}
+      ],
+      focus:'今日情境題聚焦在 14 和 26節——如果有一位已經「一次」把罪除掉，把良心洗淨了，你還需要沒完沒了地自我懲罰，反覆償還嗎？'
+    },
+    verse:'「並且不用山羊和牛犢的血，乃用自己的血，只一次進入聖所，成了永遠贖罪的事。」',
+    verseRef:'—— 希伯來書 9:12',
+    scene:'有些錯，你好像永遠還不完。明明已經道歉了，悔改了，過幾天那份愧疚又爬回來，逼你再內疚一次，再懲罰自己一次，像在還一筆還不清的債。這一章說了一件相反的事：基督只一次獻上自己，就把贖罪的事永遠辦成了。不是叫你年年贖，天天還，而是一次付清。',
+    q:'面對自己一錯再錯的地方，你是不是常覺得「我得一直還，一直贖」？',
+    choices:[
+      {k:'A', text:'對，我心裡好像有本帳，犯一次就記一筆，怎麼還都還不完'},
+      {k:'B', text:'我知道神已經赦免了，但情緒上還是放不下，會一直自責'},
+      {k:'C', text:'老實說，我不太敢相信真有「一次付清」這種事，太便宜了'},
+      {k:'D', text:'我想學著把這筆債交出去，不再反覆懲罰自己'}
+    ],
+    responses:{
+      A:'那本一直在記帳的本子，真的很累人吧。但這一章說，基督「只一次」就成了永遠贖罪的事——這句話的意思是，那本帳祂已經結清了，不是要你繼續往下記。今天可以對神說一句：這筆我一直在還的，我聽見你說「付清了」。',
+      B:'頭腦相信，情緒卻還沒跟上，這不是你信心不夠，是愧疚很頑固。經文說祂的血能「洗淨你們的心」，被洗淨的不只是罪的紀錄，還有那顆放不下的良心。下次又開始自責時，試著停一下，輕聲說：這件事已經被洗淨了，我可以鬆手。',
+      C:'會覺得「太便宜」，其實是因為你太認真看待自己的錯了，這份認真不是壞事。只是這一章正是要說：贖罪從來不便宜，那是基督用自己的命換的，貴重得很——只是這份貴重，是祂付的，不是你付的。今天不必馬上全信，先問祂一句：如果真有人替我付清了，那會是什麼感覺？',
+      D:'這一步很不容易，因為自我懲罰有時反而讓人有種「我有在負責」的安全感。但經文說祂獻上自己是「好除掉罪」，不是好讓你繼續還。把債交出去，不是不負責，是相信有人已經替你扛了。今天就把那件你還最久的事，指名交給祂：這個，我不再自己還了。'
+    },
+    reflectionTitle:'一次付清',
+    reflection:'希伯來書第九章先帶我們看舊約的敬拜：大祭司一年一次，獨自帶著血進入至聖所，為百姓贖罪，年年重複。那是一幅沉重的畫面——罪要一遍又一遍地處理，永遠處理不完。但作者要說的是一個翻轉：基督不用牛羊的血，乃用自己的血，只一次進入聖所，就成了永遠贖罪的事。經文說，祂的血能洗淨你們的心，除去你們的死行；祂在末世顯現一次，把自己獻為祭，好除掉罪。一次，就夠了。\n\n你心裡有沒有一筆「還不完的債」——一個你已經反覆懊悔，卻仍不肯放過自己的地方？如果有一位真的已經一次把它付清了，你願不願意試著停下那場沒完沒了的自我償還，對祂說一句什麼？',
+    baseItem:{emoji:'🩹', name:'洗淨的良心', desc:'「何況基督藉著永遠的靈，將自己無瑕無疵獻給神，他的血豈不更能洗淨你們的心，除去你們的死行，使你們事奉那永生神嗎？」', slot:'body'},
+    bonusItem:{emoji:'🕊️', name:'除罪的獻祭', desc:'「但如今在這末世顯現一次，把自己獻為祭，好除掉罪。」', slot:'bg'}
+  },
+  {
+    chapter:'HEB10', sceneEmoji:'🚪', readTime:4,
+    guide:{
+      intro:'希伯來書第10章寫給一群開始灰心、甚至想放棄信仰的人。作者告訴他們：舊約的祭年年獻卻除不盡罪，但基督一次獻上自己，就叫人永遠完全，神說「我不再記念他們的罪愆」。所以我們可以憑耶穌的血，坦然來到神面前。',
+      outline:[
+        {nodes:'1-18節', text:'律法的祭年年重獻，總不能真正除罪；基督只一次獻上自己的身體，就叫那得以成聖的人永遠完全，神並且說不再記念他們的罪愆。'},
+        {nodes:'19-25節', text:'既然有這位大祭司、又有一條又新又活的路，就當存充足的信心坦然來到神面前，堅守指望不致搖動，因為那應許我們的是信實的。 ✦'},
+        {nodes:'26-31節', text:'全卷第二個重警告：得知真道以後若故意犯罪、踐踏神的兒子，贖罪的祭就不再有了，落在永生神手裡是可怕的。'},
+        {nodes:'32-39節', text:'回頭勉勵：想起從前受苦仍然站住的日子，不可丟棄勇敢的心，義人必因信得生，我們是有信心以致靈魂得救的人。 ✦'}
+      ],
+      focus:'今日情境題聚焦在 19-23節與 35-39節——當我怕自己犯的錯已經無可挽回時，可以抓住的不是「我會不會失救」，而是祂已經為我開了一條又新又活的路、祂是信實的。'
+    },
+    verse:'「也要堅守我們所承認的指望，不至搖動，因為那應許我們的是信實的。」',
+    verseRef:'—— 希伯來書 10:23',
+    scene:'希伯來書寫給一群走到半路、開始想放棄的人。作者告訴他們：耶穌已經用自己的身體，為我們開了一條又新又活的路，可以坦然來到神面前。這一章也很誠實地警告，離棄神是嚴重的事；但它最後停在一句鼓勵——不要丟棄勇敢的心，因為那位應許我們的神是信實的。',
+    q:'當你想起某件做過的、讓你很後悔的事，心裡冒出「我是不是已經回不去了」的念頭時，你會怎麼面對？',
+    choices:[
+      {k:'A', text:'提醒自己：耶穌已經為我開了一條路，那扇門還開著，我可以再走近。'},
+      {k:'B', text:'我知道理論上有赦免，但「我搞砸太多次了」的重量還是壓在心上。'},
+      {k:'C', text:'我會先做點什麼來補償，覺得要先夠好，才敢再靠近神。'},
+      {k:'D', text:'老實說，我很怕自己已經沒機會了，不確定神還要不要我。'}
+    ],
+    responses:{
+      A:'你抓住的，正是這一章要說的——這條路不是你自己撐開的，是耶穌用祂的身體開的，門一直留著。有時候我們會忘記，靠近神不是因為今天表現夠好，而是因為那條路早就為你預備了。今晚可以試著輕輕說一句：「謝謝祢，為我把門留著。」',
+      B:'那份「我搞砸太多次了」的重量，很多人都揹過。你知道嗎，你會覺得沉，正是因為你還在乎、還想靠近——如果真的不在乎了，就不會有這份重。理論和心之間的距離，不用今天就走完。或許可以先對神說一句實話：「我知道祢說有赦免，但我心裡還沒放下，請幫我。」',
+      C:'想先做點什麼、先夠好才敢靠近，這種心情很誠實，也很累人。可是這一章偏偏說，那條又新又活的路是耶穌開的，不是我們補償出來、掙來的入場券。你不需要先把自己修好，才被歡迎。可以問問自己：如果不用先夠好，我現在最想對神說的第一句話會是什麼？',
+      D:'謝謝你這麼老實。先放一件事在你心上：這一章裡那段很重的警告（26-31節），講的是一個人得知真道以後，仍然公然、決絕地轉身，把神的兒子踐踏在腳下的那種剛硬背棄。可是你現在的心情剛好相反——你會怕、你還想回到神面前，這份怕本身就說明你的心還在祂這裡，你不是那段話在描述的人。沒有人要逼你現在就確定「我一定得救」，也沒有「再犯一次就來不及」這種最後通牒。這一章真正要你看見的，是耶穌已經開了一條又新又活的路，那扇門還開著。如果你心裡有一件一直跌倒、跌到不知道還有沒有臉回去的事，你不用一個人扛——可以先只說這一句：「神，我不確定，但我還在這裡。」'
+    },
+    reflectionTitle:'坦然進前',
+    reflection:'希伯來書第10章先講了一件讓人鬆一口氣的事：舊約的祭要年年獻，卻永遠除不盡罪，但基督一次獻上自己，就叫「那得以成聖的人永遠完全」，神甚至說祂不再記念我們的罪愆。正因如此，作者說我們可以「因耶穌的血得以坦然進入至聖所」，存著充足的信心來到神面前。這一章中間也有一段很嚴厲的警告，忠實地讓我們看見背棄神有多嚴重；但整章的落點，是「不可丟棄勇敢的心」，因為「那應許我們的是信實的」。\n\n你心裡有沒有一件事，一想起就冒出「我是不是回不去了」？試著把它輕輕放在神面前，不用先解決、不用先夠好。問問自己：如果那條又新又活的路真的還開著，我今天願不願意，只往前挪一小步？',
+    baseItem:{emoji:'🌄', name:'又新又活的路', desc:'「是藉著他給我們開了一條又新又活的路，從幔子經過，這幔子就是他的身體。」', slot:'bg'},
+    bonusItem:{emoji:'❤️‍🔥', name:'勇敢的心', desc:'「所以，你們不可丟棄勇敢的心；存這樣的心必得大賞賜。」', slot:'hat'}
+  },
+  {
+    chapter:'HEB11', sceneEmoji:'🌌', readTime:5,
+    guide:{
+      intro:'希伯來書11章是整本聖經最有名的「信心榜」：作者一口氣點名亞伯，挪亞，亞伯拉罕，摩西，喇合這些憑著信往前的人。但作者沒有把它寫成一串成功故事——很多人到死都沒看到神應許的實現，還有人為信心受盡苦難。這一章想說的是，信心不是贏得什麼，是在看不見裡仍然往前走。',
+      outline:[
+        {nodes:'1-3節', text:'信的定義：信就是所望之事的實底，是未見之事的確據；連整個世界都是憑信才明白是神造的。'},
+        {nodes:'4-31節', text:'因著信的長名單：亞伯，挪亞，亞伯拉罕，摩西，喇合……一個個憑信往前，但他們不是天生的偉人。'},
+        {nodes:'13、39-40節', text:'這些人都存著信心死了，並沒有得著所應許的，只從遠處望見，承認自己在世上是客旅，是寄居的。 ✦'},
+        {nodes:'32-38節', text:'還有人為信受盡嚴刑，被鋸鋸死，飄流曠野；信心名單裡也有滿是傷痕的人。'}
+      ],
+      focus:'今日情境題聚焦在 1、13、39-40節——信不是超人的戰績，是一群看不見結局，甚至沒得著應許的人，仍存著信心往前。'
+    },
+    verse:'「信就是所望之事的實底，是未見之事的確據。」',
+    verseRef:'—— 希伯來書 11:1',
+    scene:'希伯來書11章像一份長長的點名冊，作者把歷世歷代憑信心往前的人一個個寫下來。可是讀著讀著會發現，這些人很多到死都沒看到神應許的實現，有人甚至為信心受盡苦難。信心榜原來不是一面得獎牆，是一群在看不見裡仍往前走的人。',
+    q:'我信得跌跌撞撞，也看不到神的應許在我身上實現，這樣算不算信？',
+    choices:[
+      {k:'A', text:'有時我信得很用力，卻好像什麼都沒發生，會懷疑是不是自己不夠好。'},
+      {k:'B', text:'我信，但老實說看不到神的應許實現，有點灰心。'},
+      {k:'C', text:'我大概能接受「還沒得著」也是信的一部分，只是需要有人陪我這樣走。'},
+      {k:'D', text:'老實說我信心很小，看到聖經那些偉人只覺得離自己好遠。'}
+    ],
+    responses:{
+      A:'你信得那麼用力，這件事本身就很不容易。這一章裡有人存著信心死了，也沒看到應許實現，聖經沒說他們信心不夠，反而把他們寫進名單裡。你不是不夠好，你是還在路上。今晚可以試著對神說一句：「我還沒看到，但我還在。」',
+      B:'灰心不是沒信心，是你真的在乎，才會失望。11章13節那群人並沒有得著所應許的，卻仍是信心的榜樣——原來看不到，也可以是信的一部分。你不用假裝不灰心。找一個你信得過的人，把「我有點撐不下去了」這句話說出口，不用自己扛。',
+      C:'你已經摸到這一章最深的地方了——信不是一個人硬撐，是一群客旅結伴往前。需要有人陪，不是軟弱，是誠實。這禮拜可以主動找一個人問：「我們可以一起走一段嗎？」同行本身就是恩典。',
+      D:'那些名字聽起來很遠，但亞伯拉罕說過謊，喇合當過妓女，他們不是天生的偉人，是一群跌跌撞撞卻沒有停下來的人。你的信心小沒關係，這名單從來不是績效榜，是同行的隊伍，也留了位置給你。今晚不用勉強自己相信什麼大道理，只要說一句：「神，我信得很小，但我在這裡。」'
+    },
+    reflectionTitle:'未見之信',
+    reflection:'希伯來書11章被稱為「信心榜」，一個個名字排下來——亞伯，挪亞，亞伯拉罕，摩西，喇合。但這名單不全是風光：13節說，這些人都是存著信心死的，並沒有得著所應許的；35到38節更有人受盡嚴刑，被鋸鋸死，飄流在曠野和山洞裡。原來信心不是超人的戰績，是一群看不見結局，卻仍往前走的人。\n\n你現在有沒有一件事，信了很久卻還沒看到答案？如果神今天沒有要你信得更多，更強，只是要你在看不見裡再往前一小步，那一步會是什麼？',
+    baseItem:{emoji:'🧭', name:'客旅的印記', desc:'「這些人都是存著信心死的，並沒有得著所應許的；卻從遠處望見，且歡喜迎接，又承認自己在世上是客旅，是寄居的。」', slot:'hat'},
+    bonusItem:{emoji:'🏙️', name:'天上的家鄉', desc:'「他們卻羨慕一個更美的家鄉，就是在天上的。所以神被稱為他們的神，並不以為恥，因為他已經給他們預備了一座城。」', slot:'bg'}
+  },
+  {
+    chapter:'HEB12', sceneEmoji:'🏃', readTime:5,
+    guide:{
+      intro:'希伯來書第12章像一場賽跑的畫面。作者說，在你前面已經有一大群跑完全程的人，像雲彩一樣圍著你；你只管放下重擔，望向那位跑在最前面，也親自走過苦路的耶穌。接著他談到神的管教，說神待我們像父親待兒女，不是為了處罰，而是要我們得益處；最後帶我們來到錫安山，來到那位新約中保耶穌的面前。',
+      outline:[
+        {nodes:'1-3節', text:'見證人如同雲彩圍著你，放下重擔往前奔，把眼光放在那位也親自受過苦的耶穌身上。 ✦'},
+        {nodes:'5-11節', text:'神的管教像父親待兒女，當時覺得愁苦，後來卻結出平安的義果。這管教是要我們有份於祂的聖潔，不是為了某個過錯處罰你。'},
+        {nodes:'12-17節', text:'把下垂的手，發酸的腿挺起來；追求與眾人和睦，也追求聖潔，別像以掃為了一點食物賣了長子的名分。'},
+        {nodes:'18-29節', text:'你來到的不是那座使人戰兢的山，而是錫安山，來到那位新約中保耶穌的面前；所以不可棄絕那位向你說話的主，因為我們得了不能震動的國。'}
+      ],
+      focus:'今日情境題聚焦在 1-3節——有一位跑在你前面，也親自走過苦路的耶穌，正等你把眼光放在祂身上。'
+    },
+    verse:'「仰望為我們信心創始成終的耶穌。他因那擺在前面的喜樂，就輕看羞辱，忍受了十字架的苦難，便坐在神寶座的右邊。」',
+    verseRef:'—— 希伯來書 12:2',
+    scene:'人生總有些階段，像在跑一段看不到終點的長路，重擔壓著肩膀，很想停下來。希伯來書說，在你前面早已有一大群跑完的人，像雲彩一樣圍著你；而最前面那一位是耶穌——祂不是站在終點喊你加油，而是自己先跑過，還為你忍受了十字架的苦。',
+    q:'你最近有沒有一段路，是又累又看不到終點的？當有人對你說『把眼光放在耶穌身上』，你心裡真正的反應是什麼？',
+    choices:[
+      {k:'A', text:'這句話幫得上我，想到祂也走過，我就還能再撐一下'},
+      {k:'B', text:'我知道該望向祂，但眼前的重擔太大，很難把眼光移開'},
+      {k:'C', text:'我願意試著望向祂，只是現在還很模糊，抓不太到'},
+      {k:'D', text:'老實說我現在只覺得痛，還沒辦法去想這代表什麼意思'}
+    ],
+    responses:{
+      A:'『祂也走過』這件事，有時候比任何道理都更讓人撐得住。你不是一個人在跑，前面那位跑過同一段路，還受過更重的苦。今天累的時候，可以抬頭對祂說一句：『耶穌，你也走過，我跟著你再走一步。』',
+      B:'重擔很重的時候，要人立刻把眼光移開幾乎不可能，這不是你不夠屬靈。經文沒有叫你假裝重擔不存在，是說可以『放下』——一次放下一點。今天挑那個最沉的，試著對祂說出口：『這一件太重了，我先交給你扛一下。』',
+      C:'望向祂卻覺得模糊，抓不太到，這種狀態很真實，很多人都有過。信心不是一次就看清楚，是在模糊裡還願意抬一下頭。今天不用勉強自己看清，就先說一句：『耶穌，我看不太清楚你，但我願意朝你的方向多待一會兒。』',
+      D:'只覺得痛，還沒辦法去想這代表什麼，這不是信心不夠，是痛本來就有重量。聖經自己也很老實，說有些過程『當時不覺得快樂，反覺得愁苦』——它沒有要你馬上把苦想通，也沒有說這是誰在罰你。你的苦是什麼意思，不必急著現在給答案。今天可以只說這一句，剩下的留給以後：『我現在就是很痛，我把這個痛，先放在你面前。』'
+    },
+    reflectionTitle:'有祂在前',
+    reflection:'希伯來書第12章緊接在『信心榜』（第11章）後面。作者剛數完一長串憑信心走過的前輩，接著說：這許多見證人如同雲彩圍著我們，所以可以放下重擔，奔前面的路程，仰望那位信心創始成終的耶穌。祂不是遠遠看你跑，而是自己先跑過整段，還忍受了十字架的苦難。這一章也很誠實，它沒有把苦說得輕鬆，反而承認有些過程『當時不覺得快樂，反覺得愁苦』。\n\n你現在正在跑的那一段，最重的重擔是什麼？如果耶穌就在你前面幾步，是那位也走過苦路的，你想先跟祂說哪一句真心話？如果你今天還想不通這段路的意義，也沒關係，你可以只是把它放在祂面前，不急著找答案。',
+    baseItem:{emoji:'☁️', name:'圍繞的見證人', desc:'「我們既有這許多的見證人，如同雲彩圍著我們，就當放下各樣的重擔，脫去容易纏累我們的罪，存心忍耐，奔那擺在我們前頭的路程，」', slot:'bg'},
+    bonusItem:{emoji:'👑', name:'兒子的名分', desc:'「你們所忍受的，是神管教你們，待你們如同待兒子。焉有兒子不被父親管教的呢？」', slot:'hat'}
+  },
+  {
+    chapter:'HEB13', sceneEmoji:'⚓', readTime:4,
+    guide:{
+      intro:'希伯來書最後一章，是整卷長篇論述之後的溫柔收尾。作者不再談深奧的道理，而是回到最實際的叮嚀——怎麼相愛，怎麼生活，怎麼把心安放在對的地方。所有勸勉的落點只有一句：主永不撇下你，而且祂昨日今日一直到永遠都不改變。',
+      outline:[
+        {nodes:'1-4節', text:'收尾的實際勸勉：常存弟兄相愛，用愛心接待客旅，記念被捆綁和遭苦害的人，也看重婚姻的聖潔。'},
+        {nodes:'5-8節', text:'存心不可貪愛錢財，要以自己所有的為足，因為主親口說「我總不撇下你，也不丟棄你」，所以我們可以放膽說主是幫助我的；而這位耶穌基督，從昨日到永遠都是一樣的，永不改變。 ✦'},
+        {nodes:'9-16節', text:'不要被怪異的教訓勾引，人心要靠神的恩典得堅固；當出到營外就近耶穌，常常以頌讚為祭獻上，也不忘記行善和捐輸。'},
+        {nodes:'17-19節', text:'想念並依從那些引導你們，為你們靈魂時刻警醒的人，也為傳道人代禱。'},
+        {nodes:'20-25節', text:'末了的祝福：願那使群羊的大牧人耶穌從死裡復活，又賜下平安的神，在各樣善事上成全你們；願榮耀歸給祂，最後以問安作結。'}
+      ],
+      focus:'今日情境題聚焦在 5-8節——在錢財、變動，以及自己的反覆不定裡，抓住主親口的應許「我總不撇下你，也不丟棄你」，還有那位昨日今日一直到永遠都不改變的耶穌。'
+    },
+    verse:'「耶穌基督昨日、今日、一直到永遠，是一樣的。」',
+    verseRef:'—— 希伯來書 13:8',
+    scene:'整卷希伯來書講了十二章的大祭司與更美之約，最後一章卻回到最日常的叮嚀：好好相愛，看重婚姻，不要貪錢，學會知足。講完這些，作者停在主親口的一句話上——『我總不撇下你，也不丟棄你。』在一切會變的東西之後，他要你記得那位不變的：『耶穌基督昨日、今日、一直到永遠，是一樣的。』',
+    q:'你生活裡有什麼一直在變——你的心情，你和人的關係，你對自己的評價，或你對神的感覺？當這些全都在晃的時候，「有一位不撇下你，也不改變」這句話，對現在的你像什麼？',
+    choices:[
+      {k:'A', text:'這句話現在是我的浮木，我抓著它撐過很多晃動的日子。'},
+      {k:'B', text:'我理性上相信，但情緒上還是常常覺得是自己在撐，沒人接住。'},
+      {k:'C', text:'老實說，我心裡有個聲音一直覺得神會撇下我，尤其在我搞砸的時候。'},
+      {k:'D', text:'我最近變動太多，連我自己都反覆不定，很難去想那位「不變的」是什麼感覺。'}
+    ],
+    responses:{
+      A:'你已經把重量放對地方了——不是放在你抓得多緊，而是放在祂不會鬆手。祂的不撇下，從來不取決於你今天信得夠不夠穩。今晚可以對祂說一句：「我今天又靠祢的不撇下撐過來了，謝謝祢一直都在。」',
+      B:'理性相信，情緒卻還是覺得孤單，這不是你信得不夠，而是你太久都自己一個人撐了。祂的應許不是要你假裝不累，而是要在你快撐不住的那一刻接住你。試著把「其實我好累，我需要有人接住我」這句話，先對祂說一次——不用先感覺得到，只要先說出來。',
+      C:'那個「祂會在我搞砸的時候撇下我」的聲音，多半不是從神來的，而是某個曾經真的離開過你的人，留在你心裡的回音。但主親口說的是「我總不撇下你，也不丟棄你」——祂沒有在後面加上「除非你表現得夠好」。這週那個聲音再出現的時候，可以輕輕問自己一句：「這是神說的，還是別人留給我的？」',
+      D:'當你自己都反覆不定的時候，有一個好消息——那位不變的，不需要你先穩定下來，才願意靠近你。你不用先把自己整理好。可以只做一件很小的事：找一個安靜的片刻，什麼都不用想，只對祂說「我現在很亂，但我知道祢沒有變」。'
+    },
+    reflectionTitle:'祂不放手',
+    reflection:'希伯來書寫給一群信了耶穌卻在壓力下想退回老路的人。作者花了十二章講耶穌比一切都更美更完全，最後卻落在最樸素的一句安慰上：主親口說「我總不撇下你，也不丟棄你」。這句話神在舊約就對祂的百姓說過，如今作者把它重新送給每一個覺得快撐不住的人——你所倚靠的這一位，從昨天到今天，一直到永遠，都不會變。\n\n你現在最怕被誰撇下？又在哪一件事上，你偷偷覺得神會像那個人一樣，最後也離開你？把那件事，還有那個名字，安靜地帶到祂面前，聽祂再對你說一次那句話——我總不撇下你。',
+    baseItem:{emoji:'🫂', name:'不撇下的應許', desc:'「你們存心不可貪愛錢財，要以自己所有的為足；因為主曾說：『我總不撇下你，也不丟棄你。』」', slot:'hat'},
+    bonusItem:{emoji:'🛡️', name:'不懼怕的膽量', desc:'「所以我們可以放膽說：主是幫助我的，我必不懼怕；人能把我怎麼樣呢？」', slot:'hand'}
+  },
+  {
+    chapter:'JAS1', sceneEmoji:'🧭', readTime:4,
+    guide:{
+      intro:'雅各書一開場就講一件很違反直覺的事：人生落在一關又一關的試煉裡，居然可以當成喜樂。雅各不是要你假裝不苦，而是說這些難若有神在其中，能把信心磨出忍耐，磨向成熟。他還補了一個很實際的出口——你若覺得自己沒有智慧走過去，可以直接開口求神，祂厚厚地賜給人，也不責備你問。',
+      outline:[
+        {nodes:'1-8節', text:'落在百般試煉中要以為大喜樂，因為信心經過試驗就生忍耐，忍耐使人成熟完備；缺智慧的可以求那厚賜與眾人的神，只要憑信心求。 ✦'},
+        {nodes:'9-12節', text:'卑微的弟兄升高，富足的降卑，都像草上的花一樣會過去；忍受試探的人是有福的，必得生命的冠冕。'},
+        {nodes:'13-18節', text:'試探不是從神來的，而是人被自己的私慾牽引；但各樣美善的恩賜都是從眾光之父那裡降下來的，祂沒有改變。'},
+        {nodes:'19-27節', text:'要快快地聽，慢慢地說，慢慢地動怒；不要單單聽道，更要行道，看顧患難中的孤兒寡婦，保守自己不沾染世俗，才是真虔誠。'}
+      ],
+      focus:'今日情境題聚焦在 1:2-5節——重點放在第5節那個出口：當你落在試煉裡，暫時喜樂不起來的時候，可以求神給你走過去的智慧。'
+    },
+    verse:'「你們中間若有缺少智慧的，應當求那厚賜與眾人、也不斥責人的神，主就必賜給他。」',
+    verseRef:'—— 雅各書 1:5',
+    scene:'雅各一開口就說，落在百般試煉裡要以為大喜樂。可是說真的，人在難裡的時候，多半喜樂不出來，只覺得累，覺得撐。雅各沒有停在那句口號，他接著給了一條很實際的路：你若覺得自己沒有智慧走過眼前這關，可以直接開口求神，祂厚厚地賜給人，也不會嫌你問。',
+    q:'想想你現在正卡著的那件難事——如果暫時還喜樂不起來，你願不願意先求神給你一點走過去的智慧？',
+    choices:[
+      {k:'A', text:'願意，我現在就想求神幫我看清這關該怎麼走'},
+      {k:'B', text:'我試試看，雖然一邊求還是一邊覺得很難'},
+      {k:'C', text:'老實說我連喜樂都擠不出來，更別說開口求了'},
+      {k:'D', text:'我一直覺得要自己撐過去，很難想到可以求神'}
+    ],
+    responses:{
+      A:'你不是先擠出喜樂才有資格求，而是一發現自己缺，就直接開口——這正是雅各說的那條路。神厚厚地賜給人，也不責備你問。今天就把那件卡住的事挑一個最具體的點，對祂說：「這一關我不知道怎麼走，求祢給我智慧。」',
+      B:'一邊求，一邊還是覺得難，這不是信心不夠，這就是真實走在試煉裡的樣子。雅各沒有要你先感覺好起來才來求。你可以照實對神說：「我還是很難受，但我先把這件事交給祢。」把難和求，一起帶到祂面前，都可以。',
+      C:'喜樂擠不出來，是真的，你不用為了「該喜樂」而假裝。雅各那句「以為大喜樂」不是要壓你，而這一章也留了位置給現在只覺得難的你——連求都提不起勁的時候，光是誠實說一句「神啊，我現在只覺得難」，就已經是把心轉向祂了。今天，就說這一句，夠了。',
+      D:'一直覺得要自己撐，可能是你太習慣扛，也可能沒人告訴過你「其實可以求」。雅各特別點出：缺智慧的，可以求那厚賜與眾人的神。求，不是軟弱，是把重擔放對地方。今天試著鬆一點點手，對祂說一句：「這件事，我不想再自己一個人扛了。」'
+    },
+    reflectionTitle:'缺了就求',
+    reflection:'雅各寫這封信給正在經歷各樣試煉的信徒。他一開頭沒有叫人硬撐，也沒有叫人假裝快樂，他說的是：這些試煉若交在神手裡，能把信心磨出忍耐，磨向成熟。而緊接著，他給了一個很溫柔的出口——你若在其中覺得沒有智慧，不知道怎麼走，就求那厚賜與眾人的神。祂給的時候是厚厚地給，而且不責備你問。\n\n此刻你心裡那件最難的事，是什麼？如果你暫時還喜樂不起來，沒關係，那很真實。但你願不願意，就在這個還沒走出來的地方，先向神求一點智慧——不是求祂馬上把難拿走，而是求祂讓你看見，下一步可以怎麼走？',
+    baseItem:{emoji:'👑', name:'生命的冠冕', desc:'「忍受試探的人是有福的，因為他經過試驗以後，必得生命的冠冕；這是主應許給那些愛他之人的。」', slot:'hat'},
+    bonusItem:{emoji:'🌟', name:'美善的恩賜', desc:'「各樣美善的恩賜和各樣全備的賞賜都是從上頭來的，從眾光之父那裡降下來的；在他並沒有改變，也沒有轉動的影兒。」', slot:'bg'}
+  },
+  {
+    chapter:'JAS2', sceneEmoji:'👐', readTime:4,
+    guide:{
+      intro:'雅各書第2章談一件很生活的事：信仰不是只停在嘴上，而是會流進你怎麼對待人。前半段雅各責備那種看人穿著就決定態度的勢利，後半段講出全卷最有名的一句「信心若沒有行為就是死的」，並用亞伯拉罕和喇合說明真信心會自然活出來。',
+      outline:[
+        {nodes:'1-13節', text:'雅各提醒大家不要按外貌待人，看到穿金戴銀的就巴結，看到衣衫破舊的就冷落；真正的信仰會活出愛人如己的憐憫。 ✦'},
+        {nodes:'14-17節', text:'光嘴上說自己有信心，卻不理會身邊人的冷暖，這樣的信心是空的，像身體沒有呼吸一樣。'},
+        {nodes:'18-26節', text:'雅各舉亞伯拉罕和喇合為例，說明真信心會自然長出行為，兩者本是一體，分不開。'}
+      ],
+      focus:'今日情境題聚焦在 1-4節——雅各說不可按外貌待人。我們把它當成一個溫柔的邀請：讓信仰流到你怎麼對待身邊的人，而不是拿來檢查自己做得夠不夠。'
+    },
+    verse:'「這樣，信心若沒有行為就是死的。」',
+    verseRef:'—— 雅各書 2:17',
+    scene:'雅各寫信給一群信主的人，卻發現他們聚會時，看到帶金戒指，穿華美衣服的就熱情招待，看到衣衫破舊的窮人就叫他站到一邊。雅各心疼地提醒：你信的是那位不看外貌的主，你待人的方式，其實正在說出你心裡信的是什麼。',
+    q:'如果信仰會悄悄影響你怎麼對待身邊的人，最近你最想把這份善意多給一點的，是誰？',
+    choices:[
+      {k:'A', text:'心裡浮現一個名字，我知道我可以對他更溫柔一點。'},
+      {k:'B', text:'我對合得來的人很好，對「麻煩」的人就本能地保持距離，這點我知道。'},
+      {k:'C', text:'我也想，但我常常是那個累到沒力氣顧別人的人。'},
+      {k:'D', text:'說到「信心要有行為」我就心虛，覺得自己活得很不像樣，不太敢想。'}
+    ],
+    responses:{
+      A:'你心裡已經浮現那個名字，這本身就是信心在動的樣子——它不是壓力，是一股想靠近人的溫柔。不用做大事，也許就是下次見到他，多問一句「你最近還好嗎」。你願意讓那句話，這禮拜真的說出口嗎？',
+      B:'我們都有「合得來」和「嫌麻煩」的分別，雅各不是要罵你，是想讓你看見：那個你本能想閃的人，也是主看重的人。先不用勉強自己喜歡他，只要下次不急著轉身。這週再遇到那個「麻煩」的人時，試著慢一秒再決定怎麼回應，好嗎？',
+      C:'累到沒力氣顧別人，不是你信心不夠，是你自己也需要被顧。雅各講的行為，從來不是壓垮人的績效；真信心有時候長出來的第一個行為，是誠實說「我需要休息」。今天先照顧好自己，這也算數。你願意對神說一句「我先歇一下」嗎？',
+      D:'「覺得自己活得很不像樣」——你會這樣想，正是因為你真的在乎，一個不在乎的人根本不會為這個心虛。信心不是一張成績單，神看的不是你達標沒有，是你還願意回頭看祂。你不用一次就變好，只要今天別再對自己判死刑。試著跟神說：「我很糟，但我還在這裡。」祂會接住這句話。'
+    },
+    reflectionTitle:'活的信心',
+    reflection:'雅各說「信心若沒有行為就是死的」，很多人讀到這句話會嚇一跳，以為神在拿行為打分數。但他的意思其實更溫柔：真的信心是活的，活的東西會呼吸，會長大，會自然流出對人的善意，就像亞伯拉罕和喇合那樣。他不是在替你打分數，而是在說信心本來就會活出來，你不需要用力擠。\n\n回想這一天，你對身邊的人，哪一個微小的舉動，其實是你心裡的信仰悄悄流出來的？如果最近你覺得自己什麼都流不出來，那也沒關係——先讓神來愛你，不用急著證明什麼，你願意嗎？',
+    baseItem:{emoji:'📜', name:'至尊的律法', desc:'「經上記著說：『要愛人如己。』你們若全守這至尊的律法才是好的。」', slot:'hand'},
+    bonusItem:{emoji:'🤝', name:'神的朋友', desc:'「這就應驗經上所說：『亞伯拉罕信神，這就算為他的義。』他又得稱為神的朋友。」', slot:'hat'}
+  },
+  {
+    chapter:'JAS3', sceneEmoji:'🔥', readTime:4,
+    guide:{
+      intro:'雅各書第三章談一件我們每天都在做，卻最難管好的事——說話。雅各說舌頭雖然是身上最小的部位，卻像小小的火苗，能點起一整片森林，連最有經驗的人也沒辦法完全馴服它。但他沒有停在自責，而是把我們的眼光帶向另一種說話的方式：從上頭來的智慧，先是清潔，然後是和平，溫柔又充滿憐憫。',
+      outline:[
+        {nodes:'1-6節', text:'話語上的過失最難避免；舌頭雖是身上最小的部位，卻像馬嘴裡的嚼環，像大船上的小舵，牽動著全身。'},
+        {nodes:'7-8節', text:'各樣的走獸飛禽都能被人制伏，唯獨舌頭沒有人能制伏——連寫這封信的雅各自己也承認做不到。 ✦'},
+        {nodes:'9-12節', text:'同一張口，既頌讚神又咒詛人；雅各說這是不應當的，提醒我們話語有祝福人，也有傷人的兩面。'},
+        {nodes:'13-18節', text:'雅各對比兩種智慧：屬地的帶著嫉妒和紛爭，只會帶來擾亂；從上頭來的，先是清潔，後是和平，多結善果。'}
+      ],
+      focus:'今日情境題聚焦在 7-8節——連使徒雅各都老實承認，沒有人能完全制伏自己的舌頭，所以偶爾說錯話，不代表你信仰失敗。我們一起看看，一句讓自己後悔的話，可以怎麼溫柔地面對。'
+    },
+    verse:'「惟獨舌頭沒有人能制伏，是不止息的惡物，滿了害死人的毒氣。」',
+    verseRef:'—— 雅各書 3:8',
+    scene:'雅各在信裡談到一件很誠實的事：舌頭是全身最小的部位，卻最難管。他說各樣的走獸飛禽都被人制伏了，唯獨舌頭，沒有人能完全制伏。這不是要我們為說錯話而定自己的罪，而是一種釋放——連寫下這封信的人都承認做不到，那麼偶爾脫口而出的一句話，並不等於你整個人失敗了。',
+    q:'回想最近，有沒有一句你說出口以後，心裡有點後悔的話？當它又浮上心頭時，你的反應比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我會一直反覆想那句話，覺得自己怎麼又搞砸了。'},
+      {k:'B', text:'我想去把它修補回來，哪怕只是簡單說一句對不起。'},
+      {k:'C', text:'我會提醒自己，下次說話前先停個半秒。'},
+      {k:'D', text:'老實說，話都說出去了，收不回來，我覺得只能算了。'}
+    ],
+    responses:{
+      A:'一直重播那句話，其實說明你在乎——你在乎有沒有傷到人，這份在乎本身就是柔軟的心。雅各說沒有人能制伏舌頭，連他自己也算在裡面；所以你說錯的那一次，不是你這個人壞掉了，只是舌頭本來就難管。要不要試著把那句在腦裡轉了很多遍的話，換成一句對自己說的話：「那句我確實說得不好，但我不是壞人。」',
+      B:'想去修補，是很有勇氣的一步——因為承認自己說錯，比假裝沒事難多了。你不需要長篇大論，有時候一句「我那天說的話，我想跟你道個歉」就夠了。今天可以先在心裡想好一個對象，想好一句話；如果還沒準備好開口，光是把這句道歉在心裡練一遍，也已經在往和好的方向走了。',
+      C:'「說話前先停半秒」聽起來很小，其實是很實際的智慧——雅各說從上頭來的智慧，先是清潔，後是和平，常常就藏在那半秒的停頓裡。不用要求自己每次都做到，先挑一個最容易失言的場合，也許是很累的時候，或是面對最親近的人，在那裡練習就好。下次那個場合來臨前，可以先對自己說一句：「這一次，我慢一點。」',
+      D:'你說得很真實——話一旦出口，確實收不回來，這種無力感，其實很多人都懂。雅各也沒有假裝舌頭可以被完全馴服，他反而老實地承認，沒有人能制伏它。所以「算了」有時候不是放棄，而是承認自己的有限，這並不丟臉。如果心裡其實還輕輕掛著那句話，先不用急著做什麼大事，可以問問自己：「這件事，我現在更需要的，是原諒對方，還是先原諒自己？」'
+    },
+    reflectionTitle:'難管的舌',
+    reflection:'雅各用了三個畫面來形容舌頭：馬嘴裡的嚼環，大船上的小舵，還有能點起整片森林的小火苗。他想說的是，話語雖小，重量卻很大。但他接著承認了一件讓人鬆一口氣的事——連他自己，也沒辦法完全制伏自己的舌頭。所以這段經文從來不是要你變成一個永遠不失言的人。\n\n如果連使徒都說沒有人能制伏舌頭，那麼今天，你可以怎麼溫柔一點地對待那個曾經說錯話的自己？而在你心裡，有沒有一句話，是你想重新好好說一次的——不管是對別人，還是對自己？',
+    baseItem:{emoji:'🕊️', name:'溫柔裡的善行', desc:'「你們中間誰是有智慧有見識的呢？他就當在智慧的溫柔上顯出他的善行來。」', slot:'hat'},
+    bonusItem:{emoji:'☀️', name:'從上頭來的智慧', desc:'「惟獨從上頭來的智慧，先是清潔，後是和平，溫良柔順，滿有憐憫，多結善果，沒有偏見，沒有假冒。」', slot:'bg'}
+  },
+  {
+    chapter:'JAS4', sceneEmoji:'🤲', readTime:4,
+    guide:{
+      intro:'雅各書第 4 章談的是紛爭的根源：原來我們與人之間的衝突，很多時候是從自己心裡的慾望交戰來的。雅各沒有停在指責，而是給出路——神阻擋驕傲的人，卻賜恩給謙卑的人；只要你願意回轉親近祂，祂就親近你。最後他提醒：別為明天誇口，因為生命短得像一片雲霧。',
+      outline:[
+        {nodes:'1-3節', text:'雅各戳破紛爭的真相：那些爭吵鬥毆，其實是從心裡沒停過的私慾交戰來的；想要卻得不著，於是彼此傷害。'},
+        {nodes:'4-10節', text:'神阻擋驕傲的人，賜恩給謙卑的人。就在最緊的地方，雅各遞出邀請：「你們親近神，神就必親近你們」——不是等你夠好才靠近，是你先挪一步，祂就迎上來。 ✦'},
+        {nodes:'11-12節', text:'不要彼此批評論斷，因為設立律法的只有一位；先照顧自己怎麼待人，而不是急著審判別人。'},
+        {nodes:'13-17節', text:'不要為明天張狂誇口，因為生命如同一片雲霧，出現少時就不見了；把「主若願意」放回每個計畫裡。'}
+      ],
+      focus:'今日情境題聚焦在 8節「你們親近神，神就必親近你們」——把後面潔淨手和清潔心讀成回轉的邀請，而不是資格門檻，邀請你先向神鬆開心裡那場角力。'
+    },
+    verse:'「你們親近神，神就必親近你們。」',
+    verseRef:'—— 雅各書 4:8',
+    scene:'雅各戳破一個我們常忽略的真相：外面的爭吵，常常是心裡一場沒停過的角力——為了想得到，為了比高下，為了那件放不下的事。就在這樣的心裡，他遞出一句話：「你們親近神，神就必親近你們。」這不是門檻，是邀請；不是等你夠乾淨了才靠近，而是你先挪一步，祂就迎上來。',
+    q:'你心裡是不是也有一場正在進行的角力——為某件事跟人較勁，或跟自己過不去？如果神現在對你說「你先靠近就好」，你願意先鬆開哪一根手指？',
+    choices:[
+      {k:'A', text:'願意試試看，今天就把這件正在角力的事，安靜帶到神面前說一說。'},
+      {k:'B', text:'我知道該放下，但那口氣還沒消，現在要我鬆手真的很難。'},
+      {k:'C', text:'老實說我根本還不想放，那件事我覺得我沒錯，憑什麼是我先鬆手？'},
+      {k:'D', text:'我甚至沒發現自己一直在角力，被這樣一問才愣住。'}
+    ],
+    responses:{
+      A:'願意先靠近，本身就是一種勇敢——你不是等自己準備好了才來，是帶著還沒解開的結來。神從不要求你先擺平一切才配靠近祂。今天不用急著求答案，就對祂說一句：「這件事我還在氣，但我先把它交在祢這裡。」',
+      B:'那口氣還在，是很誠實的狀態，不用假裝已經放下了。鬆手不是一瞬間的事，有時是先承認「我還握著」。你可以今天先不急著放，只是輕輕問祂：「這件事為什麼讓我這麼難鬆手？」——光是願意問，你已經往祂那邊挪了一步。',
+      C:'「憑什麼是我先鬆手」這句話裡，藏著很多還沒被看見的委屈，那是真的。神不是要你認輸，也不是要你假裝沒事；祂邀請的「親近」，是連這份不甘心都可以一起帶過去的。你不用今天就放，可以先誠實對祂說：「這件事我覺得我沒錯，我先把這份不甘心放在祢面前。」說出來，不等於認輸。',
+      D:'被問住而愣住，其實是很珍貴的時刻——你剛剛看見了心裡那場一直在跑，自己卻沒察覺的角力。不用急著處理它，光是看見就已經是開始。今天可以留一句話給自己：「原來我一直在為這件事使力。」看見了，就有機會鬆開。'
+    },
+    reflectionTitle:'先靠近',
+    reflection:'雅各書第 4 章一路講心裡的私慾交戰，講神阻擋驕傲的人，卻賜恩給謙卑的人。就在最緊的地方，他給了一句最溫柔的話：「你們親近神，神就必親近你們。」順序很重要——不是神等你夠好了才靠近你，是你一挪步，祂就迎上來。後面說的潔淨手和清潔心，不是資格審查，而是回轉的樣子：一個轉身，你就已經在祂面前了。\n\n此刻你心裡，有沒有一件正在角力的事？如果不必先解決它，只是先靠近，你會想對神說哪一句還沒說出口的話？',
+    baseItem:{emoji:'👑', name:'謙卑者的冠冕', desc:'「務要在主面前自卑，主就必叫你們升高。」', slot:'hat'},
+    bonusItem:{emoji:'🌫️', name:'雲霧的謙卑', desc:'「你們原來是一片雲霧，出現少時就不見了。」', slot:'bg'}
+  },
+  {
+    chapter:'JAS5', sceneEmoji:'🙏', readTime:4,
+    guide:{
+      intro:'雅各書第五章是全書的結尾。雅各先嚴厲責備那些欺壓工人，虧欠工錢的富足人，警告苦難將臨到他們；接著他轉向受苦的弟兄，勸他們忍耐等候主再來，就像農夫耐心等候秋雨春雨。最後他把話收在一個很暖的畫面上：受苦的，生病的，軟弱的，都可以彼此認罪，互相代求，不必一個人扛——因為主是滿心憐憫，大有慈悲的。',
+      outline:[
+        {nodes:'1-6節', text:'雅各嚴厲責備欺壓工人，虧欠工錢，只顧自己享樂的富足人，警告苦難將臨（這段是說給壓迫者聽的，不是對正在受苦的你的指控）。'},
+        {nodes:'7-12節', text:'勸弟兄忍耐等候主來，像農夫等秋雨春雨；不要彼此埋怨；以先知和約伯為受苦忍耐的榜樣，並看見主是滿心憐憫，大有慈悲的。'},
+        {nodes:'13-18節', text:'受苦的就禱告，喜樂的就歌頌；生病的可以請長老來抹油禱告；彼此認罪，互相代求，並以以利亞的禱告為例。 ✦'},
+        {nodes:'19-20節', text:'若有人使失迷真道的弟兄回轉，便是救了一個靈魂。'}
+      ],
+      focus:'今日情境題聚焦在 13-16節——雅各說「彼此認罪，互相代求」，把焦點放在「我可不可以不一個人扛，讓人陪我一起禱告」，也放在那位滿心憐憫（5:11）的主身上，而不是「禱告會不會換來醫治」。'
+    },
+    verse:'「所以你們要彼此認罪，互相代求，使你們可以得醫治。義人祈禱所發的力量是大有功效的。」',
+    verseRef:'—— 雅各書 5:16',
+    scene:'雅各書快結束時，寫了一段很體貼的話。他先重重責備了那些欺壓工人，虧欠工錢的富足人（那是說給壓迫者聽的，不是說給正在受苦的你）；接著他轉過身來，對受苦，生病，撐得很累的弟兄說：你不用一個人扛。有難處就禱告，也可以請教會的長老來，為你抹油禱告；彼此認罪，互相代求。原來在神的家裡，軟弱不是要藏起來的秘密，而是可以有人陪你一起帶到神面前的。',
+    q:'有一件你一直一個人扛著的事——也許是一個重擔，一個傷，或一場久久沒好的病——你會願意讓別人陪你一起禱告嗎？',
+    choices:[
+      {k:'A', text:'願意，我其實很想有人陪，只是一直開不了口。'},
+      {k:'B', text:'我會挑一兩個很信任的人，小小聲地說，不敢讓太多人知道。'},
+      {k:'C', text:'老實說我做不到，把軟弱攤開給別人看，對我來說太難了，我寧可自己扛。'},
+      {k:'D', text:'我已經禱告很久了，狀況還是沒變，我不太確定再找人一起禱告有什麼用。'}
+    ],
+    responses:{
+      A:'「很想有人陪，卻一直開不了口」——這種卡住其實很多人都懂，那不是你不夠好，是把軟弱交出去本來就需要勇氣。雅各說「彼此認罪，互相代求」，正是因為神知道，人是需要有人陪著一起禱告的。你不用一次就攤開全部。今天可以先傳一句話給一個你信得過的人：「我最近有件事想請你幫我一起禱告，方便嗎？」',
+      B:'你懂得挑信得過的人，小小聲地說，這不是膽小，是一種健康的智慧——軟弱本來就不必公告天下，能有一兩個安全的人已經很珍貴。雅各講的「互相代求」，要的正是這種真實的，彼此托住的關係，不是人多熱鬧。下次跟那一兩個人在一起時，可以試著把藏最深的那件事，也放進你們一起的禱告裡：「這個我一直沒說，今天想讓你們陪我一起交給神。」',
+      C:'你願意誠實說「我做不到」，這句話本身就很不容易，一點都不用因此覺得自己信心差。把軟弱攤開給人看，對很多人來說真的很難，神不會因為你暫時做不到就少愛你一分。也許今天不用勉強找人，你可以先只跟神說，把那個「我寧可自己扛」的心情，原原本本告訴祂：「神啊，我還沒辦法讓別人看見，但我先讓祢看見。」等哪天預備好了，再往前一小步就好。',
+      D:'這是最需要被溫柔對待的一種心情。你禱告了很久，狀況還是沒變，那種累和失望是真實的——請先聽清楚一件事：聖經從來沒有說「病沒好，是因為你信心不夠」，那不是神的心意，也不是這段經文的意思。雅各說「義人祈禱所發的力量是大有功效的」，但他緊接著提醒我們，主是「滿心憐憫，大有慈悲」的——祂沒有在你身上算帳。找人一起禱告，不是為了「換來一個結果」，是為了在還沒有答案的日子裡，你不必一個人撐。今天你什麼都不必求成，只要對神說一句：「我還在痛，但我不想再自己一個人了。」'
+    },
+    reflectionTitle:'不必獨扛',
+    reflection:'雅各書的結尾很溫柔。他責備完欺壓工人的富足人之後，話鋒轉向那些正在受苦，生病，撐得很累的人，對他們說：你不必獨自面對。有受苦的就禱告，有病的可以請長老來，奉主的名為他禱告；並且「彼此認罪，互相代求」。這裡最要緊的，不是「禱告一定會換來醫治」的公式——雅各在同一章裡也說，主是「滿心憐憫，大有慈悲」的，就像祂當年沒有丟下受盡苦難的約伯。神看重的，是在軟弱裡不再有人孤單。\n\n有沒有一件事，是你一直咬著牙自己扛，從來沒讓任何人陪你一起禱告過的？如果神此刻就坐在你旁邊，滿心憐憫地看著你，你會想先跟祂說哪一句？試著寫下一個你也許可以開口的人的名字——不是要你今天就找他，只是讓你知道，你不是非得一個人不可。',
+    baseItem:{emoji:'💗', name:'滿心的憐憫', desc:'「那先前忍耐的人，我們稱他們是有福的。你們聽見過約伯的忍耐，也知道主給他的結局，明顯主是滿心憐憫，大有慈悲。」', slot:'hat'},
+    bonusItem:{emoji:'🌧️', name:'等雨的農夫', desc:'「弟兄們哪，你們要忍耐，直到主來。看哪，農夫忍耐等候地裡寶貴的出產，直到得了秋雨春雨。」', slot:'bg'}
+  },
+  {
+    chapter:'PE1_1', sceneEmoji:'🪙', readTime:5,
+    guide:{
+      intro:'彼得寫這封信，是寫給一群分散在各地，正在為信仰吃苦的人。他一開口就宣告一個很大的盼望：因為耶穌基督從死裡復活，我們得以重生，進入一個不會朽壞，為我們存留在天上的基業。可是彼得沒有假裝眼前不苦，他接著說，信心會在百般試煉裡被火試驗，就像金子被火煉一樣；他要說的是，這樣熬過來的信心，比會壞的金子更寶貴。',
+      outline:[
+        {nodes:'1-5節', text:'願頌讚歸給神，因祂照著自己的大憐憫，藉耶穌基督從死裡復活，重生了我們，叫我們有活潑的盼望，得著不能朽壞，存留在天上的基業。'},
+        {nodes:'6-9節', text:'如今在百般試煉中暫時憂愁，是要叫信心經過試驗，比那被火試驗仍能壞的金子更寶貴；你們雖沒見過基督，卻因信祂，有說不出來，滿有榮光的大喜樂。 ✦'},
+        {nodes:'10-12節', text:'這救恩連眾先知都曾切切尋求查考，連天使也願意詳細察看，是何等寶貴的一件事。'},
+        {nodes:'13-25節', text:'所以要約束己心，謹慎自守，專心盼望；既蒙重生，就要彼此切實相愛，因為你們是藉著神活潑常存的道重生的。'}
+      ],
+      focus:'今日情境題聚焦在 1:6-7節——不是要你為難處高興，而是問一個很誠實的問題：當你正在苦裡，暫時喜樂不起來的時候，那個「活潑的盼望」，還能不能跟你的痛，一起待在同一個地方。'
+    },
+    verse:'「叫你們的信心既被試驗，就比那被火試驗仍然能壞的金子更顯寶貴，可以在耶穌基督顯現的時候得著稱讚、榮耀、尊貴。」',
+    verseRef:'—— 彼得前書 1:7',
+    scene:'彼得對一群正在受苦的人說「要大有喜樂」，可是他沒有停在這句話。他緊接著照實說：你們如今在百般的試煉中，是暫時憂愁的。他不是要你假裝不痛，而是說，這場難若交在神手裡，能把信心像金子一樣煉過，煉出比金子更寶貴的東西。只是說真的，人在苦裡的時候，「喜樂」這兩個字，常常怎麼也擠不出來。',
+    q:'想想你現在正在難裡的那件事——如果你暫時喜樂不起來，聽到「要喜樂」甚至覺得有點喘不過氣，這時候的你，比較靠近哪一種？',
+    choices:[
+      {k:'A', text:'我心裡其實還留著一點盼望，雖然很淡，但它還在。'},
+      {k:'B', text:'我信這場難有意義，只是現在還看不到，也還笑不出來。'},
+      {k:'C', text:'老實說我只覺得累，盼望對現在的我有點遙遠。'},
+      {k:'D', text:'我現在真的喜樂不起來，也不想假裝自己很好。'}
+    ],
+    responses:{
+      A:'「還留著一點盼望，雖然很淡」——這一點點，其實就是彼得說的那個活潑的盼望；它不必很亮，只要還在，就夠了。盼望從來不是要你蓋過眼前的痛，而是能跟痛一起待著。今天不用把它放大，只要對神說一句：「這件事我還在難裡，但我沒有完全放掉盼望。」',
+      B:'你信這場難有意義，卻還笑不出來——這兩件事可以同時是真的，你不用逼自己先笑得出來，才算有信心。彼得說信心是「被火試驗」出來的，火燒著的時候，本來就熱，就痛。今天可以誠實一點對祂說：「我相信這裡面有祢，可是我現在還很難受。」意義和眼淚，一起帶到祂面前，都可以。',
+      C:'只覺得累，盼望變得很遙遠——這不是你信心不夠，是人在長期的難裡，本來就會這樣。彼得沒有要你硬生出盼望，他自己也說信徒是「暫時憂愁」的。今天不用勉強自己盼望什麼，光是把這句累說出口就好：「神啊，我現在只覺得累。」把累帶到祂面前，就已經是一種靠近了。',
+      D:'喜樂不起來，也不想假裝——謝謝你這麼誠實，這比擠出一個笑容珍貴多了。神從來不需要你演給祂看，彼得那句「要大有喜樂」，也不是要壓你，要你否認現在的苦。你可以就這樣，不加修飾地對祂說：「我現在不好，我也不想假裝好。」祂接得住這句話，也接得住這樣的你。'
+    },
+    reflectionTitle:'盼望與痛',
+    reflection:'彼得寫信給一群正在各樣試煉裡的信徒，他一開頭就講一個很大的盼望——因為基督從死裡復活，我們重生了，有一個不會朽壞，存留在天上的盼望。但他沒有用這個盼望去否認眼前的苦，他很誠實地說，你們「暫時憂愁」；他把盼望和憂愁，放進了同一句話裡。他要說的是，信心是在火裡被煉出來的，而火燒的時候，本來就會痛。\n\n此刻你心裡最難的那件事，是什麼？你會不會也覺得，一邊苦，一邊還要「有盼望」，是件很矛盾的事？其實不必二選一——你願不願意試試看，讓那一點點還沒熄的盼望，就安安靜靜地，跟你的痛待在一起，不用蓋過它，也不用假裝它不在？',
+    baseItem:{emoji:'🌅', name:'活潑的盼望', desc:'「願頌讚歸與我們主耶穌基督的父神！他曾照自己的大憐憫，藉耶穌基督從死裡復活，重生了我們，叫我們有活潑的盼望，」', slot:'bg'},
+    bonusItem:{emoji:'✨', name:'滿有榮光的喜樂', desc:'「你們雖然沒有見過他，卻是愛他；如今雖不得看見，卻因信他就有說不出來、滿有榮光的大喜樂；」', slot:'hat'}
+  },
+  {
+    chapter:'PE1_2', sceneEmoji:'👑', readTime:5,
+    guide:{
+      intro:'彼得對一群在外邦人中被輕看，受欺負的信徒說：你們是活石，一塊一塊被神建造成為靈宮，作聖潔的祭司。第9節是整章的高峰，他一口氣給了他們一個全新的身分——被揀選的族類，有君尊的祭司，聖潔的國度，屬神的子民。章的後半（18-25節）談到第一世紀的家僕如何順服主人，並把眼光帶到基督身上：祂為我們受了苦，給我們留下腳蹤。',
+      outline:[
+        {nodes:'1-10節', text:'你們來到主面前，就像活石，被建造成為靈宮；你們是被揀選的族類，是有君尊的祭司，是屬神的子民，要宣揚那召你們出黑暗入奇妙光明者的美德。 ✦'},
+        {nodes:'11-17節', text:'要在外邦人中品行端正，順服人間的制度，用行善堵住糊塗人的口；作神的僕人，卻要愛眾人，敬畏神。'},
+        {nodes:'18-20節', text:'這是彼得對第一世紀「家僕」說的話——就算遇到乖僻的主人，因著良心仍能忍耐。這是那個時代家奴處境下的勸勉，不是美化奴隸制，也不是叫今天的人默默忍受傷害。'},
+        {nodes:'21-25節', text:'基督為我們受過苦，給我們留下榜樣；祂被罵不還口，受害不說威嚇的話，只把自己交託那按公義審判人的主。這是「祂為我們受苦」的恩典，不是「所以你也該默默受苦」的命令。'}
+      ],
+      focus:'今日情境題聚焦在 2:9節——當你在一段不對等的關係裡（職場，體制，被看輕）懷疑自己到底有沒有價值，這一節經文想重新告訴你，你在神眼中是誰。（18-25節的受苦榜樣，我們放在導讀裡忠實呈現，但今天不會叫你去順服任何傷害你的人。）'
+    },
+    verse:'「惟有你們是被揀選的族類，是有君尊的祭司，是聖潔的國度，是屬神的子民，要叫你們宣揚那召你們出黑暗入奇妙光明者的美德。」',
+    verseRef:'—— 彼得前書 2:9',
+    scene:'彼得寫信的對象，很多是當時社會裡沒有地位的人——寄居的，作家僕的，常被人看輕的。就在這樣一群人面前，他說出一句幾乎顛覆他們自我認知的話：你們是被揀選的族類，是有君尊的祭司，是屬神的子民。不是等你們爬到某個位置才算數，而是此刻，就在你被輕看的地方，神已經這樣稱呼你了。',
+    q:'最近有沒有一個場合，或一段關係，讓你悄悄覺得自己「不太重要」「沒什麼價值」？如果神此刻要重新告訴你「你是屬我的」，你聽得進去哪一種說法？',
+    choices:[
+      {k:'A', text:'我願意試著相信，就算現在被看輕，我在神眼中還是有份量的。'},
+      {k:'B', text:'道理我懂，但那個「我沒價值」的感覺，還是常常比較大聲。'},
+      {k:'C', text:'老實說，我已經被否定到有點麻木，連自己是誰都快不確定了。'},
+      {k:'D', text:'我現在正在一段一直傷害我的關係裡，我不確定我還撐不撐得下去。'}
+    ],
+    responses:{
+      A:'「就算被看輕，我在神眼中還是有份量」——你願意這樣試著相信，本身就是一種很安靜的勇敢。彼得說這話的對象，正是當時最沒地位的一群人；神給的身分，從來不是獎賞給表現好的人，而是先給了你。今天可以把這句話留在身上：「這個位置也許看輕我，但我是屬神的。」需要的時候，就對自己再說一次。',
+      B:'「我沒價值」的感覺比較大聲，這很誠實，也很多人一樣。那個聲音，常常是被別人，被環境一遍一遍說進去的，不代表它是真的。神說你是「被揀選的族類」，這句話不需要你先感覺得到才成立。今天不用跟那個聲音辯論，只要在它響起的時候，輕輕加一句：「可是神說我是屬祂的。」讓這句話，跟那個聲音並排站著。',
+      C:'被否定到麻木，連自己是誰都不確定了——這是很深的累，我很心疼你走到這裡。你不用馬上找回那個「我是誰」，彼得那句身分的宣告，此刻可以先由神替你記得，不必你自己扛。今天什麼都不用證明，只要對祂說一句：「我快認不得自己了，祢先替我記得我是誰，好嗎？」',
+      D:'你正在一段一直傷害你的關係裡——謝謝你說出口，這需要很大的力氣。有件事想先講清楚：彼得談到僕人順服，是第一世紀家奴處境下的話，那從來不是要你留在一個傷害你的地方默默忍受。有些關係是該設界線的，有些處境是該離開的；離開不是不順服，而是看重神所看重的那個你。今天不必做出什麼大決定，但你可以先找一個信得過的人，把「我撐得很辛苦」這句話，說給一個真實的人聽。你不需要一個人扛。'
+    },
+    reflectionTitle:'你是誰',
+    reflection:'彼得寫信的那群人，在當時的社會裡多半沒什麼地位——寄居的，作家僕的，被人看輕的。就在這樣一群人面前，他說出全章的高峰：你們是被揀選的族類，是有君尊的祭司，是聖潔的國度，是屬神的子民。這身分不是他們掙來的，是神先給的。（後面彼得也談到僕人順服，基督受苦的榜樣，那是說基督為我們受了苦的恩典，不是要你在傷害裡默默忍耐。）\n\n此刻，有沒有一個地方，讓你覺得自己很小，很沒份量？如果神看你的眼光，跟那個地方看你的眼光不一樣，你比較願意先相信哪一個？而如果你正待在一段讓你不斷懷疑自己價值，甚至傷害你的關係裡，也想輕輕跟你說一句：看重你的神，不會要你用「一直忍受」來證明你是屬祂的。',
+    baseItem:{emoji:'🧱', name:'靈宮的活石', desc:'「你們來到主面前，也就像活石，被建造成為靈宮，作聖潔的祭司，藉著耶穌基督奉獻神所悅納的靈祭。」', slot:'hand'},
+    bonusItem:{emoji:'🐑', name:'靈魂的牧人', desc:'「你們從前好像迷路的羊，如今卻歸到你們靈魂的牧人監督了。」', slot:'bg'}
+  },
+  {
+    chapter:'PE1_3', sceneEmoji:'🛡️', readTime:4,
+    guide:{
+      intro:'彼得在這一章先對夫妻說話，講妻子與丈夫如何彼此相待，再轉向所有人，勸大家同心，彼此體恤，以恩慈相待。今天的重點落在後半段（14-17節）：你若是為了對的事而受苦，被人誤解，其實是有福的；不要怕，只要心裡尊主基督為聖，有人問起你心中那份盼望是從哪來的，就用溫柔又敬畏的心回答他。',
+      outline:[
+        {nodes:'1-7節', text:'彼得對當時的妻子與丈夫說話，勸妻子順服，丈夫敬重。這是寫給那個時代家庭處境的話，忠實呈現在這裡，但它不是拿來對正在受壓，甚至受傷的人施壓的命令。'},
+        {nodes:'8-12節', text:'總而言之，要同心，彼此體恤，相愛如弟兄，存慈憐謙卑的心；不以惡報惡，只要祝福，因為主的眼看顧義人。'},
+        {nodes:'13-17節', text:'為義受苦也是有福的，不要怕人的威嚇；只要心裡尊主為聖，常作準備，以溫柔敬畏，回答那問你盼望緣由的人。 ✦'},
+        {nodes:'18-22節', text:'基督也曾一次為罪受苦，就是義的代替不義的，為要引我們到神面前；祂受死又復活，成了我們盼望的根基。'}
+      ],
+      focus:'今日情境題聚焦在 3:14-17節——當你為了做對的事，或因為信仰付了代價，被人誤解時，那份「還願意溫柔」的力氣，可以從哪裡來。（1-7節的夫妻守則，我們在導讀裡忠實呈現，但今天不會拿它去要求任何正在受壓的人順服。）'
+    },
+    verse:'「只要心裡尊主基督為聖。有人問你們心中盼望的緣由，就要常作準備，以溫柔、敬畏的心回答各人；」',
+    verseRef:'—— 彼得前書 3:15',
+    scene:'彼得對一群因為信仰而被周圍人誤解，甚至排擠的人說：你們就算為義受苦，也是有福的，不用怕。他沒有叫他們去吵贏，去反擊，而是說——把心安定在主那裡，若有人問起你為什麼還能有盼望，就溫柔地，帶著敬畏地回答。被誤解的時候還能溫柔，這其實一點都不容易。',
+    q:'最近有沒有一件事，你明明是為了對的，或為了心裡相信的東西，卻反而被誤會，被說閒話，付了代價？那個時候的你，心裡比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我還是想好好回應，就算被誤解，也不想失了溫柔。'},
+      {k:'B', text:'我想溫柔，但心裡其實有一團委屈和火氣，還壓著。'},
+      {k:'C', text:'我懶得解釋了，覺得說再多對方也不會懂。'},
+      {k:'D', text:'老實說我做不到不還口，被這樣對待，我很難不生氣。'}
+    ],
+    responses:{
+      A:'「被誤解也不想失了溫柔」——這份心，正是彼得說的那種力量：不是沒有情緒，而是先把心安定在主那裡，才有餘力溫柔。你不用把自己撐成一個完美的人，只要在下次被誤會的時候，先深吸一口氣，對神說一句：「這件事我先交給祢，求祢讓我的回應帶著祢的溫柔。」',
+      B:'委屈和火氣還壓著，卻仍想溫柔——這不是虛偽，這是很真實的掙扎，彼得也沒有要你假裝沒事。溫柔不是把情緒吞掉，是先讓它有地方去。今天可以先不急著對人溫柔，而是誠實對神說：「我心裡有一團火，我先在祢這裡把它放下來。」把委屈交給祂，比硬擠出溫柔，更靠近祂要的。',
+      C:'「說再多對方也不會懂」——這句話底下，其實藏著很多次不被理解的疲累。彼得說的「常作準備回答」，從來不是要你去說服每一個人；有時候閉口不辯，也是一種智慧。你不用勉強自己再去解釋，但也許可以留一個問題給自己：「我不想再解釋，是因為真的放下了，還是因為太累，太受傷了？」誠實分辨這一點，就好。',
+      D:'「做不到不還口」——被那樣對待，會生氣是再正常不過的事，你不用因為這個覺得自己不夠屬靈。彼得舉的那個「被罵不還口」的榜樣是基督自己，那是祂的恩典，不是拿來壓你的標準。神不會因為你還口，就少愛你一分。今天不用要求自己馬上做到溫柔，只要在氣還沒消的時候，對祂說一句實話：「我很氣，我現在做不到溫柔，但我把這口氣，先帶到祢面前。」'
+    },
+    reflectionTitle:'盼望的緣由',
+    reflection:'彼得寫信給一群因信仰被誤解，被排擠的人。他沒有教他們怎麼吵贏，而是說：你們就算為義受苦，也是有福的，不要怕。祕訣在於「心裡尊主基督為聖」——先把心安定在主那裡，才有力氣在被問起的時候，溫柔地，帶著敬畏地說出自己盼望的緣由。溫柔不是軟弱，是一種很有根的力量。（這一章前面對夫妻說的話，是寫給當時的家庭處境；若你正在一段受壓的關係裡，那段話此刻也許先不適用。）\n\n回想最近，有沒有一件事，是你為了對的，為了你相信的東西，卻反而被誤會，付了代價？在那個委屈裡，你心中那份盼望，還在嗎？如果現在有人問你「你為什麼還撐得下去」，你會想怎麼回答——不用漂亮的答案，就是你心裡最真實的那一句。',
+    baseItem:{emoji:'🤝', name:'慈憐謙卑的心', desc:'「總而言之，你們都要同心，彼此體恤，相愛如弟兄，存慈憐謙卑的心。」', slot:'body'},
+    bonusItem:{emoji:'🌾', name:'承受的福氣', desc:'「不以惡報惡，以辱罵還辱罵，倒要祝福；因你們是為此蒙召，好叫你們承受福氣。」', slot:'hat'}
+  },
+  {
+    chapter:'PE1_4', sceneEmoji:'🔥', readTime:4,
+    guide:{
+      intro:'彼得勸這些正在受苦的信徒，用受苦的心志把自己武裝起來，不再隨從從前的私慾，並且提醒他們：最要緊的是彼此切實相愛，因為愛能遮掩許多的罪。今天的重點在後半段（12-19節）——當火一樣的試煉臨到，不要覺得奇怪，好像出了什麼差錯；那照著神旨意受苦的人，可以把自己的靈魂，交給那位信實的創造主。',
+      outline:[
+        {nodes:'1-6節', text:'既然基督在肉身受過苦，就當用同樣的心志把自己武裝起來，不再隨從人的私慾，只求遵行神的旨意。'},
+        {nodes:'7-11節', text:'萬物的結局近了，要謹慎自守；最要緊的是彼此切實相愛，因為愛能遮掩許多的罪，各人也要照所得的恩賜彼此服事。'},
+        {nodes:'12-16節', text:'有火煉的試驗臨到，不要以為奇怪，好像遭遇了非常的事；為著作基督徒而受苦，並不必羞恥。 ✦'},
+        {nodes:'17-19節', text:'那照著神旨意受苦的人，要一心為善，把自己的靈魂交給那位信實的造化之主。'}
+      ],
+      focus:'今日情境題聚焦在 4:12-19節——當你正在受苦，卻被自己或旁人急著解讀成「這是神在煉你」「一定有什麼屬靈的原因」時，其實你可以不用馬上替這場苦找到意義。重點不是為苦難高興，而是允許自己「暫時找不到理由」。'
+    },
+    verse:'「所以，那照神旨意受苦的人要一心為善，將自己靈魂交與那信實的造化之主。」',
+    verseRef:'—— 彼得前書 4:19',
+    scene:'彼得對正在受苦的信徒說：有火煉的試驗臨到你們，不要覺得奇怪，好像出了什麼差錯。他沒有急著替他們的苦貼上一個解釋，也沒有說「這一定是神在懲罰你」或「這是神在煉淨你」。他只是說，那照著神旨意受苦的人，可以把自己交給那位信實的創造主。有時候，苦難最難的不是痛本身，而是身邊的人（或自己）急著幫它找一個理由。',
+    q:'你最近在受的苦裡，有沒有被自己或別人急著下一個結論——「這一定是神在提醒你什麼」「你是不是哪裡做錯了」？聽到這種話的時候，你心裡比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我願意先不急著找答案，把這件事單純交給神。'},
+      {k:'B', text:'我一直想弄懂「為什麼是我」，找不到理由讓我更焦慮。'},
+      {k:'C', text:'有人跟我說「這是神在煉你」，我聽了其實有點受傷。'},
+      {k:'D', text:'老實說我找不到任何意義，就是很苦，也不想被硬塞一個解釋。'}
+    ],
+    responses:{
+      A:'「先不急著找答案，單純交給神」——這是很成熟的信心；彼得說的「交與那信實的造化之主」正是這個意思：不是先想通了才交，是還沒想通就先交。你不用逼自己理解這場苦，今天可以只做一個很小的動作，對祂說：「這件事我還不懂，但我先把我自己，交在祢手上。」',
+      B:'「為什麼是我」——這個問題會一直轉，是因為你在很努力地想抓住一點掌控感，這很人性，不是你信心不好。但彼得沒有要你先找到理由才能撐下去；有時候答案不會來，而苦還是可以被神接住。今天不用再逼自己解題，可以把那個問題原封不動地交出去：「神啊，我還是不懂為什麼，但我把這個『不懂』，也交給祢。」',
+      C:'「這是神在煉你」——這句話聽了會受傷，是很真實的，因為它常常在你最痛的時候，把責任又推回你身上。彼得從來沒有這樣對受苦的人說話，他反而說「不要以為奇怪」，等於是先讓你安心。你的苦，不需要被誰下這種診斷。今天可以輕輕對自己說一句：「我不必接受別人硬塞給我的解釋，我的苦，神自己會看顧。」',
+      D:'「找不到任何意義，就是很苦」——謝謝你這麼誠實，這句話裡沒有半點假裝，很珍貴。信仰不是規定你每一場苦都要找到意義，才准喊痛；有時候苦就是苦，找不到理由，也不代表你哪裡錯了。神接得住一個「我不懂，我很苦」的你。今天什麼都不用想通，只要對祂說一句：「我找不到意義，但我還在這裡，我沒有走開。」這就夠了。'
+    },
+    reflectionTitle:'不必解釋',
+    reflection:'彼得寫信給一群正在受苦的信徒，他對他們說：有火煉的試驗臨到，不要以為奇怪。他沒有急著替他們的苦找理由，也沒有說「這是神在懲罰你」或「你一定哪裡做錯了」。他只是把一條出路放在他們面前——那照著神旨意受苦的人，可以把自己的靈魂，交給那位信實的創造主。交託，不需要先想通。\n\n此刻你正在受的苦，有沒有被誰（或被你自己）急著貼上一個解釋？如果今天沒有人要求你想通「為什麼」，你會不會鬆一口氣？你願不願意試試看，把那個還沒有答案的苦，先原封不動地交給神——不是因為你懂了，而是因為祂信實？',
+    baseItem:{emoji:'🫂', name:'遮罪的愛', desc:'「最要緊的是彼此切實相愛，因為愛能遮掩許多的罪。」', slot:'body'},
+    bonusItem:{emoji:'🎁', name:'百般恩賜的管家', desc:'「各人要照所得的恩賜彼此服事，作神百般恩賜的好管家。」', slot:'hand'}
+  },
+  {
+    chapter:'PE1_5', sceneEmoji:'🤲', readTime:4,
+    guide:{
+      intro:'彼得在信的最後，勸教會的長老要甘心樂意地牧養群羊，勸年輕的順服年長的，也勸所有人彼此以謙卑相待。今天的重點在6-7節：你可以安心地在神大能的手下自卑，把心裡一切的憂慮，一股腦地卸給祂——因為祂顧念你，祂在乎你過得好不好。',
+      outline:[
+        {nodes:'1-4節', text:'彼得勸長老們，要甘心樂意地牧養神的群羊，不是勉強，也不是為利，而是甘心作群羊的榜樣。'},
+        {nodes:'5-7節', text:'你們要以謙卑束腰，彼此順服；在神大能的手下自卑，把一切的憂慮都卸給祂，因為祂顧念你們。 ✦'},
+        {nodes:'8-9節', text:'要謹慎警醒，因為仇敵魔鬼如同吼叫的獅子遍地遊行；你們要用堅固的信心抵擋牠。'},
+        {nodes:'10-14節', text:'那賜諸般恩典的神，必在你們暫受苦難之後，親自成全，堅固你們，賜力量給你們。'}
+      ],
+      focus:'今日情境題聚焦在 5:6-7節——當你的焦慮反反覆覆，怎麼也卸不乾淨，甚至被暗示「還在焦慮就是信心不夠」時，這節經文想告訴你：卸下憂慮是可以一次又一次練習的，焦慮不是一場屬靈的考試。'
+    },
+    verse:'「你們要將一切的憂慮卸給神，因為他顧念你們。」',
+    verseRef:'—— 彼得前書 5:7',
+    scene:'彼得對一群正在受苦，心裡有很多重擔的信徒說：把一切的憂慮，都卸給神吧，因為祂顧念你們。「卸」這個字，像是把扛在肩上的重物放下來。可是很多人都有過這種經驗——才剛卸下，沒多久又不知不覺扛回身上；然後開始怪自己：我是不是信心不夠，怎麼一直卸不掉？',
+    q:'你心裡最近有沒有一份卸不掉的憂慮，反反覆覆，放下了又扛起來？當你發現自己又在焦慮的時候，心裡比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我願意再一次把它交給神，就算已經交過很多遍了。'},
+      {k:'B', text:'我很想卸下，但一閉上眼，那些擔心又全部湧回來。'},
+      {k:'C', text:'我會怪自己，覺得還在焦慮就是我信得不夠好。'},
+      {k:'D', text:'老實說我根本卸不掉，現在還是很焦慮，這讓我有點灰心。'}
+    ],
+    responses:{
+      A:'「就算已經交過很多遍，還是願意再交一次」——這正是彼得說的那個「卸」，它從來不是一次就永遠放下的績效，而是一個可以一直重複的動作。你交過幾百遍，都不算失敗；每一次交，都是信心在動。今天再交一次就好，對祂說：「這件事我又扛回來了，我現在，再一次放在祢這裡。」',
+      B:'「一閉上眼，擔心又全部湧回來」——這種身不由己，很多人都懂；那不是你不夠努力，是憂慮本來就頑固。彼得說「卸給神」，可沒有說「卸一次就不准再想」。今天不用要求自己徹底放空，可以在那些擔心湧回來的時候，一件一件地，慢慢地對祂說：「這一件，我先給祢；還有這一件……」卸不完沒關係，卸一件是一件。',
+      C:'「還在焦慮就是我信得不夠好」——這個念頭，其實比焦慮本身更折磨人，因為它讓你在受苦的時候還要自責。但彼得那句「卸給神」，前提是「因為祂顧念你」——重點不在你卸得夠不夠乾淨，而在祂一直在接。焦慮，不是一場信心考試。今天可以先放下那個對自己的評分，對祂說一句：「我還在焦慮，但我相信祢還是顧念我。」',
+      D:'「根本卸不掉，還是很焦慮，有點灰心」——謝謝你這麼誠實，願意承認卸不掉，其實比假裝已經平安更真實。彼得沒有要求你先變得不焦慮，才配把憂慮交出去；恰恰相反，是「因為祂顧念你」，所以你可以帶著滿身的焦慮，就這樣來。今天什麼都不用解決，只要把這份灰心也一起說出來：「神啊，我卸不掉，我很焦慮，連這份灰心，我也一起交給祢。」祂顧念的，正是這樣的你。'
+    },
+    reflectionTitle:'一再地卸',
+    reflection:'彼得在信的最後，對一群心裡扛著很多重擔的人說：把一切的憂慮卸給神，因為祂顧念你們。「卸」這個字很有畫面，像把肩上的重物放下來。但他用的不是一個「一次就永遠放下」的說法——因為他知道，人的憂慮總是放下了又扛起來。這句話真正的重心，其實在後半句：「因為他顧念你們。」你卸得乾不乾淨是一回事，祂顧念你，是一直都在的事。\n\n此刻你心裡，有沒有一份反反覆覆，卸了又扛回來的憂慮？如果沒有人會因為你「還在焦慮」而扣你的分，你會不會比較敢承認，其實你還沒放下？願不願意，就在這個還沒放下的地方，再一次，很簡單地，把它交給那位一直顧念你的神——不是因為你這次一定能卸乾淨，而是因為祂一直都在接？',
+    baseItem:{emoji:'🙌', name:'必叫你升高', desc:'「所以，你們要自卑，服在神大能的手下，到了時候，他必叫你們升高。」', slot:'hat'},
+    bonusItem:{emoji:'🌟', name:'賜諸般恩典的神', desc:'「那賜諸般恩典的神曾在基督裡召你們，得享他永遠的榮耀，等你們暫受苦難之後，必要親自成全你們，堅固你們，賜力量給你們。」', slot:'bg'}
+  },
+  {
+    chapter:'PE2_1', sceneEmoji:'🌱', readTime:5,
+    guide:{
+      intro:'彼得後書一開頭，講一個很有安慰的順序：神的神能，已經把一切關乎生命和敬虔的，都先賜給我們了——不是要你先努力到某個程度才配得，而是恩典先給了。在這個基礎上，他才邀請我們在信心上一點一點加上德行，再加上知識，節制，忍耐，敬虔，還有愛。他也提醒，我們所信的有先知更確的預言，聖經是神所默示的，站得住。',
+      outline:[
+        {nodes:'1-4節', text:'神的神能已把一切關乎生命和敬虔的事都賜給我們，還賜下又寶貴又極大的應許，叫我們得與神的性情有分；這一切都是恩典先給的。'},
+        {nodes:'5-11節', text:'正因這緣故，就在信心上加上德行，再加上知識，節制，忍耐，敬虔，還有愛；這些若一點一點增長，就不至於閒懶不結果子，也使所蒙的恩召和揀選更堅定。 ✦'},
+        {nodes:'12-15節', text:'彼得說，他趁著還在世的時候，要一再提醒他們這些事，好叫他們常常記得。'},
+        {nodes:'16-21節', text:'他們所傳的不是隨口編出來的故事，而是親眼見過主的榮耀；並且有先知更確的預言，聖經是人被聖靈感動，說出神的話來。'}
+      ],
+      focus:'今日情境題聚焦在 1:5-11節——當你覺得自己的信心好像卡住了，沒在長進，也結不出什麼果子的時候。這一章想先提醒你一件事：長進不是得救的門檻，而是領受了恩典之後，可以一點一點回應的路。'
+    },
+    verse:'「神的神能已將一切關乎生命和虔敬的事賜給我們，皆因我們認識那用自己榮耀和美德召我們的主。」',
+    verseRef:'—— 彼得後書 1:3',
+    scene:'彼得後書開頭有一個很重要的順序：神的神能，已經把一切關乎生命和敬虔的，都先賜給我們了。換句話說，你不是空著手在努力，你是站在「已經被給了」的基礎上，才開始學著長進。彼得接著才說，可以在信心上一樣一樣加添——但那是領受之後的回應，不是拿來換取神的愛的門票。',
+    q:'你最近會不會覺得，自己的信心好像卡在原地，沒什麼長進，也看不到自己結出什麼果子？面對這種「停滯感」，你心裡比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我願意相信，就算慢，我還是可以一點一點往前加一點點。'},
+      {k:'B', text:'我知道恩典是先給的，但心裡還是忍不住想拿成果來證明自己。'},
+      {k:'C', text:'我看著別人好像都在長進，只有我原地踏步，有點灰心。'},
+      {k:'D', text:'老實說我覺得自己根本沒在長進，也結不出什麼果子。'}
+    ],
+    responses:{
+      A:'「就算慢，還是可以加一點點」——這正是彼得說的那條路：不是一次到位，而是一樣一樣慢慢加添。而且別忘了，起點是神已經先把一切關乎生命的都給了你，你是從「已經足夠」出發，不是從「還不夠」出發。今天不用逼自己突飛猛進，只要挑一件很小的，對祂說：「這一點，我想跟祢一起慢慢練。」',
+      B:'「忍不住想拿成果證明自己」——這種心情很老實，我們太習慣用表現來衡量價值了。但彼得把順序講得很清楚：神的恩典先給，長進是後面的回應，不是你買回神的愛的價碼。今天可以試著把那句「我要夠好才行」放下一點，對祂說：「我知道祢已經接納我了，我想從被愛出發，不是為了被愛才做。」',
+      C:'看著別人都在長進，只有自己原地踏步——這種比較的灰心，其實很多人心裡都有。但信心的長進沒有進度表，也不是賽跑；神看你，不是看你跑得比誰快，是看你有沒有還在祂手裡。今天先不用跟任何人比，只要輕輕問祂一句：「在祢眼中，我這一段時間，真的什麼都沒有嗎？」也許祂看見的，跟你以為的不一樣。',
+      D:'「根本沒在長進，也結不出果子」——謝謝你這麼誠實。但有件事想先跟你說：這句話不代表你的信心是假的，也不代表揀選沒有你的份。彼得整段話的地基是「神已經先把一切都給了你」——就算你現在覺得兩手空空，那份恩典也沒有收回去。今天什麼果子都不用結，只要對祂說一句：「我覺得自己很乾，但我還在祢這裡。」留在祂那裡，本身就是還沒枯掉的證據。'
+    },
+    reflectionTitle:'恩典先給',
+    reflection:'彼得後書一開頭，講了一個很容易被我們顛倒的順序。我們常以為，要先長進，先結果子，先夠好，神才會賜下恩典；但彼得說的正好相反——神的神能，已經把一切關乎生命和敬虔的，都先賜給我們了。長進，是站在這份「已經被給」上面的回應，不是換取神接納的條件。所以就算你現在覺得停滯，那份恩典也還在你腳下，沒有動搖。\n\n此刻，你會不會也在用「有沒有長進，有沒有結果子」來給自己打分數？如果神此刻對你說的第一句不是「你怎麼還沒長大」，而是「我已經把你需要的都給你了」，你聽了會有什麼感覺？今天不用逼出任何成果，只要挑一件很小的事，讓自己在祂已經給的恩典裡，往前挪一小步，就好。',
+    baseItem:{emoji:'🌿', name:'與神性情有分', desc:'「因此，他已將又寶貴又極大的應許賜給我們，叫我們既脫離世上從情慾來的敗壞，就得與神的性情有分。」', slot:'body'},
+    bonusItem:{emoji:'🏰', name:'永遠的國', desc:'「這樣，必叫你們豐豐富富地得以進入我們主－救主耶穌基督永遠的國。」', slot:'bg'}
+  },
+  {
+    chapter:'PE2_2', sceneEmoji:'🔍', readTime:5,
+    guide:{
+      intro:'彼得後書第二章，警告一件很現實的事：教會裡會冒出假師傅，偷偷帶進似是而非的教導，用漂亮的話包裝，吸引人跟隨。他用幾個舊約的例子提醒：神既然搭救過挪亞和羅得，也知道怎麼保護愛祂的人。這一章有些話說得很重，像「狗轉過來吃所吐的」，那是形容那些明知故犯的假師傅，不是拿來嚇唬正在努力信的你。',
+      outline:[
+        {nodes:'1-3節', text:'彼得警告，將來會有假師傅私自引進陷害人的異端，用捏造的話把人當生意做；許多人會隨從他們。 ✦'},
+        {nodes:'4-9節', text:'他舉洪水中的挪亞，所多瑪中的羅得為例，說明主知道怎麼搭救敬虔的人脫離試探，也知道怎麼處理不義的人。'},
+        {nodes:'10-16節', text:'這些假師傅膽大任性，說虛妄矜誇的大話，像沒有理性的畜類，只憑本能行事。'},
+        {nodes:'17-22節', text:'他們應許人得以自由，自己卻是敗壞的奴僕。彼得甚至用「狗所吐的，牠轉過來又吃；豬洗淨了又回到泥裡去滾」這樣很重的話，形容假師傅回到老路的可悲；這些話是說那些明知故犯的假師傅，不是說被他們迷惑的人。'}
+      ],
+      focus:'今日情境題聚焦在 2:1-3 和 2:18-19節——這一章責備的是那些販賣「假自由」的假師傅，你站的位置是「被保護，要學分辨」的那一邊，不是被指控的人。今天想陪你看的是：面對包裝得很漂亮的聲音，你可以怎麼站穩。'
+    },
+    verse:'「主知道搭救敬虔的人脫離試探，把不義的人留在刑罰之下，等候審判的日子。」',
+    verseRef:'—— 彼得後書 2:9',
+    scene:'彼得警告，教會裡會有假師傅，偷偷帶進似是而非的教導。他們最擅長的，是把話說得很漂亮——應許人「自由」，聽起來很吸引人，其實是把人帶進另一種捆綁。彼得在這一堆警告中間，放了一句很穩的話：主知道怎麼搭救敬虔的人脫離試探。也就是說，你不是孤軍奮戰地去分辨，有一位一直在保護你。',
+    q:'現在資訊很多，各種聲音都說自己才對——有些包裝成「更自由」「更成功」「更屬靈」。你有沒有遇過某種說法，一時分不清它到底是真的好，還是只是聽起來很美？那個時候的你，比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我會停下來，把它放在神和聖經面前對一對，再決定要不要信。'},
+      {k:'B', text:'我心裡有點警覺，但說不太出來哪裡怪，只是隱隱不安。'},
+      {k:'C', text:'老實說，我很容易被講得漂亮，講得篤定的人帶著走。'},
+      {k:'D', text:'我不太確定自己分不分得清，怕哪天就這樣被似是而非的話帶偏了。'}
+    ],
+    responses:{
+      A:'「放在神和聖經面前對一對」——這正是彼得要教的分辨：不是靠感覺哪個講得動聽，而是回到那個穩的地方去核對。你願意多花那幾秒鐘停下來，本身就是一種成熟。今天如果又遇到一個很吸引你的說法，可以先在心裡問一句：「這跟我所認識的神，對得起來嗎？」讓這個小小的停頓，慢慢成為你的習慣。',
+      B:'「隱隱不安卻說不出哪裡怪」——那份不安其實很寶貴，它常常比你的理性更早聞到不對勁。你不用馬上分析出一個道理，先允許自己「先不急著相信」。今天可以把那份說不清的警覺，交給神：「我說不上來哪裡怪，但我先不衝動投入，求祢讓我看得更清楚。」',
+      C:'「很容易被講得漂亮，講得篤定的人帶著走」——會這樣，往往是因為你渴望確定，渴望被帶領，這份渴望本身沒有錯。彼得警告的假師傅，正是專門利用這種渴望。你不用因此責怪自己，只要多給自己一點緩衝。今天可以練習一件小事：遇到讓你很心動的說法，先不當場答應，給自己一天，對神說：「祢若要我走這條路，求祢讓我在冷靜下來以後也還是清楚。」',
+      D:'「不確定自己分不分得清，怕被帶偏」——謝謝你這麼誠實，願意承認自己會被搖動，這不是信心差，反而是清醒。彼得寫這一章，正是因為知道人會被似是而非的話影響，所以他不是在罵你，是在提醒，在保護你。而那句「主知道搭救敬虔的人脫離試探」，說的就是：分辨這件事，你不是一個人在扛。今天不用逼自己變得很會分辨，只要對祂說一句：「我怕自己被帶偏，求祢親自保守我。」把這份怕，交在那位會搭救你的主手上。'
+    },
+    reflectionTitle:'假的自由',
+    reflection:'彼得後書第二章，責備的是那些販賣「假自由」的假師傅——他們把話說得很漂亮，應許人自由，自己卻是敗壞的奴僕。彼得為了讓人看清楚，甚至用了「狗所吐的，牠轉過來又吃」這種很重的話。但要記得，這些重話是說那些明知故犯的假師傅，不是說會被迷惑，會不小心走偏的一般人。在整章的警告中間，他放了一句最穩的話：主知道搭救敬虔的人脫離試探。\n\n這個世代，各種聲音都在搶你的相信——有些包裝成更自由，更成功，更屬靈。你有沒有一時分不清，差點被帶著走的經驗？如果你也會被搖動，那不代表你信得不夠好，只代表你是個誠實的人。今天不用逼自己變成分辨高手，只要記得：分辨的路上，有一位一直在保護你。你會想把哪一種正在拉扯你的聲音，先帶到祂面前，讓祂幫你看清楚？',
+    baseItem:{emoji:'🚢', name:'傳義道的挪亞', desc:'「神也沒有寬容上古的世代，曾叫洪水臨到那不敬虔的世代，卻保護了傳義道的挪亞一家八口。」', slot:'bg'},
+    bonusItem:{emoji:'🛡️', name:'蒙搭救的義人', desc:'「只搭救了那常為惡人淫行憂傷的義人羅得。」', slot:'body'}
+  },
+  {
+    chapter:'PE2_3', sceneEmoji:'⏳', readTime:4,
+    guide:{
+      intro:'彼得後書的最後一章，回應一個很多人心裡的疑問：主應許要再來，怎麼等這麼久還沒來？彼得說，末世會有人這樣譏笑。但他給了一個溫柔的解釋：在神那裡，一日如千年，千年如一日；主看起來「慢」，其實不是拖延，是在寬容，因為祂不願有一個人沉淪，情願給人更多回轉的時間。等待的盡頭，是一個有義居住的新天新地。',
+      outline:[
+        {nodes:'1-7節', text:'末世會有好譏誚的人出來問：主再來的應許在哪裡呢？彼得提醒，這樣的譏笑其實並不新鮮。'},
+        {nodes:'8-9節', text:'在神那裡，一日如千年，千年如一日。主看似耽延，其實是寬容，不願有一人沉淪，乃願人人都悔改。 ✦'},
+        {nodes:'10-13節', text:'主的日子會像賊一樣忽然臨到，天地都要更新；但我們照著神的應許，盼望的是一個有義居在其中的新天新地。'},
+        {nodes:'14-18節', text:'既然這樣，就存著盼望殷勤度日，安然等候；並且要在主的恩典和知識上有長進。'}
+      ],
+      focus:'今日情境題聚焦在 3:3-13節——當你覺得等太久了，對「主會再來」半信半疑，甚至覺得自己還沒準備好的時候。這一章想告訴你：神的「慢」，不是不理你，是在等，是給人（包括你）回轉的時間；而等待的另一頭，有盼望。'
+    },
+    verse:'「主所應許的尚未成就，有人以為他是耽延，其實不是耽延，乃是寬容你們，不願有一人沉淪，乃願人人都悔改。」',
+    verseRef:'—— 彼得後書 3:9',
+    scene:'彼得後書寫到最後，回應一個很誠實的疑問：主說要再來，怎麼等這麼久了還沒動靜？有人因此開始譏笑，也有人只是默默地懷疑。彼得沒有用審判嚇他們，他說的是——在神眼中，一日如千年；主看起來「慢」，其實是在寬容，因為祂不願有一個人沉淪，情願多等一等，好讓更多人回頭。',
+    q:'有沒有一件你一直在等，卻遲遲沒有回應的事——可能是一個禱告，一個盼望，或就是「主到底會不會再來」這種大哉問？在這樣的等待裡，你心裡比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我還在等，也還願意相信，就算不知道要等到什麼時候。'},
+      {k:'B', text:'我信歸信，但等太久了，說不累是騙人的。'},
+      {k:'C', text:'我有點怕自己還沒準備好，主就突然來了。'},
+      {k:'D', text:'老實說，我心裡是懷疑的，我不確定主到底會不會再來。'}
+    ],
+    responses:{
+      A:'「還在等，也還願意相信」——在看不到回應的時候還願意等，這是一種很深的信心，一點都不比熱切的禱告小。彼得說神的「慢」是寬容，不是忘了你；你的等待，祂都看在眼裡。今天不用勉強自己表現得很篤定，只要對祂說一句：「我還在等，也還在信，求祢在我等的時候陪著我。」',
+      B:'「等太久了，說不累是騙人的」——這句話太誠實了，等待本身就是會磨人的，累是真的，不用假裝。神不會因為你等到累了就扣你的分；連彼得都知道，人會覺得主「耽延」。今天可以把這份累原原本本地說出來：「主啊，我還在等，但我真的有點累了。」把累交給祂，不等於放棄等待。',
+      C:'「怕自己還沒準備好，主就突然來了」——會這樣想，其實說明你在乎，你不是漫不經心的人。但彼得講主再來，基調從來不是「快檢查你夠不夠格」，而是「神在寬容，還在給你時間」。祂等待的心，正是為了你這樣還在路上的人。今天不用急著把自己準備到完美，只要對祂說一句：「我知道我還沒準備好，謝謝祢還在等我。」',
+      D:'「我心裡是懷疑的，不確定主到底會不會再來」——謝謝你敢把這句說出來，懷疑不是罪，把懷疑藏起來假裝虔誠才更累。聖經裡從來不缺一邊信一邊問的人，神接得住你的疑問。彼得回應譏笑的人用的不是恐嚇，是「神在寬容，不願一人沉淪」——這句話裡也有給你的位置。今天不用逼自己一定要相信，只要願意把懷疑帶到祂面前：「我還在懷疑，但我把這個懷疑，也交給祢。」帶著疑問靠近，也是一種靠近。'
+    },
+    reflectionTitle:'慢不是忘',
+    reflection:'彼得後書的最後，回應一個很多人心裡都有的疑問：主應許要再來，怎麼等這麼久？有人因此譏笑，更多人只是默默懷疑。彼得沒有用末日的可怕來嚇人，他反而把神的「慢」，翻譯成一個很溫柔的字——寬容。在神那裡，一日如千年；祂看起來的耽延，其實是在等，因為祂不願有一個人沉淪，情願多給時間，好讓還在路上的人回頭。等待的盡頭，不是毀滅，是一個有義居住的新天新地。\n\n此刻，你心裡有沒有一件等了很久，卻還沒有回應的事？在那樣的等待裡，你是不是也偷偷懷疑過？如果神的「還沒有」不是拒絕，也不是忘記，而是「我還在等你，也還在等更多人」，你會不會比較放心一點？今天不用把懷疑趕走，也不用把自己準備到完美，只要帶著現在這個還在等，還在問的你，輕輕靠近祂一步。',
+    baseItem:{emoji:'⏳', name:'一日如千年', desc:'「親愛的弟兄啊，有一件事你們不可忘記，就是主看一日如千年，千年如一日。」', slot:'hat'},
+    bonusItem:{emoji:'🌈', name:'新天新地', desc:'「但我們照他的應許，盼望新天新地，有義居在其中。」', slot:'bg'}
+  },
+  {
+    chapter:'JN1_1', sceneEmoji:'💡', readTime:4,
+    guide:{
+      intro:'約翰寫這封信，是要幫信的人確認一件事：他們真的認識神，也真的有永生。他一開頭就講了一個很單純卻很深的真理——神就是光，在祂裡面毫無黑暗。既然這樣，跟隨祂的人也要活在光裡；而活在光裡，不是假裝自己沒有黑暗，反而是敢把自己的罪，誠實地拿到光底下。',
+      outline:[
+        {nodes:'1-4節', text:'約翰見證他親眼看過，親手摸過的生命之道，把這道傳給我們，好叫我們與父並祂兒子相交，使喜樂滿足。'},
+        {nodes:'5-7節', text:'神就是光，在祂毫無黑暗；我們若在光明中行，就彼此相交，祂兒子耶穌的血也洗淨我們一切的罪。'},
+        {nodes:'8-10節', text:'我們若說自己無罪，便是自欺；我們若認自己的罪，神是信實公義的，必赦免我們，洗淨我們一切的不義。 ✦'}
+      ],
+      focus:'今日情境題聚焦在 1:8-9節——不是要你把自己講得很糟，而是問一個很誠實的問題：那件你心裡知道，卻一直不太敢攤開的事，你願不願意，就試著把它拿到光底下。'
+    },
+    verse:'「我們若認自己的罪，神是信實的，是公義的，必要赦免我們的罪，洗淨我們一切的不義。」',
+    verseRef:'—— 約翰一書 1:9',
+    scene:'約翰說「神就是光」，聽起來很美，可是光有一個特質——它會把角落照出來。人很自然地會想躲，把不太光彩的部分收在暗處，連在神面前也想裝作沒事。但約翰說的剛好相反：在光裡走，不是等自己乾淨了才敢靠近，而是敢帶著還沒處理好的自己，走到光底下。因為那裡等著的不是責備，是洗淨。',
+    q:'有一件事，你心裡其實知道不太對，或一直沒去面對——當你想到要把它攤在神面前，你比較靠近哪一種？',
+    choices:[
+      {k:'A', text:'我願意誠實認，把它拿到神面前，不再藏。'},
+      {k:'B', text:'我知道該面對，但還沒準備好，心裡還有點怕。'},
+      {k:'C', text:'老實說我習慣先遮著，假裝沒事，好像比較輕鬆。'},
+      {k:'D', text:'我不太確定認了有用，也不確定祂會不會真的赦免我。'}
+    ],
+    responses:{
+      A:'「願意把它拿出來，不再藏」——這一步其實比你想的更大。約翰說神是信實的，是公義的，你一認，祂那邊早就準備好赦免了，不會拿它再數落你一次。今天不用一次講完，先挑那件最沉的，輕輕對祂說一句：「這件事，我不想再藏了。」',
+      B:'還沒準備好，心裡有點怕——這很正常，攤開從來不容易，會怕表示你其實在乎。神不急著逼你，光也不會硬把你拉過去。今天可以先不處理那件事，只對祂說一句實話：「我知道有件事該面對，可是我現在還怕。」把「怕」講出來，本身就已經是走向光的一小步了。',
+      C:'習慣先遮著，假裝沒事——謝謝你這麼誠實，光是說出「我在遮」這幾個字，就已經不算完全躲在暗裡了。約翰說我們若說自己無罪就是自欺，他不是要定你的罪，是心疼你一個人撐著假裝。今天什麼都不用改，只要對祂說：「有些事我一直在假裝沒事。」讓祂先陪你，不用急著攤開。',
+      D:'不確定認了有沒有用——這個懷疑是可以說出來的，神不會因為你先懷疑就把門關上。你可以不帶結論地問祂一句：「如果我認了，祢真的會接住嗎？」把這個問號留在祂面前，不用馬上有答案；有時候，願意問，就已經是靠近的開始。'
+    },
+    reflectionTitle:'走到光裡',
+    reflection:'約翰親眼見過耶穌，他把一個很單純的信息傳下來：神就是光，在祂裡面毫無黑暗。可是他接著講的，不是要我們先變得夠亮才能靠近，而是說——在光明中行的人，是敢把自己的罪也帶到光底下的人。因為光底下有的，不是審問，是那位信實公義的神，和祂兒子耶穌洗淨我們的血。\n\n此刻你心裡，有沒有一件一直收在暗處，不太敢看的事？你不用今天就把它全部解決，只是想邀請你試試看：把它輕輕挪到光邊上一點點就好。你覺得，如果那裡等著你的不是責備，而是洗淨，你會不會，願意再靠近一步？',
+    baseItem:{emoji:'🩸', name:'光中的洗淨', desc:'「我們若在光明中行，如同神在光明中，就彼此相交，他兒子耶穌的血也洗淨我們一切的罪。」', slot:'body'},
+    bonusItem:{emoji:'☀️', name:'毫無黑暗的光', desc:'「神就是光，在他毫無黑暗。這是我們從主所聽見、又報給你們的信息。」', slot:'bg'}
+  },
+  {
+    chapter:'JN1_2', sceneEmoji:'🕯️', readTime:5,
+    guide:{
+      intro:'約翰接著提醒信的人：真認識神，會活出來——會遵守祂的命令，會愛弟兄。他說了一句很直的話：說自己在光明中，卻恨他的弟兄，其實還在黑暗裡；愛弟兄的，才是住在光明中。這一章也提醒不要愛世界，因為世界和其上的情慾都要過去，惟獨遵行神旨意的永遠常存。',
+      outline:[
+        {nodes:'1-6節', text:'若有人犯罪，在父那裡我們有一位中保，就是那義者耶穌基督；我們遵守祂的命令，就知道是認識祂。'},
+        {nodes:'7-11節', text:'愛弟兄的，就住在光明中；惟獨恨弟兄的，是在黑暗裡，行在黑暗中，不知道往哪裡去。 ✦'},
+        {nodes:'12-17節', text:'不要愛世界和世界上的事；這世界和其上的情慾都要過去，惟獨遵行神旨意的，是永遠常存。'},
+        {nodes:'18-29節', text:'約翰提醒有敵基督者出來迷惑人，但你們從那聖者受了恩膏，凡事都有真理教訓你們；要住在主裡面，凡行義的都是從祂生的。'}
+      ],
+      focus:'今日情境題聚焦在 2:9-11節——約翰把「愛弟兄」跟「住在光明中」綁在一起。不是要你假裝跟每個人都很好，而是問：有沒有一個人，你心裡對他一直卡著，放不下？'
+    },
+    verse:'「這世界和其上的情慾都要過去，惟獨遵行神旨意的，是永遠常存。」',
+    verseRef:'—— 約翰一書 2:17',
+    scene:'約翰講了一句很不留情面的話：說自己在光裡，卻恨弟兄，其實還在黑暗中。這裡的「恨」不一定是咬牙切齒，很多時候是那種你一想到某個人就胃緊，就想閃，心裡有根拔不掉的刺。約翰不是要你立刻愛得起來，他是把一件事點出來：那根刺卡著的時候，走在暗裡最難受的，其實是我們自己。',
+    q:'想想有沒有一個人，你一想到就心裡卡卡的，放不下——這時候的你，比較靠近哪一種？',
+    choices:[
+      {k:'A', text:'我願意把這個人，這份卡，帶到神面前禱告。'},
+      {k:'B', text:'我知道該放下，但那道傷還在，現在做不到。'},
+      {k:'C', text:'老實說我不想原諒，他不配，我也還很氣。'},
+      {k:'D', text:'我不確定「愛弟兄」對這種傷有沒有用，感覺離我很遠。'}
+    ],
+    responses:{
+      A:'願意把這個人帶到神面前——這不代表你認為對方沒錯，也不代表你得馬上和好。你只是不想再一個人扛著這根刺走在暗裡。今天禱告可以很短，短到只有一句：「神，這個人我放不下，我把他交給祢。」交出去，不等於你輸了，是你終於不用自己撐著恨。',
+      B:'傷還在，現在做不到——那就先不要勉強，硬擠出來的原諒不是原諒。約翰說恨弟兄的人「行在黑暗裡，不知道往哪裡去」，他不是在罵你，是在描述那種被傷困住，走不出來的累。今天你什麼都不用放下，只要對神說一句：「我還在痛，這道傷還沒好。」讓祂先看見你的傷，比先要求你原諒更重要。',
+      C:'不想原諒，他不配——這句話很誠實，也很有力量，你不用為了「屬靈」假裝不氣。氣，代表你真的被傷到了。神接得住你的憤怒，你可以不修飾地把它倒出來：「祂真的傷我很深，我現在一點都不想原諒。」把氣講給神聽，總好過自己一個人在心裡反覆燒；剩下的，慢慢來。',
+      D:'不確定有沒有用——這個懷疑很真實，尤其當傷夠深的時候，「愛弟兄」聽起來會像一句離地的口號。你不用先相信它有用才開口，你可以就這樣問祂：「面對這種傷，祢說的那種愛，到底長什麼樣子？」帶著問號來，不用帶著答案；願意問，就沒有真的走遠。'
+    },
+    reflectionTitle:'那根刺',
+    reflection:'約翰把「愛弟兄」跟「住在光明中」放在一起講，又說恨弟兄的人，其實是在黑暗裡走，連自己往哪裡去都不知道。他不是要我們裝出一副跟每個人都和樂的樣子，而是很誠實地指出：當我們心裡對一個人卡著，放不下的時候，最累，最走不出來的，往往是我們自己。\n\n此刻你心裡，有沒有那麼一個人，一想到就卡卡的？約翰的話不是要定你的罪，而是想邀請你，不用再獨自扛著那根刺。你願不願意，今天先不急著原諒，也不急著和好，只是把這個人的名字，輕輕放到神面前，讓祂陪你一起看那道傷？',
+    baseItem:{emoji:'🤝', name:'光明中的相愛', desc:'「愛弟兄的，就是住在光明中，在他並沒有絆跌的緣由。」', slot:'body'},
+    bonusItem:{emoji:'♾️', name:'永生的應許', desc:'「主所應許我們的就是永生。」', slot:'hat'}
+  },
+  {
+    chapter:'JN1_3', sceneEmoji:'🫂', readTime:5,
+    guide:{
+      intro:'約翰在這章講了一個讓人安心的身分：看哪，父賜給我們何等的慈愛，讓我們得稱為神的兒女——而我們真的就是。接著他把「相愛」講得很具體：不要只在言語和舌頭上，總要在行為和誠實上。章的最後，他還安慰那些容易自責的人：就算我們的心責備自己，神比我們的心更大。',
+      outline:[
+        {nodes:'1-3節', text:'父賜給我們何等的慈愛，使我們得稱為神的兒女；我們也真是祂的兒女。'},
+        {nodes:'4-10節', text:'從神生的，不會一直活在罪的權勢下；行義的，愛弟兄的，才顯出是屬神的。'},
+        {nodes:'11-18節', text:'我們應當彼此相愛；不要只在言語和舌頭上，總要在行為和誠實上相愛。 ✦'},
+        {nodes:'19-24節', text:'我們的心若責備我們，神比我們的心大，一切事沒有不知道的；我們就可以坦然無懼。'}
+      ],
+      focus:'今日情境題聚焦在 3:18-20節——約翰說相愛要落在行為上，可他馬上接一句安慰：就算你的心一直責備你，神比你的心更大。今天想問的是：你會不會，常常對自己比對別人更嚴厲？'
+    },
+    verse:'「小子們哪，我們相愛，不要只在言語和舌頭上，總要在行為和誠實上。」',
+    verseRef:'—— 約翰一書 3:18',
+    scene:'約翰說，相愛不要只停在嘴上，要落在行為和誠實裡。這話聽起來像在要求，可他接著講的，卻是給那些一直覺得自己做得不夠的人的安慰——「我們的心若責備我們，神比我們的心大。」很多真心想愛，想做好的人，反而最容易自責，覺得自己愛得不夠，做得不夠。約翰像是在說：你的心會定你的罪，但神看你，比你看自己更清楚，也更寬。',
+    q:'你會不會常常覺得自己「做得不夠」——不夠愛，不夠好，不夠付出？當這種自責冒出來，你比較靠近哪一種？',
+    choices:[
+      {k:'A', text:'我願意相信神看我，比我看自己更寬更清楚。'},
+      {k:'B', text:'我知道神比我的心大，但我還是很難不苛責自己。'},
+      {k:'C', text:'老實說我常覺得自己做得很爛，這種聲音停不下來。'},
+      {k:'D', text:'我不太確定神真的不嫌棄我，那個責備的聲音比較大。'}
+    ],
+    responses:{
+      A:'願意相信神看你比你看自己更寬——這一步很不容易，因為自責的聲音通常很大聲。約翰說神「一切事沒有不知道」，這句話反過來聽其實很溫柔：祂連你努力過，掙扎過，沒說出口的那些，全都看見了。今天當那個「不夠」的聲音又冒出來，可以輕輕對自己說一句：「神看我，比我看我自己更清楚。」',
+      B:'知道神比心大，卻還是苛責自己——這很真實，道理懂了，情緒不一定馬上跟上。你不用因為「還做不到不自責」而再多責備自己一層。約翰沒有叫你停止感受，他只是把一個事實放在你旁邊：神比你的心大。今天可以練習一句話就好：「我又在苛責自己了，可是神那邊，沒有在定我的罪。」',
+      C:'常覺得自己很爛，聲音停不下來——謝謝你說出來，那個停不下來的聲音，真的很磨人。約翰知道人的心會反覆責備自己，所以他特意寫下「神比我們的心大」，就是講給此刻的你聽的。今天不用跟那個聲音辯贏，只要在它最大聲的時候，對神說一句：「祢看到的我，真的跟我以為的不一樣嗎？」讓祂來回答，而不是那個聲音。',
+      D:'不確定神真的不嫌棄我——這個不確定，本身就很痛，因為你其實很想被接納。你不用先說服自己相信，才能來到祂面前。你可以帶著這個問號問祂：「祢看我的時候，眼神真的是慈愛的嗎？」約翰說我們是「神的兒女」，這不是你要掙來的身分，是父先給的；願意問，就表示你心裡還留著一扇門。'
+    },
+    reflectionTitle:'神比心大',
+    reflection:'約翰先給了我們一個很穩的身分——我們是神的兒女，這是父的慈愛白白給的。接著他把相愛講得很實在，說不要只在言語上，要在行為和誠實上。但他很懂人，話鋒一轉，就去安慰那些因此更容易自責的人：我們的心若責備我們，神比我們的心大，祂一切都知道。\n\n你是不是也常常對自己特別嚴厲，覺得怎麼做都不夠？約翰想讓你知道，那個一直說你「不夠」的聲音，不是神的聲音。神比你的心更大，看得更清楚，也更寬。今天，當自責又上來的時候，你願不願意，試著把「神比我的心大」這句話，放在那個聲音的旁邊，讓它陪你一下？',
+    baseItem:{emoji:'🫶', name:'神兒女的身分', desc:'「你看父賜給我們是何等的慈愛，使我們得稱為神的兒女；我們也真是他的兒女。世人所以不認識我們，是因未曾認識他。」', slot:'bg'},
+    bonusItem:{emoji:'🤲', name:'比心更大的神', desc:'「我們的心若責備我們，神比我們的心大，一切事沒有不知道的。」', slot:'hand'}
+  },
+  {
+    chapter:'JN1_4', sceneEmoji:'💗', readTime:5,
+    guide:{
+      intro:'這一章是整卷書的高峰，約翰講了一句大家都聽過的話：神就是愛。他說我們能愛，是因為神先愛了我們；而在成熟的愛裡面，是沒有懼怕的，因為愛把懼怕除去了。約翰想帶我們看見：如果跟神的關係一直卡在害怕裡，那不是神要給你的樣子——祂的愛還要繼續往裡走，把那個怕慢慢除去。',
+      outline:[
+        {nodes:'1-6節', text:'要試驗那些靈是否出於神，因為世上有許多假先知；那認耶穌基督是成了肉身來的，就是出於神。'},
+        {nodes:'7-12節', text:'我們應當彼此相愛，因為愛是從神來的；神差祂兒子為我們的罪作了挽回祭，這就是愛。'},
+        {nodes:'13-16節', text:'神就是愛；住在愛裡面的，就是住在神裡面，神也住在他裡面。'},
+        {nodes:'17-21節', text:'愛裡沒有懼怕；愛既完全，就把懼怕除去，因為懼怕裡含著刑罰。 ✦'}
+      ],
+      focus:'今日情境題聚焦在 4:18節——約翰說愛裡沒有懼怕。今天想輕輕問一個問題：你跟神之間，比較多的是「被愛」的踏實，還是「怕祂不高興，怕自己不夠好」的緊張？'
+    },
+    verse:'「愛裡沒有懼怕；愛既完全，就把懼怕除去。因為懼怕裡含著刑罰，懼怕的人在愛裡未得完全。」',
+    verseRef:'—— 約翰一書 4:18',
+    scene:'「神就是愛」這句話太熟了，熟到有時候我們沒真的信。因為很多人心裡的神，其實比較像一個嚴格的，隨時在打分數的對象——你會怕做錯，怕祂失望，怕自己不夠好。約翰說，那種一直提心吊膽的關係，還不是他講的那份愛；因為真正的愛進來的時候，會把那個「怕」慢慢除掉。他不是怪你會怕，他是想讓你知道，你本來可以不用那麼怕的。',
+    q:'想想你跟神相處的時候，心裡多半是哪一種感覺？',
+    choices:[
+      {k:'A', text:'大部分時候我感覺被祂愛著，是踏實的。'},
+      {k:'B', text:'我知道祂愛我，但心裡還是常常怕做錯，怕祂失望。'},
+      {k:'C', text:'老實說我跟祂之間，緊張多過安心，很怕不夠好。'},
+      {k:'D', text:'我不太確定祂是不是真的愛我，這件事我一直抓不準。'}
+    ],
+    responses:{
+      A:'大部分時候感覺被愛著——這是很珍貴的地方，別小看它。約翰說住在愛裡面的，就是住在神裡面；你心裡那份踏實，正是祂住在你裡面的記號。今天可以做一件簡單的事：停下來，對祂說一句「謝謝祢一直愛著我」，讓這份踏實，被你自己也認出來一次。',
+      B:'知道祂愛我，卻還常常怕——你不孤單，很多真心愛神的人都這樣。約翰說「愛既完全，就把懼怕除去」，注意他說的是「完全」，那是一個過程，不是你今天就該達到的標準。你不用逼自己不怕，今天可以誠實對祂說：「我知道祢愛我，可是我還是常常在怕。」把怕講給愛你的那位聽，怕就會慢慢小一點。',
+      C:'緊張多過安心，很怕不夠好——謝謝你這麼老實，這種一直繃著的感覺，其實很累。約翰說「懼怕裡含著刑罰」，他不是要嚇你，是心疼你把跟神的關係，過成了一場永遠考不好的考試。今天不用改變什麼，只要問祂一句：「祢看我的時候，真的是失望的嗎？」讓祂親自回答，而不是你心裡那個嚴格的想像。',
+      D:'不確定祂是不是真的愛我——這個抓不準，很折磨人，因為這是最根本的一件事。你不用先確定了才敢靠近，你可以帶著這個不確定問祂：「祢對我，到底是什麼樣的心？」約翰說「我們愛，因為神先愛我們」——祂那邊的愛，不是等你先確定才開始的；它早就在了，只是你還在慢慢看清。願意問，就是在往那份愛靠近。'
+    },
+    reflectionTitle:'不用那麼怕',
+    reflection:'約翰講了整卷書最有名的一句話：神就是愛。他說我們之所以能愛，是因為神先愛了我們；而在那份完全的愛裡面，是沒有懼怕的，因為愛會把懼怕除去。他很清楚，很多人跟神的關係其實一直繃著一根弦——怕做錯，怕不夠好，怕祂哪天就不要自己了。\n\n你跟神之間，比較多的是被愛的踏實，還是那種提心吊膽的緊張？約翰不是要你責怪自己怎麼還在怕，他是想告訴你一個好消息：你本來可以不用那麼怕的。今天，你願不願意，把心裡那個最大的「怕」，帶到那位先愛了你的神面前，讓祂的愛，一點一點地，把它除去？',
+    baseItem:{emoji:'💞', name:'從神來的愛', desc:'「親愛的弟兄啊，我們應當彼此相愛，因為愛是從神來的。凡有愛心的，都是由神而生，並且認識神。」', slot:'body'},
+    bonusItem:{emoji:'❤️', name:'祂先愛我們', desc:'「我們愛，因為神先愛我們。」', slot:'hat'}
+  },
+  {
+    chapter:'JN1_5', sceneEmoji:'🕊️', readTime:4,
+    guide:{
+      intro:'約翰寫這封信，到最後說出了他的目的：我把這些話寫給你們信奉神兒子之名的人，是要叫你們「知道」自己有永生。整卷書談了光，談了愛，談了相愛，最後落在一個很穩的確據上——不是要你猜，要你擔心自己夠不夠格，而是要你知道。他也說，凡從神生的，就勝過世界，而勝過世界的，就是我們的信。',
+      outline:[
+        {nodes:'1-5節', text:'凡信耶穌是基督的，都是從神生的；使我們勝了世界的，就是我們的信心。'},
+        {nodes:'6-13節', text:'神為祂兒子作見證；人有了神的兒子就有生命。約翰寫下這些，是要叫你們知道自己有永生。 ✦'},
+        {nodes:'14-17節', text:'我們若照祂的旨意求什麼，祂就聽我們；也要為犯罪的弟兄祈求。約翰提到的「至於死的罪」歷來解釋不一，不是本章重點。'},
+        {nodes:'18-21節', text:'凡從神生的必保守自己，那惡者無法害他；我們要自守，遠避偶像。'}
+      ],
+      focus:'今日情境題聚焦在 5:13節——約翰寫這封信的目的，是要你「知道」自己有永生。今天想問：這件事，你心裡是踏實的知道，還是常常在懷疑，抓不太住？'
+    },
+    verse:'「我將這些話寫給你們信奉神兒子之名的人，要叫你們知道自己有永生。」',
+    verseRef:'—— 約翰一書 5:13',
+    scene:'整卷書寫到最後，約翰把他的目的講明了：他寫這些，是要信的人「知道」自己有永生。他用的是「知道」，不是「希望」，不是「大概」。因為信仰走久了，很多人反而愈來愈不確定——今天覺得神很近，明天又懷疑自己是不是真的得救，夠不夠格。約翰像是要按住那顆搖來搖去的心說：這件事你可以知道，而且是現在就知道，不是等到最後才揭曉。',
+    q:'「我是屬神的，我有永生」這件事，此刻在你心裡是什麼狀態？',
+    choices:[
+      {k:'A', text:'我心裡是踏實的，知道自己在祂手裡。'},
+      {k:'B', text:'大部分時候知道，但遇到低潮就會開始懷疑。'},
+      {k:'C', text:'老實說我常常抓不住，不太確定自己算不算數。'},
+      {k:'D', text:'我不太確定我真的信，也不確定這個「知道」屬於我。'}
+    ],
+    responses:{
+      A:'心裡踏實，知道自己在祂手裡——這份確據很寶貴，是約翰寫整封信最想給你的。它不是因為你表現得好才有的，是因為你有神的兒子，就有了生命。今天可以把這份踏實，變成一句簡單的話對祂說：「謝謝祢，我知道我是屬祢的。」讓這個「知道」，在你心裡再扎深一點。',
+      B:'平時知道，低潮就懷疑——這太真實了，情緒低的時候，連最確定的事都會晃。約翰特意寫下「要叫你們知道」，就是因為他曉得人的心會搖。你的得救不是靠你今天的感覺撐著的，它靠的是神的兒子。今天低潮的時候，可以對自己說一句：「我現在感覺很晃，但我在不在祂手裡，不是我的感覺決定的。」',
+      C:'常常抓不住，不確定自己算不算數——謝謝你這麼誠實，這種抓不住的感覺，其實很不安。約翰說「人有了神的兒子就有生命」，他把重點放在「有沒有祂」，而不是「你夠不夠好」。今天不用先讓自己有把握，只要對祂說一句：「我想知道我是屬祢的，求祢讓我抓得住。」把這個渴望說出來，祂聽得見。',
+      D:'不確定我真的信——這個誠實很重要，比勉強說「我信」珍貴多了。約翰不怕人有疑問，他整封信就是寫給還在確認的人看的。你可以就這樣把問號交給神：「我不確定我信不信，但我願意來到祢面前。」信心有時候不是一次到位的，而是一次一次地，願意再靠近；願意來，就已經在路上了。'
+    },
+    reflectionTitle:'你可以知道',
+    reflection:'約翰談了光，談了愛，談了彼此相愛，寫到最後，他把整封信的目的說了出來：他寫這些，是要信奉神兒子之名的人「知道」自己有永生。他刻意用「知道」這個詞，而不是「盼望」或「大概」。因為他曉得，信仰走久了，人反而容易愈來愈沒把握，被自己的感覺和表現拉著跑。\n\n「我是屬神的，我有永生」——這件事此刻在你心裡，是踏實的，還是常常在晃？約翰想告訴你，這份確據不是建立在你今天做得好不好，而是建立在「你有沒有神的兒子」。今天，如果你的心正在搖，你願不願意，把約翰這句話接過來放在心上：這件事，你不是只能盼望，你可以知道。',
+    baseItem:{emoji:'🛡️', name:'勝過世界的信', desc:'「因為凡從神生的，就勝過世界；使我們勝了世界的，就是我們的信心。」', slot:'hand'},
+    bonusItem:{emoji:'🙏', name:'坦然無懼的祈求', desc:'「我們若照他的旨意求甚麼，他就聽我們，這是我們向他所存坦然無懼的心。」', slot:'body'}
+  },
+  {
+    chapter:'JN2_1', sceneEmoji:'💌', readTime:3,
+    guide:{
+      intro:'約翰二書是一封很短的信，寫給「蒙揀選的太太和她的兒女」（可能是指一間教會和裡面的信徒）。約翰在信裡把兩件事放在一起：真理和愛。他一面提醒大家要彼此相愛，一面也提醒要小心那些不認耶穌基督是成了肉身來的迷惑者。愛和真理，在約翰這裡從來不是二選一。',
+      outline:[
+        {nodes:'1-3節', text:'約翰因真理愛這家人；恩惠，憐憫，平安，在真理和愛心上，必常與我們同在。'},
+        {nodes:'4-6節', text:'他很歡喜見他們按真理而行；並勸大家彼此相愛，這愛就是遵行神的命令。 ✦'},
+        {nodes:'7-11節', text:'世上有許多迷惑人的，不認耶穌基督是成了肉身來的；要小心，不要失去所做的工。'},
+        {nodes:'12-13節', text:'約翰還有許多話，但盼望能當面談，使彼此的喜樂滿足。'}
+      ],
+      focus:'今日情境題聚焦在「真理與愛並行」——約翰不要我們為了愛而不分是非，也不要我們為了守真理而變得冷硬。今天想問：面對一個你覺得「觀念不太對」的人，你比較容易往哪一邊倒？'
+    },
+    verse:'「我們若照他的命令行，這就是愛。你們從起初所聽見當行的，就是這命令。」',
+    verseRef:'—— 約翰二書 1:6',
+    scene:'約翰寫這封短信，一直把「真理」和「愛」綁在一起。這其實是很多信主的人會卡住的地方：有些人為了愛，什麼都說好，什麼都不敢講，怕傷感情；有些人為了守住真理，講話變得很硬，很容易論斷人。約翰兩個都不要。他要的是一種既站在真理上，又帶著愛的活法——難，但那才是他說的，從起初就領受的命令。',
+    q:'面對一個你覺得「想法不太對」或「路走偏了」的人，你比較容易往哪一邊倒？',
+    choices:[
+      {k:'A', text:'我會試著又堅持真理，又不失掉對他的愛。'},
+      {k:'B', text:'我通常為了不傷感情，就什麼都不講了。'},
+      {k:'C', text:'老實說我一急，講話就變硬，容易論斷對方。'},
+      {k:'D', text:'我不太確定怎麼拿捏，常常兩邊都沒做好。'}
+    ],
+    responses:{
+      A:'想同時守住真理又不失掉愛——這正是約翰整封信的心願，也是最不容易的一條路。你願意兩個都不放掉，本身就很成熟。今天可以為那個人做一件小事：在開口之前，先為他禱告一句「求祢讓我說的話，既誠實，又帶著愛」，讓真理和愛，在你心裡先合在一起。',
+      B:'為了不傷感情就什麼都不講——這背後其實有一份很想保護關係的溫柔，不是壞事。但約翰把「真理」也放進了愛裡，有時候真正的愛，是願意冒一點險說實話。今天不用勉強自己立刻去講什麼，可以先問神一句：「這份不敢講，是因為愛他，還是因為我怕衝突？」分清楚了，再決定要不要開口，也不遲。',
+      C:'一急講話就變硬，容易論斷——謝謝你這麼誠實，會意識到這點，已經是改變的開始。約翰要的真理是「在愛心上」的真理，不是拿來壓人的。今天可以練習一件事：下次想指正誰之前，先在心裡停三秒，問自己「我是想幫他，還是想贏他？」光是這個停頓，就能讓話軟一點。',
+      D:'不確定怎麼拿捏，兩邊都沒做好——這種卡住的感覺很真實，因為真理和愛的平衡，真的很難抓。你不用今天就找到答案，約翰自己也說「還有許多話，盼望當面談」，有些拿捏是要在關係裡慢慢學的。今天可以把這個難處交給神：「我常常兩邊都沒做好，求祢教我。」願意學，就已經走在對的方向上了。'
+    },
+    reflectionTitle:'真理與愛',
+    reflection:'約翰二書很短，但它一直在做一件事：把真理和愛放在一起。約翰一面提醒大家彼此相愛，一面也提醒要小心那些迷惑人的。他不要我們為了愛而不分是非，也不要我們為了守真理而變得冷硬——在他這裡，真理和愛從來不是二選一，而是要一起活出來的一件事。\n\n在你的關係裡，面對一個你覺得想法不太對，或路走偏了的人，你比較容易往哪一邊倒？是為了不傷感情就什麼都不說，還是一急就講得太硬？今天，你願不願意把那個具體的人帶到神面前，求祂讓你學會那種既站在真理上，又不失掉愛的說話方式？',
+    baseItem:{emoji:'🤍', name:'真理與愛心', desc:'「恩惠、憐憫、平安從父神和他兒子耶穌基督在真理和愛心上必常與我們同在！」', slot:'bg'},
+    bonusItem:{emoji:'🌿', name:'遵行真理的喜樂', desc:'「我見你的兒女，有照我們從父所受之命令遵行真理的，就甚歡喜。」', slot:'hat'}
+  },
+  {
+    chapter:'JN3_1', sceneEmoji:'📨', readTime:3,
+    guide:{
+      intro:'約翰三書是寫給一位叫該猶的弟兄，稱讚他忠心接待外來的傳道人。信裡出現了一個對比：一邊是好客，按真理而行的該猶，和有好名聲的低米丟；另一邊是一個「好為首」，不肯接待人，還把接待的人趕出教會的丟特腓。約翰用一句話點出重點：不要效法惡，只要效法善。',
+      outline:[
+        {nodes:'1-8節', text:'約翰稱讚該猶按真理而行，忠心接待遠來的弟兄；這樣待客，就是與真理同工。'},
+        {nodes:'9-11節', text:'丟特腓好為首，不接待弟兄，還禁止別人接待；不要效法惡，只要效法善。 ✦'},
+        {nodes:'12節', text:'低米丟有眾人給他作見證，又有真理給他作見證，是個好榜樣。'},
+        {nodes:'13-15節', text:'約翰還有許多話，但盼望快快見面，當面談；末了彼此問安，願你平安。'}
+      ],
+      focus:'今日情境題聚焦在 約翰三書 1:11節——約翰說「不要效法惡，只要效法善」。今天不是要你去評斷誰是丟特腓，而是往內問：在你有一點權力，一點主導權的地方，你是怎麼對待人的？'
+    },
+    verse:'「親愛的兄弟啊，不要效法惡，只要效法善。行善的屬乎神；行惡的未曾見過神。」',
+    verseRef:'—— 約翰三書 1:11',
+    scene:'約翰三書裡有個不太好看的角色叫丟特腓，他「好為首」——喜歡當老大，掌控局面，不但自己不接待外來的弟兄，還攔著別人接待，甚至把願意接待的人趕出教會。約翰把他跟好客的該猶，有好名聲的低米丟擺在一起，然後說了一句很簡單的話：不要效法惡，只要效法善。這話的重點不在評斷丟特腓，而在提醒每一個手上握有一點主導權的人——你會怎麼用它。',
+    q:'在你有一點主導權的地方（家裡，職場，群組，服事），你比較靠近哪一種？',
+    choices:[
+      {k:'A', text:'我會提醒自己用這份主導權去接納人，成全人。'},
+      {k:'B', text:'我大致還好，但偶爾會想掌控，想照自己的意思來。'},
+      {k:'C', text:'老實說我有時候會用它壓人，或見不得別人比我好。'},
+      {k:'D', text:'我不太確定自己算不算，這種事好像很難看清自己。'}
+    ],
+    responses:{
+      A:'提醒自己用主導權去接納，成全人——這正是約翰說的「效法善」。權力放在願意成全人的人手上，會變成祝福。今天可以想一個具體的人：在你能影響的範圍裡，有沒有誰是你可以多接納一點，多成全一點的？為他做一件小事，就是把善活出來。',
+      B:'大致還好，偶爾想掌控——會誠實承認「偶爾想照自己的意思來」，就已經比丟特腓清醒多了。想掌控是人之常情，關鍵是有沒有察覺。今天可以留意一個時刻：當你很想主導，很想別人聽你的時候，停一下問自己「我是為了大家好，還是為了我自己爽？」這個停頓，就是效法善的起點。',
+      C:'有時候會用它壓人，見不得別人好——謝謝你這麼誠實，這種話很難說出口，能說，代表你心裡其實不想這樣。約翰沒有把丟特腓寫死，他只是說「不要效法惡」——意思是路還沒走絕，隨時可以換一條。今天不用一次改掉，只要在下次想壓人或嫉妒冒出來時，對神說一句：「我又這樣了，幫我。」看見，就是轉彎的開始。',
+      D:'不確定自己算不算——看自己確實很難，這個不確定很誠實。你不用急著給自己定論，可以把這件事交給神：「如果我在某個地方變得像丟特腓，求祢讓我看見。」約翰說行善的屬乎神——願意讓神來照你這個角落，本身就是一種往善靠近的心。'
+    },
+    reflectionTitle:'效法善',
+    reflection:'約翰三書裡擺了兩種人：一種是好客，按真理而行的該猶，和有好名聲的低米丟；另一種是「好為首」，不肯接待人，還把人趕出教會的丟特腓。約翰沒有花很多力氣去罵丟特腓，他只是淡淡地下了一個結論：不要效法惡，只要效法善；行善的屬乎神，行惡的未曾見過神。\n\n這封信的提醒，其實是往內的。在你有一點主導權的地方——家裡，職場，群組，服事——你是用它來接納人，成全人，還是不知不覺想掌控，想壓過別人？今天不是要你去評斷身邊的誰是丟特腓，而是輕輕問自己：我手上這一點點的影響力，正在把我帶向善，還是惡？',
+    baseItem:{emoji:'👣', name:'按真理而行', desc:'「我聽見我的兒女們按真理而行，我的喜樂就沒有比這個大的。」', slot:'body'},
+    bonusItem:{emoji:'🌱', name:'凡事興盛的祝福', desc:'「親愛的兄弟啊，我願你凡事興盛，身體健壯，正如你的靈魂興盛一樣。」', slot:'bg'}
+  },
+  {
+    chapter:'JUD1', sceneEmoji:'🛡️', readTime:5,
+    guide:{
+      intro:'猶大本來想寫一封談論救恩的信，卻臨時改了主意，改成勸大家「為從前一次交付聖徒的真道竭力爭辯」。因為有些人偷偷混進來，把神的恩典當成放縱的藉口。這封信用了很多嚴厲的例子警告這種偏差；但它的結尾非常溫暖——把我們交託給那位「能保守你們不失腳」的神。',
+      outline:[
+        {nodes:'1-4節', text:'猶大勸信徒為真道竭力爭辯，因為有人偷著進來，把神的恩變作放縱情慾的機會。'},
+        {nodes:'5-16節', text:'他舉了以色列人，犯罪的天使，所多瑪等例子，嚴厲警告那些走偏，又帶壞別人的人。'},
+        {nodes:'17-23節', text:'但你們要在至聖的真道上造就自己，在聖靈裡禱告，保守自己常在神的愛中。 ✦'},
+        {nodes:'24-25節', text:'願榮耀歸給那位能保守你們不失腳，叫你們無瑕無疵站在祂榮耀之前的神。'}
+      ],
+      focus:'今日情境題聚焦在 猶大書 1:20-21節——這封信前面有很多嚴厲的警告，但它給信徒的正面功課其實很溫柔：在真道上造就自己，然後「保守自己常在神的愛中」。今天想問的，不是你怕不怕審判，而是：你有沒有一直待在神的愛裡？'
+    },
+    verse:'「保守自己常在神的愛中，仰望我們主耶穌基督的憐憫，直到永生。」',
+    verseRef:'—— 猶大書 1:21',
+    scene:'猶大書讀起來有點嚇人——它用了好幾個嚴厲的例子，警告那些把恩典當放縱藉口，又帶壞別人的人。但如果你以為這封信是要嚇信徒，那就誤會了。猶大對「你們」——就是真心跟隨神的人——說的話，其實很溫柔：在至聖的真道上造就自己，在聖靈裡禱告，然後「保守自己常在神的愛中」。他不是要你活在害怕被審判的陰影裡，而是邀請你，穩穩地待在神的愛裡面。',
+    q:'「保守自己常在神的愛中」——這句話對此刻的你來說，比較靠近哪一種？',
+    choices:[
+      {k:'A', text:'我願意刻意做一些事，讓自己一直待在神的愛裡。'},
+      {k:'B', text:'我知道該這樣，但生活一忙，就常常離開那份愛。'},
+      {k:'C', text:'老實說我最近離神的愛有點遠，感覺不太到了。'},
+      {k:'D', text:'我不太確定「神的愛」是什麼感覺，這句話對我有點抽象。'}
+    ],
+    responses:{
+      A:'願意刻意讓自己待在神的愛裡——這正是猶大給信徒的功課，而且他說得很實際：在真道上造就自己，在聖靈裡禱告。愛不是被動等它發生，是可以刻意去靠近的。今天挑一件小事就好——讀一段話，禱告一句，安靜一下——當作你今天「待在祂愛裡」的方式，讓它慢慢成為習慣。',
+      B:'一忙就離開那份愛——這太真實了，生活的忙不是藉口，是每個人的實況。猶大說「保守自己常在神的愛中」，用的是「保守」這個詞，代表這是要刻意顧著的，不是自動就會留著。今天不用檢討自己怎麼又忙到忘了神，只要現在，就停十秒對祂說一句：「我今天又跑遠了，我回來一下。」回來，隨時都可以。',
+      C:'最近離神的愛有點遠，感覺不太到——謝謝你這麼誠實，那種「感覺不到」的空，其實很難受。猶大書結尾說，是「神能保守你」不失腳，不是你要自己死命抓住祂。就算你現在感覺不到，祂的手也沒有放開。今天不用勉強自己生出感覺，只要對祂說一句：「我最近感覺不到祢，但我還在這裡。」在，就夠了。',
+      D:'不確定神的愛是什麼感覺——這個誠實很寶貴，很多人假裝有感覺，你卻願意承認抓不到。你不用先搞懂它，先感覺到它，才有資格待在裡面。你可以帶著這個問號問祂：「祢的愛，如果是真的，能不能讓我也認得出來？」猶大書最後說的是神「能保守」你——這份保守，不是等你先感覺到愛才啟動的；它一直都在，你只是還在慢慢認得它。'
+    },
+    reflectionTitle:'保守在愛中',
+    reflection:'猶大本來想寫救恩，卻改成勸大家為真道爭辯，因為有人把神的恩典當成了放縱的藉口。這封信用了不少嚴厲的例子發出警告，讀起來確實有點沉重。但別忘了，這些警告是針對那些故意走偏，又帶壞別人的人；猶大對真心跟隨神的「你們」，說的是另一種話——在真道上造就自己，在聖靈裡禱告，保守自己常在神的愛中。\n\n猶大書的重點，從來不是要信徒活在怕被審判的陰影裡，而是邀請你穩穩地待在神的愛裡面。此刻的你，離那份愛是近的還是遠的？就算你覺得遠，覺得感覺不到，也別忘了這封信最後那句話：能保守你不失腳的，是神，不是你自己緊抓的力氣。今天，你願不願意，就做一件小事，讓自己往那份愛，靠回去一點點？',
+    baseItem:{emoji:'👑', name:'保守你不失腳', desc:'「那能保守你們不失腳、叫你們無瑕無疵、歡歡喜喜站在他榮耀之前的我們的救主－獨一的神，願榮耀、威嚴、能力、權柄，因我們的主耶穌基督歸與他，從萬古以前並現今，直到永永遠遠。阿們！」', slot:'hat'},
+    bonusItem:{emoji:'🕊️', name:'多多加給的平安', desc:'「願憐恤、平安、慈愛多多地加給你們。」', slot:'bg'}
+  },
+  {
+    chapter:'REV1', sceneEmoji:'🕯️', readTime:5,
+    guide:{
+      intro:'約翰年老時被流放到拔摩海島，孤單，看不到未來。就在那裡，他遇見了復活的主。主站在七個金燈臺中間，那榮耀太震撼，約翰嚇得仆倒在地像死了一樣。而祂做的第一件事，不是責備，是伸出右手按著他，說不要懼怕。',
+      outline:[
+        {nodes:'1-3節', text:'耶穌基督把將要成就的事指示約翰，念這書上預言的，和那些聽見又遵守的，都有福了。'},
+        {nodes:'4-8節', text:'約翰向亞細亞七個教會問安；那位昔在今在以後永在的神說，祂是阿拉法，是俄梅戛。'},
+        {nodes:'9-16節', text:'約翰在拔摩海島被聖靈感動，看見七個金燈臺中間有一位好像人子，眼目如同火焰，面貌如同烈日放光。'},
+        {nodes:'17-20節', text:'約翰一看見就仆倒像死了一樣，但人子隨即用右手按著他說，不要懼怕，我是首先的也是末後的，是那存活的。 ✦'}
+      ],
+      focus:'今天的情境題聚焦在那隻主動按住你的手——你心裡的神，是遠的可怕的，還是會伸手扶你的那一位？'
+    },
+    verse:'「主神說：「我是阿拉法，我是俄梅戛，是昔在、今在、以後永在的全能者。」」',
+    verseRef:'—— 啟示錄 1:8',
+    scene:'約翰被流放在拔摩海島，孤單，年老，看不到未來。就在這樣的處境裡，他遇見了復活的主。那榮耀太大，他整個人仆倒在地，動不了。而主俯下身來，用右手按住他，對他說的第一句話是：不要懼怕。',
+    q:'當你想到神，你心裡浮現的第一個畫面是什麼？',
+    choices:[
+      {k:'A', text:'一位嚴厲的，正在看我哪裡做不好的神。'},
+      {k:'B', text:'有點遠，好像在很高的地方，跟我的日常沒什麼關係。'},
+      {k:'C', text:'會伸手扶我的那一位，雖然我常常忘記。'},
+      {k:'D', text:'老實說我腦中一片空白，我不太確定祂對我是什麼樣子。'}
+    ],
+    responses:{
+      A:'你心裡那位嚴厲的神，可能擋住了另一個畫面——主在約翰嚇到仆倒時，做的不是責備，是伸手按住他。下次那個「祂在挑我毛病」的念頭冒出來時，試著多問自己一句：如果祂其實是想扶我呢？',
+      B:'覺得神很遠，不是你的錯，很多時候祂真的安靜得讓人以為祂不在。但約翰也正是在最孤單的海島上，才遇見那隻按住他的手。這禮拜如果有一刻你覺得撐不住，可以小聲說一句：祢在的話，我需要祢靠近一點。',
+      C:'你記得祂會扶你，這已經很不容易了。忘記，是人都會的，主也知道。今天就讓自己被這句話按住一次：不要懼怕，我是首先的，也是末後的。',
+      D:'腦中一片空白，其實是很誠實的答案，你沒有硬湊一個標準答案，這很好。也許今天不用先弄懂祂是誰，先讓那隻手按著你就好。你願意讓祂靠近看看嗎？'
+    },
+    reflectionTitle:'按住我的手',
+    reflection:'約翰看見的人子，眼目如同火焰，面貌如同烈日放光，威嚴到他仆倒像死了一樣。可是那位威嚴的主，第一個動作卻是伸出右手按住他，說不要懼怕。神的大，和神的溫柔，原來是同一位。\n\n有沒有一件事，讓你這陣子在神面前抬不起頭，覺得自己撐不住？如果此刻有一隻手輕輕按在你肩上，對你說不要懼怕，你最想把哪一件事，先交給祂？',
+    baseItem:{emoji:'🔑', name:'死亡和陰間的鑰匙', desc:'「又是那存活的；我曾死過，現在又活了，直活到永永遠遠；並且拿著死亡和陰間的鑰匙。」', slot:'hand'},
+    bonusItem:{emoji:'📖', name:'遵守的有福了', desc:'「念這書上預言的和那些聽見又遵守其中所記載的，都是有福的，因為日期近了。」', slot:'bg'}
+  },
+  {
+    chapter:'REV2', sceneEmoji:'✉️', readTime:6,
+    guide:{
+      intro:'主寫信給四個教會——以弗所，士每拿，別迦摩，推雅推喇。每一封信祂都先說我知道你的行為，有稱讚，也有責備。祂看見他們撐住的地方，也看見他們鬆掉的地方。',
+      outline:[
+        {nodes:'1-7節', text:'主稱讚以弗所勞碌又能分辨假使徒，卻責備他們把起初的愛心離棄了，呼籲他們回想並悔改。'},
+        {nodes:'8-11節', text:'主對受苦的士每拿說，你將要受的苦不用怕，務要至死忠心，我就賜給你生命的冠冕。'},
+        {nodes:'12-17節', text:'別迦摩住在有撒但座位之處仍堅守主的名，主雖責備他們容讓錯誤的教訓，也應許得勝的必得那隱藏的嗎哪。'},
+        {nodes:'18-29節', text:'主稱讚推雅推喇末後所行的比起初更多；祂責備的是他們容讓那自稱先知的耶洗別引誘人，並說要叫她病臥在床，那些與她行淫又不悔改的人也要同受大患難，連她的黨類也必被殺——這番重話的對象是耶洗別和跟從她的人，不是整個教會。 ✦'}
+      ],
+      focus:'今天聚焦在主寫信的第一句話——我知道你的行為。祂看見的不只是你的缺點，也包括你一直默默撐住的那些。'
+    },
+    verse:'「我知道你的行為、愛心、信心、勤勞、忍耐，又知道你末後所行的善事，比起初所行的更多。」',
+    verseRef:'—— 啟示錄 2:19',
+    scene:'推雅推喇是個常被責備的教會，但主給他們的第一句話卻是：我知道你的行為，你的愛心，你的信心。祂甚至說，你末後所做的，比剛開始還多。在一連串責備之前，主先看見了他們的進步。',
+    q:'你會怎麼看自己這一年在信仰上的變化？',
+    choices:[
+      {k:'A', text:'好像退步了，剛信的時候比較熱，現在越來越冷淡。'},
+      {k:'B', text:'差不多吧，沒什麼長進，也沒特別退步。'},
+      {k:'C', text:'有一些小小的成長，雖然別人可能看不出來。'},
+      {k:'D', text:'我不太敢看，怕一認真回想，會覺得自己很失敗。'}
+    ],
+    responses:{
+      A:'覺得自己不如當初那麼熱，這份在意本身，就說明你還在乎——真正冷掉的人，是不會為這個難過的。主對以弗所說回想起初，不是要你自責，是邀請你走回頭，找回那份愛。這禮拜挑一件當初你很愛做，現在卻放掉的小事，重新做一次看看。',
+      B:'覺得平平的，沒退步其實就是一種撐住。信仰不是每天都要有大進展，能一直待在這裡，就已經是忠心。今天可以謝謝自己一句：這一年，我沒有走掉。',
+      C:'你看見了自己的小成長，這很珍貴，因為主看見的正是這個——祂對推雅推喇說，你末後所行的比起初更多。把那件小小的成長，今天在心裡對祂說出來一次。',
+      D:'不敢回想，是因為你把回想跟審判綁在一起了。但主翻開你這一年，第一眼看的是你撐住的地方，不是你跌倒的地方。要不要試試看，只列一件你今年做到的事就好？'
+    },
+    reflectionTitle:'祂看見的',
+    reflection:'主寫給推雅推喇的信，責備不算輕，但祂開口的第一句是：我知道你的行為，你的愛心，信心，勤勞，忍耐。祂甚至說，你末後所行的比起初更多。責備之前，先有看見。\n\n如果主現在翻開你的這一年，你猜祂會先看見什麼？先不急著檢討做不好的地方——有哪一件你默默撐住的事，是你希望祂有看見的？',
+    baseItem:{emoji:'🥇', name:'生命的冠冕', desc:'「你將要受的苦你不用怕。魔鬼要把你們中間幾個人下在監裡，叫你們被試煉，你們必受患難十日。你務要至死忠心，我就賜給你那生命的冠冕。」', slot:'hat'},
+    bonusItem:{emoji:'⭐', name:'賜下的晨星', desc:'「我又要把晨星賜給他。」', slot:'hand'}
+  },
+  {
+    chapter:'REV3', sceneEmoji:'🚪', readTime:5,
+    guide:{
+      intro:'主寫信給最後三個教會——撒狄，非拉鐵非，老底嘉。這章有全卷最扎心的一句你不冷不熱，但別急著對號入座。主說這話的前提是凡我所疼愛的我就責備，而祂最後站的位置，是門外，一下一下地敲門。',
+      outline:[
+        {nodes:'1-6節', text:'主對撒狄說，你按名是活的其實是死的，要儆醒；但那些未曾污穢衣服的必穿白衣，得勝的名字必不從生命冊上塗抹。'},
+        {nodes:'7-13節', text:'主對非拉鐵非說，你略有一點力量，也沒有棄絕我的名，看哪我在你面前給你一個敞開的門，是無人能關的。'},
+        {nodes:'14-18節', text:'主對老底嘉說，你既如溫水我必把你吐出去；祂勸他們向祂買火煉的金子，買白衣遮羞，買眼藥好能看見。'},
+        {nodes:'19-22節', text:'主說凡我所疼愛的我就責備管教他，看哪我站在門外叩門，若有人聽見我的聲音就開門，我要進去與他一同坐席。 ✦'}
+      ],
+      focus:'今天聚焦的不是你合不合格，而是你願不願意開門——如果主此刻就站在你的門外敲門，你會怎麼回應？'
+    },
+    verse:'「看哪，我站在門外叩門，若有聽見我聲音就開門的，我要進到他那裡去，我與他，他與我一同坐席。」',
+    verseRef:'—— 啟示錄 3:20',
+    scene:'老底嘉這封信，常讓人心裡一沉——不冷不熱，好像說的就是我。但很多會這樣想的人，其實正是那些一直在意，怕自己不夠愛神的人。主說這些重話的最後，沒有轉身離開，祂站在門外，敲門，等你來開。',
+    q:'如果主現在就站在你的心門外敲門，你會怎麼回應？',
+    choices:[
+      {k:'A', text:'想開，可是覺得裡面太亂了，有點不好意思讓祂進來。'},
+      {k:'B', text:'會開，我一直在等祂，只是不太確定祂真的會來。'},
+      {k:'C', text:'有點猶豫，我怕祂進來會看到我不想被看到的地方。'},
+      {k:'D', text:'老實說我可能假裝沒聽見，因為我不知道自己準備好了沒。'}
+    ],
+    responses:{
+      A:'你覺得裡面太亂不好意思，這種心情很真實。但主敲門的時候，從來不是為了先檢查你有沒有打掃乾淨。祂想進來的那個亂，正是祂要陪你一起整理的。你可以先開一條小縫，跟祂說：裡面很亂，祢還願意進來嗎？',
+      B:'你一直在等，這份等待本身就是一種愛。祂會來的——祂說站在門外叩門的，不是路過，是特地為你停下。今晚睡前，試著留一句話給祂：我在等祢，我把門留著。',
+      C:'怕被看見不想被看見的地方，是每個人都有的。但主不是來查房的人，祂是敲門的客人，而且祂早就知道裡面有什麼，還是想進來。要不要挑一個你最不想被看見的角落，今天先只讓祂站在門口看一眼就好？',
+      D:'假裝沒聽見，其實也是一種誠實，你不想敷衍祂。準備好了沒有，從來不是開門的條件，主也沒有要求你先變好。門的把手在你這邊，你不用今天就開，但你可以先問祂一句：祢真的願意等我嗎？'
+    },
+    reflectionTitle:'門外叩門',
+    reflection:'老底嘉那句不冷不熱，嚇退了很多其實很愛神的人。可是別忘了主接下來說的話：凡我所疼愛的，我就責備管教。責備的前提，是疼愛。而祂最後站的位置，不是高高在上的審判台，是你的門外，一下一下地敲。\n\n你心裡有沒有一扇門，是你一直不太敢打開讓神進去的？那扇門後面是什麼？如果祂說祂願意等，你想先跟祂說一句什麼？',
+    baseItem:{emoji:'🚪', name:'敞開的門', desc:'「我知道你的行為，你略有一點力量，也曾遵守我的道，沒有棄絕我的名。看哪，我在你面前給你一個敞開的門，是無人能關的。」', slot:'bg'},
+    bonusItem:{emoji:'📃', name:'生命冊上的名', desc:'「凡得勝的必這樣穿白衣，我也必不從生命冊上塗抹他的名；且要在我父面前，和我父眾使者面前，認他的名。」', slot:'hand'}
+  },
+  {
+    chapter:'REV4', sceneEmoji:'🌈', readTime:3,
+    guide:{
+      intro:'前面三章都在講教會的掙扎，這一章鏡頭突然往上——約翰被帶到天上，看見一個寶座。四活物和二十四位長老晝夜不停地敬拜，不為求什麼，只因為坐在寶座上的那位配得。這是一口喘息，也是一個提醒：宇宙的中心，是敬拜。',
+      outline:[
+        {nodes:'1-3節', text:'天上有一道門開了，約翰被邀請上去，看見一位坐在寶座上，四圍有虹好像綠寶石。'},
+        {nodes:'4-6節', text:'寶座周圍有二十四位長老身穿白衣戴著金冠冕，前面像一片玻璃海如同水晶，又有四個滿了眼睛的活物。'},
+        {nodes:'7-8節', text:'四活物晝夜不住地說，聖哉聖哉聖哉，主神是昔在今在以後永在的全能者。'},
+        {nodes:'9-11節', text:'二十四位長老俯伏敬拜，把自己的冠冕放在寶座前說，我們的主我們的神，祢是配得榮耀尊貴權柄的。 ✦'}
+      ],
+      focus:'今天聚焦在最單純的敬拜——不是為了求什麼，只因為祂是誰。你上一次這樣敬拜，是什麼時候？'
+    },
+    verse:'「我們的主，我們的神，你是配得榮耀、尊貴、權柄的；因為你創造了萬物，並且萬物是因你的旨意被創造而有的。」',
+    verseRef:'—— 啟示錄 4:11',
+    scene:'約翰剛看完七封信裡教會的種種軟弱，鏡頭突然往上拉，拉到天上的寶座前。那裡沒有焦慮，沒有比較，只有四活物和長老不停地說：聖哉，聖哉，聖哉。他們敬拜，不是因為有難處需要被解決，是因為坐在寶座上的那位，值得。',
+    q:'你有沒有試過，不為求任何事，只是單純地跟神說祢很好？',
+    choices:[
+      {k:'A', text:'常常耶，安靜下來看看天空，就會想謝謝祂。'},
+      {k:'B', text:'很少，我到神面前幾乎都是有事要求，或有難要解。'},
+      {k:'C', text:'好像忘了怎麼敬拜了，禱告都變成了報告和許願。'},
+      {k:'D', text:'我不太懂敬拜是什麼感覺，對我來說有點抽象。'}
+    ],
+    responses:{
+      A:'你已經嚐到那個味道了——敬拜不是任務，是抬頭看見祂就好的那種輕。今天再給自己一次那樣的時刻，找個窗邊，只跟祂說一句：祢真好，我今天不求什麼。',
+      B:'幾乎都帶著事情去找神，這太正常了，祂也從不嫌你麻煩。只是偶爾，你也值得經歷一次不談事情的相聚。今天試試看，把請祢幫我先放一放，只說祢是誰，你會發現心會鬆一點。',
+      C:'禱告變成報告和許願，是很多認真生活的人的實況，不用自責。敬拜其實沒有你想的那麼難——它可以只是一句祢在，真好。今天就用這一句，重新開始一次。',
+      D:'覺得敬拜很抽象，是很誠實的。其實敬拜不用有特別的感覺，它可以只是承認一件事實：祂比我大，而祂是好的。今天你不用勉強生出感動，先安靜三十秒，看看心裡有沒有一點點想對祂說的？'
+    },
+    reflectionTitle:'單純敬拜',
+    reflection:'天上的敬拜，沒有交換條件。四活物晝夜說聖哉，長老把自己的冠冕放在寶座前——連他們得的獎賞，都拿來還給神。他們敬拜，只因為祂配得，不因為祂剛解決了什麼。\n\n如果現在請你，不提任何需要，不求任何答案，只單純對神說一句話，你會說什麼？把那句話，慢慢地，說給祂聽。',
+    baseItem:{emoji:'🎶', name:'聖哉的頌歌', desc:'「四活物各有六個翅膀，遍體內外都滿了眼睛。他們晝夜不住地說：聖哉！聖哉！聖哉！主神是昔在、今在、以後永在的全能者。」', slot:'hat'},
+    bonusItem:{emoji:'🌌', name:'天上的寶座', desc:'「我立刻被聖靈感動，見有一個寶座安置在天上，又有一位坐在寶座上。」', slot:'bg'}
+  },
+  {
+    chapter:'REV5', sceneEmoji:'📜', readTime:4,
+    guide:{
+      intro:'天上出現一卷用七印封著的書，卻沒有一個人配打開，約翰難過到大哭。就在這時，長老說：不要哭。因為有一位已經得勝了——不是靠力量，是靠捨命。那位被稱為獅子的，走近時，竟是一隻像被殺過的羔羊。',
+      outline:[
+        {nodes:'1-4節', text:'坐寶座的右手中有一卷用七印封嚴的書，天上地上沒有一人配展開，約翰因此大哭。'},
+        {nodes:'5-7節', text:'長老中有一位對約翰說，不要哭，猶大支派的獅子已經得勝；約翰一看，那位卻是像被殺過的羔羊，走上前接過了書卷。 ✦'},
+        {nodes:'8-10節', text:'四活物和長老俯伏在羔羊面前唱新歌，說祢配拿書卷，因為祢曾被殺，用自己的血從各族各方買了人來歸給神。'},
+        {nodes:'11-14節', text:'千千萬萬的天使和天地間一切被造之物同聲頌讚，說願頌讚尊貴榮耀權勢都歸給坐寶座的和羔羊。'}
+      ],
+      focus:'今天聚焦在約翰的那場大哭——當你心裡也有一件看起來沒有出路的事，也許答案不是一個方法，是一位已經得勝的羔羊。'
+    },
+    verse:'「長老中有一位對我說：「不要哭！看哪，猶大支派中的獅子，大衛的根，他已得勝，能以展開那書卷，揭開那七印。」」',
+    verseRef:'—— 啟示錄 5:5',
+    scene:'約翰哭了，哭得很傷心，因為那卷關乎一切結局的書，沒有人配打開，好像所有的盼望都卡住了。就在他哭的時候，有人對他說：不要哭。得勝的那一位已經來了——祂不是用武力贏的，祂是那隻曾經被殺，又活過來的羔羊。',
+    q:'你心裡現在有沒有一件，看起來沒有出路的事？',
+    choices:[
+      {k:'A', text:'有，而且我已經想不到任何辦法了，只能擺著。'},
+      {k:'B', text:'有一件，我還在硬撐，但其實不知道能撐多久。'},
+      {k:'C', text:'暫時沒有卡住的事，但我知道那種無力的感覺是什麼。'},
+      {k:'D', text:'有，但我不太敢去看它，一想到就覺得很沉。'}
+    ],
+    responses:{
+      A:'想不到辦法只能擺著，那種感覺真的很累。但約翰大哭的時候，答案不是突然冒出一個方法，而是有一位已經得勝的走了過來。你不一定要現在就解決它，今天可以只做一件事：把那件擺著的事，交到那位羔羊手上，說一句祢來吧。',
+      B:'還在硬撐，其實很勇敢，只是你也需要有人接手。羔羊得勝，不是叫你更用力，是要你知道結局已經有人扛住了。這禮拜當你又快撐不住時，試著鬆一點點手，對祂說：這件事，我撐不動了，換祢。',
+      C:'你現在沒被卡住，是好事，但你記得那種無力，代表你也懂別人的難。也許今天的羔羊，不只是為你，也為你心裡想到的那個正在撐的人。要不要為他，也向羔羊說一句話？',
+      D:'一想到就很沉，不敢看，這很誠實，有些事光是正視它就需要勇氣。你不用今天就處理它，但也許可以先讓羔羊陪你看一眼——祂曾走過死亡又活過來，祂不怕你心裡最沉的那個角落。你願意讓祂靠近它嗎？'
+    },
+    reflectionTitle:'不要哭',
+    reflection:'約翰的哭，是因為看不到出路——那卷書沒有人能開。但天上的回應不是責備他哭，而是溫柔地說：不要哭，因為已經有一位得勝了。而那位得勝者的樣子，不是威風的獅子，是一隻像被殺過的羔羊。祂得勝的方式，是先捨了自己。\n\n你心裡那件沒有出路的事，如果此刻有一位曾經走過死亡的羔羊，坐在你旁邊對你說不要哭，你會想把哪一件事，第一個告訴祂？',
+    baseItem:{emoji:'👑', name:'歸給羔羊的頌讚', desc:'「我又聽見在天上、地上、地底下、滄海裡，和天地間一切所有被造之物，都說：但願頌讚、尊貴、榮耀、權勢都歸給坐寶座的和羔羊，直到永永遠遠！」', slot:'bg'},
+    bonusItem:{emoji:'🐑', name:'配得的羔羊', desc:'「大聲說：曾被殺的羔羊是配得權柄、豐富、智慧、能力、尊貴、榮耀、頌讚的。」', slot:'body'}
+  },
+  {
+    chapter:'REV6', sceneEmoji:'🐎', readTime:4,
+    guide:{
+      intro:'上一刻還在為羔羊配得而歡呼，這一章羔羊就開始揭開七印，世界搖動起來——四匹馬出來，帶著刀劍和饑荒，還有殉道者在祭壇下的呼求。這是沉重的一章。但在所有動盪的中間，有一段很特別：受苦的人可以直接向神發問，而神給的回應，是白衣和安息。',
+      outline:[
+        {nodes:'1-8節', text:'羔羊揭開前四印，四匹馬相繼出來，帶著征戰，刀劍，饑荒和死亡，臨到地上。'},
+        {nodes:'9-11節', text:'第五印揭開，祭壇底下有為神的道被殺之人的靈魂大聲呼求，要等到幾時呢；神的回應是賜給他們各人白衣，叫他們安息片時。 ✦'},
+        {nodes:'12-14節', text:'第六印揭開，地大震動，日頭變黑，滿月變紅像血，天上的星辰墜落於地；天也挪移如同書卷被捲起，山嶺海島都離開了本位。'},
+        {nodes:'15-17節', text:'地上的人都躲藏起來，躲避坐寶座者的面目和羔羊的忿怒，說誰能站得住呢。'}
+      ],
+      focus:'「誰能站得住呢」那句話，是地上躲避的人說的，不是主對你的提問。今天聚焦在祭壇下的呼求——原來在神面前，你是可以問還要多久的。'
+    },
+    verse:'「於是有白衣賜給他們各人；又有話對他們說，還要安息片時，等著一同作僕人的和他們的弟兄也像他們被殺，滿足了數目。」',
+    verseRef:'—— 啟示錄 6:11',
+    scene:'上一刻，天上還在為羔羊大聲歡呼；下一刻，羔羊揭開封印，世界開始搖動。在這片動盪裡，鏡頭停在一個安靜卻沉重的地方：祭壇底下，那些為信仰被殺的人，正在向神喊，還要多久？他們沒有被責備。神給了他們白衣，要他們再安息一會兒。',
+    q:'你有沒有一件事，一直在心裡問神還要多久？',
+    choices:[
+      {k:'A', text:'有，我等一個答案等好久了，久到快沒力氣問了。'},
+      {k:'B', text:'有，但我一直不敢問出口，怕這樣顯得我不夠信。'},
+      {k:'C', text:'有等待的事，但我還撐得住，只是偶爾會累。'},
+      {k:'D', text:'我不太確定我在等什麼，只知道心裡一直有種懸著的感覺。'}
+    ],
+    responses:{
+      A:'等到快沒力氣，這種累是真的。但你看祭壇下那些人，他們也在喊還要多久，而神沒有嫌他們吵——祂給的不是催他們閉嘴，是一件白衣和一句再安息一會兒。今天你也可以把那句問了很久的還要多久，原原本本地對祂再說一次，不用修飾。',
+      B:'不敢問，怕顯得不夠信，但這章告訴你正好相反：向神喊還要多久的，正是那些至死忠心的人。問，不是不信，是還在等祂。這禮拜找一個安靜的時刻，把那句你一直吞著的問句，小聲說給祂聽。',
+      C:'你還撐得住，這很好，但偶爾的累也是真的，不用假裝沒有。神記得每一個在等的人，連他們的疲倦都算數。今天累的時候，可以對祂說一句：我還在等，但我有點累了，祢知道就好。',
+      D:'心裡懸著卻說不清在等什麼，這種感覺其實很多人有。你不用先弄清楚，才能來到神面前。今天就把那個懸著的感覺，整團交給祂，說一句：我不知道我在等什麼，但祢知道，請祢看著。'
+    },
+    reflectionTitle:'還要多久',
+    reflection:'祭壇底下的靈魂，向神喊的是一句很直接的話：還要多久？那不是抱怨，是信任——只有還相信神會回應的人，才會繼續問。而神的回應很溫柔，祂沒有解釋為什麼要那麼久，祂給了他們白衣，請他們再安息片時。\n\n你心裡有沒有一句問了很久的還要多久？如果神此刻遞給你一件白衣，對你說再安息一會兒，你會想把哪一份等待，先交給祂看顧？',
+    baseItem:{emoji:'🎟️', name:'可以發問的憑據', desc:'「大聲喊著說：「聖潔真實的主啊，你不審判住在地上的人，給我們伸流血的冤，要等到幾時呢？」」', slot:'hand'},
+    bonusItem:{emoji:'🛐', name:'祭壇下的靈魂', desc:'「揭開第五印的時候，我看見在祭壇底下，有為神的道、並為作見證被殺之人的靈魂，」', slot:'bg'}
+  },
+  {
+    chapter:'REV7', sceneEmoji:'🌴', readTime:4,
+    guide:{
+      intro:'六印的動盪之後，鏡頭轉向一群人。先是以色列各支派受印的數目，然後是一大群沒有人數得過來的人，從各國各族來，穿著白衣，手拿棕樹枝，站在寶座前。他們是從大患難中出來的，而神要親手擦去他們一切的眼淚。',
+      outline:[
+        {nodes:'1-8節', text:'四位天使先按住地上的風，等神的僕人額上受了印；以色列各支派中受印的數目是十四萬四千。'},
+        {nodes:'9-12節', text:'此後約翰看見一大群沒有人能數過來的人，從各國各族各民各方來，身穿白衣手拿棕樹枝，站在寶座和羔羊面前大聲頌讚。'},
+        {nodes:'13-14節', text:'長老說，這些穿白衣的人是從大患難中出來的，曾用羔羊的血把衣裳洗白淨了。'},
+        {nodes:'15-17節', text:'他們不再飢也不再渴，寶座中的羔羊必牧養他們，領他們到生命水的泉源，神也必擦去他們一切的眼淚。 ✦'}
+      ],
+      focus:'今天聚焦在那個最溫柔的畫面——神親手擦去眼淚。你正在經過的那件難事，終點也許就是這個樣子。'
+    },
+    verse:'「因為寶座中的羔羊必牧養他們，領他們到生命水的泉源；神也必擦去他們一切的眼淚。」',
+    verseRef:'—— 啟示錄 7:17',
+    scene:'這群站在寶座前的人，不是沒有受過苦——他們正是從大患難中走出來的。他們哭過，累過，撐過。而現在，神做的最後一件事，不是頒獎，是俯下身，親手擦去他們臉上每一滴眼淚。所有的等待，都在這一刻被看見。',
+    q:'你現在正在經過的那件難事，你希望它的終點，是什麼樣子？',
+    choices:[
+      {k:'A', text:'我希望有一天回頭看，會發現這一切都值得。'},
+      {k:'B', text:'我只希望它快點結束，我真的累了。'},
+      {k:'C', text:'我還看不到終點，但我想相信它會有結束的一天。'},
+      {k:'D', text:'老實說我不敢想終點，怕想了又落空。'}
+    ],
+    responses:{
+      A:'你盼望有一天回頭看會覺得值得，這份盼望很有力量。那群從大患難出來的人，就是走到了那一天——而迎接他們的，是神親手擦淚。今天當那件難事又壓下來時，記得對自己說一句：這不是結局，神會擦去這一切的眼淚。',
+      B:'只想快點結束，因為真的累了，這種誠實不需要修飾。神沒有要你先變得堅強才配得安息。祂應許的是不再飢不再渴，是親手擦淚。今天你可以只做一件事：把那句我累了，原原本本地告訴祂，讓祂替你記得。',
+      C:'看不到終點卻仍想相信會有結束，這種盼望特別珍貴，因為它是在黑暗裡點的。你不用假裝有把握，光是願意相信，就已經是走向那道生命水的泉源了。今晚可以對祂說：我看不到，但我把終點交給祢。',
+      D:'不敢想終點，怕落空，這種小心翼翼是被失望磨出來的，很讓人心疼。你不用勉強自己去盼望。但也許可以先讓神替你保管那個終點——祂應許親手擦淚的那一位，不會讓你的盼望落空。你願意先把它寄放在祂那裡嗎？'
+    },
+    reflectionTitle:'擦去眼淚',
+    reflection:'站在寶座前的那一大群人，全都是從大患難中走出來的。他們不是沒哭過的人，是哭過以後被神擦乾的人。聖經沒有說他們的苦不算什麼，而是說神會親手，一滴一滴，把那些眼淚擦去。\n\n你這陣子流過的眼淚，有沒有哪一滴，是你希望神看見的？如果有一天祂真的伸手，輕輕替你擦去，你最想先被擦乾的，是哪一份難過？',
+    baseItem:{emoji:'🏞️', name:'不再飢渴之地', desc:'「他們不再飢，不再渴；日頭和炎熱也必不傷害他們。」', slot:'bg'},
+    bonusItem:{emoji:'🏛️', name:'寶座前的事奉', desc:'「所以，他們在神寶座前，晝夜在他殿中事奉他。坐寶座的要用帳幕覆庇他們。」', slot:'hand'}
+  },
+  {
+    chapter:'REV8', sceneEmoji:'🪔', readTime:4,
+    guide:{
+      intro:'第七印揭開的那一刻，天上沒有雷聲，反而寂靜了約有二刻。接著約翰看見眾聖徒的祈禱和香一同升到神面前，然後前四位天使吹號，地與海與江河與日月各受了災。',
+      outline:[
+        {nodes:'1-2節', text:'羔羊揭開第七印，天上寂靜約有二刻；七位天使領了七枝號。'},
+        {nodes:'3-5節', text:'天使拿著金香爐，眾聖徒的祈禱和香一同升到神面前；香爐的火倒在地上，號聲預備響起。 ✦'},
+        {nodes:'6-9節', text:'前兩號吹響，地的三分之一被燒了，海的三分之一變成血。'},
+        {nodes:'10-13節', text:'第三和第四號擊打眾水與日月；空中飛著的鷹大聲宣告，還有三位天使要吹號，地上的民有禍了。'}
+      ],
+      focus:'今天聚焦在3到5節——你以為沒被聽見的禱告，正和香一同放在神面前。'
+    },
+    verse:'「那香的煙和眾聖徒的祈禱從天使的手中一同升到神面前。」',
+    verseRef:'—— 啟示錄 8:4',
+    scene:'你有沒有禱告過很久卻好像沒有回應的事？在天上一片寂靜的時刻，約翰看見的第一個畫面不是災難，是一位天使拿著金香爐，把眾聖徒的祈禱一同獻在寶座前的金壇上。原來那些你以為散掉的禱告，一句都沒有不見。',
+    q:'想到一件你禱告了很久卻還沒有答案的事，你現在的心情比較接近哪一種？',
+    choices:[
+      {k:'A', text:'我還在禱告，雖然不知道神什麼時候回應'},
+      {k:'B', text:'我其實已經停了，覺得說了也沒有用'},
+      {k:'C', text:'我不敢再期待，怕又失望一次'},
+      {k:'D', text:'老實說我不確定神有沒有在聽'}
+    ],
+    responses:{
+      A:'繼續禱告不是因為你特別堅強，是因為你還願意把那件事放在神面前。這章給你看的畫面是——它們都在金壇上，一句也沒有掉在地上。今天禱告時可以加一句：「祢都收著，我就繼續說。」',
+      B:'停了不代表你不信，可能只是累了。但這章說，你從前說過的那些，此刻就在寶座前的金壇上，沒有過期。如果今天願意，只要說一句就好：「神啊，那件事我還是想提。」',
+      C:'怕失望是誠實的，因為你真的痛過。可是注意這個順序——香和祈禱先升上去，號才吹響。神不是沒聽見才不動，祂是聽見了，收好了，在祂的時間動。今晚可以只說：「我不敢期待，但我把它留在祢那裡。」',
+      D:'這個懷疑很多人有，只是不敢說出來。約翰看見的正好回答這件事：祈禱沒有消失，是被天使捧著獻上去的。你不用先解決懷疑才能禱告，可以帶著懷疑說：「如果祢真的在聽，這句也請祢收下。」'
+    },
+    reflectionTitle:'沒有不見',
+    reflection:'啟示錄八章在七印的末尾安排了一段寂靜，天上停了約有二刻。接著出現的不是號聲，是香爐——眾聖徒的祈禱和香一同升到神面前，然後地上的事才開始動。這個順序是刻意的：在一切震動之前，神先讓人看見，禱告都在祂面前。\n\n你心裡那件禱告了很久的事，還在嗎？今天不用逼自己多有信心，只要把它再放上去一次。也可以寫下：如果那些禱告真的都被收著，你想對神說什麼？',
+    baseItem:{emoji:'⚱️', name:'金香爐', desc:'「另有一位天使，拿著金香爐來，站在祭壇旁邊。有許多香賜給他，要和眾聖徒的祈禱一同獻在寶座前的金壇上。」', slot:'hand'},
+    bonusItem:{emoji:'🕰️', name:'二刻的寂靜', desc:'「羔羊揭開第七印的時候，天上寂靜約有二刻。」', slot:'bg'}
+  },
+  {
+    chapter:'REV9', sceneEmoji:'🌑', readTime:5,
+    guide:{
+      intro:'第五和第六位天使吹號，蝗蟲從無底坑的煙裡出來，馬軍從幼發拉底大河被釋放，是整卷書最沉重的段落之一。但其中有一條界線——傷害越不過神的印記；也有一句宣告——第一樣災禍過去了。',
+      outline:[
+        {nodes:'1-6節', text:'第五號吹響，無底坑開了，蝗蟲出來傷害額上沒有神印記的人；那些日子人求死也不得死。'},
+        {nodes:'7-12節', text:'蝗蟲的形狀像預備出戰的馬，牠們的王是無底坑的使者；接著經文宣告——第一樣災禍過去了。 ✦'},
+        {nodes:'13-19節', text:'第六號吹響，四個使者被釋放，馬軍殺了人的三分之一。'},
+        {nodes:'20-21節', text:'其餘未曾被殺的人仍舊不悔改自己手所做的，還是去拜偶像。'}
+      ],
+      focus:'今天聚焦在12節那句短短的話——第一樣災禍過去了。再難的一段，都有過去的一天。'
+    },
+    verse:'「第一樣災禍過去了，還有兩樣災禍要來。」',
+    verseRef:'—— 啟示錄 9:12',
+    scene:'這一章很難讀——煙從無底坑上來，蝗蟲和馬軍接連出場。但約翰在中間寫下一句幾乎會被略過的話：第一樣災禍過去了。還在災難的序列裡，就先宣告了一個結束。你正在熬的那件事，也是這樣——你還在裡面，但它有盡頭。',
+    q:'你現在有沒有一件正在熬著，看不到盡頭的事？你通常怎麼撐？',
+    choices:[
+      {k:'A', text:'咬著牙撐，告訴自己再撐一下就好'},
+      {k:'B', text:'我會找人說，說出來至少好一點'},
+      {k:'C', text:'我已經麻木了，不太去想有沒有盡頭'},
+      {k:'D', text:'老實說我快撐不住了'}
+    ],
+    responses:{
+      A:'你很能撐，這是你的強項，也是你的重擔。這章讓你看見的是——「過去了」不是你撐出來的，是神宣告的。你可以繼續撐，但今天試著加一句：「神啊，這件事的盡頭在祢手裡，不在我的牙關裡。」',
+      B:'願意說出來是健康的。這章還想多給你一個對象——那位宣告第一樣災禍過去了的神。下次跟人說完，也跟祂說一次：「祢說過會過去，我把這句話當真。」',
+      C:'麻木有時是自我保護，不是罪。但麻木的人最需要聽見這句：第一樣災禍過去了。不是要你立刻振作，只是想讓你知道——它不會永遠是現在這樣。今天可以小聲說一句：「原來這件事，是可以過去的。」',
+      D:'謝謝你說真話，這句比任何屬靈的話都重要。快撐不住的時候，不需要大信心，只需要一個事實：災禍是會過去的，經文親口這樣說。今晚就把這句放在心上：「第一樣災禍過去了——我的也會。」'
+    },
+    reflectionTitle:'會過去的',
+    reflection:'啟示錄九章是災難最密集的章節之一，蝗蟲與馬軍接連出現。但神在其中留了兩個記號：傷害越不過額上有神印記的人，以及那句安靜的宣告——第一樣災禍過去了。災難在神的手裡有範圍，也有期限。\n\n那件你正在熬的事，如果它真的有盡頭，你希望走出來的那天，自己是什麼樣子？把此刻的心情寫下來，留給那一天的你回頭看。',
+    baseItem:{emoji:'🗝️', name:'無底坑的鑰匙', desc:'「第五位天使吹號，我就看見一個星從天落到地上，有無底坑的鑰匙賜給它。」', slot:'hat'},
+    bonusItem:{emoji:'📏', name:'越不過的界線', desc:'「並且吩咐牠們說，不可傷害地上的草和各樣青物，並一切樹木，惟獨要傷害額上沒有神印記的人。」', slot:'hand'}
+  },
+  {
+    chapter:'REV10', sceneEmoji:'🍯', readTime:4,
+    guide:{
+      intro:'在號與號之間，約翰看見一位大力的天使，手裡拿著展開的小書卷。約翰被吩咐把書卷吃下去——口中甜如蜜，肚子卻發苦。這是連續災難章之間難得的緩衝，講的是領受神話語的滋味。',
+      outline:[
+        {nodes:'1-4節', text:'一位大力的天使從天降下，手裡拿著展開的小書卷；七雷發聲，約翰卻被吩咐封住不可寫。'},
+        {nodes:'5-7節', text:'天使指著永活者起誓——不再有時日了，神的奧祕就要成全。'},
+        {nodes:'8-10節', text:'約翰照吩咐把小書卷吃下去，在口中甜如蜜，吃了以後肚子覺得發苦。 ✦'},
+        {nodes:'11節', text:'約翰領受新的差遣——你必指著多民多國多方多王再說預言。'}
+      ],
+      focus:'今天聚焦在8到10節——神的話吃下去，有甜也有苦，兩種都是真的。'
+    },
+    verse:'「我就走到天使那裡，對他說：「請你把小書卷給我。」他對我說：「你拿著吃盡了，便叫你肚子發苦，然而在你口中要甜如蜜。」」',
+    verseRef:'—— 啟示錄 10:9',
+    scene:'每天讀經的你，可能懂這種感覺：有些日子讀到一句話，甜得像蜜，剛好接住你；有些日子讀完，心裡反而沉沉的，像吃了什麼消化不了的東西。約翰吃小書卷的經驗跟你的一樣——先甜，後苦，都是領受。',
+    q:'最近這段時間讀經或靈修，你比較常嘗到哪種滋味？',
+    choices:[
+      {k:'A', text:'甜的多——常常覺得被接住'},
+      {k:'B', text:'苦的多——越讀心裡越沉'},
+      {k:'C', text:'有時甜有時苦，說不準'},
+      {k:'D', text:'老實說常常沒什麼感覺'}
+    ],
+    responses:{
+      A:'為這段甜的日子感恩，也把它存起來——不是每一段路都這麼甜，存糧是給後面用的。今天可以跟神說：「謝謝祢這陣子餵我的，我記住了。」',
+      B:'讀了心裡發沉，不代表你讀錯了。約翰吃的是神親手給的書卷，照樣肚子發苦——有些真話本來就重。苦的時候不用勉強自己喜樂，可以照實說：「主啊，這段好重，陪我消化。」',
+      C:'說不準才是常態，信仰不是每天同一個味道。這章把甜和苦放在同一卷書裡，就是要說：兩種都算數。今天讀到什麼滋味，就照那個滋味禱告，不用修飾。',
+      D:'沒感覺的日子，很多人不敢承認，你說了，很好。沒滋味不等於沒領受——飯每天吃，也不是每餐都有味道，但人就是這樣被養活的。今天可以只求一件事：「神啊，讓我再嘗一次祢話語的味道。」'
+    },
+    reflectionTitle:'甜與苦',
+    reflection:'約翰奉命把小書卷吃下去，在口中甜如蜜，吃了以後肚子覺得發苦。神的話語從來不是只有一種滋味——安慰的時候甜，對付的時候苦，但都是同一卷書，同一位神。\n\n回想最近一次讀經特別有感覺的時刻，那是甜還是苦？它想帶你去哪裡？寫下來，下次讀到同一段的時候回來對照。',
+    baseItem:{emoji:'⌛', name:'不再耽延的起誓', desc:'「指著那創造天和天上之物，地和地上之物，海和海中之物，直活到永永遠遠的，起誓說：「不再有時日了。」」', slot:'bg'},
+    bonusItem:{emoji:'🗺️', name:'再說預言的差遣', desc:'「天使對我說：「你必指著多民、多國、多方、多王再說預言。」」', slot:'hand'}
+  },
+  {
+    chapter:'REV11', sceneEmoji:'🕯️', readTime:5,
+    guide:{
+      intro:'兩個見證人忠心作見證，卻被殺害，屍首倒在大城的街上被人觀看。但三天半後，神的生氣進入他們裡面。第七號吹響時，天上宣告：世上的國成了我主和主基督的國。',
+      outline:[
+        {nodes:'1-6節', text:'約翰奉命量神的殿；兩個見證人穿著毛衣作見證，有能力在傳道的日子叫天閉塞不下雨。'},
+        {nodes:'7-10節', text:'見證完了，從無底坑上來的獸把他們殺了；住在地上的人為此歡喜快樂，屍首被觀看三天半。'},
+        {nodes:'11-14節', text:'過了三天半，生氣從神那裡進入他們裡面，他們就站起來，駕著雲上了天。'},
+        {nodes:'15-19節', text:'第七位天使吹號，天上有大聲音說——世上的國成了我主和主基督的國，祂要作王直到永永遠遠。 ✦'}
+      ],
+      focus:'今天聚焦在15節的宣告——做對的事暫時看不到結果，但結局不是停在街上，是停在寶座。'
+    },
+    verse:'「第七位天使吹號，天上就有大聲音說：世上的國成了我主和主基督的國；他要作王，直到永永遠遠。」',
+    verseRef:'—— 啟示錄 11:15',
+    scene:'見證人做了對的事，結果卻是被殺，連屍首都被圍觀。如果故事停在這裡，忠心就像一個笑話。但故事沒有停在這裡——三天半後他們站了起來，第七號吹響，天上宣告祂要作王直到永永遠遠。你做對的事，結局也還沒有寫完。',
+    q:'你有沒有做了對的事，卻沒有好結果的經驗？現在回想起來，你的感覺是？',
+    choices:[
+      {k:'A', text:'還是覺得不值得，早知道就不做了'},
+      {k:'B', text:'不後悔，但心裡確實有委屈'},
+      {k:'C', text:'我相信總有一天會被看見，只是不知道哪一天'},
+      {k:'D', text:'老實說我開始懷疑，做對的事到底有沒有意義'}
+    ],
+    responses:{
+      A:'「不值得」是誠實的帳——你付的代價是真的。但這章要你看完整個故事再結帳：見證人被殺是第9節，站起來是第11節。帳還沒結完。今天可以跟神說：「這件事我還是覺得虧，請祢記得我付過的。」',
+      B:'委屈跟忠心可以同時存在，不衝突。神沒有要你假裝不委屈，祂是把結局寫給你看——祂要作王，直到永永遠遠。委屈的時候可以說：「主啊，這口氣我嚥不太下去，先放在祢那裡。」',
+      C:'這個「總有一天」就是本章的信息——三天半，不是永遠。你不知道哪一天，但有一天。等的時候可以固定跟神說一句：「祢的時間到了，記得叫我起來。」',
+      D:'懷疑做對的事有沒有意義，通常是因為付出過又受過傷。這一章不輕看你的懷疑——它先讓你看見證人倒在街上，才讓你看他們站起來。今天不用急著恢復信心，只要說：「神啊，如果結局真的在祢手裡，求祢讓我再看見一次。」'
+    },
+    reflectionTitle:'還沒寫完',
+    reflection:'兩個見證人的故事有一個殘忍的中段——被殺，被觀看，被慶祝。但啟示錄十一章不停在中段：生氣從神那裡進入他們裡面，第七號吹響，世上的國成了我主和主基督的國。神讓忠心的人看見，歷史的最後一筆是祂寫的。\n\n那件你做對了卻沒有好結果的事，如果結局真的還沒寫完，你希望神怎麼寫下去？把它寫下來，當作你和祂之間的一個記號。',
+    baseItem:{emoji:'🫶', name:'昔在今在的感謝', desc:'「說：昔在、今在的主神－全能者啊，我們感謝你！因你執掌大權作王了。」', slot:'hand'},
+    bonusItem:{emoji:'🌬️', name:'從神來的生氣', desc:'「過了這三天半，有生氣從神那裡進入他們裡面，他們就站起來；看見他們的人甚是害怕。」', slot:'bg'}
+  },
+  {
+    chapter:'REV12', sceneEmoji:'🐉', readTime:5,
+    guide:{
+      intro:'天上出現兩個異象：身披日頭的婦人，和要吞吃她孩子的大紅龍。這個婦人所指為何，歷來有不同的理解；但本章最清楚的一句話是——弟兄勝過牠，是因羔羊的血和自己所見證的道。',
+      outline:[
+        {nodes:'1-6節', text:'天上現出大異象——身披日頭的婦人在生產的艱難中呼叫，大紅龍等著要吞吃她的孩子；孩子被提到神寶座那裡，婦人逃到神給她預備的地方。'},
+        {nodes:'7-9節', text:'天上起了爭戰，大龍被摔在地上——牠就是那古蛇，名叫魔鬼，又叫撒但。'},
+        {nodes:'10-12節', text:'天上有大聲音宣告神的救恩；弟兄勝過牠，是因羔羊的血和自己所見證的道。 ✦'},
+        {nodes:'13-18節', text:'龍逼迫婦人，地卻幫助婦人；龍去與她其餘的兒女爭戰，站在海邊的沙上。'}
+      ],
+      focus:'今天聚焦在10到12節——得勝靠的不是你夠強，是羔羊的血，和你自己所見證的道。'
+    },
+    verse:'「弟兄勝過牠，是因羔羊的血和自己所見證的道。他們雖至於死，也不愛惜性命。」',
+    verseRef:'—— 啟示錄 12:11',
+    scene:'龍很大，婦人在逃，戰場從天上打到地上。但這一章把得勝的原因寫得出奇地小：不是軍隊，不是奇兵，是羔羊的血，和一群人「自己所見證的道」——他們說得出神在自己身上做過的事。你撐到今天，靠的是什麼？',
+    q:'回頭看你走過最難的那一段，你覺得自己是靠什麼撐過來的？',
+    choices:[
+      {k:'A', text:'靠神——現在回頭看，真的是祂扶著'},
+      {k:'B', text:'靠身邊的人，家人朋友把我接住'},
+      {k:'C', text:'靠自己硬撐，撐過去就過去了'},
+      {k:'D', text:'老實說我也不知道自己是怎麼過來的'}
+    ],
+    responses:{
+      A:'能這樣回答的人，通常是路上真的遇過祂。把那段經歷說出來——那就是這章講的「自己所見證的道」。它不只是你的回憶，是你的武器。找一天，把這段見證講給一個需要的人聽。',
+      B:'被人接住是真實的恩典，神常常透過人動工。也許可以再往回看一步：那些剛好出現的人，是誰安排的？今天可以為他們禱告：「謝謝祢派他們來，也求祢在我看不見的地方繼續動工。」',
+      C:'你的硬撐是真的，沒有人可以否定你付出的力氣。這章只是想多給你一樣東西——下一段難路，可以不用只剩自己。試著說一次：「神啊，下次我撐的時候，祢也在場好嗎？」',
+      D:'「不知道怎麼過來的」——這句話本身可能就是答案的一半：有一雙你沒看見的手。不用急著給那段日子下結論，可以先說：「如果那時候是祢，謝謝祢；如果祢還在，請讓我認得祢。」'
+    },
+    reflectionTitle:'靠什麼得勝',
+    reflection:'啟示錄十二章的戰場橫跨天地，但得勝的關鍵卻不在武力。天上的大聲音宣告：弟兄勝過牠，是因羔羊的血和自己所見證的道。羔羊的血是神做成的那一半，所見證的道是你開口說出的那一半——兩樣加起來，勝過那條龍。\n\n神在你身上做過的事，你上一次說出口是什麼時候？寫下一件你願意見證的事，哪怕很小。寫下來的這一刻，它就開始作工了。',
+    baseItem:{emoji:'⛺', name:'預備好的地方', desc:'「婦人就逃到曠野，在那裡有神給她預備的地方，使她被養活一千二百六十天。」', slot:'bg'},
+    bonusItem:{emoji:'⛰️', name:'相助的地土', desc:'「地卻幫助婦人，開口吞了從龍口吐出來的水。」', slot:'hand'}
+  },
+  {
+    chapter:'REV13', sceneEmoji:'🛡️', readTime:5,
+    guide:{
+      intro:'兩隻獸相繼上來，一隻從海中，一隻從地中，權柄大到全地的人都跟從牠。在最黑的段落裡，經文為聖徒留了兩個記號——名字記在被殺之羔羊的生命冊上，以及那句：聖徒的忍耐和信心就是在此。',
+      outline:[
+        {nodes:'1-4節', text:'一個獸從海中上來，龍將自己的能力和大權柄都給了牠；全地的人都希奇跟從那獸。'},
+        {nodes:'5-8節', text:'獸得了說誇大褻瀆話的口，任意而行四十二個月，又與聖徒爭戰；凡住在地上名字沒有記在被殺之羔羊生命冊上的人，都要拜牠。'},
+        {nodes:'9-10節', text:'凡有耳的就應當聽——擄掠人的必被擄掠，用刀殺人的必被刀殺；聖徒的忍耐和信心就是在此。 ✦'},
+        {nodes:'11-18節', text:'另一個獸從地中上來，叫人拜頭一個獸的像，又叫眾人受印記，沒有印記的不得做買賣；末了說到獸的數目是六百六十六——這是給當時受逼迫信徒的暗語，歷代解釋不一，不是本章的重點。'}
+      ],
+      focus:'今天聚焦在9到10節——在整個環境都不友善的時候，神要你握住的不是勝過誰，是忍耐和信心。'
+    },
+    verse:'「擄掠人的，必被擄掠；用刀殺人的，必被刀殺。聖徒的忍耐和信心就是在此。」',
+    verseRef:'—— 啟示錄 13:10',
+    scene:'獸的權柄大到可以管控買賣，不從的人連生活都困難。這種「整個環境都跟你的信仰過不去」的處境，今天的你可能也嘗過一點——在某些場合，表明自己是基督徒需要勇氣。這章給那樣的時刻留了一句話：聖徒的忍耐和信心就是在此。',
+    q:'有沒有什麼場合，讓你覺得表明信仰很不容易？那種時候你通常怎麼做？',
+    choices:[
+      {k:'A', text:'我會說出來，雖然有時要付一點代價'},
+      {k:'B', text:'我不主動說，但被問到不會否認'},
+      {k:'C', text:'我通常選擇沉默，怕氣氛變僵或被貼標籤'},
+      {k:'D', text:'老實說我曾經裝作不是，事後一直有點過不去'}
+    ],
+    responses:{
+      A:'願意付代價的表明，就是這章說的忍耐和信心的樣子。也留意——本章的得勝不是打贏獸，是持守得住。累的時候不用一直衝，可以跟神說：「我今天守住了，剩下的交給祢。」',
+      B:'不主動但不否認，這也是一種持守，不必跟別人比大聲。神看的是你被問到的那一刻沒有鬆手。可以為下一次被問到禱告：「到時候，給我剛剛好的勇氣。」',
+      C:'怕氣氛僵是真實的人際壓力，不用把自己說成膽小鬼。本章的忍耐是長期戰——今天沉默了，不等於出局。可以先從小處練：下次吃飯前的謝飯禱告，不刻意遮掩。就從這種小小的表明開始。',
+      D:'謝謝你連這個都說了。彼得也否認過主，而主後來親自去找他。過不去的那件事，今天可以拿出來跟主說：「那次我沒站住，請祢赦免，也請祢下次扶我一把。」祂修復人的方式，從來不是翻舊帳。'
+    },
+    reflectionTitle:'就是在此',
+    reflection:'啟示錄十三章描寫了信仰環境最壞的樣子：權柄被獸拿走，說真話的空間被壓縮，連買賣都被印記綁住。但經文在正中間放了一句話：聖徒的忍耐和信心就是在此。神給祂子民的路，不是變得更強去贏，而是在壓力裡持守得住。\n\n你的生活裡，哪一個場合最需要這種「守住」的力量？為那個場合禱告，也寫下一個你做得到的最小的表明。',
+    baseItem:{emoji:'📔', name:'羔羊的生命冊', desc:'「凡住在地上、名字從創世以來沒有記在被殺之羔羊生命冊上的人，都要拜牠。」', slot:'hand'},
+    bonusItem:{emoji:'👂', name:'應當聽的耳', desc:'「凡有耳的，就應當聽！」', slot:'hat'}
+  },
+  {
+    chapter:'REV14', sceneEmoji:'🌾', readTime:5,
+    guide:{
+      intro:'場景從獸轉回羔羊：與羔羊同站在錫安山上的人在寶座前唱新歌，三位天使飛在空中傳信息，然後是地上的收割。本章正中央有一句給疲累之人和思念之人的話——在主裡面而死的人有福了。',
+      outline:[
+        {nodes:'1-5節', text:'羔羊站在錫安山，同著祂的有額上寫著父名的十四萬四千人，他們在寶座前唱新歌。'},
+        {nodes:'6-12節', text:'三位天使相繼傳話——永遠的福音要傳給地上的人，巴比倫傾倒了，拜獸受印記的人要受痛苦；聖徒的忍耐就在此。'},
+        {nodes:'13節', text:'從天上有聲音說，在主裡面而死的人有福了；他們息了自己的勞苦，做工的果效也隨著他們。 ✦'},
+        {nodes:'14-20節', text:'地上的莊稼熟了，人子和天使動手收割，葡萄被丟進神忿怒的酒醡。'}
+      ],
+      focus:'今天聚焦在13節——息了勞苦，做工的果效也隨著他們。你的付出和你想念的人，神都記著。'
+    },
+    verse:'「我聽見從天上有聲音說：「你要寫下：從今以後，在主裡面而死的人有福了！」聖靈說：「是的，他們息了自己的勞苦，做工的果效也隨著他們。」」',
+    verseRef:'—— 啟示錄 14:13',
+    scene:'「在主裡面而死的人有福了。」如果你曾送別過在主裡的親人，或者曾覺得自己做的事沒有人看見——這節經文是為你寫的。勞苦會息，果效會跟上，沒有一樣白費。',
+    q:'讀到「息了自己的勞苦，做工的果效也隨著他們」，你第一個想到的是什麼？',
+    choices:[
+      {k:'A', text:'想到一位已經安息的人，心裡酸酸的'},
+      {k:'B', text:'想到自己——常覺得做的事沒人看見'},
+      {k:'C', text:'想到「息了」兩個字，我真的好想休息'},
+      {k:'D', text:'老實說我對死後的事有點怕，不太敢想'}
+    ],
+    responses:{
+      A:'那份酸是愛還在的證據，不用急著把它收起來。這節經文沒有說不要難過，它說的是——在主裡面的人有福了，做過的工神都收著。想念的時候可以這樣禱告：「神啊，我把我的想念放在祢那裡，也謝謝祢記得他做過的每一件事。」',
+      B:'「沒人看見」大概是付出裡最累的部分。但這節經文的邏輯是——果效不靠人看見才成立，它「隨著」做工的人，神親自記帳。今天做完該做的事，跟神說一句：「這件事祢看見了，這樣就夠。」',
+      C:'想休息不是不屬靈，是身體在說真話。「息了自己的勞苦」是神給的應許，而安息的原則是每週就能先領一點。這週找一段時間，什麼都不做，跟神說：「這段安靜，是祢給的。」',
+      D:'怕是誠實的，很多信了很久的人也不敢想。這節經文不是要你想通死亡，它只給一個方向：「在主裡面」——不管那一天什麼時候來，重點是在誰裡面。今天可以只禱告這句：「主啊，讓我活著在祢裡面，那一天也在祢裡面。」'
+    },
+    reflectionTitle:'沒有白費',
+    reflection:'啟示錄十四章在收割的異象之前，先安插了一句從天上來的話：在主裡面而死的人有福了。聖靈接著說，他們息了自己的勞苦，做工的果效也隨著他們。在神的帳本裡，勞苦有終點，果效不失蹤——無論是已經安息的人，還是仍在勞苦的你。\n\n你有想念的人嗎？或者有一件你默默做了很久的事？把名字或那件事寫下來，跟神說：這筆帳，我相信祢記得。',
+    baseItem:{emoji:'⚓', name:'守道的忍耐', desc:'「聖徒的忍耐就在此；他們是守神誡命和耶穌真道的。」', slot:'body'},
+    bonusItem:{emoji:'🎵', name:'寶座前的新歌', desc:'「他們在寶座前，並在四活物和眾長老前唱歌，彷彿是新歌；除了從地上買來的那十四萬四千人以外，沒有人能學這歌。」', slot:'hand'}
+  },
+  {
+    chapter:'REV15', sceneEmoji:'🌅', readTime:3,
+    guide:{
+      intro:'七碗倒下之前，約翰先看見一幕：那些勝了獸的人站在玻璃海上，拿著神的琴，在災難還沒有結束的時候就開口唱歌。這是連續九天裡最開闊的一章。',
+      outline:[
+        {nodes:'1-2節', text:'七位天使掌管末了的七災；那些勝了獸的人都站在玻璃海上，拿著神的琴。'},
+        {nodes:'3-4節', text:'他們唱神僕人摩西的歌和羔羊的歌，稱頌全能者的作為大哉奇哉，萬民都要來敬拜。 ✦'},
+        {nodes:'5-6節', text:'天上那存法櫃的殿開了，掌管七災的七位天使從殿中出來，穿著潔白光明的細麻衣。'},
+        {nodes:'7-8節', text:'七個金碗交給七位天使，殿中因神的榮耀充滿了煙，直等到七災完畢。'}
+      ],
+      focus:'今天聚焦在3到4節——他們是在七災之前唱的。有些歌，不必等事情過去才唱。'
+    },
+    verse:'「唱神僕人摩西的歌和羔羊的歌，說：主神－全能者啊，你的作為大哉！奇哉！萬世之王啊，你的道途義哉！誠哉！」',
+    verseRef:'—— 啟示錄 15:3',
+    scene:'注意這一幕的時間點：七碗還沒有倒，災難還沒有結束，但得勝的人已經站在玻璃海上唱歌了。他們唱的不是「都過去了真好」，是「祢的作為大哉奇哉」——在還沒結束的時候，先數算神是誰。',
+    q:'事情還沒好轉的時候，你有辦法先找到一件可以感謝的事嗎？',
+    choices:[
+      {k:'A', text:'可以——我練過，再難都找得到一兩件'},
+      {k:'B', text:'很難，事情沒解決我就是感謝不出來'},
+      {k:'C', text:'我會感謝，但心裡覺得有點假假的'},
+      {k:'D', text:'老實說我現在就卡在一件還沒好轉的事裡'}
+    ],
+    responses:{
+      A:'這是操練出來的肌肉，恭喜你有。玻璃海上的歌再往前一步——他們感謝的不是事情，是神自己：祢的作為，祢的道途。今天試著感謝一輪，只講神是誰，一件事都不提。',
+      B:'感謝不出來的時候，勉強擠出來的確沒有意思。可以換個入口：不感謝事情，只描述神——祂是全能者，祂的道途義哉誠哉。描述不需要心情好。今天就唸一次15章3節，當作借來的歌詞。',
+      C:'假假的感覺，代表你對神誠實，這比流利的感恩更值錢。玻璃海上的人唱的本來就是借來的歌——摩西的歌，是別人先寫的詞。你也可以先借：找一首詩歌跟著唱，唱到有一句變成你自己的。',
+      D:'那你就是這一章寫給的人。不用急著唱，可以先站著——他們也是「站在」玻璃海上。今天只做一件事：把你卡住的事講給神聽，講完加一句：「祢是全能者，這件事祢管得動。」'
+    },
+    reflectionTitle:'先唱的歌',
+    reflection:'啟示錄十五章的合唱安排在一個特別的時間點：七災將要倒下，一切還沒有結束。但勝了獸的人已經拿著神的琴，唱摩西的歌和羔羊的歌——那本是走出紅海之後回頭唱的歌，如今卻在風暴之前先唱了。信心有時候，就是提早唱歌。\n\n如果要你現在寫一句「還沒結束就先唱」的歌詞，你會寫什麼？寫下來，等事情真的過去的那天，回來看這一句。',
+    baseItem:{emoji:'🥋', name:'潔白光明的細麻衣', desc:'「那掌管七災的七位天使從殿中出來，穿著潔白光明的細麻衣，胸間束著金帶。」', slot:'body'},
+    bonusItem:{emoji:'🌐', name:'萬民的敬拜', desc:'「主啊，誰敢不敬畏你，不將榮耀歸與你的名呢？因為獨有你是聖的。萬民都要來在你面前敬拜，因你公義的作為已經顯出來了。」', slot:'bg'}
+  },
+  {
+    chapter:'REV16', sceneEmoji:'🥣', readTime:5,
+    guide:{
+      intro:'七碗接連倒下，是這卷書災難序列的最後一輪。就在第六碗與哈米吉多頓之間，經文忽然插進一句不屬於災難的話——看哪，我來像賊一樣，那警醒的人有福了。這也是連續九天災難章的最後一天。',
+      outline:[
+        {nodes:'1-7節', text:'七位天使奉命把碗倒下，地生毒瘡，海與江河變成血；天使與祭壇中的聲音稱義神的判斷。'},
+        {nodes:'8-11節', text:'第四碗叫日頭能用火烤人，第五碗使獸的國黑暗了；人因疼痛褻瀆神，並不悔改所行的。'},
+        {nodes:'12-16節', text:'第六碗倒在幼發拉底大河，鬼魔的靈叫眾王聚集在哈米吉多頓；中間插進一句應許——看哪我來像賊一樣，那警醒看守衣服的有福了。 ✦'},
+        {nodes:'17-21節', text:'第七碗倒在空中，寶座有大聲音說成了；大地震與大雹子臨到，人仍舊褻瀆神。'}
+      ],
+      focus:'今天聚焦在15節——混亂越大，主越提醒你只管一件事：警醒，看守你自己的衣服。'
+    },
+    verse:'「看哪，我來像賊一樣。那警醒、看守衣服、免得赤身而行、叫人見他羞恥的有福了！」',
+    verseRef:'—— 啟示錄 16:15',
+    scene:'這一章很吵：碗一個接一個倒下，江河變血，眾王聚集，地大震動。但正中間插著一句安靜的話，像有人在混亂裡拍了拍你的肩膀——看哪，我來像賊一樣，那警醒的人有福了。世界的亂你管不了，你能顧的是自己有沒有醒著。',
+    q:'生活很亂的時候，你最容易先丟掉的是哪一樣？',
+    choices:[
+      {k:'A', text:'靈修和禱告——一忙就先砍這個'},
+      {k:'B', text:'睡眠和休息，整個人越轉越快停不下來'},
+      {k:'C', text:'耐性——對最親近的人先失去溫柔'},
+      {k:'D', text:'老實說是盼望，亂久了會覺得就這樣了'}
+    ],
+    responses:{
+      A:'你不是一個人，大部分人的優先順序都是這樣掉的。本節說的警醒剛好相反——越亂，越要有一個地方是醒著的。不用一次補全部，今天先撿回五分鐘：一句禱告，一節經文，就算醒過了。',
+      B:'停不下來的時候，身體會先垮，然後才是心。警醒不是撐著不睡，是知道自己在哪裡。今晚睡前留一分鐘，只說：「主啊，今天到這裡，剩下的祢看著。」然後安心去睡。',
+      C:'對最親的人失去耐性，然後又自責——這個循環很多人懂。看守衣服的意思是顧好自己的樣子，包括說出口的話。下次快爆的時候，先離開現場十秒，說：「主啊，幫我把這句話收回去。」',
+      D:'盼望被磨掉是最深的損耗，謝謝你說出來。這節應許正是給亂到麻木的人——主會來，在你沒想到的時候。今天不用擠出盼望，只要留一句：「主啊，祢說祢會來，我把這句留著。」'
+    },
+    reflectionTitle:'醒著等',
+    reflection:'啟示錄十六章是七碗倒盡的一章，混亂寫到頂點，結尾是「成了」。但神在第六碗和大戰之間，特意留了一句給讀的人：看哪，我來像賊一樣，那警醒的人有福了。災難的段落走到這裡告一段落，主留下的功課只有一個——醒著等祂。\n\n走完連續九天的災難段落，你心裡留下最深的一句是哪句？把它寫下來——後面的路還沒走完，讓這句話陪你繼續走。',
+    baseItem:{emoji:'🔔', name:'祭壇中的聲音', desc:'「我又聽見祭壇中有聲音說：是的，主神－全能者啊，你的判斷義哉！誠哉！」', slot:'hand'},
+    bonusItem:{emoji:'🏁', name:'成了的宣告', desc:'「第七位天使把碗倒在空中，就有大聲音從殿中的寶座上出來，說：「成了！」」', slot:'bg'}
+  },
+  {
+    chapter:'REV17', sceneEmoji:'🌃', readTime:4,
+    guide:{
+      intro:'約翰被帶去看一個異象：大淫婦坐在眾水上，騎著朱紅色的獸。這個異象所指為何，歷來有不同的理解；但天使把結局說得很清楚——與羔羊爭戰的，羔羊必勝過他們。',
+      outline:[
+        {nodes:'1-6節', text:'約翰被帶到曠野，看見大淫婦坐在眾水上，騎著七頭十角的獸，並且喝醉了聖徒的血。'},
+        {nodes:'7-11節', text:'天使解明獸的奧祕——先前有，如今沒有，將要從無底坑裡上來，又要歸於沉淪。'},
+        {nodes:'12-14節', text:'十角就是十王，他們同心把能力權柄給那獸，與羔羊爭戰；羔羊必勝過他們，同著羔羊的也必得勝。 ✦'},
+        {nodes:'15-18節', text:'淫婦坐的眾水就是多民多國；十角與獸必恨這淫婦；神使諸王同心合意，遵行祂的旨意，直到神的話都應驗了。'}
+      ],
+      focus:'今天聚焦在12到14節——你不是靠自己贏，你是站在必定得勝的羔羊那一邊。'
+    },
+    verse:'「他們與羔羊爭戰，羔羊必勝過他們，因為羔羊是萬主之主、萬王之王。同著羔羊的，就是蒙召、被選、有忠心的，也必得勝。」',
+    verseRef:'—— 啟示錄 17:14',
+    scene:'這一章的畫面很壓迫：淫婦坐在眾水上，獸有七頭十角，十王同心把權柄交給獸——看起來那一邊聲勢浩大。而羔羊這一邊呢？經文只說了一句：羔羊必勝過他們。你有沒有過那種感覺——自己站的立場，人少，聲音小，很沒把握。',
+    q:'堅持信仰立場卻覺得自己這一邊人很少的時候，你通常是什麼狀態？',
+    choices:[
+      {k:'A', text:'還是站得穩，因為我知道結局在誰手裡'},
+      {k:'B', text:'會動搖，尤其看到對面聲勢浩大的時候'},
+      {k:'C', text:'我會安靜下來，不表態，等風頭過去'},
+      {k:'D', text:'老實說我懷疑過——人這麼少，是不是我們錯了'}
+    ],
+    responses:{
+      A:'這份穩不是來自你的個性，是來自你看見的結局——羔羊必勝過他們。穩的人還有一個任務：站在還在搖的人旁邊。今天想一個正在動搖的人，為他禱告一句。',
+      B:'動搖不丟臉，聲勢本來就會影響人。但注意這節的排序——勝負不是比人數，是看誰同著羔羊。下次動搖的時候可以默唸：「我這一邊有羔羊，夠了。」',
+      C:'安靜有時是智慧，不是每一仗都要當場打。但安靜跟消失不一樣——你心裡那個立場還在就好。今天跟神說：「我沒有大聲，但我沒有離開祢那一邊。」',
+      D:'「人少是不是就是錯了」——這個懷疑值得認真對待，因為它誠實。這章的回答是：對錯不由人數決定，由羔羊決定。你可以帶著懷疑禱告：「主啊，如果祢真的必勝，求祢讓我站得住。」'
+    },
+    reflectionTitle:'站哪一邊',
+    reflection:'啟示錄十七章給了一個對比：一邊是坐在眾水上的淫婦和十王同心的獸，聲勢浩大；另一邊是羔羊，和同著羔羊的人。經文沒有說這一邊人多，只說了結局——羔羊必勝過他們，因為羔羊是萬主之主，萬王之王。\n\n你的生活裡，哪一個場合最讓你覺得「我這一邊人好少」？把那個場合寫下來，也寫下你為什麼還站在這一邊。',
+    baseItem:{emoji:'🖋️', name:'必應驗的話', desc:'「因為神使諸王同心合意，遵行他的旨意，把自己的國給那獸，直等到神的話都應驗了。」', slot:'hand'},
+    bonusItem:{emoji:'🏜️', name:'曠野裡的看見', desc:'「我被聖靈感動，天使帶我到曠野去，我就看見一個女人騎在朱紅色的獸上；那獸有七頭十角，遍體有褻瀆的名號。」', slot:'bg'}
+  },
+  {
+    chapter:'REV18', sceneEmoji:'🏚️', readTime:5,
+    guide:{
+      intro:'有大權柄的天使宣告巴比倫大城傾倒了。地上的君王和客商為她哀哭，天上卻呼喚神的民從城中出來，並因神的伸冤歡喜。傾倒與哀哭之間，神先開了一扇門。',
+      outline:[
+        {nodes:'1-8節', text:'有大權柄的天使宣告：巴比倫大城傾倒了！天上有聲音呼喚：我的民哪，你們要從那城出來——她的罪惡滔天，神已經想起來了。 ✦'},
+        {nodes:'9-19節', text:'地上的君王與客商與船主為她哭泣哀號——一時之間，這麼大的富厚就歸於無有了。'},
+        {nodes:'20節', text:'天上的呼喊轉為歡喜——神已經在巴比倫身上，為聖徒伸了冤。'},
+        {nodes:'21-24節', text:'大力的天使把大磨石扔在海裡：巴比倫必這樣猛力地被扔下去，決不能再見了；先知和聖徒的血都在這城裡看見了。'}
+      ],
+      focus:'今天聚焦在1到8節那聲呼喚——我的民哪，你們要從那城出來。這是保護，不是趕逐。'
+    },
+    verse:'「我又聽見從天上有聲音說：我的民哪，你們要從那城出來，免得與她一同有罪，受她所受的災殃；因她的罪惡滔天；她的不義，神已經想起來了。」',
+    verseRef:'—— 啟示錄 18:4-5',
+    scene:'「我的民哪，你們要從那城出來。」在整章的傾倒和哀哭之前，神先做了一件事：把祂的民叫出來。你的生活裡可能也有一座「城」——一段關係，一個習慣，一種生活方式——你心裡其實知道該離開，卻一直沒有走。',
+    q:'有沒有一件你心裡知道該離開，卻一直沒有走的事？',
+    choices:[
+      {k:'A', text:'有，而且我正在慢慢往外走'},
+      {k:'B', text:'有，但我捨不得——那裡面有我很多年的投入'},
+      {k:'C', text:'有，可是我不知道走出去之後要去哪裡'},
+      {k:'D', text:'老實說有，但我現在還做不到，也不想被逼'}
+    ],
+    responses:{
+      A:'正在走就是走了，方向比速度重要。18章4節的呼喚沒有規定時速，只給了方向。累的時候記得：這聲「出來」是保護你的聲音，不是催促你的鞭子。今天為自己的下一小步禱告。',
+      B:'捨不得是真的，因為你投入的年日是真的。神知道叫人離開一座住慣的城有多難——所以祂用的稱呼是「我的民哪」，是帶著關係說的。今天可以先誠實地說：「主啊，我捨不得，祢知道。」',
+      C:'「出去之後去哪裡」是最實際的問題，不確定的前方比熟悉的城更可怕。可以把順序倒過來：不是先看清路才走，是先聽清楚是誰在叫你。今天只求一件事：「祢叫我出來，就請祢接住我。」',
+      D:'謝謝你連「不想被逼」都說了——這章也沒有要逼你。神的呼喚跟人的施壓不一樣，祂說完就在那裡等。做不到的今天，可以只做一件事：把這件事原原本本跟神說一次，說完就好。'
+    },
+    reflectionTitle:'出來',
+    reflection:'巴比倫傾倒的宣告震動整章，但神在審判臨到之前，先發出了一聲呼喚：我的民哪，你們要從那城出來。這個順序本身就是福音——神不是等人跟城一起倒，祂先開了門，先叫了名字。離開，是祂給的保護。\n\n你心裡那座該離開的城，今天有沒有清楚一點？不用今天就搬完，先寫下它的名字，和你願意跨出的第一小步。',
+    baseItem:{emoji:'🎊', name:'伸了冤的歡喜', desc:'「天哪，眾聖徒、眾使徒、眾先知啊，你們都要因她歡喜，因為神已經在她身上伸了你們的冤。」', slot:'hat'},
+    bonusItem:{emoji:'🌠', name:'發光的榮耀', desc:'「此後，我看見另有一位有大權柄的天使從天降下，地就因他的榮耀發光。」', slot:'bg'}
+  },
+  {
+    chapter:'REV19', sceneEmoji:'💒', readTime:5,
+    guide:{
+      intro:'天上響起四次哈利路亞，羔羊婚娶的時候到了。接著天開了，騎白馬者出現，祂的名稱為神之道；獸與假先知被擒，被扔在火湖裡。婚筵與爭戰，同在一章。',
+      outline:[
+        {nodes:'1-5節', text:'天上群眾大聲說哈利路亞，因為神的判斷是真實公義的；寶座有聲音呼召眾僕人都要讚美神。'},
+        {nodes:'6-10節', text:'羔羊婚娶的時候到了，新婦也預備好了；凡被請赴羔羊之婚筵的有福了——這是神真實的話。 ✦'},
+        {nodes:'11-16節', text:'天開了，騎白馬者出現，稱為誠信真實，名稱為神之道；祂是萬王之王，萬主之主。'},
+        {nodes:'17-21節', text:'獸與假先知被擒拿，被扔在燒著硫磺的火湖裡；其餘的被騎白馬者口中的劍殺了。'}
+      ],
+      focus:'今天聚焦在6到10節——婚筵的請帖不是你賺來的，是有人請你。'
+    },
+    verse:'「天使吩咐我說：「你要寫上：凡被請赴羔羊之婚筵的有福了！」又對我說：「這是神真實的話。」」',
+    verseRef:'—— 啟示錄 19:9',
+    scene:'前一章的哀哭還沒散去——巴比倫倒了，君王和客商在遠處痛哭。可是鏡頭一轉到天上，響起的卻是另一種聲音：哈利路亞！同一個事件，地上聽是輓歌，天上聽是婚禮的前奏。然後天使說了一句給你的話：凡被請赴羔羊之婚筵的有福了。',
+    q:'「被請赴宴」——你有沒有過覺得自己不太夠格出席什麼場合的經驗？',
+    choices:[
+      {k:'A', text:'常常有，我總覺得自己配不上好的東西'},
+      {k:'B', text:'偶爾有，但我學著提醒自己：是主人請我來的'},
+      {k:'C', text:'沒什麼感覺，宴席的比喻對我有點遠'},
+      {k:'D', text:'老實說我連神的筵席都懷疑——真的有我的位子嗎'}
+    ],
+    responses:{
+      A:'「配不上」這個感覺很重，很多人一輩子背著它。但請帖的邏輯剛好相反——宴席從來不是配得的人賺來的，是主人決定請誰。你的名字是被寫上去的，不是你自己擠上去的。今天試著說一次：「謝謝祢請我。」',
+      B:'這個提醒是對的方向——目光從「我夠不夠格」移到「是誰請的」。下次那個不配的感覺又上來，可以再說一次：「是羔羊請我來的，我就進來。」',
+      C:'比喻有距離感沒關係，換個說法：有人特地留了你的位子。信仰有時候不是感動，是先知道這個事實。今天可以只記住一句——經文說，那是「神真實的話」。',
+      D:'這個懷疑問得誠實。19章9節特地補了一句：「這是神真實的話。」——好像天使早知道有人會不敢信。你不用先說服自己，可以把懷疑帶進禱告：「如果那裡真的有我的位子，求祢讓我知道。」'
+    },
+    reflectionTitle:'有你的位子',
+    reflection:'哈利路亞在啟示錄十九章響起四次，慶祝的不只是巴比倫的結局，更是婚筵的開始——羔羊婚娶的時候到了。天使吩咐約翰寫下的那句話，是給每一個讀的人的：凡被請赴羔羊之婚筵的有福了，這是神真實的話。\n\n「被請」和「夠格」是兩回事。今天把你心裡那句「我配不上」寫下來，然後在旁邊寫上19章9節的那句話，看著它們放在一起。',
+    baseItem:{emoji:'🎼', name:'眾水般的頌聲', desc:'「我聽見好像群眾的聲音，眾水的聲音，大雷的聲音，說：哈利路亞！因為主－我們的神、全能者作王了。」', slot:'bg'},
+    bonusItem:{emoji:'📣', name:'讚美的呼召', desc:'「有聲音從寶座出來說：神的眾僕人哪，凡敬畏他的，無論大小，都要讚美我們的神！」', slot:'hat'}
+  },
+  {
+    chapter:'REV20', sceneEmoji:'📖', readTime:4,
+    guide:{
+      intro:'這是全卷最沉重的一章：龍被捆綁一千年，白色大寶座的審判，死亡和陰間被扔在火湖裡。但章首先留了一句話——在頭一次復活有分的有福了。',
+      outline:[
+        {nodes:'1-6節', text:'天使把那龍捆綁一千年——這一千年歷來有不同的理解；為耶穌作見證的人活了，與基督一同作王；在頭一次復活有分的有福了。 ✦'},
+        {nodes:'7-10節', text:'一千年完了，撒但被釋放出來迷惑列國，聚集爭戰；那迷惑他們的魔鬼被扔在硫磺的火湖裡。'},
+        {nodes:'11-13節', text:'白色的大寶座出現，天地都逃避；死了的人無論大小都站在寶座前，案卷展開了，另有生命冊展開，他們都照各人所行的受審判。'},
+        {nodes:'14-15節', text:'死亡和陰間也被扔在火湖裡，這是第二次的死；若有人名字沒記在生命冊上，他就被扔在火湖裡——名字記在生命冊上的，不在此列。'}
+      ],
+      focus:'今天聚焦在1到6節——在全卷最重的一章裡，先站進「有福了」的那句話。'
+    },
+    verse:'「在頭一次復活有分的有福了，聖潔了！第二次的死在他們身上沒有權柄。他們必作神和基督的祭司，並要與基督一同作王一千年。」',
+    verseRef:'—— 啟示錄 20:6',
+    scene:'這一章有全卷最重的畫面：白色的大寶座，案卷展開。但同一章也有一句常被跳過的話：「在頭一次復活有分的有福了，聖潔了！」——「有分」這兩個字很溫柔，意思是：那裡面有你的一份。你有沒有過以為自己已經沒份了，後來發現還有的經驗？',
+    q:'回想一次「我以為我已經沒機會了，結果還有」的經驗——那時候你的感覺是？',
+    choices:[
+      {k:'A', text:'鬆了好大一口氣，像被撈回來一樣'},
+      {k:'B', text:'不敢相信，反覆確認了好幾次才敢接受'},
+      {k:'C', text:'我好像沒有這種經驗——錯過的就是錯過了'},
+      {k:'D', text:'老實說我現在正覺得自己沒份，對神的恩典也是'}
+    ],
+    responses:{
+      A:'那口氣鬆下來的感覺，值得記住——因為那就是「有分」兩個字的滋味。20章6節說的福分不是抽籤抽中的，是神定意要給的。今天為那次被撈回來的經驗，補一句謝謝。',
+      B:'反覆確認才敢接受——這很像人面對恩典的樣子，好東西反而不敢信。神知道，所以祂把話說得很滿：「有福了，聖潔了！」連用兩個驚嘆。你可以慢慢確認，祂不會收回。',
+      C:'「錯過的就是錯過了」——人生很多事確實如此，這是真實的痛。但這章想給你看一個例外：在神那裡有一個「有分」的名單，那份名單不看你錯過了什麼。今天可以問一句：「神啊，那裡面有我的份嗎？」',
+      D:'「正覺得自己沒份」——謝謝你說出來，這句話很重。請聽清楚這章的排序：先說「有分的有福了」，才說審判。神先發的是邀請，不是判決。今天可以只禱告一句：「主啊，我想要有份，求祢把我算進去。」'
+    },
+    reflectionTitle:'有你的份',
+    reflection:'啟示錄二十章莊嚴到讓人屏息：白色的大寶座，展開的案卷，和生命冊。但在這一切之前，經文先放了一句溫柔的話——在頭一次復活有分的有福了，聖潔了。「有分」的意思，是神的救恩裡面有一份是你的；生命冊的重點，從來是名字記在上面的人。\n\n你有沒有哪件事，一直覺得自己「沒份」——被愛的份，被赦免的份，重新開始的份？把它寫下來，然後跟神要：「這一份，我想要。」',
+    baseItem:{emoji:'⚜️', name:'與基督同作王', desc:'「我又看見幾個寶座，也有坐在上面的，並有審判的權柄賜給他們。我又看見那些因為給耶穌作見證，並為神之道被斬者的靈魂，和那沒有拜過獸與獸像，也沒有在額上和手上受過他印記之人的靈魂，他們都復活了，與基督一同作王一千年。」', slot:'hat'},
+    bonusItem:{emoji:'⛓️', name:'天使手中的大鍊子', desc:'「我又看見一位天使從天降下，手裡拿著無底坑的鑰匙和一條大鍊子。」', slot:'hand'}
+  },
+  {
+    chapter:'REV21', sceneEmoji:'🌤️', readTime:5,
+    guide:{
+      intro:'審判過後，約翰看見新天新地：神的帳幕在人間，神要親自與人同住，擦去他們一切的眼淚。接著天使帶他看那從天而降的聖城新耶路撒冷。',
+      outline:[
+        {nodes:'1-4節', text:'新天新地出現，海也不再有了；神的帳幕在人間，祂要與人同住，親手擦去他們一切的眼淚。 ✦'},
+        {nodes:'5-8節', text:'坐寶座的說：看哪，我將一切都更新了！生命泉的水要白白賜給口渴的人；但膽怯的與不信的與行可憎之事的，他們的分是在火湖裡。'},
+        {nodes:'9-21節', text:'天使帶約翰看聖城新耶路撒冷：有十二個門與十二根基，城是精金，牆是碧玉，光輝如同極貴的寶石。'},
+        {nodes:'22-27節', text:'城內不用日月光照，因神的榮耀光照，羔羊為城的燈；凡不潔淨的總不得進，只有名字寫在羔羊生命冊上的才得進去。'}
+      ],
+      focus:'今天聚焦在1到4節——神不是遠遠擦掉問題，是親自搬到人間，擦去眼淚。'
+    },
+    verse:'「我聽見有大聲音從寶座出來說：「看哪，神的帳幕在人間。他要與人同住，他們要作他的子民。神要親自與他們同在，作他們的神。神要擦去他們一切的眼淚；不再有死亡，也不再有悲哀、哭號、疼痛，因為以前的事都過去了。」」',
+    verseRef:'—— 啟示錄 21:3-4',
+    scene:'走過二十章的震動，這一章的第一個畫面不是城，是神自己搬了家：「看哪，神的帳幕在人間。」祂要與人同住，然後親手做一件事——擦去他們一切的眼淚。不是遠端把問題刪掉，是靠得夠近，近到擦得到你的臉。',
+    q:'你有沒有一種眼淚，是你希望有一天真的可以不用再流的？',
+    choices:[
+      {k:'A', text:'有，是為一個人流的'},
+      {k:'B', text:'有，是為一件過不去的事流的'},
+      {k:'C', text:'我很久沒哭了，眼淚好像被收起來了'},
+      {k:'D', text:'老實說我怕這個應許太美，不敢當真'}
+    ],
+    responses:{
+      A:'為人流的眼淚最長，因為愛還在。21章4節沒有說「現在就別哭了」——它說的是有一天，神要親手擦去。在那天之前，你的眼淚可以繼續流，也可以繼續愛。今天為那個人禱告，哭著禱告也可以。',
+      B:'過不去的事帶著的眼淚，常常混著不甘心。這個應許給的不是「快點過去」，是「以前的事都過去了」的那一天真的存在。今天不用勉強放下，可以說：「主啊，這件事我還在痛，我等祢擦的那一天。」',
+      C:'眼淚被收起來，有時是因為流過太多次沒人接。但21章3節先說了「神的帳幕在人間」——祂搬過來，就是要接的。今天不用逼自己哭，可以只說：「神啊，如果祢真的在，我的眼淚給祢保管。」',
+      D:'怕太美不敢當真——這個反應很人性。所以21章5節特地補了一句：「這些話是可信的，是真實的。」神知道人不敢信，先把保證寫上了。你可以先當它是真的活一天，看看有什麼不一樣。'
+    },
+    reflectionTitle:'擦眼淚的手',
+    reflection:'啟示錄二十一章的安慰不是一個地方，是一個動作：神要擦去他們一切的眼淚。擦眼淚需要靠得很近——所以這章先說神的帳幕在人間，祂要與人同住。不再有死亡，也不再有悲哀，因為那位擦眼淚的，自己搬到了流眼淚的人中間。\n\n如果有一天神真的伸手替你擦眼淚，你希望祂先擦掉哪一滴？把那滴眼淚的名字寫下來——它已經被記住了。',
+    baseItem:{emoji:'💫', name:'一切都更新', desc:'「坐寶座的說：「看哪，我將一切都更新了！」又說：「你要寫上；因這些話是可信的，是真實的。」」', slot:'bg'},
+    bonusItem:{emoji:'🏅', name:'兒子的名分', desc:'「得勝的，必承受這些為業：我要作他的神，他要作我的兒子。」', slot:'body'}
+  },
+  {
+    chapter:'REV22', sceneEmoji:'⛲', readTime:5,
+    guide:{
+      intro:'全卷的最後一章：生命水的河從神和羔羊的寶座流出來，不再有黑夜。主說「我必快來」，聖靈和新婦都說「來」——啟示錄的結尾，是一個敞開的邀請。',
+      outline:[
+        {nodes:'1-5節', text:'生命水的河明亮如水晶，從神和羔羊的寶座流出來；不再有咒詛，不再有黑夜，主神要光照他們直到永遠。'},
+        {nodes:'6-11節', text:'主說：看哪，我必快來！遵守這書上預言的有福了；日期近了，不可封了這書上的話。'},
+        {nodes:'12-17節', text:'我是阿拉法，我是俄梅戛；聖靈和新婦都說來，聽見的人也該說來——口渴的人也當來，願意的都可以白白取生命的水喝。 ✦'},
+        {nodes:'18-21節', text:'書末的鄭重警告——這書上的預言不可加添也不可刪去；最後是禱告與祝福：主耶穌啊，我願祢來。'}
+      ],
+      focus:'今天聚焦在12到17節——走到全卷最後，留給你的是一句邀請：願意的，都可以來。'
+    },
+    verse:'「聖靈和新婦都說：「來！」聽見的人也該說：「來！」口渴的人也當來；願意的，都可以白白取生命的水喝。」',
+    verseRef:'—— 啟示錄 22:17',
+    scene:'全卷的最後一章，畫面回到水邊：生命水的河，明亮如水晶，從寶座流出來。然後是全書最後的邀請——聖靈和新婦都說「來」，口渴的，願意的，都可以白白取生命的水喝。從第一章的「不要懼怕」走到這裡，剩下的只有一句話要說。',
+    q:'陪著啟示錄走到最後一天——現在你心裡最想跟主說的一句話是什麼？',
+    choices:[
+      {k:'A', text:'謝謝祢——這一卷把我嚇過，也把我接住過'},
+      {k:'B', text:'主啊，我還有好多不懂的地方'},
+      {k:'C', text:'求祢幫我把讀過的，變成活出來的'},
+      {k:'D', text:'老實說我最想說的就是那句：主耶穌啊，我願祢來'}
+    ],
+    responses:{
+      A:'又怕又被接住——這大概是讀啟示錄最誠實的心得。這卷書從來不是要嚇人，是要人在震動裡看見寶座沒有空著。把這句謝謝好好說完，今天的靈修就完整了。',
+      B:'不懂的地方很多是正常的，讀了兩千年的教會也還在讀。這卷書的結尾不是考卷，是邀請——不懂的人也可以來喝水。把最不懂的那一段記下來，帶著它繼續走，答案有時候在路上。',
+      C:'這個禱告神最喜歡接。可以從最小的開始：這段日子裡哪一句經文最戳你？把它寫在看得到的地方，活它一個禮拜。',
+      D:'那你已經抵達這卷書的終點了——因為全書的最後一個禱告就是這句。教會兩千年來都這樣禱告，今天你的聲音也加進去了。就這樣說：「主耶穌啊，我願祢來。」'
+    },
+    reflectionTitle:'我願祢來',
+    reflection:'啟示錄的第一章，主用右手按著仆倒的約翰說「不要懼怕」；最後一章，聖靈和新婦說「來」，口渴的人白白喝生命的水。整卷書繞了一大圈——七印，七號，七碗，獸與大城——最後停在一個敞開的邀請上。讀完的人會發現，全書真正的主角不是災難，是那位一直說「我必快來」的主。\n\n二十二章走完了。寫下你最想留住的一句經文，然後用全書最後的禱告收尾：主耶穌啊，我願祢來。',
+    baseItem:{emoji:'🌞', name:'不再有黑夜', desc:'「不再有黑夜；他們也不用燈光、日光，因為主神要光照他們。他們要作王，直到永永遠遠。」', slot:'bg'},
+    bonusItem:{emoji:'📿', name:'我願祢來', desc:'「證明這事的說：「是了，我必快來！」阿們！主耶穌啊，我願你來！」', slot:'hand'}
+  }
+];
+
+// ══ 內容一致性自檢（issue #2）════════════════════════════════════
+// 五張表（SCHEDULE / BIBLE_LINKS / BOOK_INTRO / CHAPTERS / BOOKS）以前靠人腦
+// 保持一致，對不上時是玩家先發現。這支自檢在 content.js 載入完立刻跑：
+//   結構性錯誤（章節缺內容、章節不屬於任何書卷）→ console.error
+//   內容待補（缺書卷導讀、totalChapters 過期）    → console.warn
+// 只印在 console、不影響玩家畫面；結果掛在 window.CONTENT_VALIDATION，
+// 新增章節存檔後開 dev preview 的 console 看一眼，就等於過了一次驗收。
+function validateContent() {
+  const errors = [];
+  const warns = [];
+  const chapterSet = new Set(CHAPTERS.map(c => String(c.chapter)));
+
+  // 1) BOOKS 的每個章節都要有內容；同一章不能出現在兩本書
+  const entrySet = new Set();
+  BOOKS.forEach(b => b.entries.forEach(e => {
+    const k = String(e);
+    if (entrySet.has(k)) errors.push(`BOOKS：章節 ${k} 重複出現（${b.key}）`);
+    entrySet.add(k);
+    if (!chapterSet.has(k)) errors.push(`BOOKS：${b.name} 的 ${k} 在 CHAPTERS 找不到內容`);
+  }));
+
+  // 2) CHAPTERS 的每一章都要屬於某本書（孤兒章節玩家永遠點不到書卷詳情）
+  chapterSet.forEach(k => {
+    if (!entrySet.has(k)) errors.push(`CHAPTERS：章節 ${k} 不屬於任何 BOOKS 書卷`);
+  });
+
+  // 3) SCHEDULE 排了的章節都要有內容
+  Object.keys(SCHEDULE).forEach(d => SCHEDULE[d].forEach(ch => {
+    if (!chapterSet.has(String(ch))) errors.push(`SCHEDULE：${d} 排的 ${ch} 在 CHAPTERS 找不到內容`);
+  }));
+
+  // 4) 每一章都要有經文連結
+  chapterSet.forEach(k => {
+    if (!BIBLE_LINKS[k]) errors.push(`BIBLE_LINKS：章節 ${k} 缺經文連結`);
+  });
+
+  // 5) 每本書都該有導讀（缺的話書卷詳情頁會顯示「待補」）
+  BOOKS.forEach(b => {
+    if (!BOOK_INTRO[b.key]) warns.push(`BOOK_INTRO：${b.name}（${b.key}）缺書卷導讀`);
+  });
+
+  // 6) totalChapters 與 entries 數量對不上（mergedActive:false 時分母走 entries，
+  //    totalChapters 只是過期標籤，但留著會誤導下一個維護的人）
+  BOOKS.forEach(b => {
+    if (b.totalChapters !== b.entries.length) {
+      warns.push(`BOOKS：${b.name} totalChapters=${b.totalChapters} 但 entries 有 ${b.entries.length} 章`);
+    }
+  });
+
+  if (errors.length) {
+    console.error(`🚨 內容自檢：${errors.length} 條結構錯誤（新章節上線前必修）`);
+    errors.forEach(m => console.error('  ✗ ' + m));
+  }
+  if (warns.length) {
+    console.warn(`📋 內容自檢：${warns.length} 條待補（不擋上線，找內容窗補）`);
+    warns.forEach(m => console.warn('  · ' + m));
+  }
+  if (!errors.length && !warns.length) console.log('✅ 內容自檢通過：五張表一致');
+  return { errors, warns };
+}
+if (typeof window !== 'undefined') window.CONTENT_VALIDATION = validateContent();
+else validateContent(); // node 環境（驗證腳本）直接跑
