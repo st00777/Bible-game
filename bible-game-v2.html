@@ -3271,6 +3271,32 @@ async function completeDevotional() {
   }
 }
 
+// 完成計分的純函式（issue #4）：只讀參數、不碰 DOM / Firestore / 全域狀態。
+// 回傳「要套用的變更」，由 finalizeCompletion 負責套用與 I/O。
+// 之後調 xp 公式、改 streak 規則，直接對這支函式寫測試即可，不用真機跑完整靈修。
+function computeCompletion({ data, chapter, hasBonus, gender, xp, level, completed, dayChapters, today }) {
+  const newItem = { ...resolveItem(data.baseItem, gender), chapter };
+  const bonusItem = hasBonus ? { ...resolveItem(data.bonusItem, gender), chapter } : null;
+  // xp / 升級：有默想 +35、無 +20，封頂 100 即升級並回到 10
+  let nextXp = Math.min(xp + (hasBonus ? 35 : 20), 100);
+  let nextLevel = level;
+  if (nextXp >= 100) { nextLevel++; nextXp = 10; }
+  // streak：合併日同日內若已完成另一章，第二章不重複 +streak（今日仍算一次靈修）
+  const sameDayOtherChapters = dayChapters.filter(c => c !== chapter);
+  const sameDayAlreadyDoneToday = sameDayOtherChapters.some(c => completed[chapterKey(c)] === today);
+  // 合併日完成第二章判定：本章 + 同日其他章全完成 + 該日章數 >= 2
+  const completedAfter = { ...completed, [chapterKey(chapter)]: today };
+  const isMergedDayAllDone = dayChapters.length >= 2
+    && dayChapters.every(c => completedAfter[chapterKey(c)]);
+  return {
+    newItem, bonusItem,
+    xp: nextXp, level: nextLevel,
+    streakInc: sameDayAlreadyDoneToday ? 0 : 1,
+    completedKey: chapterKey(chapter),
+    isMergedDayAllDone,
+  };
+}
+
 // 領裝備治本：完成那塊統一在此。由「綠鈕（有默想）」或「completeDevotional 當下（沒默想）」呼叫。
 // 完成 = 領取那一刻；沒領 = 沒完成、下次可重做（不會留下「入袋了但沒領」的中間狀態）。
 async function finalizeCompletion() {
@@ -3278,14 +3304,21 @@ async function finalizeCompletion() {
 
   const reflText = document.getElementById('refl-text').value.trim();
   const hasBonus = reflText.length > 0;
-  // ===== 以下為原 completeDevotional 完成區塊，逐行原封搬入（streak / 合併日 / xp / completed 一行未改）=====
-  // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
   const data = getChapter(selectedChapter);
-  const gender = state.gender || 'n';
-  const newItem = {...resolveItem(data.baseItem, gender), chapter: selectedChapter};
-  const bonusItem = hasBonus ? {...resolveItem(data.bonusItem, gender), chapter: selectedChapter} : null;
 
-  // Apply to avatar slots
+  // 計分交給純函式 computeCompletion，這裡只負責套用結果與 I/O（issue #4）
+  const myScheduleDate = findScheduleDate(selectedChapter);
+  const today = todayStr();
+  const r = computeCompletion({
+    data, chapter: selectedChapter, hasBonus,
+    gender: state.gender || 'n',
+    xp: state.xp, level: state.level,
+    completed: state.completed,
+    dayChapters: myScheduleDate ? getScheduleChapters(myScheduleDate) : [],
+    today,
+  });
+
+  // 套用（順序與原邏輯相同：裝上 avatar → 入袋 → xp/等級 → streak → completed）
   const applyItem = (item) => {
     if (!item) return;
     if (item.slot==='hand') state.item = item.emoji;
@@ -3293,26 +3326,15 @@ async function finalizeCompletion() {
     if (item.slot==='body') state.body = item.emoji;
     if (item.slot==='bg')   state.bg   = item.emoji;
   };
-  applyItem(newItem);
-  applyItem(bonusItem);
-
-  state.items.push(newItem);
-  if (bonusItem) state.items.push(bonusItem);
-  state.xp = Math.min(state.xp + (hasBonus?35:20), 100);
-  if (state.xp >= 100) { state.level++; state.xp = 10; }
-  // streak 計算：合併日同日內若已完成另一章，第二章不重複 +streak（今日仍算一次靈修）
-  const myScheduleDate = findScheduleDate(selectedChapter);
-  const sameDayOtherChapters = myScheduleDate
-    ? getScheduleChapters(myScheduleDate).filter(c => c !== selectedChapter)
-    : [];
-  const today = todayStr();
-  const sameDayAlreadyDoneToday = sameDayOtherChapters.some(c => state.completed[chapterKey(c)] === today);
-  if (!sameDayAlreadyDoneToday) state.streak++;
-  state.completed[chapterKey(selectedChapter)] = today;
-  // 合併日完成第二章判定：本章 + 同日其他章全完成 + 該日章數 >= 2
-  const isMergedDayAllDone = myScheduleDate
-    && getScheduleChapters(myScheduleDate).length >= 2
-    && getScheduleChapters(myScheduleDate).every(c => state.completed[chapterKey(c)]);
+  applyItem(r.newItem);
+  applyItem(r.bonusItem);
+  state.items.push(r.newItem);
+  if (r.bonusItem) state.items.push(r.bonusItem);
+  state.xp = r.xp;
+  state.level = r.level;
+  state.streak += r.streakInc;
+  state.completed[r.completedKey] = today;
+  const newItem = r.newItem, bonusItem = r.bonusItem, isMergedDayAllDone = r.isMergedDayAllDone;
   saveState();
   await flushToFirestore();  // 完成節點即時寫雲端：完成後 1.5s 內關 app 也不掉（其他 saveState 仍走 debounce）
   const reflText2 = document.getElementById('refl-text').value.trim();
@@ -3329,8 +3351,6 @@ async function finalizeCompletion() {
     }
     pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
-  // ===== 完成區塊搬運結束（以上邏輯與原 completeDevotional 逐字相同）=====
-
   showReward(newItem, bonusItem, hasBonus);
   // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
   if (!state.rewardClaimed) state.rewardClaimed = {};
