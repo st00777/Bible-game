@@ -6574,9 +6574,10 @@ function validateContent() {
     if (!chapterSet.has(String(ch))) errors.push(`SCHEDULE：${d} 排的 ${ch} 在 CHAPTERS 找不到內容`);
   }));
 
-  // 4) 每一章都要有經文連結
+  // 4) 每一章都要有經文連結——判定「非空且去除空白後仍有內容」，
+  //    不只看 key 存在（與 5) 同病：純空白/空字串不該被當成「有」，PM 2026-08-21）
   chapterSet.forEach(k => {
-    if (!BIBLE_LINKS[k]) errors.push(`BIBLE_LINKS：章節 ${k} 缺經文連結`);
+    if (!String(BIBLE_LINKS[k] || '').trim()) errors.push(`BIBLE_LINKS：章節 ${k} 缺經文連結`);
   });
 
   // 5) 每本書的導讀 5 欄都要有內容。

@@ -2172,9 +2172,10 @@ function renderBookDetail(bookKey) {
 
   // ① 導讀區（讀 BOOK_INTRO[key]）
   //    設計意圖（PM 2026-08-21 拍板）：欄位沒內容就「不存在」——空欄不輸出該列、
-  //    5 欄全空不輸出整個區塊。不是把「待補」藏起來，也不要為了讓它顯示而填假值：
+  //    5 欄全空不輸出整個區塊。不是把佔位字樣藏起來，也不要為了讓它顯示而填假值：
   //    作者/時間/地點等欄位部分書卷在神學上本無定論（HEB、JAS、PE2…），
   //    聖經沒下結論的地方我們不替它下結論；空著比給玩家一個「本該有東西」的空位好。
+  //    下方 ③ 人物冊採同一條原則，兩處註解請一起維護。
   const intro = (typeof BOOK_INTRO !== 'undefined' && BOOK_INTRO[bookKey]) || null;
   const introRows = intro
     ? [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
@@ -2200,29 +2201,33 @@ function renderBookDetail(bookKey) {
   html += '</div></div>';
 
   // ③ 人物冊（遍歷 CHARACTERS，逐 period 判斷 book===key 與解鎖；只介紹、不含默想輸入）
+  //    設計意圖（PM 2026-08-21 拍板，與上方 ① 導讀區同一條原則）：無內容即無區塊——
+  //    人物沒名字→整個人物卡不輸出；時期沒標題→該時期列不輸出；介紹為空→介紹那行不輸出；
+  //    篩完沒有任何時期→人物卡不輸出；沒有任何人物→整個人物冊區塊不輸出。
+  //    不是把佔位字樣藏起來，也不要為了讓它顯示而填假值。兩處註解請一起維護，勿各自漂移。
+  const filled = v => !!(v && String(v).trim());
   const chars = (typeof CHARACTERS !== 'undefined') ? CHARACTERS : {};
   const entries = [];
   for (const cid in chars) {
     const c = chars[cid];
-    if (!c || !c.periods) continue;
+    if (!c || !c.periods || !filled(c.name)) continue;
     const ps = [];
     for (const pid in c.periods) {
       const p = c.periods[pid];
-      if (p && p.book === bookKey) ps.push(p);
+      if (p && p.book === bookKey && filled(p.title)) ps.push(p);
     }
     if (ps.length) entries.push({ c, ps });
   }
   if (entries.length) {
     html += '<div class="bd-section"><div class="bd-section-title">👥 人物冊</div>';
     for (const { c, ps } of entries) {
-      html += `<div class="bd-char"><div class="bd-char-name">${esc(c.name || '（待補）')}</div>`;
+      html += `<div class="bd-char"><div class="bd-char-name">${esc(c.name)}</div>`;
       for (const p of ps) {
         const unlocked = !!(p.unlock && state.completed[chapterKey(p.unlock)]);
-        const title = (p.title && p.title.trim()) ? esc(p.title) : '（時期待補）';
         const tag = unlocked ? '<span class="bd-lock-tag on">已解鎖</span>' : '<span class="bd-lock-tag off">未解鎖</span>';
-        html += `<div class="bd-period ${unlocked ? '' : 'locked'}"><span class="bd-period-title">${title}</span>${tag}`;
+        html += `<div class="bd-period ${unlocked ? '' : 'locked'}"><span class="bd-period-title">${esc(p.title)}</span>${tag}`;
         if (unlocked) {
-          html += `<div>${(p.desc && p.desc.trim()) ? esc(p.desc) : '（介紹待補）'}</div>`;
+          if (filled(p.desc)) html += `<div>${esc(p.desc)}</div>`;
         } else {
           html += '<div>走到這卷的進度即可解鎖這段認識。</div>';
         }
