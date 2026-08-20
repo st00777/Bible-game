@@ -14,8 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const contentSrc = fs.readFileSync(path.join(__dirname, '../content.js'), 'utf8');
-const wrappedSrc = `(function(){\n${contentSrc}\nreturn { SCHEDULE };\n})()`;
-const { SCHEDULE = {} } = vm.runInNewContext(wrappedSrc, {});
+const wrappedSrc = `(function(){\n${contentSrc}\nreturn { SCHEDULE, AI_FALLBACK_TEXT };\n})()`;
+const { SCHEDULE = {}, AI_FALLBACK_TEXT } = vm.runInNewContext(wrappedSrc, {});
 // 合併日日期集合（例如 4/05、4/17、4/28、5/10、5/22、6/03）
 const MERGED_DATES = new Set(
   Object.entries(SCHEDULE)
@@ -603,8 +603,8 @@ async function analyzeProgress(token, users) {
   // ── 4. AI 回應品質：fallback 集中在哪些章節 ──────────
   // 「全部歷史」= 包含 retry 改版前的舊失敗，會被拖累
   // 「部署後」= 有 aiIsFallback 欄位的記錄（改版後寫入），反映真實當下品質
-  // ⚠️ 修改 FALLBACK_TEXT 要同步：functions/index.js 的 FALLBACK_TEXT + bible-game-v2.html 的 fallback 字串
-  const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+  // fallback 文案單一正本在 content.js（AI_FALLBACK_TEXT，開頭已透過 vm 讀入），這裡不再放字串（issue #7）
+  const FALLBACK_TEXT = AI_FALLBACK_TEXT;
   // 統一 fallback 偵測 helper：欄位優先（4/29+），text-match 僅作舊資料 fallback。
   // 把 text-match 命中次數計入 textMatchCount 當輕度監控 ── 若舊資料一直新增就要查
   let textMatchCount = 0;

@@ -3187,8 +3187,8 @@ async function submitReflection() {
 
   // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
   const data = getChapter(selectedChapter);
-  // ⚠️ 修改這句要同步：functions/index.js 的 FALLBACK_TEXT + scripts/analyze-feedback.js 的 FALLBACK_TEXT
-  const fallback = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+  // fallback 文案單一正本在 content.js（AI_FALLBACK_TEXT），這裡不再放字串（issue #7）
+  const fallback = AI_FALLBACK_TEXT;
   try {
     const res = await fetch(AI_FUNCTION_URL, {
       method: 'POST',

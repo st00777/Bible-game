@@ -14,6 +14,25 @@ sync_public() {
   echo "▶ 已同步 public/（bible-game-v2.html + content.js）"
 }
 
+# AI fallback 文案守門（issue #7）：單一正本在 content.js 的 AI_FALLBACK_TEXT，
+# functions/index.js 因部署邊界留有複本；部署 functions 前自動比對，不一致就中止，不靠人腦同步。
+check_fallback_text() {
+  local a b
+  a=$(grep -m1 "^const AI_FALLBACK_TEXT = " content.js | sed "s/^const AI_FALLBACK_TEXT = '\(.*\)';.*/\1/")
+  b=$(grep -m1 "^const FALLBACK_TEXT = " functions/index.js | sed "s/^const FALLBACK_TEXT = '\(.*\)';.*/\1/")
+  if [ -z "$a" ] || [ -z "$b" ]; then
+    echo "✖ 找不到 fallback 文案常數（content.js AI_FALLBACK_TEXT / functions/index.js FALLBACK_TEXT）"; exit 1
+  fi
+  if [ "$a" != "$b" ]; then
+    echo "✖ AI fallback 文案不一致，中止部署："
+    echo "   content.js        ：${a}"
+    echo "   functions/index.js：${b}"
+    echo "   請把 functions/index.js 的 FALLBACK_TEXT 改成與 content.js 相同後再部署。"
+    exit 1
+  fi
+  echo "▶ fallback 文案一致 ✓（${a}）"
+}
+
 echo "== 分支 / HEAD =="
 git rev-parse --abbrev-ref HEAD
 git rev-parse --short HEAD
@@ -36,6 +55,7 @@ case "$CMD" in
   functions)
     # 部署「全部」functions：舊寫法硬列 aiReflection,lineLogin，
     # 導致 autoCloseInactiveThreads（30 天自動關閉討論串）改了永遠上不了線（issue #7）。
+    check_fallback_text
     echo "▶ Functions：firebase deploy --only functions（全部，含 autoCloseInactiveThreads）"
     firebase deploy --only functions 2>&1 | tee deploy.log
     ;;

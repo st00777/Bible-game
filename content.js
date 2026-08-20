@@ -16,6 +16,12 @@ const FEATURE_FEEDBACK_V2 = true;
 // 未來內容副版次升級可沿用這個 flag、機制變更主版次改回 false。
 const SUPPRESS_VERSION_POPUP = true;
 
+// ── AI 回應 fallback 文案（單一正本）────────────────────────
+// 玩家端（fetch 失敗時備用）＋ scripts/analyze-feedback.js（辨識舊資料 fallback）都讀這裡。
+// functions/index.js 因部署邊界無法 import，留有一份複本；deploy.sh functions 部署前會自動比對，
+// 不一致即中止部署（issue #7）。
+const AI_FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
+
 const VERSION_NOTES = [
   '🌱 靈修前新增「今天帶著什麼來」心情選擇：可選、可跳過',
   '💬 AI 默想回應會參考你帶來的心情',

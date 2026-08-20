@@ -18,7 +18,8 @@ const ALLOWED_ORIGINS = [
 ];
 
 // AI 失敗時回給玩家的 fallback 文字。
-// ⚠️ 修改這句要同步：bible-game-v2.html（client-side 備用）+ scripts/analyze-feedback.js（用來辨識 fallback 回應）
+// 單一正本在 ../content.js 的 AI_FALLBACK_TEXT；functions 部署邊界無法 import，所以這裡留複本。
+// 不用靠人腦同步：bash deploy.sh functions 部署前會自動比對兩處，不一致即中止（issue #7）。
 const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
 
 exports.lineLogin = onRequest(
