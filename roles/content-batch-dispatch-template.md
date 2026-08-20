@@ -86,9 +86,7 @@ git branch --show-current → 必須 dev（不自動切分支，等開發協調�
 
 【執行流程】
 Step 1 生成專員：WebFetch 抓和合本
-  主來源 https://hakkaac.org/Bible/Bible/CUT/CUT_{{書卷英文檔名}}.html
-  備援 https://wd.bible/verse/{{bible_com代碼小寫}}.▓章節號▓.1.cunps
-  （hakkaac 神版傳統用「、」「．」，轉新標點「，」「。」「；」）
+  來源一律依 CLAUDE.md「經文來源查驗標準（正本）」：唯一合法來源 hkbs CUNP1，抓取後查頁面內嵌識別區塊；不得使用任何其他來源，包含備援
   讀整章 → 找 verse / base.desc / bonus.desc 三節（不重複、不跨章）
 Step 2 審查員：跑 A-F 完整清單（細目見 claude-code-agent-prompts.md）
 Step 3 迴圈：任何 ❌ → 修問題處；全 ✅ → Step 4

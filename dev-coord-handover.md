@@ -216,7 +216,7 @@ d233883  Phase 3D Cloud Function 30 天 auto-close
 - 純 HTML + CSS + JS（無 framework）
 - Firebase（Firestore + Auth + Functions + Hosting）
 - Gemini 2.5 Flash（AI 默想）
-- 玩家版正式站：bible-game-bcb84.web.app（main 分支）
+- 玩家版正式站：GitHub Pages（main 分支；網址與三站區分見 CLAUDE.md「部署網址」正本）；bible-game-bcb84.web.app 為固定測試站，**不是正式站**
 - admin 後台：bible-game-admin.web.app
 - 工作目錄：/Users/aitest/Desktop/Bible-game
 

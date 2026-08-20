@@ -1,19 +1,36 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-06-05
+> 最後更新：2026-08-20
 
 ---
 
 ## 專案基本資訊
 
 **專案名稱**：靈修冒險（Bible Devotional Game）
-**部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
+**部署網址（三站區分 · 正本，全 repo 其餘各處一律指向此處）**：
+- **玩家正式站（GitHub Pages）**：`https://st00777.github.io/Bible-game/bible-game-v2.html` —— 玩家實際使用的唯一正式站，對應 `main` 分支
+- 固定測試站（Firebase hosting:main）：`bible-game-bcb84.web.app` —— 測試用，**不是正式站**
+- 臨時預覽（Firebase preview channel）：`bible-game-bcb84--dev-xxxxxx.web.app` —— dev 分支預覽用
+- 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）
 **GitHub Repo**：`github.com/st00777/Bible-game`
 **目前版本**：v2.16（2026-06-14 上線；情緒2.0 心情選擇器、mood-aware AI 默想回應、新內容 COL/TH/TIM、合併日雙章選讀。前一版 v2.15（2026-05-28）：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
 不是取代靈修，而是輔助靈修——建議玩家先讀完當天經文再來玩。
+
+---
+
+## 經文來源查驗標準（正本）
+> 全 repo 唯一完整敘述；content-tone-guide.md 第八節、LEARNING.md 教訓【七】、roles/ 派工模板與交接說明皆指向此處，不另存副本。（James 2026-08-20 確認）
+
+- **唯一合法來源**：`https://rcuv.hkbs.org.hk/CUNP1/{書卷}/{章}/`。**不得使用任何其他來源，包含備援。**
+- **查驗方式**：抓取後查頁面內嵌的站方版本識別區塊 **「CUNP1|新標點和合本(神)」**，確認存在才採用。
+- **為何查 title 不足**（舊做法「查 title 為新標點和合本(神)」作廢）：
+  1. hkbs 的 title 模板用「=」串接全書卷名清單與簡稱清單，會產生「啟示錄=創」這類看似錯亂的字串，容易誤判。
+  2. 錯誤路徑的 title 前半段與正確路徑相同，靠 title 分不出來。
+- **錯誤路徑三條**：`/CUNP/`、`/CUNPSS/`、`/CUNP_1/` —— 皆回 HTTP 200，但內容為和合本2010（和修版 RCUV），不是新標點和合本。**HTTP 200 不足以判斷來源正確**（靜默失敗：無 404、無錯誤訊息，看起來一切正常）。可辨識差異例：彼後 1:11 和修版作「永遠的國度」、新標點作「永遠的國」。
+- **判準一句話：URL 只證明指令打對了，識別區塊才證明拿到的是那個版本。**
 
 ---
 
@@ -858,7 +875,7 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 ## 分支策略
 
 **`main` 分支 — 正式版**
-- 對外公開,部署在 `https://st00777.github.io/Bible-game/bible-game-v2.html`
+- 對外公開；正式站網址、三站區分與終驗規則見本文件開頭「部署網址」正本
 - 每次 commit 會立即反映到玩家看到的版本
 - 只接受「已在 dev 測過、確認沒問題」的變更
 
