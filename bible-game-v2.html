@@ -558,7 +558,6 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .bd-section-title{font-size:calc(var(--fs-body) - 1px);font-weight:900;color:var(--purple);margin-bottom:10px;}
 .bd-intro-row{font-size:calc(var(--fs-body) - 2px);color:var(--text);line-height:1.7;margin-bottom:4px;}
 .bd-intro-row .bd-label{color:var(--text-soft);font-weight:700;margin-right:6px;}
-.bd-intro-empty{color:var(--text-soft);opacity:.7;}
 .bd-progress-text{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);font-weight:700;margin-bottom:10px;}
 .bd-chapter-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .bd-chapter{min-width:38px;text-align:center;padding:6px 8px;border-radius:10px;font-size:calc(var(--fs-body) - 4px);font-weight:700;border:2px solid var(--sky-deep);background:white;color:var(--text-soft);}
@@ -2171,19 +2170,23 @@ function renderBookDetail(bookKey) {
   const esc = (typeof escapeHtmlMyMsg === 'function') ? escapeHtmlMyMsg : (x => x);
   let html = '';
 
-  // ① 導讀區（讀 BOOK_INTRO[key]；空值顯示「待補」）
+  // ① 導讀區（讀 BOOK_INTRO[key]）
+  //    設計意圖（PM 2026-08-21 拍板）：欄位沒內容就「不存在」——空欄不輸出該列、
+  //    5 欄全空不輸出整個區塊。不是把「待補」藏起來，也不要為了讓它顯示而填假值：
+  //    作者/時間/地點等欄位部分書卷在神學上本無定論（HEB、JAS、PE2…），
+  //    聖經沒下結論的地方我們不替它下結論；空著比給玩家一個「本該有東西」的空位好。
   const intro = (typeof BOOK_INTRO !== 'undefined' && BOOK_INTRO[bookKey]) || null;
-  html += '<div class="bd-section"><div class="bd-section-title">📜 書卷導讀</div>';
-  if (intro) {
-    const rows = [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]];
-    for (const [label, val] of rows) {
-      const shown = (val && String(val).trim()) ? esc(val) : '<span class="bd-intro-empty">待補</span>';
-      html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${shown}</div>`;
+  const introRows = intro
+    ? [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
+        .filter(([, val]) => val && String(val).trim())
+    : [];
+  if (introRows.length) {
+    html += '<div class="bd-section"><div class="bd-section-title">📜 書卷導讀</div>';
+    for (const [label, val] of introRows) {
+      html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${esc(val)}</div>`;
     }
-  } else {
-    html += '<div class="bd-intro-row bd-intro-empty">導讀內容待補</div>';
+    html += '</div>';
   }
-  html += '</div>';
 
   // ② 章節清單 + 進度（getBookProgress + state.completed 逐章標完成；不揭露默想內容）
   const prog = getBookProgress(book);

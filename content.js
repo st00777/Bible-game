@@ -6579,9 +6579,19 @@ function validateContent() {
     if (!BIBLE_LINKS[k]) errors.push(`BIBLE_LINKS：章節 ${k} 缺經文連結`);
   });
 
-  // 5) 每本書都該有導讀（缺的話書卷詳情頁會顯示「待補」）
+  // 5) 每本書的導讀 5 欄都要有內容。
+  //    判定是「欄位非空」不是「有沒有這筆」：2026-08-21 前只驗 key 存在，
+  //    13 本「有筆但 5 欄全空」被當成「有」，報出 4 本的錯誤數字並流入決策
+  //    （實際 18 本）。空殼＝沒有，一律報出來。空欄時詳情頁整區不顯示（見主程式導讀區）。
+  const INTRO_FIELDS = ['author', 'time', 'place', 'theme', 'audience'];
   BOOKS.forEach(b => {
-    if (!BOOK_INTRO[b.key]) warns.push(`BOOK_INTRO：${b.name}（${b.key}）缺書卷導讀`);
+    const intro = BOOK_INTRO[b.key];
+    const missing = INTRO_FIELDS.filter(f => !intro || !String(intro[f] || '').trim());
+    if (missing.length === INTRO_FIELDS.length) {
+      warns.push(`BOOK_INTRO：${b.name}（${b.key}）缺書卷導讀（${intro ? '5 欄全空' : '無此筆'}）`);
+    } else if (missing.length) {
+      warns.push(`BOOK_INTRO：${b.name}（${b.key}）導讀缺 ${missing.length} 欄：${missing.join('、')}`);
+    }
   });
 
   // 6) totalChapters 與 entries 數量對不上（mergedActive:false 時分母走 entries，
