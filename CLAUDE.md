@@ -891,24 +891,24 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 - 新功能、重構、實驗性改動都先進 dev
 - 預覽網址方案見下一節
 
-**工作流程**
+**工作流程（2026-08-23 重訂，取代舊的 `--ff-only`／cherry-pick 流程）**
 ```
-1. 從 main 切出(或 rebase)dev:  git checkout dev && git rebase main
-2. 在 dev 開發 + 推到遠端觀察預覽:git push origin dev
-3. 確認 OK 後 fast-forward merge 回 main:
-     git checkout main && git merge --ff-only dev && git push
-4. 上線後若要繼續開發,dev 重新 rebase 到 main
+1. 所有工作（內容批次、功能、重構、文件）一律先進 dev：分支 → PR → dev
+2. dev 預覽驗證：bash deploy.sh channel dev（Firebase preview）
+3. 發布：dev → main 用 PR（GitHub 按鈕），main 永遠是 dev 的祖先；
+   main 合完若多出 merge commit，立刻 git push origin main:dev 把 dev 對齊（或 PR 用 Rebase and merge）
+4. 禁止再 cherry-pick 到 main、禁止直接在 main 改內容——任何只進 main 的 commit 都會讓兩邊再度分岔
 ```
+- 2026-08-23 已把 2026-06-10（`7f07c4b`）以來 main 上 46 個 cherry-pick 影子 commit 反向合進 dev（`9162f65`，樹與 dev 相同、玩家零影響）；分岔研究與方案見 `docs/merge-plan-2026-08-23.md`。
+- 每批內容發布（如 GEN11+）就是一次 dev→main PR；不要累積。A1 書卷詳情頁由 `BOOK_DETAIL_ENABLED` flag 控制逐卷開放，不用 feature branch 卡住。
 
-**⚠️ 實際流程與理想脫節（2026-05-11 補註）**
-- 上面是理想流程，但實際 dev 已長期累積（曠野呼聲 v2 Phase 1-3B 跨數週），與 main 分叉超過 15 個 commit，`--ff-only` 已不適用。
-- 最近三次 main 合併（commit `3339fc4` 5/4 release、`2ab2514` v2.10 release、`3bd073d` v2.11 release）都改用 **non-ff merge commit**（`git merge dev --no-ff -m "..."`），讓 dev 的歷史完整保留、main 有清楚的「release commit」標記。
-- **教訓**：dev 應該每完成一個 Phase 就回流 main（merge 或 rebase），長期 feature branch 是反模式——分叉越久，merge 風險越高、回滾範圍越大。
-- **目前建議流程**：dev 完成一批可上線的工作 → 跑 dev preview channel 驗證 → main merge dev --no-ff（含 release notes 的 message）→ push → 部署 functions（若有改）。
+**歷史補註（保留作教訓）**
+- 2026-05-11：dev 長期累積、與 main 分叉 15+ commit，`--ff-only` 失效，改 non-ff merge commit 當 release 標記（`3339fc4`、`2ab2514`、`3bd073d`）。
+- 2026-06～08：內容批次改用「dev 做、cherry-pick 到 main」上線，兩個月累積 dev +98／main +46 的假分岔（main 全是 dev 的副本）。教訓同上：**長期 feature branch 與 cherry-pick 發布都是反模式**，分叉越久 merge 風險越高。
 
-**什麼變更可以直接進 main(跳過 dev)**
-- 只改 `content.js` 的每日靈修內容(低風險、無程式邏輯)
-- 緊急 hotfix(修好後回頭把 dev rebase 對齊)
+**什麼變更可以緊急跳過 dev**
+- 只有緊急 hotfix：修 main 後**同一天**把 main 合回 dev（`git merge origin/main` 進 dev），不得留著。
+- 每日靈修內容**不再**直接進 main（2026-08-23 起走 dev→main PR，理由見上）。
 
 ---
 
