@@ -2,7 +2,8 @@
 # 部署封裝：Agent View 只送短指令「bash deploy.sh <子指令>」，繞過長管線指令格式 bug。
 # 沿用現行實際部署指令，不改部署邏輯。不自動 git push / merge。
 set -euo pipefail
-cd /Users/aitest/Desktop/Bible-game
+# 以腳本所在目錄為 repo 根（worktree 裡跑就部署 worktree，不會誤部主工作樹）
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CMD="${1:-}"
 
