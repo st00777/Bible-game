@@ -1,0 +1,10 @@
+# archive — 歷史留底（不再維護）
+
+2026-08-23 根目錄整理（Issue #10）搬進來的過程檔，只當歷史參考。
+
+| 資料夾 | 內容 |
+|---|---|
+| `content-gen/` | 已完成批次的生成規格／取材／驗證／派工紀錄（9A–9C 啟示錄、GEN 創世記、P0 修補、BOOK_INTRO 草稿、創世記基調草案）。原為本機未追蹤檔，首次入 git 留底。 |
+| `pm/` | 被新版取代的 PM 卡片與交接補丁（W21–W23）。以 `git mv` 搬入，`git log --follow` 可追歷史。 |
+
+現行文件請看根目錄 `pm-handover.md`、`dev-coord-handover.md`、`roles/`、`sprint-log/`。

@@ -4,6 +4,8 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+// 曠野呼聲狀態機單一正本（issue #5）：lib/ 這份是 scripts/sync-shared.js 從 repo 根 shared/ 複製來的，不要直接改
+const { FEEDBACK_EVENTS, autoCloseUpdate } = require('./lib/feedback-schema');
 
 setGlobalOptions({ maxInstances: 10 });
 admin.initializeApp();
@@ -18,7 +20,8 @@ const ALLOWED_ORIGINS = [
 ];
 
 // AI 失敗時回給玩家的 fallback 文字。
-// ⚠️ 修改這句要同步：bible-game-v2.html（client-side 備用）+ scripts/analyze-feedback.js（用來辨識 fallback 回應）
+// 單一正本在 ../content.js 的 AI_FALLBACK_TEXT；functions 部署邊界無法 import，所以這裡留複本。
+// 不用靠人腦同步：bash deploy.sh functions 部署前會自動比對兩處，不一致即中止（issue #7）。
 const FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
 
 exports.lineLogin = onRequest(
@@ -222,7 +225,7 @@ exports.autoCloseInactiveThreads = onSchedule(
     // 複合 query 需要索引（status ASC + lastMessageAt ASC）
     // 首次部署後手動 trigger，console 會回索引建立連結
     const snap = await db.collection('feedback')
-      .where('status', '==', 'awaiting_player')
+      .where('status', '==', FEEDBACK_EVENTS.auto_close_30d.from[0])  // 'awaiting_player'
       .where('lastMessageAt', '<=', cutoff)
       .get();
 
@@ -235,11 +238,7 @@ exports.autoCloseInactiveThreads = onSchedule(
     const batch = db.batch();
     const now = admin.firestore.FieldValue.serverTimestamp();
     snap.docs.forEach(doc => {
-      batch.update(doc.ref, {
-        status: 'closed',
-        closedAt: now,
-        closedBy: 'system:auto_30d',
-      });
+      batch.update(doc.ref, autoCloseUpdate({ serverTimestamp: now }));  // status closed / closedBy 'system:auto_30d'
     });
     await batch.commit();
 

@@ -84,7 +84,7 @@ James(葉真旭)是這個專案的唯一決策者,你是他的策略夥伴。
 - Firebase(Firestore + Auth + Functions + Hosting)
 - Gemini 2.5 Flash(AI 回應)
 - GitHub Pages 部署
-- 主遊戲網址:https://st00777.github.io/Bible-game/bible-game-v2.html(GitHub Pages,玩家正式版)
+- 主遊戲網址:見 CLAUDE.md「部署網址」正本(玩家正式站為 GitHub Pages;三站區分與終驗規則以該處為準)
 - Admin 後台網址:https://bible-game-admin.web.app(Firebase Hosting,2026-05-24 已上 production)
 
 ### 當前版本

@@ -86,3 +86,6 @@ node_modules/
 ga4-key.json
 # 管理員 OAuth 一次性授權 token（代表 James 本人授權，用完即收，絕不進 git）
 token.json
+
+# 敏感文件不進 repo（2026-08-23 PM 拍板）：玩家行為描述在小社群等同指名，檔案留本機、由 npm 腳本與人工維護
+data-insights.md

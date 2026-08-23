@@ -42,7 +42,7 @@
 
 步驟 1｜確認和合本原文
 先確認本章節的和合本內容，特別記下適合引用的金句。
-可透過 Bible.com 查詢原文（遊戲 BIBLE_LINKS 裡有每章連結）。
+原文一律依 CLAUDE.md「經文來源查驗標準（正本）」取得（唯一合法來源 hkbs CUNP1＋識別區塊查驗；BIBLE_LINKS 的 Bible.com 連結是給玩家讀經用，不是核對來源）。
 
 步驟 2｜撰寫 guide 導讀
 - readTime：預估閱讀完整章節的分鐘數（3-6）
@@ -95,7 +95,7 @@
 □ baseItem 和 bonusItem 是否有 emoji / name / desc / slot
 
 ─── B. 和合本核對（上網驗證）───
-□ 透過 Bible.com 或 BIBLE_LINKS 查詢原文，逐字比對以下欄位：
+□ 依 CLAUDE.md「經文來源查驗標準（正本）」（hkbs CUNP1＋識別區塊）取得原文，逐字比對以下欄位：
 □ verse 是否為真實和合本原文（用字、標點是否正確）
 □ baseItem.desc 是否為真實和合本原文
 □ bonusItem.desc 是否為真實和合本原文

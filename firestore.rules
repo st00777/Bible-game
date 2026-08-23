@@ -41,6 +41,9 @@ service cloud.firestore {
       allow read: if request.auth != null
                 && (resource.data.uid == request.auth.uid || isAdmin());
 
+      // ⚠️ 對照 shared/feedback-schema.js（issue #5 單一正本）：下面兩條玩家路徑的 hasOnly 欄位清單
+      //    ＝ PLAYER_UPDATE_PATHS.markRead / appendMessage，status 強制值 ＝ FEEDBACK_EVENTS.player_reply.to。
+      //    改任一邊都要改另一邊；test/feedback-schema.test.js 會讀這個檔案做契約檢查。
       // admin 可改所有欄位（後台回覆會更新 status / lastMessageAt / unread* / messageCount）
       // 玩家允許兩條互斥路徑（hasOnly 確保不會混合）：
       //   A. 標記已讀：只動 unreadByPlayer，從 true → false

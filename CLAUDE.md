@@ -1,19 +1,36 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-06-05
+> 最後更新：2026-08-20
 
 ---
 
 ## 專案基本資訊
 
 **專案名稱**：靈修冒險（Bible Devotional Game）
-**部署網址**：`st00777.github.io/Bible-game/bible-game-v2.html`
+**部署網址（三站區分 · 正本，全 repo 其餘各處一律指向此處）**：
+- **玩家正式站（GitHub Pages）**：`https://st00777.github.io/Bible-game/bible-game-v2.html` —— 玩家實際使用的唯一正式站，對應 `main` 分支
+- 固定測試站（Firebase hosting:main）：`bible-game-bcb84.web.app` —— 測試用，**不是正式站**
+- 臨時預覽（Firebase preview channel）：`bible-game-bcb84--dev-xxxxxx.web.app` —— dev 分支預覽用
+- 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.15（2026-05-28 上線；W22 兩功能：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位。前一版 v2.14（2026-05-24）：曠野呼聲 v2 完整上線、FEATURE_FEEDBACK_V2 翻 true、內容 GAL/EPH/PHP、書架擴充 18 卷、D1 登入頁存檔獨立提示）
+**目前版本**：v2.16（2026-06-14 上線；情緒2.0 心情選擇器、mood-aware AI 默想回應、新內容 COL/TH/TIM、合併日雙章選讀。前一版 v2.15（2026-05-28）：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
 不是取代靈修，而是輔助靈修——建議玩家先讀完當天經文再來玩。
+
+---
+
+## 經文來源查驗標準（正本）
+> 全 repo 唯一完整敘述；content-tone-guide.md 第八節、LEARNING.md 教訓【七】、roles/ 派工模板與交接說明皆指向此處，不另存副本。（James 2026-08-20 確認）
+
+- **唯一合法來源**：`https://rcuv.hkbs.org.hk/CUNP1/{書卷}/{章}/`。**不得使用任何其他來源，包含備援。**
+- **查驗方式**：抓取後查頁面內嵌的站方版本識別區塊 **「CUNP1|新標點和合本(神)」**，確認存在才採用。
+- **為何查 title 不足**（舊做法「查 title 為新標點和合本(神)」作廢）：
+  1. hkbs 的 title 模板用「=」串接全書卷名清單與簡稱清單，會產生「啟示錄=創」這類看似錯亂的字串，容易誤判。
+  2. 錯誤路徑的 title 前半段與正確路徑相同，靠 title 分不出來。
+- **錯誤路徑三條**：`/CUNP/`、`/CUNPSS/`、`/CUNP_1/` —— 皆回 HTTP 200，但內容為和合本2010（和修版 RCUV），不是新標點和合本。**HTTP 200 不足以判斷來源正確**（靜默失敗：無 404、無錯誤訊息，看起來一切正常）。可辨識差異例：彼後 1:11 和修版作「永遠的國度」、新標點作「永遠的國」。
+- **判準一句話：URL 只證明指令打對了，識別區塊才證明拿到的是那個版本。**
 
 ---
 
@@ -22,7 +39,11 @@
 ```
 Bible-game/
 ├── bible-game-v2.html             # 遊戲主體（機制、介面、邏輯）
-├── content.js                     # 靈修內容（每週更新這個）
+├── content.js                     # 靈修內容（每週更新這個）；末尾 validateContent() 五張表自檢（npm run validate:content）
+├── core.js                        # 零 DOM 依賴的純邏輯（chapterKey／進度／日曆／完成計分…），Node 可測；onclick 仍呼叫同名全域
+├── shared/feedback-schema.js      # 曠野呼聲狀態機單一正本；npm run sync-shared 複製到 public/shared、admin/shared、functions/lib
+├── public/                        # Firebase hosting:main 上傳目錄（deploy.sh 從根目錄同步，不要直接改）
+├── test/                          # npm test（node --test）：內容自檢、core、feedback-schema、HTML 結構守門
 ├── CLAUDE.md                      # 本文件 — 專案記憶
 ├── design-principles.md           # 情緒／默想類功能設計紅線（我們不做什麼），與 CLAUDE.md 並列
 ├── LEARNING.md                    # 開發學習筆記（踩坑紀錄）
@@ -40,12 +61,15 @@ Bible-game/
 ├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
 ├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
 ├── scripts/ga4-insights.js        # GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API）
-└── package.json                   # npm scripts
+├── scripts/validate-content.js    # Node 端內容自檢（錯誤 exit 1）
+├── scripts/sync-shared.js         # 共用檔正本→三個部署單元複本（--check 只比對）
+└── package.json                   # npm scripts（test / validate:content / sync-shared …）
 ```
 
 **重要原則**：
 - 每次更新靈修內容只需修改 `content.js`
-- `bible-game-v2.html` 只在機制或介面有改動時才動
+- `bible-game-v2.html` 只在機制或介面有改動時才動；純規則（不碰 DOM／state）請放 `core.js` 並補 `test/core.test.js`
+- 改完 HTML／content／shared 跑 `npm test`（含 HTML 標籤平衡與 inline script 編譯檢查）
 - 每次更新記得修改 `content.js` 裡的 `GAME_VERSION` 和 `VERSION_NOTES`
 
 ---
@@ -110,6 +134,7 @@ users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM
   reflectionText: '...'                  // 玩家寫的默想文字（v2.9 新增）
   aiResponse:     '...'                  // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
   aiIsFallback:   false                  // AI 是否回 fallback（v2.9.x，2026-04-29 新增）
+  mood:           '今天還不錯/想要一點力量/...'  // 情緒2.0 起點心情（v2.16 新增；玩家本人回顧用，null＝「先不說」時不寫此欄）
   // 注意：本文件用 .set() 寫入會覆蓋；保留最後一次默想用，歷史請查 reflections 子集合
 
 users/{userId}/chapters/{chapterKey}/reflections/{timestampId}   ← 默想歷史（v2.9.x 新增）
@@ -137,7 +162,7 @@ users/{userId}/events/{eventId}          ← B1 事件流 timeline（v2.15 已�
   ts:         Timestamp                  // serverTimestamp
   sessionId:  'uuid'                      // crypto.randomUUID；hidden>30min 換新
   chapter:    'ROM10'                    // optional，跟章節有關才填
-  metadata:   { isFallback: false, choice: 'D' }  // optional，事件相依欄位
+  metadata:   { isFallback: false, choice: 'D', editDuration: 145 }  // optional，事件相依欄位
   // doc id 用 ${Date.now()}-${random4}；fire-and-forget、訪客（未登入）不寫
   // track() helper（bible-game-v2.html）雙寫 GA4 + 此子集合；驗證見 scripts/verify-b1-events.js
 
@@ -246,7 +271,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 
 **content.js 結構**：
 ```javascript
-const GAME_VERSION = '2.15';        // 版本號
+const GAME_VERSION = '2.16';        // 版本號
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
 const SCHEDULE = {...};            // 日期→章節對應表
 const BIBLE_LINKS = {...};         // Bible.com 連結
@@ -300,7 +325,18 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 7/13 來7    7/14 來8    7/15 來9    7/16 來10  7/17 來11  7/18 來12  7/19 來13
 7/20 雅1    7/21 雅2    7/22 雅3    7/23 雅4    7/24 雅5
 7/25 彼前1  7/26 彼前2  7/27 彼前3  7/28 彼前4  7/29 彼前5
-7/30 彼後1  7/31 彼後2
+7/30 彼後1  7/31 彼後2  8/01 彼後3
+8/02 約一1+2（合併）  8/03 約一3  8/04 約一4  8/05 約一5
+8/06 約二1  8/07 約三1  8/08 猶1
+8/09 啟1  8/10 啟2  8/11 啟3  8/12 啟4  8/13 啟5+6（合併）  8/14 啟7
+8/15 啟8  8/16 啟9  8/17 啟10  8/18 啟11  8/19 啟12  8/20 啟13  8/21 啟14
+8/22 啟15  8/23 啟16  8/24 啟17  8/25 啟18+19（合併）  8/26 啟20  8/27 啟21  8/28 啟22
+8/29 創1  8/30 創2  8/31 創3
+9/01 創4  9/02 創5  9/03 創6  9/04 創7  9/05 創8  9/06 創9+10（合併）
+9/07 創11  9/08 創12  9/09 創13  9/10 創14  9/11 創15  9/12 創16  9/13 創17
+9/14 創18  9/15 創19  9/16 創20  9/17 創21  9/18 創22+23（合併）
+9/19 創24  9/20 創25  9/21 創26  9/22 創27  9/23 創28
+9/24 創29  9/25 創30  9/26 創31  9/27 創32  9/28 創33  9/29 創34  9/30 創35+36（合併）
 ```
 
 **章節 key 命名規則**：
@@ -318,14 +354,31 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - 希伯來書：HEB1 ~ HEB13
 - 雅各書：JAS1 ~ JAS5
 - 彼得前書：PE1_1 ~ PE1_5
-- 彼得後書：PE2_1 ~ PE2_2
+- 彼得後書：PE2_1 ~ PE2_3
+- 約翰一書：JN1_1 ~ JN1_5
+- 約翰二書：JN2_1
+- 約翰三書：JN3_1
+- 猶大書：JUD1
+- 啟示錄：REV1 ~ REV22
+- 創世記：GEN1 ~ GEN50（8-9 月排到 GEN36，其餘 10 月續）
+  ※ 約翰書信用 JN 前綴，預留「約翰福音」未來用 JHN，避免撞號。
 
-**合併章節（5 處）**：
+**合併章節（11 處）**：
 - 5/22 林後5+6 → 雙章呈現（v2.11 已上線，COR2_6 章節物件已備齊）
 - 6/03 加5+6 → 雙章呈現（死線前 GAL5 章節物件待補）
 - 6/14 西1+2 → 雙章呈現（COL1 / COL2 章節物件未補，整書卷尚未開始）
 - 6/26 提前2+3 → 雙章呈現（TIM1_2 / TIM1_3 章節物件未補，整書卷尚未開始）
 - 7/08 來1+2 → 雙章呈現（HEB1 / HEB2 章節物件未補，整書卷尚未開始）
+- 8/02 約一1+2 → 雙章呈現
+- 8/13 啟5+6 → 雙章呈現
+- 8/25 啟18+19 → 雙章呈現
+- 9/06 創9+10 → 雙章呈現
+- 9/18 創22+23 → 雙章呈現
+- 9/30 創35+36 → 雙章呈現
+
+**⚠️ 上線前提醒（8-9 月排程相關）**：
+- **彼得後書補第 3 章**：BOOKS 的 PE2 需 `totalChapters` 2→3、entries 加 `'PE2_3'`。此結構改動須與彼後內容**同批上 dev**，不可單獨先上（避免玩家看到「🔜 內容更新中」的空章）。
+- ⚠️ **創世記為本遊戲第一本「舊約」書卷**（在此之前全為新約）：書架分區、書卷排序、OT/NT 呈現方式需設計決策，**尚未定案**，先記為待辦。
 
 **更新節奏**：每週一更新下下週內容，確保玩家永遠有一週緩衝。
 
@@ -674,11 +727,11 @@ equipment_change / diary_open / chapter_share / feedback_submit
 - [x] **B1 事件流 timeline**（v2.15，2026-05-28）── `track()` 雙寫 GA4+Firestore `users/{uid}/events`、9 核心事件、訪客不記、sessionId 30min 過期；落地驗證 scripts/verify-b1-events.js
 - [x] **E1 個人資料入口**（v2.15，2026-05-28）── ⋯選單分眾 5 欄位（ageGroup/churchKey/district/groupName/devotionHabit），每欄可留空可改；district/groupName 為 W23 人工求助轉介預留欄位
 - [x] **`npm run ga4` 深度指標腳本**（2026-06-01，commit 8f975a4）── SA 金鑰打 GA4 Data API 拉 MAU/WAU/DAU + 9 核心事件觸發人數 + 週 cohort 留存（對齊 data-insights 口徑）；SA 權限經管理員 OAuth + Admin API `createAccessBinding` 加成檢視者，繞過 GA4 網頁加 SA 卡點。詳見「技術架構 > 數據分析」
-- [x] **默想編輯時長 editDuration + 日記回看事件驗證**（2026-06-03，commit 25e1ef7，dev、未升版未上線）── `reflection_submit` 的 metadata 加 `editDuration`；diary_open 回看事件（深度追蹤 #1）落地驗證，餵北極星指標
-- [x] **情緒 2.0 心情選擇器 + mood 存儲**（2026-06-04，commit f1c8b41，dev、未升版未上線）── 默想前選當次心情，存進事件／默想資料
-- [x] **AI 默想回覆參考當次心情 mood**（2026-06-05，commit 2b8511a + 55ff83b prompt 收緊，dev、未升版未上線）── `aiReflection` 帶入 mood 個人化回應；設計紅線見 `design-principles.md`
+- [x] **默想編輯時長 editDuration + 日記回看事件驗證**（2026-06-03，commit 25e1ef7，已隨 v2.16 上線（c4306f7））── `reflection_submit` 的 metadata 加 `editDuration`；diary_open 回看事件（深度追蹤 #1）落地驗證，餵北極星指標
+- [x] **情緒 2.0 心情選擇器 + mood 存儲**（2026-06-04，commit f1c8b41，已隨 v2.16 上線（c4306f7））── 默想前選當次心情，存進事件／默想資料
+- [x] **AI 默想回覆參考當次心情 mood**（2026-06-05，commit 2b8511a + 55ff83b prompt 收緊，已隨 v2.16 上線（c4306f7））── `aiReflection` 帶入 mood 個人化回應；設計紅線見 `design-principles.md`
 
-> ⚠️ 上面標「dev、未升版未上線」三項（editDuration／情緒2.0／mood-aware AI）程式已在 dev，但**尚未升版、未部署玩家端**（GitHub Pages 正式版仍 v2.15）。升版上線前再一併處理 `GAME_VERSION` / `VERSION_NOTES` / changelog。
+> ✅ 上面三項（editDuration／情緒2.0／mood-aware AI）已隨 v2.16 release（c4306f7）上線、部署玩家端（GitHub Pages 正式版已 v2.16）；`GAME_VERSION` / `VERSION_NOTES` / changelog 均已同步。
 
 **待開發**
 - [ ] 時段成就統計 UI（資料已在收集）
@@ -829,7 +882,7 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 ## 分支策略
 
 **`main` 分支 — 正式版**
-- 對外公開,部署在 `https://st00777.github.io/Bible-game/bible-game-v2.html`
+- 對外公開；正式站網址、三站區分與終驗規則見本文件開頭「部署網址」正本
 - 每次 commit 會立即反映到玩家看到的版本
 - 只接受「已在 dev 測過、確認沒問題」的變更
 
@@ -838,24 +891,24 @@ feedback/{docId}/messages/{msgId}    // 多輪對話子集合
 - 新功能、重構、實驗性改動都先進 dev
 - 預覽網址方案見下一節
 
-**工作流程**
+**工作流程（2026-08-23 重訂，取代舊的 `--ff-only`／cherry-pick 流程）**
 ```
-1. 從 main 切出(或 rebase)dev:  git checkout dev && git rebase main
-2. 在 dev 開發 + 推到遠端觀察預覽:git push origin dev
-3. 確認 OK 後 fast-forward merge 回 main:
-     git checkout main && git merge --ff-only dev && git push
-4. 上線後若要繼續開發,dev 重新 rebase 到 main
+1. 所有工作（內容批次、功能、重構、文件）一律先進 dev：分支 → PR → dev
+2. dev 預覽驗證：bash deploy.sh channel dev（Firebase preview）
+3. 發布：dev → main 用 PR（GitHub 按鈕），main 永遠是 dev 的祖先；
+   main 合完若多出 merge commit，立刻 git push origin main:dev 把 dev 對齊（或 PR 用 Rebase and merge）
+4. 禁止再 cherry-pick 到 main、禁止直接在 main 改內容——任何只進 main 的 commit 都會讓兩邊再度分岔
 ```
+- 2026-08-23 已把 2026-06-10（`7f07c4b`）以來 main 上 46 個 cherry-pick 影子 commit 反向合進 dev（`9162f65`，樹與 dev 相同、玩家零影響）；分岔研究與方案見 `docs/merge-plan-2026-08-23.md`。
+- 每批內容發布（如 GEN11+）就是一次 dev→main PR；不要累積。A1 書卷詳情頁由 `BOOK_DETAIL_ENABLED` flag 控制逐卷開放，不用 feature branch 卡住。
 
-**⚠️ 實際流程與理想脫節（2026-05-11 補註）**
-- 上面是理想流程，但實際 dev 已長期累積（曠野呼聲 v2 Phase 1-3B 跨數週），與 main 分叉超過 15 個 commit，`--ff-only` 已不適用。
-- 最近三次 main 合併（commit `3339fc4` 5/4 release、`2ab2514` v2.10 release、`3bd073d` v2.11 release）都改用 **non-ff merge commit**（`git merge dev --no-ff -m "..."`），讓 dev 的歷史完整保留、main 有清楚的「release commit」標記。
-- **教訓**：dev 應該每完成一個 Phase 就回流 main（merge 或 rebase），長期 feature branch 是反模式——分叉越久，merge 風險越高、回滾範圍越大。
-- **目前建議流程**：dev 完成一批可上線的工作 → 跑 dev preview channel 驗證 → main merge dev --no-ff（含 release notes 的 message）→ push → 部署 functions（若有改）。
+**歷史補註（保留作教訓）**
+- 2026-05-11：dev 長期累積、與 main 分叉 15+ commit，`--ff-only` 失效，改 non-ff merge commit 當 release 標記（`3339fc4`、`2ab2514`、`3bd073d`）。
+- 2026-06～08：內容批次改用「dev 做、cherry-pick 到 main」上線，兩個月累積 dev +98／main +46 的假分岔（main 全是 dev 的副本）。教訓同上：**長期 feature branch 與 cherry-pick 發布都是反模式**，分叉越久 merge 風險越高。
 
-**什麼變更可以直接進 main(跳過 dev)**
-- 只改 `content.js` 的每日靈修內容(低風險、無程式邏輯)
-- 緊急 hotfix(修好後回頭把 dev rebase 對齊)
+**什麼變更可以緊急跳過 dev**
+- 只有緊急 hotfix：修 main 後**同一天**把 main 合回 dev（`git merge origin/main` 進 dev），不得留著。
+- 每日靈修內容**不再**直接進 main（2026-08-23 起走 dev→main PR，理由見上）。
 
 ---
 
@@ -895,21 +948,41 @@ GitHub Pages 免費版只能部署一個分支(= main)。dev 分支要有獨立�
 
 ## 開發規範
 
-**版本號規則**
-- 內容更新（新章節）：小版號 +0.1（如 2.2 → 2.3）
-- 機制更新（新功能）：中版號 +1（如 2.x → 3.0）
+**版本號規則**（2026-06-05 James 拍板改制為日期版號）
+- 進正式版時，`GAME_VERSION` 設為「當天日期」，格式 `'2026.06.14'`（年.月.日、月日補零、無 `v` 前綴）。
+- 不再分大小版次、不再判斷「內容更新還是機制更新」。版號 = 玩家那天拿到一次更新的標記，如此而已。
+- 舊規則（內容更新 +0.1 / 機制更新 +1 整套大小版次）作廢。
 
-**每次更新必做**
-1. 修改 `GAME_VERSION`
-2. 更新 `VERSION_NOTES`（小版本 3 條內，重大版本如 v2.9 可到 10 條，給玩家看的）── **每條措辭都要對應到實際已實作功能**，不能列入未實作項目
-3. 在 `bible-game-v2.html` 的 changelog HTML 加入新版本記錄
-4. 更新 `<title>` 標籤（例：`v2.9 · 使徒行傳・羅馬書・哥林多前後書`）
+**過渡註記**
+- `v2.16` 為最後一個語意版號；`v2.16`（含）以前的 changelog 舊條目原樣保留、不追溯換算成日期。
+- 日期制從下一版（v2.16 之後第一個正式版）起生效。
+
+**每次進版必做動作**
+1. `GAME_VERSION` 改為當天日期（格式 `'2026.06.14'`）。
+2. 在 `bible-game-v2.html` 的 changelog HTML 加入新版本記錄（版號用日期）。
+3. 更新 `VERSION_NOTES`（給玩家看的）── ★ **只列玩家可見項**（新功能／新內容）；後台修（如 CORS 修復／GA4 命名對齊／計時埋點等玩家看不到的）**不寫進去**。每條措辭都要對應到實際已實作功能，不列未實作項目。
+4. `<title>`：已去版號、不再含版本字串，確認即可（不需改）。
+
+**彈公告判準**（與版號脫鉤、獨立判斷）
+- 玩家可感知的變化（新功能／新內容）→ `SUPPRESS_VERSION_POPUP = false`（彈公告）。
+- 純後台修（CORS／GA4 命名／埋點／工具腳本等玩家看不到的）→ `SUPPRESS_VERSION_POPUP = true`（不彈）。
 
 **程式碼風格**
 - 繁體中文介面
 - CSS 變數統一使用 `:root` 定義的顏色
 - 動畫統一用 `popIn` keyframe
 - 所有 overlay 用 `openOverlay()` / `closeOverlay()` 控制
+
+## 多步驟任務檢查點
+每完成一個 Phase 或重要步驟，必須回報：
+- 已完成：（列出做了什麼）
+- 已驗證：（如何確認正確）
+- 剩餘：（還有什麼沒做）
+
+## 禁止隱性失敗
+若有任何步驟跳過、不確定、或無法驗證，必須明確說明。
+不得回報「完成」而實際有遺漏。
+commit 前必須確認當前所在分支。
 
 ---
 
@@ -953,3 +1026,21 @@ GitHub Pages 免費版只能部署一個分支(= main)。dev 分支要有獨立�
 - **共同開發者**：遊戲設計發想，測試，新功能提案
 
 **使用工具**：Claude（對話討論）、Claude Code（程式修改）、GitHub Pages（部署）
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Skills 指令速查
+
+mattpocock-skills 各指令的用途與分類（中文），所有視窗共用。見 `docs/agents/skills-guide.md`。

@@ -19,19 +19,11 @@
   "hosting": [
     {
       "target": "main",
-      "public": ".",
+      "public": "public",
       "ignore": [
         "firebase.json",
-        "firebase.json.bak",
         "**/.*",
-        "**/node_modules/**",
-        "functions/**",
-        "admin/**",
-        "CLAUDE.md",
-        "README.md",
-        "claude_output.log",
-        "firestore.rules",
-        "*.log"
+        "**/node_modules/**"
       ]
     },
     {
