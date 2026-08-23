@@ -6614,5 +6614,30 @@ function validateContent() {
   if (!errors.length && !warns.length) console.log('✅ 內容自檢通過：五張表一致');
   return { errors, warns };
 }
-if (typeof window !== 'undefined') window.CONTENT_VALIDATION = validateContent();
-else validateContent(); // node 環境（驗證腳本）直接跑
+// dev 環境（localhost／Firebase preview channel「--」網域）結構錯誤要「看得見」：
+// console 容易被略過，開發者開預覽站時在畫面頂端掛一條紅色橫幅，錯誤修掉才消失。
+// 正式站（GitHub Pages）與固定測試站只印 console，玩家永遠看不到橫幅。
+// Node 端同一支驗證：npm run validate:content（scripts/validate-content.js，錯誤即 exit 1）。
+function isDevHost(host) {
+  host = String(host || '');
+  return host === 'localhost' || host === '127.0.0.1' || host === '' || host.includes('--');
+}
+function showContentErrorBanner(result) {
+  if (!result || !result.errors.length) return;
+  if (typeof document === 'undefined' || !isDevHost(location.hostname)) return;
+  try {
+    const el = document.createElement('div');
+    el.id = 'content-validation-banner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b91c1c;color:#fff;font:700 13px/1.5 sans-serif;padding:8px 12px;white-space:pre-wrap;';
+    el.textContent = `🚨 內容自檢 ${result.errors.length} 條結構錯誤（只在 dev 顯示）\n`
+      + result.errors.slice(0, 5).join('\n') + (result.errors.length > 5 ? '\n…其餘見 console' : '');
+    if (document.body) document.body.prepend(el);
+    else document.addEventListener('DOMContentLoaded', () => document.body.prepend(el));
+  } catch (e) { /* 橫幅只是輔助，失敗不影響遊戲 */ }
+}
+if (typeof window !== 'undefined') {
+  window.CONTENT_VALIDATION = validateContent();
+  showContentErrorBanner(window.CONTENT_VALIDATION);
+} else {
+  validateContent(); // node 環境（scripts/validate-content.js 用 vm 載入）直接跑
+}
