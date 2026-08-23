@@ -12,8 +12,8 @@ CMD="${1:-}"
 sync_public() {
   mkdir -p public
   node scripts/sync-shared.js
-  cp -f bible-game-v2.html content.js public/
-  echo "▶ 已同步 public/（bible-game-v2.html + content.js + shared/）"
+  cp -f bible-game-v2.html content.js core.js public/
+  echo "▶ 已同步 public/（bible-game-v2.html + content.js + core.js + shared/）"
 }
 
 # AI fallback 文案守門（issue #7）：單一正本在 content.js 的 AI_FALLBACK_TEXT，

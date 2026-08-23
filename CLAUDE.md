@@ -39,7 +39,11 @@
 ```
 Bible-game/
 ├── bible-game-v2.html             # 遊戲主體（機制、介面、邏輯）
-├── content.js                     # 靈修內容（每週更新這個）
+├── content.js                     # 靈修內容（每週更新這個）；末尾 validateContent() 五張表自檢（npm run validate:content）
+├── core.js                        # 零 DOM 依賴的純邏輯（chapterKey／進度／日曆／完成計分…），Node 可測；onclick 仍呼叫同名全域
+├── shared/feedback-schema.js      # 曠野呼聲狀態機單一正本；npm run sync-shared 複製到 public/shared、admin/shared、functions/lib
+├── public/                        # Firebase hosting:main 上傳目錄（deploy.sh 從根目錄同步，不要直接改）
+├── test/                          # npm test（node --test）：內容自檢、core、feedback-schema、HTML 結構守門
 ├── CLAUDE.md                      # 本文件 — 專案記憶
 ├── design-principles.md           # 情緒／默想類功能設計紅線（我們不做什麼），與 CLAUDE.md 並列
 ├── LEARNING.md                    # 開發學習筆記（踩坑紀錄）
@@ -57,12 +61,15 @@ Bible-game/
 ├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
 ├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
 ├── scripts/ga4-insights.js        # GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API）
-└── package.json                   # npm scripts
+├── scripts/validate-content.js    # Node 端內容自檢（錯誤 exit 1）
+├── scripts/sync-shared.js         # 共用檔正本→三個部署單元複本（--check 只比對）
+└── package.json                   # npm scripts（test / validate:content / sync-shared …）
 ```
 
 **重要原則**：
 - 每次更新靈修內容只需修改 `content.js`
-- `bible-game-v2.html` 只在機制或介面有改動時才動
+- `bible-game-v2.html` 只在機制或介面有改動時才動；純規則（不碰 DOM／state）請放 `core.js` 並補 `test/core.test.js`
+- 改完 HTML／content／shared 跑 `npm test`（含 HTML 標籤平衡與 inline script 編譯檢查）
 - 每次更新記得修改 `content.js` 裡的 `GAME_VERSION` 和 `VERSION_NOTES`
 
 ---

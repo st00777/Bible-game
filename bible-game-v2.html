@@ -1307,6 +1307,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="content.js" defer></script>
+<!-- 純邏輯層（issue #6）：零 DOM 依賴的規則函式掛成全域，Node 可測；正本在根目錄，deploy.sh 同步到 public/ -->
+<script src="core.js"></script>
 <!-- 曠野呼聲狀態機／容錯讀取單一正本（issue #5）：正本在 repo 根 shared/，public/ 複本由 scripts/sync-shared.js 同步 -->
 <script src="shared/feedback-schema.js"></script>
 
@@ -1622,23 +1624,11 @@ async function updateLineProfile(lineDisplayName, linePictureUrl) {
 }
 
 // ── 時段判斷 ──────────────────────────────────────────────
-function getTimeOfDay() {
-  const h = new Date().getHours();
-  if (h >= 5  && h < 12) return 'morning';
-  if (h >= 12 && h < 18) return 'afternoon';
-  if (h >= 18 && h < 22) return 'evening';
-  return 'night'; // 22:00–04:59
-}
+// 時段判定在 core.js timeOfDay；這裡只負責「現在幾點」
+function getTimeOfDay() { return timeOfDay(new Date().getHours()); }
 
-// ── 判斷是否補讀（章節排定日期 < 今天）──────────────────────
-function isMakeupChapter(ch) {
-  const key = chapterKey(ch);
-  const today = todayStr();
-  const scheduledDate = Object.keys(SCHEDULE).find(d =>
-    (SCHEDULE[d] || []).some(c => chapterKey(c) === key)
-  );
-  return scheduledDate ? scheduledDate < today : false;
-}
+// ── 判斷是否補讀（章節排定日期 < 今天）：規則在 core.js isMakeupChapterOn ──
+function isMakeupChapter(ch) { return isMakeupChapterOn(ch, todayStr()); }
 
 // ── 玩家 profile（firstLoginAt 只寫一次）────────────────────
 async function updateProfile() {
@@ -1899,19 +1889,8 @@ async function initAchievements() {
 // 書卷表 BOOKS 已搬到 content.js（issue #2：內容資料集中管理＋自檢），
 // 加新書卷請改 content.js，這裡不再放內容資料。
 
-function getBookProgress(book) {
-  // mergedActive:false 的書卷（entries 已補滿、廢除 merged 倍數）：用 entries.length 當分母
-  // 預設（mergedActive 未設定或 true）：保留舊邏輯 — entries × merged 倍數 vs totalChapters
-  if (book.mergedActive === false) {
-    const doneEntries = book.entries.filter(ch => state.completed[chapterKey(ch)]).length;
-    return { done: doneEntries, total: book.entries.length, complete: doneEntries >= book.entries.length };
-  }
-  let doneChapters = 0;
-  book.entries.forEach(ch => {
-    if (state.completed[chapterKey(ch)]) doneChapters += ((book.merged && (book.merged[ch] || book.merged[String(ch)])) || 1);
-  });
-  return { done: doneChapters, total: book.totalChapters, complete: doneChapters >= book.totalChapters };
-}
+// 書卷進度算法在 core.js bookProgress（merged 倍數／mergedActive 規則都在那）；這裡只把 state.completed 餵進去
+function getBookProgress(book) { return bookProgress(book, state.completed); }
 function booksCompleted() {
   return BOOKS.filter(b => getBookProgress(b).complete).length;
 }
@@ -2362,36 +2341,11 @@ if (oldState && !state.setup) {
 
 // ══ UTILS ══════════════════════════════════════════════════
 
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
+function todayStr() { return dateStr(new Date()); }   // 格式化在 core.js dateStr
 
-function chapterKey(ch) {
-  if (typeof ch === 'string') return ch;  // ROM / COR1_ / COR2_ / GAL 等字串 key 直接返回
-  return `ACT${ch}`;                       // 數字 = 使徒行傳
-}
+// chapterKey / getChapter（章節查表唯一入口，issue #3）已搬到 core.js，這裡直接用全域。
 
-// 章節查表唯一入口（issue #3）：以前 15 個呼叫點各自 CHAPTERS.find，
-// String() 寬鬆與嚴格比對兩種寫法並存，數字章節被 inline onclick 字串化後
-// 嚴格比對就查不到。統一走這裡，接受三種形態：
-//   10（數字）、'10'（字串化數字）、'ACT10' / 'ROM3'（chapterKey 存檔 key）
-// 索引在第一次查詢時才建（content.js 是 defer 載入，本段執行當下 CHAPTERS 還不在）。
-let CHAPTERS_BY_KEY = null;
-function getChapter(ch) {
-  if (!CHAPTERS_BY_KEY) {
-    CHAPTERS_BY_KEY = new Map();
-    CHAPTERS.forEach(c => {
-      CHAPTERS_BY_KEY.set(String(c.chapter), c);      // 10 → '10'；'ROM3' → 'ROM3'
-      CHAPTERS_BY_KEY.set(chapterKey(c.chapter), c);  // 10 → 'ACT10'（字串 key 兩者相同，覆寫無害）
-    });
-  }
-  return CHAPTERS_BY_KEY.get(String(ch)) || null;
-}
-
-function isChapterDone(ch) {
-  return !!state.completed[chapterKey(ch)];
-}
+function isChapterDone(ch) { return isChapterDoneIn(ch, state.completed); }
 
 // ══ GENDER ITEMS ════════════════════════════════════════
 const GENDER_ITEMS = {
@@ -2490,41 +2444,11 @@ function chooseGuestMode() {
 
 // SCHEDULE 統一陣列：合併日 length>=2、單章日 length==1
 // helper：拿某日的章節陣列，找不到回空陣列（避免 null/undefined check）
-function getScheduleChapters(date) {
-  return SCHEDULE[date] || [];
-}
-
-// 反查章節所在的 SCHEDULE 日期；找不到回 null（譬如未排程的補讀章節）
-function findScheduleDate(ch) {
-  return Object.keys(SCHEDULE).find(d => getScheduleChapters(d).some(c => c === ch)) || null;
-}
-
-// 預設章節挑選：合併日優先挑「第一個未完成」，全完成則回第一個（重讀模式）
-function pickDefaultChapter(chapters) {
-  if (!chapters || chapters.length === 0) return null;
-  // v2.12 hotfix: 同 selectChapter 的型別寬鬆化處理
-  const undone = chapters.find(c => !isChapterDone(c) && getChapter(c));
-  if (undone) return undone;
-  const firstAvail = chapters.find(c => getChapter(c));
-  return firstAvail || null;
-}
-
-function getTodayChapter() {
-  const today = todayStr();
-  const todays = getScheduleChapters(today).filter(c => getChapter(c));
-  const pick = pickDefaultChapter(todays);
-  if (pick) return pick;
-  // Fallback: find the latest past date with available content
-  const availableDates = Object.keys(SCHEDULE)
-    .filter(d => d <= today && getScheduleChapters(d).some(c => getChapter(c)))
-    .sort();
-  if (availableDates.length > 0) {
-    const lastChapters = getScheduleChapters(availableDates[availableDates.length - 1])
-      .filter(c => getChapter(c));
-    return pickDefaultChapter(lastChapters) || CHAPTERS[0].chapter;
-  }
-  return CHAPTERS[0].chapter;
-}
+// getScheduleChapters / findScheduleDate 已搬到 core.js（讀 SCHEDULE 的純查詢）。
+// 預設章節挑選與今日章節的規則也在 core.js（pickDefaultChapterFrom / todayChapterFor），
+// 這裡只把「今天」和 state.completed 餵進去。
+function pickDefaultChapter(chapters) { return pickDefaultChapterFrom(chapters, state.completed); }
+function getTodayChapter() { return todayChapterFor(todayStr(), state.completed); }
 
 // ══ INIT ══════════════════════════════════════════════════
 
@@ -2602,10 +2526,7 @@ function renderAvatar() {
   }
 }
 
-function levelTitle(lv) {
-  const t=['','初出發的旅人','撒馬利亞的訪客','曠野中的旅人','傳道者','腓利的同伴','使徒的足跡'];
-  return t[Math.min(lv,t.length-1)]||'資深信徒';
-}
+// levelTitle（等級稱號表）已搬到 core.js。
 
 // ══ CHAPTER GRID ══════════════════════════════════════════
 
@@ -2704,40 +2625,10 @@ let calMonth = calToday.getMonth();
 let calWeek  = 0;
 let calSelectedDate = null;
 
-function calDateStr(y, m, d) {
-  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-}
+// calDateStr / calWeekOfMonth / calWeeksInMonth（日曆算術）與 chapterLabel / chapterFull（章節顯示名）
+// 已搬到 core.js；calIsToday 依賴頁面的 calToday，留在這裡。
 function calIsToday(y, m, d) {
   return y===calToday.getFullYear() && m===calToday.getMonth() && d===calToday.getDate();
-}
-function calWeekOfMonth(y, m, d) {
-  return Math.floor((d + new Date(y,m,1).getDay() - 1) / 7);
-}
-function calWeeksInMonth(y, m) {
-  const days = new Date(y,m+1,0).getDate();
-  const first = new Date(y,m,1).getDay();
-  return Math.ceil((days + first) / 7);
-}
-// 章節短標籤（給日曆方格 / 列表用）— 例如「徒10」、「林前1」、「羅3」
-// 加新書卷時不用動這裡，只要 BOOKS 內加 prefix + shortName 就會自動支援
-function chapterLabel(ch) {
-  if (typeof ch === 'number') return `徒${ch}`;  // 使徒行傳：純數字格式
-  for (const book of BOOKS) {
-    if (book.prefix && typeof ch === 'string' && ch.startsWith(book.prefix)) {
-      return `${book.shortName}${ch.slice(book.prefix.length)}`;
-    }
-  }
-  return ch;  // 找不到對應書卷時，原樣回傳避免崩潰
-}
-// 章節完整中文（給標題顯示用）— 例如「使徒行傳 第10章」、「哥林多前書 第1章」
-function chapterFull(ch) {
-  if (typeof ch === 'number') return `使徒行傳 第${ch}章`;
-  for (const book of BOOKS) {
-    if (book.prefix && typeof ch === 'string' && ch.startsWith(book.prefix)) {
-      return `${book.name} 第${ch.slice(book.prefix.length)}章`;
-    }
-  }
-  return ch;
 }
 
 function renderCalendar() {
@@ -3023,17 +2914,24 @@ function closeMonthPicker() {
 // ══ CHAPTER GRID (kept for wardrobe/reset refresh) ═══════
 function renderChapterGrid() { renderCalendar(); }
 
-function selectChapter(ch) {
+// 換章節時要歸零的「本章 session 狀態」集中在這一處（issue #6）：
+// 以前散在 selectChapter 開頭逐個手動清，漏一個就跨章節污染（sessionMood 踩過）。
+// 新增 session 變數時請在這裡加一行，不要回去 selectChapter 裡塞。
+function resetSessionState() {
   pendingChoice = null;
   choiceConfirmed = false;
   reflSubmitted = false;
   sessionChoice = null;
   sessionHasRead = false;
   sessionMood = null;  // 情緒2.0：跨章不留痕——任何 selectChapter 呼叫都清掉；mood-picked 路徑在 proceedToChapter 於此之後重設
-  document.getElementById('refl-text').value = '';
   _reflEditStart = null;  // 換章節清掉上一章的編輯起點，避免帶舊時間
+  document.getElementById('refl-text').value = '';
   document.getElementById('ai-resp').classList.remove('show');
   document.getElementById('choice-feedback').style.display = 'none';
+}
+
+function selectChapter(ch) {
+  resetSessionState();
 
   // v2.12 hotfix: 寬鬆比對容忍數字/字串 chapter key 混用（使徒行傳用數字、其他書卷用字串）。長期規格統一後可移除。
   const data = getChapter(ch);
@@ -3229,11 +3127,7 @@ async function submitReflection() {
 
 // ══ COMPLETE ══════════════════════════════════════════════
 
-function resolveItem(itemData, gender) {
-  if (!itemData) return null;
-  if (itemData.default) return itemData[gender] || itemData.default;
-  return itemData;
-}
+// resolveItem（依性別解析裝備）已搬到 core.js。
 
 async function completeDevotional() {
   if (isChapterDone(selectedChapter)) return;
@@ -3281,31 +3175,8 @@ async function completeDevotional() {
   }
 }
 
-// 完成計分的純函式（issue #4）：只讀參數、不碰 DOM / Firestore / 全域狀態。
-// 回傳「要套用的變更」，由 finalizeCompletion 負責套用與 I/O。
-// 之後調 xp 公式、改 streak 規則，直接對這支函式寫測試即可，不用真機跑完整靈修。
-function computeCompletion({ data, chapter, hasBonus, gender, xp, level, completed, dayChapters, today }) {
-  const newItem = { ...resolveItem(data.baseItem, gender), chapter };
-  const bonusItem = hasBonus ? { ...resolveItem(data.bonusItem, gender), chapter } : null;
-  // xp / 升級：有默想 +35、無 +20，封頂 100 即升級並回到 10
-  let nextXp = Math.min(xp + (hasBonus ? 35 : 20), 100);
-  let nextLevel = level;
-  if (nextXp >= 100) { nextLevel++; nextXp = 10; }
-  // streak：合併日同日內若已完成另一章，第二章不重複 +streak（今日仍算一次靈修）
-  const sameDayOtherChapters = dayChapters.filter(c => c !== chapter);
-  const sameDayAlreadyDoneToday = sameDayOtherChapters.some(c => completed[chapterKey(c)] === today);
-  // 合併日完成第二章判定：本章 + 同日其他章全完成 + 該日章數 >= 2
-  const completedAfter = { ...completed, [chapterKey(chapter)]: today };
-  const isMergedDayAllDone = dayChapters.length >= 2
-    && dayChapters.every(c => completedAfter[chapterKey(c)]);
-  return {
-    newItem, bonusItem,
-    xp: nextXp, level: nextLevel,
-    streakInc: sameDayAlreadyDoneToday ? 0 : 1,
-    completedKey: chapterKey(chapter),
-    isMergedDayAllDone,
-  };
-}
+// 完成計分的純函式 computeCompletion（issue #4 抽出、issue #6 搬到 core.js）：只讀參數、不碰 DOM / Firestore / 全域狀態。
+// 回傳「要套用的變更」，由下面 finalizeCompletion 負責套用與 I/O；調 xp 公式、改 streak 規則直接對 test/core.test.js 寫測試。
 
 // 領裝備治本：完成那塊統一在此。由「綠鈕（有默想）」或「completeDevotional 當下（沒默想）」呼叫。
 // 完成 = 領取那一刻；沒領 = 沒完成、下次可重做（不會留下「入袋了但沒領」的中間狀態）。
@@ -4113,11 +3984,7 @@ function renderMyMsgBadge(status) {
 }
 
 // 玩家留言內容預覽用，避免 < & 之類字元打壞 HTML
-function escapeHtmlMyMsg(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+// escapeHtmlMyMsg 已搬到 core.js。
 
 // ── My Message Thread (Phase 2C 多輪對話 thread view) ────
 // rules Path B（commit b2abc6a）允許玩家寫一筆 messages doc + 同步 update parent 4 欄位
@@ -4255,10 +4122,7 @@ function updateThreadCount() {
   }
 }
 
-function formatThreadTime(d) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+// formatThreadTime 已搬到 core.js。
 
 async function sendThreadMessage() {
   if (isThreadSending) return;
