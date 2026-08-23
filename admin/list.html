@@ -247,6 +247,8 @@ body{
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<!-- 曠野呼聲狀態機／容錯讀取單一正本（issue #5）：正本在 repo 根 shared/，admin/ 複本由 scripts/sync-shared.js 同步 -->
+<script src="shared/feedback-schema.js"></script>
 
 <script>
 // ── Firebase init（同主站 firebaseConfig）───────────────
@@ -266,7 +268,7 @@ const db = firebase.firestore();
 const ADMIN_EMAILS = ['st00777@hotmail.com'];
 
 // ── Filter state（含預設值）─────────────────────────────
-const ALL_STATUSES = ['new', 'awaiting_admin', 'awaiting_player', 'closed'];
+const ALL_STATUSES = FEEDBACK_STATUSES;  // 來自 shared/feedback-schema.js
 const filterState = {
   status: ['new', 'awaiting_admin', 'awaiting_player'],  // 預設不勾 closed
   wantReply: 'all',  // all / yes / no
@@ -275,24 +277,8 @@ const filterState = {
 };
 let allFeedback = [];  // 全部 50 筆，client-side filter
 
-// ── normalize helpers（沿用 Phase 2B lazy-init B 方案的容錯邏輯）──
-// 設計選擇：client 不主動寫對話追蹤欄位（status / lastMessageAt / unread* / messageCount）
-// 讀取時用以下 helper 推導預設值，三種 doc 形態（v1 殘留 / Phase 1 migrate / Phase 2A 後）一份邏輯涵蓋
-function normalizeFeedbackStatus(d) {
-  if (d.status) return d.status;
-  if (d.wantReply === true) return 'awaiting_admin';
-  return 'closed';
-}
-function normalizeUnread(d, side) {
-  const key = side === 'player' ? 'unreadByPlayer' : 'unreadByAdmin';
-  return d[key] === true;
-}
-function normalizeMessageCount(d) {
-  return typeof d.messageCount === 'number' ? d.messageCount : 0;
-}
-function normalizeLastMessageAt(d) {
-  return d.lastMessageAt || d.createdAt || null;
-}
+// ── normalize helpers：normalizeFeedbackStatus / normalizeUnread / normalizeMessageCount / normalizeLastMessageAt
+//    都由 shared/feedback-schema.js 提供（issue #5 單一正本），這裡不再放複本。
 
 // ── HTML escape（同 Phase 2B escapeHtmlMyMsg 風格）─────
 function escapeHtml(s) {

@@ -4,6 +4,8 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
+// 曠野呼聲狀態機單一正本（issue #5）：lib/ 這份是 scripts/sync-shared.js 從 repo 根 shared/ 複製來的，不要直接改
+const { FEEDBACK_EVENTS, autoCloseUpdate } = require('./lib/feedback-schema');
 
 setGlobalOptions({ maxInstances: 10 });
 admin.initializeApp();
@@ -223,7 +225,7 @@ exports.autoCloseInactiveThreads = onSchedule(
     // 複合 query 需要索引（status ASC + lastMessageAt ASC）
     // 首次部署後手動 trigger，console 會回索引建立連結
     const snap = await db.collection('feedback')
-      .where('status', '==', 'awaiting_player')
+      .where('status', '==', FEEDBACK_EVENTS.auto_close_30d.from[0])  // 'awaiting_player'
       .where('lastMessageAt', '<=', cutoff)
       .get();
 
@@ -236,11 +238,7 @@ exports.autoCloseInactiveThreads = onSchedule(
     const batch = db.batch();
     const now = admin.firestore.FieldValue.serverTimestamp();
     snap.docs.forEach(doc => {
-      batch.update(doc.ref, {
-        status: 'closed',
-        closedAt: now,
-        closedBy: 'system:auto_30d',
-      });
+      batch.update(doc.ref, autoCloseUpdate({ serverTimestamp: now }));  // status closed / closedBy 'system:auto_30d'
     });
     await batch.commit();
 
