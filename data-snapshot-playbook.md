@@ -211,6 +211,8 @@ cohort 編號（cohort 0, 1, 2...）的編法**也是同樣規則**（cohort 0 =
 
 ## 6. data-insights.md 更新規範
 
+> ⚠️ **此檔 2026-08-23 起不再進 repo**（已 `git rm --cached` ＋ `.gitignore`）：repo 是 public、Pages 依賴它不能轉 private，而檔內玩家行為描述在 50 人小社群等同指名。檔案留在本機 `~/bible-work/Bible-game/data-insights.md` 照常更新；歷史 commit 仍看得到舊版，要徹底清除需重寫歷史（另議）。
+
 ### 不刪歷史
 
 每次更新**只新增**，不刪舊段落。歷史是時間序列觀察的基礎，下個月回看才能對比。
