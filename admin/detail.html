@@ -350,6 +350,8 @@ body{
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<!-- 曠野呼聲狀態機／容錯讀取單一正本（issue #5）：正本在 repo 根 shared/，admin/ 複本由 scripts/sync-shared.js 同步 -->
+<script src="shared/feedback-schema.js"></script>
 
 <script>
 // ── Firebase init（同主站 firebaseConfig）───────────────
@@ -376,17 +378,8 @@ let currentAdminUid = null;
 let currentAdminEmail = null;
 let threadData = null;   // feedback 主文件快取（送出回覆 / 標記結束時更新本地）
 
-// ── normalize helpers（與 list.html 同一份容錯邏輯，沿用 Phase 2B B 方案）──
-// 設計選擇：client 不主動寫對話追蹤欄位；舊 doc（v1 殘留 / migrate）沒 status 欄位時推導
-function normalizeFeedbackStatus(d) {
-  if (d.status) return d.status;
-  if (d.wantReply === true) return 'awaiting_admin';
-  return 'closed';
-}
-function normalizeUnread(d, side) {
-  const key = side === 'player' ? 'unreadByPlayer' : 'unreadByAdmin';
-  return d[key] === true;
-}
+// ── normalize helpers：normalizeFeedbackStatus / normalizeUnread（＋list.html 用的另外兩支）
+//    都由 shared/feedback-schema.js 提供（issue #5 單一正本），這裡不再放複本。
 
 // ── HTML escape（同 list.html escapeHtml）───────────────
 function escapeHtml(s) {
@@ -643,13 +636,11 @@ async function submitReply() {
 
     // (2) 主文件對話追蹤欄位更新（admin update 無欄位白名單，rules 已涵蓋）
     //     status → awaiting_player（換玩家），玩家有未讀，admin 已處理掉自己的未讀
-    await docRef.update({
-      status: 'awaiting_player',
-      unreadByPlayer: true,
-      unreadByAdmin: false,
-      lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
-      messageCount: firebase.firestore.FieldValue.increment(1)
-    });
+    //     欄位組合來自 shared/feedback-schema.js adminReplyUpdate
+    await docRef.update(adminReplyUpdate({
+      serverTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      increment: firebase.firestore.FieldValue.increment
+    }));
 
     // UI 即時更新（不重整）：append 新泡泡 + 清空輸入 + 重算控制區
     appendAdminBubble(text);
@@ -707,11 +698,10 @@ async function markClosed() {
   btn.textContent = '處理中…';
 
   try {
-    await db.collection('feedback').doc(threadId).update({
-      status: 'closed',
-      closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    await db.collection('feedback').doc(threadId).update(adminCloseUpdate({
+      serverTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
       closedBy: currentAdminEmail
-    });
+    }));
 
     // 本地更新 + 重繪（closedAt 用本地時間先顯示，刷新後讀 server timestamp）
     threadData.status = 'closed';

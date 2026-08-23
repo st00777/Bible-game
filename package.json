@@ -4,6 +4,7 @@
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "validate:content": "node scripts/validate-content.js",
+    "sync-shared": "node scripts/sync-shared.js",
     "analyze": "node scripts/analyze-feedback.js",
     "profiles": "node scripts/list-profiles.js",
     "weekly": "node scripts/weekly-trend.js",

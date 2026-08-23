@@ -6,12 +6,14 @@ cd /Users/aitest/Desktop/Bible-game
 
 CMD="${1:-}"
 
-# 白名單部署（安全事件收尾）：hosting 只上傳 public/ 內的兩個遊戲檔。
+# 白名單部署（安全事件收尾）：hosting 只上傳 public/ 內的遊戲檔。
 # 每次部署前強制從根目錄同步，確保 public/ 版本不會落後、preview 不會驗到舊版。
+# 共用純邏輯正本在 shared/（issue #5），由 scripts/sync-shared.js 複製到 public/shared、admin/shared、functions/lib。
 sync_public() {
   mkdir -p public
+  node scripts/sync-shared.js
   cp -f bible-game-v2.html content.js public/
-  echo "▶ 已同步 public/（bible-game-v2.html + content.js）"
+  echo "▶ 已同步 public/（bible-game-v2.html + content.js + shared/）"
 }
 
 # AI fallback 文案守門（issue #7）：單一正本在 content.js 的 AI_FALLBACK_TEXT，
@@ -56,6 +58,7 @@ case "$CMD" in
     # 部署「全部」functions：舊寫法硬列 aiReflection,lineLogin，
     # 導致 autoCloseInactiveThreads（30 天自動關閉討論串）改了永遠上不了線（issue #7）。
     check_fallback_text
+    node scripts/sync-shared.js --check   # functions/lib/feedback-schema.js 必須與 shared/ 正本一致（issue #5）
     echo "▶ Functions：firebase deploy --only functions（全部，含 autoCloseInactiveThreads）"
     firebase deploy --only functions 2>&1 | tee deploy.log
     ;;

@@ -1307,6 +1307,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="content.js" defer></script>
+<!-- 曠野呼聲狀態機／容錯讀取單一正本（issue #5）：正本在 repo 根 shared/，public/ 複本由 scripts/sync-shared.js 同步 -->
+<script src="shared/feedback-schema.js"></script>
 
 <!-- Month picker -->
 <div class="month-picker-overlay" id="month-picker-overlay">
@@ -4024,28 +4026,9 @@ function showDiaryDetail(key) {
 }
 
 // ── My Messages (曠野呼聲 v2 多輪對話) ────────────────────
-// 容錯讀取：v1 殘留 / Phase 1 migrate 過 / Phase 2A 之後送的新留言共用一套規則
-// 設計選擇：client 不主動寫對話追蹤欄位（status / lastMessageAt / unread* / messageCount）
-// admin 後台或玩家追訊息時才寫；缺欄位由下面這幾個 helper 推導預設值
-
-function normalizeFeedbackStatus(d) {
-  if (d.status) return d.status;
-  // 沒 status：靠 wantReply 分流
-  if (d.wantReply === true) return 'awaiting_admin'; // 想要回覆但還沒回 → 等待中
-  return 'closed'; // wantReply=false 或 v1 殘留沒這欄位 → 視為已結束
-}
-function normalizeUnread(d, side) {
-  // side: 'player' | 'admin'，缺欄位都當 false（沒訊息就沒未讀）
-  const key = side === 'player' ? 'unreadByPlayer' : 'unreadByAdmin';
-  return d[key] === true;
-}
-function normalizeMessageCount(d) {
-  return typeof d.messageCount === 'number' ? d.messageCount : 0;
-}
-function normalizeLastMessageAt(d) {
-  // 缺欄位用 createdAt（兩者都是 Firestore Timestamp）
-  return d.lastMessageAt || d.createdAt || null;
-}
+// 狀態機、容錯讀取（normalizeFeedbackStatus / normalizeUnread / normalizeMessageCount / normalizeLastMessageAt）
+// 與寫入物件產生器（playerReplyUpdate / playerMarkReadUpdate）都在 shared/feedback-schema.js（issue #5），
+// 由頁面載入 shared/feedback-schema.js 掛成全域；這裡不再放複本。
 
 let myMessagesData = [];
 
@@ -4177,7 +4160,7 @@ async function openMyMessageThread(docId) {
 
     // Fire-and-forget 標記已讀（容錯後 unreadByPlayer=true 才寫，避免無謂 update）
     if (normalizeUnread(currentThreadData, 'player')) {
-      feedbackRef.update({ unreadByPlayer: false })
+      feedbackRef.update(playerMarkReadUpdate())
         .catch(e => console.warn('Mark as read failed:', e));
     }
   } catch (e) {
@@ -4310,12 +4293,11 @@ async function sendThreadMessage() {
       authorUid: currentUser.uid,
       authorType: 'human',
     });
-    batch.update(feedbackRef, {
-      lastMessageAt: ts,
-      unreadByAdmin: true,
-      messageCount: firebase.firestore.FieldValue.increment(1),
-      status: 'awaiting_admin',
-    });
+    // 欄位組合來自 shared/feedback-schema.js（與 firestore.rules 路徑 B hasOnly 對齊）
+    batch.update(feedbackRef, playerReplyUpdate({
+      serverTimestamp: ts,
+      increment: firebase.firestore.FieldValue.increment,
+    }));
     await batch.commit();
 
     // 重讀完整資料（保證 local state 跟 server 一致，serverTimestamp / increment 真正值才回得來）
