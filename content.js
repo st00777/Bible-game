@@ -358,6 +358,9 @@ const BIBLE_LINKS = {
 // ══ A1 地基：書卷導讀 + 角色圖鑑 schema（dev only，值待 Phase 1 內容窗填）═══
 // 結構與 SCHEDULE / BIBLE_LINKS 並列，置於 CHAPTERS 之前；不參與既有遊戲邏輯。
 const BOOK_INTRO = {
+  // 選填 cover：書卷封面（圖片路徑如 'img/a1/gen-cover.jpg'，或一個 emoji）。
+  // 「有圖才顯示」：沒這個欄位／空字串＝詳情頁完全不輸出封面區塊（與導讀區「無內容即無區塊」同原則，
+  // 見主程式 renderBookDetail 的註解）。美術完成後把檔案放 img/a1/ 再填路徑即可，不需改程式。
   // 示範：提摩太前書（公認事實已填，其餘神學/內容性值待審定）
   TIM1: {
     author: '保羅',                                // 公認事實
@@ -503,9 +506,16 @@ const BOOKS = [
     merged:{}, mergedActive:false },
 ];
 
+// ── A1 書卷詳情頁 feature flag ──────────────────────────────
+// Phase 1（2026-08-23 James 拍板）只開「創世記」一卷的垂直切片：書櫃上只有清單內的書背
+// 點得開詳情頁，其餘書卷維持 A1 之前的樣子（純展示、不可點）。
+// Phase 2 滾動鋪開＝該卷導讀／人物／美術齊了，就把 key 加進這個陣列，不用動程式。
+const BOOK_DETAIL_ENABLED = ['GEN'];
+
 const CHARACTERS = {
   // 示範：保羅、提摩太（多時期 schema；Phase 1 只填「教牧時期」，其餘時期預留空殼）
-  // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock } }
+  // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock, image? } }
+  //   image 選填：該時期的人物立繪／頭像（圖片路徑如 'img/a1/noah.jpg'）。有圖才顯示，沒有就不輸出圖位。
   paul: {
     name: '保羅',                                              // TODO: 內容窗審定
     periods: {
@@ -6602,6 +6612,15 @@ function validateContent() {
       warns.push(`BOOKS：${b.name} totalChapters=${b.totalChapters} 但 entries 有 ${b.entries.length} 章`);
     }
   });
+
+  // 7) A1 feature flag：BOOK_DETAIL_ENABLED 列的 key 都要真的存在於 BOOKS
+  //    （打錯字＝那卷永遠開不了，玩家看不出來，只有這裡會報）
+  if (typeof BOOK_DETAIL_ENABLED !== 'undefined') {
+    const bookKeys = new Set(BOOKS.map(b => b.key));
+    BOOK_DETAIL_ENABLED.forEach(k => {
+      if (!bookKeys.has(k)) errors.push(`BOOK_DETAIL_ENABLED：${k} 不在 BOOKS 裡（A1 詳情頁開不了）`);
+    });
+  }
 
   if (errors.length) {
     console.error(`🚨 內容自檢：${errors.length} 條結構錯誤（新章節上線前必修）`);

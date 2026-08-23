@@ -14,7 +14,10 @@ sync_public() {
   mkdir -p public
   node scripts/sync-shared.js
   cp -f bible-game-v2.html content.js core.js public/
-  echo "▶ 已同步 public/（bible-game-v2.html + content.js + core.js + shared/）"
+  # A1 圖片（封面／人物立繪）正本在根目錄 img/a1/，跟著同步；rsync --delete 讓刪圖也同步、不留孤兒
+  mkdir -p img/a1 public/img
+  rsync -a --delete img/ public/img/
+  echo "▶ 已同步 public/（bible-game-v2.html + content.js + core.js + shared/ + img/）"
 }
 
 # AI fallback 文案守門（issue #7）：單一正本在 content.js 的 AI_FALLBACK_TEXT，

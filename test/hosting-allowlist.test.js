@@ -10,6 +10,9 @@ const ROOT = path.join(__dirname, '..');
 
 // 允許公開的檔案（新增要公開的檔案＝在這裡加一行，審過才上）
 const PUBLIC_ALLOW = ['bible-game-v2.html', 'content.js', 'core.js', 'shared/feedback-schema.js'];
+// A1 圖片目錄：public/img/ 只允許圖片檔（封面／人物立繪），由 deploy.sh 從根目錄 img/ 同步
+const PUBLIC_IMG_DIR = 'img/';
+const IMG_EXT = /\.(png|jpe?g|webp|gif|svg)$/i;
 const ADMIN_ALLOW = ['index.html', 'list.html', 'detail.html', 'shared/feedback-schema.js'];
 
 function listFiles(dir, base = dir) {
@@ -29,8 +32,12 @@ test('firebase.json：hosting 兩個 target 都指向白名單目錄，不是 re
   for (const h of cfg.hosting) assert.notEqual(h.public, '.', `${h.target} 退回整個 repo 根目錄上傳`);
 });
 
-test('public/ 只含白名單檔案', () => {
-  assert.deepEqual(listFiles(path.join(ROOT, 'public')).sort(), [...PUBLIC_ALLOW].sort());
+test('public/ 只含白名單檔案（img/ 下只准圖片）', () => {
+  const files = listFiles(path.join(ROOT, 'public'));
+  const imgs = files.filter(f => f.startsWith(PUBLIC_IMG_DIR));
+  const rest = files.filter(f => !f.startsWith(PUBLIC_IMG_DIR));
+  assert.deepEqual(rest.sort(), [...PUBLIC_ALLOW].sort());
+  for (const f of imgs) assert.match(f, IMG_EXT, `public/${f} 不是圖片檔，不該公開`);
 });
 
 test('admin/ 只含白名單檔案', () => {

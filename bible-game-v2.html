@@ -571,6 +571,25 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .bd-lock-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
 .bd-lock-tag.on{background:var(--green);color:white;}
 .bd-lock-tag.off{background:var(--sand-dark);color:var(--text-soft);}
+/* A1 Phase 1：只有 BOOK_DETAIL_ENABLED 內的書背點得開，右上角小書籤提示「可翻開」 */
+.book-spine.openable::after{content:'📖';position:absolute;top:3px;right:4px;font-size:10px;opacity:.85;}
+.book-spine:not(.openable){cursor:default;}
+/* A1 翻頁動畫：詳情頁像從書櫃抽出一本書、輕輕翻開（transform+opacity，≤450ms，不催促）。
+   沿用 .overlay/.sheet 的 show 機制，只對 #book-detail-overlay 生效；返回時反向收合。 */
+#book-detail-overlay{perspective:1200px;}
+#book-detail-overlay .sheet{transform-origin:left center;transform:translateY(28px) rotateY(-14deg);opacity:0;transition:transform .42s cubic-bezier(.22,.8,.36,1),opacity .32s ease;}
+#book-detail-overlay.show .sheet{transform:translateY(0) rotateY(0);opacity:1;}
+#book-detail-overlay .bd-section:nth-child(2){animation-delay:.06s;}
+#book-detail-overlay .bd-section:nth-child(3){animation-delay:.12s;}
+#book-detail-overlay .bd-section:nth-child(4){animation-delay:.18s;}
+/* A1 圖位（有圖才輸出，沒圖整塊不存在）：封面寬 100% 圓角；人物小頭像圓形 */
+.bd-cover{display:block;width:100%;max-height:220px;object-fit:cover;border-radius:18px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .45s ease forwards;}
+.bd-cover-emoji{text-align:center;font-size:56px;line-height:1.2;margin-bottom:10px;opacity:0;animation:popIn .45s ease forwards;}
+.bd-char-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:10px;border:2px solid var(--sand-dark);background:white;}
+@media (prefers-reduced-motion:reduce){
+  #book-detail-overlay .sheet{transform:none;transition:opacity .2s ease;}
+  #book-detail-overlay .bd-section,.bd-cover,.bd-cover-emoji{animation:none;opacity:1;}
+}
 </style>
 </head>
 <body>
@@ -2123,7 +2142,10 @@ function renderLibraryPage() {
       const prog = getBookProgress(book);
       const pct = Math.round(prog.done / prog.total * 100);
       const cls = prog.complete ? 'lit' : (prog.done > 0 ? 'progress' : 'locked');
-      html += `<div class="book-spine ${cls}" onclick="openBookDetail('${book.key}')">
+      // A1 feature flag（content.js BOOK_DETAIL_ENABLED）：清單內的書背才綁 onclick 開詳情頁，
+      // 其餘維持 A1 之前的純展示書背（無 onclick），Phase 2 逐卷加進清單即可。
+      const openable = isBookDetailEnabled(book.key);
+      html += `<div class="book-spine ${cls}${openable ? ' openable' : ''}"${openable ? ` onclick="openBookDetail('${book.key}')"` : ''}>
         <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
         <div class="book-spine-name">${book.name}</div>
         <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
@@ -2139,7 +2161,12 @@ function renderLibraryPage() {
 }
 
 // ── A1 書卷詳情頁（純新增 view；只讀 state.completed，不寫狀態、不碰主流程）──
+// Phase 1 feature flag：只有 content.js 的 BOOK_DETAIL_ENABLED 列到的書卷開得了（沒定義該常數＝全關）。
+function isBookDetailEnabled(bookKey) {
+  return (typeof BOOK_DETAIL_ENABLED !== 'undefined') && Array.isArray(BOOK_DETAIL_ENABLED) && BOOK_DETAIL_ENABLED.includes(bookKey);
+}
 function openBookDetail(bookKey) {
+  if (!isBookDetailEnabled(bookKey)) return;
   renderBookDetail(bookKey);
   openOverlay('book-detail-overlay');
 }
@@ -2158,6 +2185,15 @@ function renderBookDetail(bookKey) {
   //    聖經沒下結論的地方我們不替它下結論；空著比給玩家一個「本該有東西」的空位好。
   //    下方 ③ 人物冊採同一條原則，兩處註解請一起維護。
   const intro = (typeof BOOK_INTRO !== 'undefined' && BOOK_INTRO[bookKey]) || null;
+  // ⓪ 封面（BOOK_INTRO[key].cover 選填：圖片路徑或 emoji）——「有圖才顯示」，沒值整塊不輸出。
+  //    與下方 ①③ 的「無內容即無區塊」同一條原則；人物頭像（period.image）亦同，三處註解一起維護。
+  const isImgPath = v => /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(String(v).trim());
+  const cover = intro && intro.cover && String(intro.cover).trim();
+  if (cover) {
+    html += isImgPath(cover)
+      ? `<img class="bd-cover" src="${esc(cover)}" alt="${esc(book.name)} 封面">`
+      : `<div class="bd-cover-emoji">${esc(cover)}</div>`;
+  }
   const introRows = intro
     ? [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
         .filter(([, val]) => val && String(val).trim())
@@ -2206,7 +2242,9 @@ function renderBookDetail(bookKey) {
       for (const p of ps) {
         const unlocked = !!(p.unlock && state.completed[chapterKey(p.unlock)]);
         const tag = unlocked ? '<span class="bd-lock-tag on">已解鎖</span>' : '<span class="bd-lock-tag off">未解鎖</span>';
-        html += `<div class="bd-period ${unlocked ? '' : 'locked'}"><span class="bd-period-title">${esc(p.title)}</span>${tag}`;
+        // period.image 選填（人物立繪／頭像）：有圖才輸出圓形小頭像，沒圖就沒有圖位（同上「有圖才顯示」）
+        const avatar = (p.image && String(p.image).trim()) ? `<img class="bd-char-avatar" src="${esc(p.image)}" alt="${esc(c.name)}">` : '';
+        html += `<div class="bd-period ${unlocked ? '' : 'locked'}">${avatar}<span class="bd-period-title">${esc(p.title)}</span>${tag}`;
         if (unlocked) {
           if (filled(p.desc)) html += `<div>${esc(p.desc)}</div>`;
         } else {
