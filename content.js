@@ -358,6 +358,9 @@ const BIBLE_LINKS = {
 // ══ A1 地基：書卷導讀 + 角色圖鑑 schema（dev only，值待 Phase 1 內容窗填）═══
 // 結構與 SCHEDULE / BIBLE_LINKS 並列，置於 CHAPTERS 之前；不參與既有遊戲邏輯。
 const BOOK_INTRO = {
+  // 選填 cover：書卷封面（圖片路徑如 'img/a1/gen-cover.jpg'，或一個 emoji）。
+  // 「有圖才顯示」：沒這個欄位／空字串＝詳情頁完全不輸出封面區塊（與導讀區「無內容即無區塊」同原則，
+  // 見主程式 renderBookDetail 的註解）。美術完成後把檔案放 img/a1/ 再填路徑即可，不需改程式。
   // 示範：提摩太前書（公認事實已填，其餘神學/內容性值待審定）
   TIM1: {
     author: '保羅',                                // 公認事實
@@ -503,9 +506,16 @@ const BOOKS = [
     merged:{}, mergedActive:false },
 ];
 
+// ── A1 書卷詳情頁 feature flag ──────────────────────────────
+// Phase 1（2026-08-23 James 拍板）只開「創世記」一卷的垂直切片：書櫃上只有清單內的書背
+// 點得開詳情頁，其餘書卷維持 A1 之前的樣子（純展示、不可點）。
+// Phase 2 滾動鋪開＝該卷導讀／人物／美術齊了，就把 key 加進這個陣列，不用動程式。
+const BOOK_DETAIL_ENABLED = ['GEN'];
+
 const CHARACTERS = {
   // 示範：保羅、提摩太（多時期 schema；Phase 1 只填「教牧時期」，其餘時期預留空殼）
-  // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock } }
+  // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock, image? } }
+  //   image 選填：該時期的人物立繪／頭像（圖片路徑如 'img/a1/noah.jpg'）。有圖才顯示，沒有就不輸出圖位。
   paul: {
     name: '保羅',                                              // TODO: 內容窗審定
     periods: {
@@ -536,7 +546,35 @@ const CHARACTERS = {
       },
     },
   },
-  // ── 其餘角色待 Phase 1/2 由內容窗補（結構：name + periods{ <時期key>:{ book, title, desc, unlock } }）──
+  // ── 創世記（A1 Phase 1 切片，James 2026-08-23 核准）──
+  // 創世記屬「連續敘事」書卷：時期 key 用敘事段落（起初 / 洪水 / 先祖 / 約瑟），不是人生時間軸。
+  // 介紹文字只寫經文明說的事、不加推論；解鎖＝完成該人物登場的那一章（特定章，非任一章）。
+  // Phase 2 隨 GEN12+ 批次再補：亞伯拉罕（蒙召→立約→獻以撒 可多階段）、以撒、雅各、約瑟…
+  adam: {
+    name: '亞當',
+    periods: {
+      // 起初（創 1–5）
+      beginning: {
+        book: 'GEN',
+        title: '起初的人',
+        desc: '神用地上的塵土造的第一人，被安置在伊甸園修理看守；吃了分別善惡樹的果子後被逐出園子。', // 創 2:7、2:15、3:23-24
+        unlock: 'GEN2',                                          // 完成創世記 2 章後解鎖
+      },
+    },
+  },
+  noah: {
+    name: '挪亞',
+    periods: {
+      // 洪水（創 6–11）
+      flood: {
+        book: 'GEN',
+        title: '洪水前後',
+        desc: '在敗壞的世代中蒙恩的義人，照神的吩咐造方舟，帶一家與活物度過洪水；出方舟後築壇獻祭，神以虹立約。', // 創 6:8-9、6:22、8:20、9:13
+        unlock: 'GEN6',                                          // 完成創世記 6 章後解鎖（GEN6 內容 9/03 上線）
+      },
+    },
+  },
+  // ── 其餘角色待 Phase 2 由內容窗補（結構：name + periods{ <時期key>:{ book, title, desc, unlock, image? } }）──
 };
 
 
@@ -6602,6 +6640,15 @@ function validateContent() {
       warns.push(`BOOKS：${b.name} totalChapters=${b.totalChapters} 但 entries 有 ${b.entries.length} 章`);
     }
   });
+
+  // 7) A1 feature flag：BOOK_DETAIL_ENABLED 列的 key 都要真的存在於 BOOKS
+  //    （打錯字＝那卷永遠開不了，玩家看不出來，只有這裡會報）
+  if (typeof BOOK_DETAIL_ENABLED !== 'undefined') {
+    const bookKeys = new Set(BOOKS.map(b => b.key));
+    BOOK_DETAIL_ENABLED.forEach(k => {
+      if (!bookKeys.has(k)) errors.push(`BOOK_DETAIL_ENABLED：${k} 不在 BOOKS 裡（A1 詳情頁開不了）`);
+    });
+  }
 
   if (errors.length) {
     console.error(`🚨 內容自檢：${errors.length} 條結構錯誤（新章節上線前必修）`);

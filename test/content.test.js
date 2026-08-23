@@ -89,3 +89,21 @@ test('totalChapters 與 entries 數不符 → warn', () => {
   const r = runWith({ ...healthy, BOOKS: [{ ...healthy.BOOKS[0], totalChapters: 28 }, healthy.BOOKS[1]] });
   assert.ok(r.warns.some(m => m.includes('totalChapters=28')));
 });
+
+// ── A1 feature flag（BOOK_DETAIL_ENABLED）──
+test('BOOK_DETAIL_ENABLED 列了不存在的書卷 → error；沒定義常數 → 不檢查', () => {
+  const bad = runWith({ ...healthy, BOOK_DETAIL_ENABLED: ['GEN', 'XXX'] });
+  assert.ok(bad.errors.some(m => m.includes('BOOK_DETAIL_ENABLED：XXX')));
+  const ok = runWith({ ...healthy, BOOK_DETAIL_ENABLED: ['GEN'] });
+  assert.equal(ok.errors.length, 0);
+  assert.equal(runWith(healthy).errors.length, 0);
+});
+
+test('真實 content.js：BOOK_DETAIL_ENABLED 是 BOOKS 的子集（Phase 1 含 GEN）', () => {
+  const ctx = vm.createContext({ console: { log() {}, warn() {}, error() {} } });
+  vm.runInContext(contentSrc, ctx, { filename: 'content.js' });
+  const { BOOK_DETAIL_ENABLED, BOOKS } = vm.runInContext('({ BOOK_DETAIL_ENABLED, BOOKS })', ctx);
+  assert.ok(Array.isArray(BOOK_DETAIL_ENABLED) && BOOK_DETAIL_ENABLED.includes('GEN'));
+  const keys = new Set(BOOKS.map(b => b.key));
+  for (const k of BOOK_DETAIL_ENABLED) assert.ok(keys.has(k), `${k} 不在 BOOKS`);
+});
