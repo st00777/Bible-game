@@ -1,6 +1,6 @@
 // ══ 靈修冒險 content.js ══════════════════════════════════
 // 版本號：每次更新內容或機制時修改
-const GAME_VERSION = '2026.08.23';
+const GAME_VERSION = '2026.08.26';
 
 // ── Feature flags ──────────────────────────────────────────
 // 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
@@ -16,7 +16,9 @@ const FEATURE_FEEDBACK_V2 = true;
 // 未來內容副版次升級可沿用這個 flag、機制變更主版次改回 false。
 // 2026-08-23 A1 書卷詳情頁（創世記切片）上線：新功能、玩家要知道，設 false 彈公告。
 //   下次若只是修 bug／補每日內容 → 改回 true（版本號照加）。
-const SUPPRESS_VERSION_POPUP = false;
+// 2026-08-26 新約之旅・終點：功能本身就是一次性彈窗（8/28-9/06 自動出現），
+//   避免「版本公告＋終點儀式」連環彈，設 true 靜默升級；changelog 有紀錄。
+const SUPPRESS_VERSION_POPUP = true;
 
 // ── AI 回應 fallback 文案（單一正本）────────────────────────
 // 玩家端（fetch 失敗時備用）＋ scripts/analyze-feedback.js（辨識舊資料 fallback）都讀這裡。
@@ -25,9 +27,7 @@ const SUPPRESS_VERSION_POPUP = false;
 const AI_FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
 
 const VERSION_NOTES = [
-  '📚 書櫃新功能：點「創世記」可進入書卷詳情頁，看導讀與人物冊',
-  '👤 人物冊：完成創世記 2 章解鎖「亞當」、完成 6 章解鎖「挪亞」（挪亞內容 9/03 上線）',
-  '🗂 其他書卷的詳情頁會陸續開放'
+  '✨ 新約之旅・終點：一年走完整本新約的紀念畫面（8/28 起顯示一次）'
 ];
 
 // 大光教會2026每日讀經進度
