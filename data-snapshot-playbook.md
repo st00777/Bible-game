@@ -43,6 +43,7 @@ npm run analyze     # Firestore：feedback / users / 章節品質 ①-④ / 裝�
 npm run logs        # AI Reflection：呼叫量、真實回應率、503 錯誤明細
 npm run line-logs   # LINE 登入：成功率、失敗時段
 npm run weekly      # 按週（週日~週六）拆 註冊/完成/默想率/閱讀率/活躍/事件，輸出 markdown 表
+npm run core        # 核心指標（2026-08-24 拍板口徑）：本週幾人完成靈修＋寫默想（人名清單）、月趨勢、守門1 默想平均字數、守門2 連續4週未出現名單
 ```
 
 > 💡 **`npm run weekly`（2026-06-08 新增）**：累計快照看不出週與週的鬆緊，這支按週分桶。每次中更新跑一次，輸出的 markdown 表直接貼進 data-insights.md「📈 週別趨勢表（常駐累積）」覆蓋舊表，再追一行「週別觀察記事」。預設最近 6 週，`npm run weekly 10` 可拉更多週。讀 chapters + events 子集合較慢（~1 分鐘）。

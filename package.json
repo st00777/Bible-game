@@ -9,6 +9,7 @@
     "analyze": "node scripts/analyze-feedback.js",
     "profiles": "node scripts/list-profiles.js",
     "weekly": "node scripts/weekly-trend.js",
+    "core": "node scripts/core-metric.js",
     "ga4": "node scripts/ga4-insights.js",
     "logs": "node scripts/check-ai-logs.js",
     "line-logs": "node scripts/check-line-logs.js",
