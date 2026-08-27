@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-08-27
+> 最後更新：2026-08-27（版本／待辦盤點同步）
 
 ---
 
@@ -13,7 +13,7 @@
 - 臨時預覽（Firebase preview channel）：`bible-game-bcb84--dev-xxxxxx.web.app` —— dev 分支預覽用
 - 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：v2.16（2026-06-14 上線；情緒2.0 心情選擇器、mood-aware AI 默想回應、新內容 COL/TH/TIM、合併日雙章選讀。前一版 v2.15（2026-05-28）：B1 事件流 timeline `users/{uid}/events` 雙寫 GA4+Firestore、E1 個人資料入口 ⋯選單分眾 5 欄位）
+**目前版本**：`2026.08.27`（日期版號制，2026-06-05 起；最後一個語意版號 v2.16 於 2026-06-14 上線。近期：8/23 A1 書卷詳情頁（創世記）、8/28 新約之旅・終點儀式、創11-17 內容）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -170,7 +170,7 @@ Firebase Authentication 已授權：`st00777.github.io`、`bible-game-bcb84--dev
 
 **content.js 結構**：
 ```javascript
-const GAME_VERSION = '2.16';        // 版本號
+const GAME_VERSION = '2026.08.27'; // 版本號（日期制）
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
 const SCHEDULE = {...};            // 日期→章節對應表
 const BIBLE_LINKS = {...};         // Bible.com 連結
@@ -254,10 +254,6 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - 9/06 創9+10 → 雙章呈現
 - 9/18 創22+23 → 雙章呈現
 - 9/30 創35+36 → 雙章呈現
-
-**⚠️ 上線前提醒（8-9 月排程相關）**：
-- **彼得後書補第 3 章**：BOOKS 的 PE2 需 `totalChapters` 2→3、entries 加 `'PE2_3'`。此結構改動須與彼後內容**同批上 dev**，不可單獨先上（避免玩家看到「🔜 內容更新中」的空章）。
-- ⚠️ **創世記為本遊戲第一本「舊約」書卷**（在此之前全為新約）：書架分區、書卷排序、OT/NT 呈現方式需設計決策，**尚未定案**，先記為待辦。
 
 **更新節奏**：每週一更新下下週內容，確保玩家永遠有一週緩衝。
 
@@ -431,7 +427,6 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）──「併」：併入視覺成長主菜（2026-08-24）
 - 🔴 ~~靈修日記 v2：前後比對功能（「X 天前的你寫了這些」）~~ ── **2026-06-05 PM 閘門判定不做**（diary 回看率 0-10%、僅 3 位頂層 power user 回看，「回看=陪伴」假設玩家行為不支持；除非訊號改變）
 - [ ] localStorage 暫存默想 ── Firestore 寫入失敗時的最後一道防線（v3.0 候選）
-- [ ] 6月起加拉太書～提多書內容
 
 **v3.0 候選短期（2026-04-28 盤點）**
 - [~] 管理後台 ── ✅ admin web app 已部署（reply 回覆功能上線，2026-05-24，URL: `https://bible-game-admin.web.app`）；❌ SCHEDULE 管理仍未做
@@ -491,7 +486,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 **目前使用中的 dev 預覽網址**：
 `https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html`
-有效期至 2026-05-19（每次 channel deploy 自動延長）
+每次 channel deploy 自動延長 30 天（到期就再跑一次 deploy）
 
 ---
 
