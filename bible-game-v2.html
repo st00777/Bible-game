@@ -105,6 +105,15 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .more-menu.show{display:block;animation:popIn .2s ease;}
 .more-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;border-radius:8px;transition:background .15s;white-space:nowrap;}
 .more-menu button:hover{background:var(--sky);}
+.read-already-btn{display:block;width:100%;margin-top:8px;padding:9px 12px;background:none;border:1.5px dashed var(--sand-dark);border-radius:10px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;}
+.read-already-btn small{display:block;font-size:11px;color:var(--text-soft);margin-top:2px;}
+.commit-box{margin-top:12px;padding:10px 12px;background:rgba(156,123,181,.08);border-radius:10px;text-align:left;}
+.commit-q{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.commit-q small{display:block;font-weight:400;font-size:11px;color:var(--text-soft);margin-top:2px;}
+.commit-opts{display:flex;flex-wrap:wrap;gap:6px;}
+.commit-opt{background:white;border:1.5px solid var(--sand-dark);border-radius:20px;padding:6px 11px;font-family:inherit;font-size:12px;color:var(--text);cursor:pointer;}
+.commit-opt.on{border-color:var(--purple);color:var(--purple);font-weight:700;}
+.commit-opt.mute{border-style:dashed;color:var(--text-soft);}
 
 /* Feedback form */
 .fb-label{font-size:13px;font-weight:700;color:var(--text-soft);margin:14px 0 8px;}
@@ -680,11 +689,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div class="tut-step"><div class="tut-icon">📅</div><div><div class="tut-step-title">① 選今天要讀的章節</div><div class="tut-step-desc">從上方日曆選擇章節，可以補讀過去未完成的章節。</div></div></div>
     <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">② 讀今日經文</div><div class="tut-step-desc">點「閱讀完整章節」可前往聖經網站閱讀全文。</div></div></div>
     <div class="tut-step"><div class="tut-icon">🎭</div><div><div class="tut-step-title">③ 回應今日情境</div><div class="tut-step-desc">沒有對錯，選最有共鳴的答案。👆 點第一下預覽，再點一次確認，避免誤觸。</div></div></div>
-    <div class="tut-step"><div class="tut-icon">💭</div><div><div class="tut-step-title">④ 選做默想（可跳過）</div><div class="tut-step-desc">寫幾句話，AI 給個人化回應，還能解鎖稀有裝備！</div></div></div>
+    <div class="tut-step"><div class="tut-icon">💭</div><div><div class="tut-step-title">④ 選做默想（可跳過）</div><div class="tut-step-desc">寫幾句話，AI 給個人化回應，還能解鎖默想裝備！</div></div></div>
     <div class="tut-step"><div class="tut-icon">🎒</div><div><div class="tut-step-title">⑤ 領取裝備，分身成長</div><div class="tut-step-desc">完成後獲得與章節相關的裝備，可截圖分享給小組！</div></div></div>
-    <div class="tut-step"><div class="tut-icon">👗</div><div><div class="tut-step-title">⑥ 衣櫃換裝（3天後解鎖）</div><div class="tut-step-desc">連續靈修 3 天後解鎖衣櫃，自由搭配收集到的裝備。</div></div></div>
+    <div class="tut-step"><div class="tut-icon">👗</div><div><div class="tut-step-title">⑥ 衣櫃換裝（3天後解鎖）</div><div class="tut-step-desc">累積靈修 3 天後解鎖衣櫃，自由搭配收集到的裝備（中斷不歸零）。</div></div></div>
     <div class="sec-lbl" style="margin-top:18px;">✨ 更多功能</div>
-    <div class="tut-step"><div class="tut-icon">🏆</div><div><div class="tut-step-title">成就系統</div><div class="tut-step-desc">完成靈修、連續閱讀、填寫默想都會解鎖徽章。點擊已解鎖的徽章可以重溫當時的時刻。</div></div></div>
+    <div class="tut-step"><div class="tut-icon">🏆</div><div><div class="tut-step-title">成就系統</div><div class="tut-step-desc">完成靈修、累積天數、填寫默想都會解鎖徽章。點擊已解鎖的徽章可以重溫當時的時刻。</div></div></div>
     <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">靈修日記</div><div class="tut-step-desc">每次填寫默想後自動記錄。在 ⋯ 選單開啟，可以回顧過去寫的默想與靈修回應，支援關鍵字搜尋。</div></div></div>
     <div class="tut-step"><div class="tut-icon">🏜️</div><div><div class="tut-step-title">曠野呼聲</div><div class="tut-step-desc">在 ⋯ 選單開啟，分享今天靈修的感受、遊戲建議或靈性感受，可以匿名或具名留言給開發團隊。</div></div></div>
     <div class="tut-tip"><span style="font-size:18px;flex-shrink:0;">💡</span><span>每個裝備都與你讀過的聖經章節有關——分身會慢慢記錄你走過的靈修旅程。</span></div>
@@ -929,6 +938,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
     <div id="item-reveal"></div>
     <div class="share-box"><div id="share-text"></div></div>
+    <div class="commit-box" id="commit-box" style="display:none;"></div>
     <button class="green-btn" onclick="copyShare()">📋 複製分享給小組</button>
     <button class="sky-btn" onclick="closeReward()">繼續明天的旅程 →</button>
   </div>
@@ -958,7 +968,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
         <button class="icon-btn" id="more-menu-btn" onclick="toggleMoreMenu(event)" title="更多">⋯</button>
         <span class="unread-dot unread-dot-corner" id="more-btn-dot" style="display:none;"></span>
       </div>
-      <div class="streak-pill" onclick="devModeClick()">🔥 <span id="streak-num">0</span></div>
+      <div class="streak-pill" onclick="devModeClick()" title="累積靈修天數">🔥 <span id="streak-num">0</span></div>
     </div>
   </div>
 
@@ -1074,10 +1084,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
             <strong>讀完回來可獲得閱讀勳章 +15 XP！</strong><br>
             <span class="read-or-skip">當然，你也可以直接繼續進行遊戲。</span>
           </div>
-          <a id="bible-link" href="#" target="_blank" class="read-full-btn" onclick="markAsRead()">
+          <a id="bible-link" href="#" target="_blank" class="read-full-btn" onclick="markAsRead('bible_com')">
             前往閱讀完整章節
             <span id="read-time-tag" class="read-time-tag">約5分鐘 →</span>
           </a>
+          <button type="button" class="read-already-btn" id="read-already-btn" onclick="markAsRead('already')">✅ 我已經讀過這章了<small>紙本／其他 App／小組共讀都算</small></button>
           <div class="read-done-row" id="read-done-row" style="display:none;">
             <span style="font-size:22px;">🏅</span>
             <div>
@@ -1112,7 +1123,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div class="refl-card">
       <div class="refl-header">
         <div class="refl-title" id="refl-title">今日默想</div>
-        <div class="bonus-badge">⭐ 稀有裝備</div>
+        <div class="bonus-badge">⭐ 默想裝備</div>
       </div>
       <div class="refl-q" id="refl-q"></div>
       <textarea class="refl-input" id="refl-text" placeholder="想到什麼就寫什麼，幾句話就好…"></textarea>
@@ -1133,6 +1144,15 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.08.28 · 文案批＋自我約定＋AI 看裝備</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>「前往閱讀」旁多一個出口「我已經讀過這章了」——紙本、其他 App、小組共讀都算，同樣 +15 XP 閱讀勳章</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>完成靈修後問一句「明天大概什麼時候？」——只是跟自己約一下，不推播；⋯ 選單可關閉</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>AI 回應看得見你身上的裝備經文，合適時會引一句</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>🔥 改為「累積靈修天數」，中斷不歸零；成就改為累積 3／7／14／30 天</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>「稀有裝備」改名「默想裝備」；分享文案只留章節＋當日裝備；分享類成就不再新發（已得者保留）</span></div>
     </div>
 
     <div class="log-entry">
@@ -1958,22 +1978,25 @@ async function loadStats() {
   } catch(e) {}
 }
 
+// 累積靈修天數薄包裝（純邏輯在 core.js totalDevotionDays）
+function devotionDays() { return totalDevotionDays(state.completed); }
+
 const ACHIEVEMENTS = [
   // ── 恆心 ──
   {key:'first_step',name:'踏上旅程',desc:'完成第1次靈修',emoji:'👣',tier:'bronze',verse:'「你們要行道，不要單單聽道。」',verseRef:'—— 雅各書 1:22',
    check:()=>completedCount()>=1,progress:()=>`${Math.min(completedCount(),1)}/1`},
-  {key:'streak_3',name:'三日不間斷',desc:'連續靈修3天',emoji:'🔥',tier:'bronze',verse:'「因為他的怒氣不過是轉眼之間，他的恩典乃是一生之久。」',verseRef:'—— 詩篇 30:5',
-   check:()=>state.streak>=3,progress:()=>`${Math.min(state.streak,3)}/3`},
+  {key:'streak_3',name:'三日起步',desc:'累積靈修3天',emoji:'🔥',tier:'bronze',verse:'「因為他的怒氣不過是轉眼之間，他的恩典乃是一生之久。」',verseRef:'—— 詩篇 30:5',
+   check:()=>devotionDays()>=3,progress:()=>`${Math.min(devotionDays(),3)}/3`},
   {key:'total_10',name:'十日旅人',desc:'累計完成10天靈修',emoji:'🗺️',tier:'bronze',verse:'「你的話是我腳前的燈，是我路上的光。」',verseRef:'—— 詩篇 119:105',
    check:()=>completedCount()>=10,progress:()=>`${Math.min(completedCount(),10)}/10`},
-  {key:'streak_7',name:'一週堅持',desc:'連續靈修7天',emoji:'🌟',tier:'silver',verse:'「你們要在所信的道上恆心，根基穩固，堅定不移。」',verseRef:'—— 歌羅西書 1:23',
-   check:()=>state.streak>=7,progress:()=>`${Math.min(state.streak,7)}/7`},
-  {key:'streak_14',name:'兩週同行',desc:'連續靈修14天',emoji:'🌈',tier:'silver',verse:'「我們行善不可喪志，若不灰心，到了時候就要收成。」',verseRef:'—— 加拉太書 6:9',
-   check:()=>state.streak>=14,progress:()=>`${Math.min(state.streak,14)}/14`},
+  {key:'streak_7',name:'一週堅持',desc:'累積靈修7天',emoji:'🌟',tier:'silver',verse:'「你們要在所信的道上恆心，根基穩固，堅定不移。」',verseRef:'—— 歌羅西書 1:23',
+   check:()=>devotionDays()>=7,progress:()=>`${Math.min(devotionDays(),7)}/7`},
+  {key:'streak_14',name:'兩週同行',desc:'累積靈修14天',emoji:'🌈',tier:'silver',verse:'「我們行善不可喪志，若不灰心，到了時候就要收成。」',verseRef:'—— 加拉太書 6:9',
+   check:()=>devotionDays()>=14,progress:()=>`${Math.min(devotionDays(),14)}/14`},
   {key:'total_30',name:'月行者',desc:'累計完成30天靈修',emoji:'⛰️',tier:'silver',verse:'「耶和華是我的牧者，我必不至缺乏。」',verseRef:'—— 詩篇 23:1',
    check:()=>completedCount()>=30,progress:()=>`${Math.min(completedCount(),30)}/30`},
-  {key:'streak_30',name:'三十日挑戰',desc:'連續靈修30天',emoji:'💎',tier:'gold',verse:'「忍耐也當成功，使你們成全完備，毫無缺欠。」',verseRef:'—— 雅各書 1:4',
-   check:()=>state.streak>=30,progress:()=>`${Math.min(state.streak,30)}/30`},
+  {key:'streak_30',name:'三十日挑戰',desc:'累積靈修30天',emoji:'💎',tier:'gold',verse:'「忍耐也當成功，使你們成全完備，毫無缺欠。」',verseRef:'—— 雅各書 1:4',
+   check:()=>devotionDays()>=30,progress:()=>`${Math.min(devotionDays(),30)}/30`},
   {key:'total_100',name:'百日門徒',desc:'累計完成100天靈修',emoji:'👑',tier:'gold',verse:'「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了。」',verseRef:'—— 提摩太後書 4:7',
    check:()=>completedCount()>=100,progress:()=>`${Math.min(completedCount(),100)}/100`},
   {key:'comeback',name:'重回羊圈',desc:'第1次補讀',emoji:'🐑',tier:'bronze',verse:'「一百隻羊裡失去一隻，豈不把這九十九隻撇在曠野，去找那失去的羊，直到找著呢？」',verseRef:'—— 路加福音 15:4',
@@ -2006,9 +2029,10 @@ const ACHIEVEMENTS = [
   {key:'wardrobe_80',name:'全裝甲勇士',desc:'收集80件裝備',emoji:'⚔️',tier:'gold',verse:'「你們要穿戴神所賜的全副軍裝，就能抵擋魔鬼的詭計。」',verseRef:'—— 以弗所書 6:11',
    check:()=>itemCount()>=80,progress:()=>`${Math.min(itemCount(),80)}/80`},
   // ── 社群 ──
-  {key:'first_share',name:'分享祝福',desc:'第1次分享給小組',emoji:'📤',tier:'bronze',verse:'「你們的光也當這樣照在人前，叫他們看見你們的好行為。」',verseRef:'—— 馬太福音 5:16',
+  // 2026-08-27 PR ①：分享類成就下架（retired）——不再新發、已得者保留紀錄與展示
+  {key:'first_share',retired:true,name:'分享祝福',desc:'第1次分享給小組',emoji:'📤',tier:'bronze',verse:'「你們的光也當這樣照在人前，叫他們看見你們的好行為。」',verseRef:'—— 馬太福音 5:16',
    check:()=>(cachedStats.shareCount||0)>=1},
-  {key:'share_10',name:'福音使者',desc:'累計分享10次',emoji:'📢',tier:'silver',verse:'「報福音傳喜信的人，他們的腳蹤何等佳美。」',verseRef:'—— 羅馬書 10:15',
+  {key:'share_10',retired:true,name:'福音使者',desc:'累計分享10次',emoji:'📢',tier:'silver',verse:'「報福音傳喜信的人，他們的腳蹤何等佳美。」',verseRef:'—— 羅馬書 10:15',
    check:()=>(cachedStats.shareCount||0)>=10,progress:()=>`${Math.min(cachedStats.shareCount||0,10)}/10`},
   {key:'first_feedback',name:'曠野之聲',desc:'第1次填寫回饋',emoji:'🏜️',tier:'bronze',verse:'「在曠野有人聲喊著說：預備主的道，修直他的路。」',verseRef:'—— 馬可福音 1:3',
    check:()=>!!localStorage.getItem('has_submitted_feedback')},
@@ -2039,6 +2063,7 @@ async function checkAchievements() {
   const newlyUnlocked = [];
   for (const a of ACHIEVEMENTS) {
     if (unlockedAchievements[a.key]) continue;
+    if (a.retired) continue;   // 下架成就不再新發
     if (a.tier === 'gold') {
       // Gold hidden until all silver of same category unlocked? No, just check
     }
@@ -2130,12 +2155,11 @@ function renderBadgesPage() {
   const tierNames = { bronze:'🥉 銅級成就', silver:'🥈 銀級成就', gold:'🥇 金級成就' };
   let html = '';
   for (const tier of tiers) {
-    const items = ACHIEVEMENTS.filter(a => a.tier === tier);
+    const items = ACHIEVEMENTS.filter(a => a.tier === tier && (!a.retired || unlockedAchievements[a.key]));
     html += `<div style="font-size:13px;font-weight:700;color:var(--text-soft);margin:12px 0 8px;">${tierNames[tier]}</div>`;
     html += '<div class="ach-grid">';
     for (const a of items) {
       const unlocked = !!unlockedAchievements[a.key];
-      const isGoldHidden = tier === 'gold' && !unlocked && !tiers.slice(0,2).every(t => ACHIEVEMENTS.filter(x=>x.tier===t).every(x=>unlockedAchievements[x.key]));
       // Gold: show if any gold is unlocked OR all silver done; otherwise hide individual golds only if none unlocked
       const showHidden = tier === 'gold' && !unlocked;
       const cls = `${a.tier} ${unlocked ? 'unlocked' : (showHidden ? 'hidden' : '')}`.trim();
@@ -2156,7 +2180,7 @@ function renderBadgesPage() {
     html += '</div>';
   }
   // Summary
-  const total = ACHIEVEMENTS.length;
+  const total = ACHIEVEMENTS.filter(a => !a.retired || unlockedAchievements[a.key]).length;
   const done = ACHIEVEMENTS.filter(a => unlockedAchievements[a.key]).length;
   html = `<div style="text-align:center;font-size:13px;color:var(--text-soft);margin-bottom:6px;">已解鎖 ${done} / ${total}</div>` + html;
   el.innerHTML = html;
@@ -2572,25 +2596,26 @@ function renderAvatar() {
   }
   document.getElementById('av-name').textContent  = state.name;
   document.getElementById('av-level').textContent = `Lv.${state.level} · ${levelTitle(state.level)}`;
-  document.getElementById('streak-num').textContent = state.streak;
+  document.getElementById('streak-num').textContent = devotionDays();   // 2026-08-27：🔥 改顯示累積靈修天數（中斷不歸零）
   const pct = Math.min((state.xp/100)*100,100);
   document.getElementById('xp-fill').style.width = pct+'%';
   document.getElementById('xp-lbl').textContent = `${state.xp} / 100 XP`;
 
   // Wardrobe unlock
-  const unlocked = state.streak >= 3;
+  const days = Math.max(devotionDays(), state.streak || 0);   // 累積 3 天解鎖；舊 streak 已達者不倒退
+  const unlocked = days >= 3;
   document.getElementById('wardrobe-btn').classList.toggle('show', unlocked);
   const hint = document.getElementById('unlock-hint');
   if (unlocked) { hint.classList.add('hidden'); }
   else {
     hint.classList.remove('hidden');
-    const rem = 3 - state.streak;
+    const rem = 3 - days;
     document.getElementById('unlock-sub').innerHTML = `再完成 <strong>${rem} 天</strong>靈修解鎖衣櫃 👗`;
     const dots = document.getElementById('unlock-dots');
     dots.innerHTML = '';
     for (let i=0;i<3;i++) {
       const d = document.createElement('div');
-      d.className = 'ul-dot'+(i<state.streak?' on':'');
+      d.className = 'ul-dot'+(i<days?' on':'');
       dots.appendChild(d);
     }
   }
@@ -2618,10 +2643,11 @@ function toggleReadStep() {
   document.getElementById('step2-arrow').classList.toggle('open', readStepOpen);
 }
 
-function markAsRead() {
+// source：'bible_com'（點外連）／'already'（已在別處讀過，不驗證）。統計口徑＝「閱讀勳章領取率」（2026-08-27）。
+function markAsRead(source) {
   if (chapterReadDone) return;
   sessionHasRead = true;
-  track('read_chapter', { chapter: selectedChapter });
+  track('read_chapter', { chapter: selectedChapter, source: source || 'bible_com' });
   // Give bonus XP
   state.xp = Math.min(state.xp + 15, 100);
   if (state.xp >= 100) { state.level++; state.xp = 10; }
@@ -2633,6 +2659,7 @@ function markAsRead() {
   document.getElementById('step2-sub').textContent = '已完成閱讀 · 閱讀勳章獲得！';
   document.getElementById('step2-done').style.display = 'flex';
   document.getElementById('read-full-btn') && (document.querySelector('.read-full-btn').style.display = 'none');
+  const alreadyBtn = document.getElementById('read-already-btn'); if (alreadyBtn) alreadyBtn.style.display = 'none';
   document.getElementById('read-done-row').style.display = 'flex';
 }
 
@@ -2650,6 +2677,8 @@ function renderGuide(data) {
   document.getElementById('read-done-row').style.display = 'none';
   const readFullBtn = document.querySelector('.read-full-btn');
   if (readFullBtn) readFullBtn.style.display = 'flex';
+  const alreadyBtn0 = document.getElementById('read-already-btn');
+  if (alreadyBtn0) alreadyBtn0.style.display = '';
 
   const steps = document.getElementById('reading-steps');
 
@@ -3177,6 +3206,7 @@ async function submitReflection() {
         playerText: text,
         uid: currentUser?.uid || null,
         mood: sessionMood || null,  // 情緒2.0：當次起點心情餵 AI（冷框架承接）；先不說=null，後端走無 mood 邏輯
+        equipment: equippedVerses(state),  // AI 看裝備（2026-08-27 PR ①）：只送身上四件的 desc 經文，不送名稱／emoji；後端「至多引一句、不合則不提」
       }),
     });
     const d = await res.json();
@@ -3205,7 +3235,7 @@ async function completeDevotional() {
   const reflText = document.getElementById('refl-text').value.trim();
 
   if (!reflText) {
-    const goBack = await showConfirm('⭐','要先填寫默想嗎？','填寫默想可以獲得稀有裝備 ⭐\n要回去填，還是直接完成？','回去填默想','直接完成');
+    const goBack = await showConfirm('⭐','要先填寫默想嗎？','填寫默想可以獲得默想裝備 ⭐\n要回去填，還是直接完成？','回去填默想','直接完成');
     if (goBack) return;
   }
 
@@ -3379,7 +3409,7 @@ function showReward(item, bonus, hasBonus) {
   if (bonus) {
     reveal.innerHTML = `<div class="item-row">
       <div class="item-box base"><div class="item-box-lbl">✨ 基本裝備</div><span class="item-box-emoji">${item.emoji}</span><div class="item-box-name">${item.name}</div></div>
-      <div class="item-box bonus"><div class="item-box-lbl">⭐ 稀有裝備</div><span class="item-box-emoji" style="animation:bounce .6s ease infinite alternate;">${bonus.emoji}</span><div class="item-box-name">${bonus.name}</div></div>
+      <div class="item-box bonus"><div class="item-box-lbl">⭐ 默想裝備</div><span class="item-box-emoji" style="animation:bounce .6s ease infinite alternate;">${bonus.emoji}</span><div class="item-box-name">${bonus.name}</div></div>
     </div><div style="font-size:11px;color:var(--text-soft);text-align:center;font-style:italic;">${bonus.desc}</div>`;
   } else {
     reveal.innerHTML = `<div style="text-align:center;padding:14px 0;">
@@ -3387,13 +3417,14 @@ function showReward(item, bonus, hasBonus) {
       <div style="font-size:36px;margin-bottom:6px;">${item.emoji}</div>
       <div style="font-size:13px;font-weight:700;">${item.name}</div>
       <div style="font-size:11px;color:var(--text-soft);margin-top:4px;">${item.desc}</div>
-      <div style="margin-top:10px;padding:8px 12px;background:rgba(156,123,181,.1);border-radius:8px;font-size:12px;color:var(--purple);">💡 填寫默想可獲得稀有裝備 ⭐</div>
+      <div style="margin-top:10px;padding:8px 12px;background:rgba(156,123,181,.1);border-radius:8px;font-size:12px;color:var(--purple);">💡 填寫默想可獲得默想裝備 ⭐</div>
     </div>`;
   }
 
   document.getElementById('share-text').innerHTML =
-    `📖 ${chapterFull(selectedChapter)} 完成<br>今日裝備：${item.emoji} ${item.name}${bonus?`<br>稀有：${bonus.emoji} ${bonus.name}`:''}<br>連續 ${state.streak} 天靈修中 🔥`;
+    `📖 ${chapterFull(selectedChapter)} 完成<br>今日裝備：${item.emoji} ${item.name}${bonus?`<br>默想裝備：${bonus.emoji} ${bonus.name}`:''}`;   // 2026-08-27：去天數行，只留章節＋當日裝備
 
+  renderCommitBox();   // 自我約定（可關閉；只存 localStorage）
   launchConfetti();
   setTimeout(() => openOverlay('reward-overlay'), 300);
 }
@@ -3421,6 +3452,64 @@ function closeReward() {
       if (bar) bar.scrollIntoView({behavior:'smooth', block:'start'});
     }, 250);
   }
+}
+
+// ══ 自我約定「明天大概什麼時候？」（2026-08-27 PR ①）═══════════════
+// 定位＝推播的前置實驗：只存 localStorage、不推播、不寫雲端、可在 ⋯ 選單關閉；預設會問。
+// 第一次：完成頁問一次（五個時段＋不設定＋以後不用問我）；之後：「明天還是『睡前』嗎？」一鍵確認。
+const COMMIT_SLOTS = [
+  { k:'breakfast', label:'☕ 早餐後' }, { k:'commute', label:'🚌 通勤' }, { k:'lunch', label:'🍱 午休' },
+  { k:'bed', label:'🌙 睡前' }, { k:'none', label:'🤷 不設定' },
+];
+const COMMIT_LS_ENABLED = 'commit_ask_enabled';   // '0' = 關閉；其餘（含未設）= 開
+const COMMIT_LS_SLOT = 'commit_slot';             // 上次選的時段 key（'none' 也存，代表問過）
+function commitAskEnabled() { try { return localStorage.getItem(COMMIT_LS_ENABLED) !== '0'; } catch(e) { return true; } }
+function setCommitAskEnabled(on) { try { localStorage.setItem(COMMIT_LS_ENABLED, on ? '1' : '0'); } catch(e) {} renderCommitMenuLabel(); }
+function commitSlotLabel(k) { const s = COMMIT_SLOTS.find(x => x.k === k); return s ? s.label.replace(/^\S+\s/, '') : ''; }
+function renderCommitMenuLabel() {
+  const b = document.getElementById('more-menu-commit');
+  if (b) b.textContent = commitAskEnabled() ? '⏰ 明天約定：問我' : '⏰ 明天約定：不問';
+}
+function toggleCommitAsk() {
+  const next = !commitAskEnabled();
+  setCommitAskEnabled(next);
+  track('commit_toggle', { enabled: next });
+  showToast(next ? '⏰ 完成靈修後會問你明天大概什麼時候' : '⏰ 好，不再問明天的約定');
+}
+function renderCommitBox() {
+  const box = document.getElementById('commit-box');
+  if (!box) return;
+  if (!commitAskEnabled()) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  let prev = ''; try { prev = localStorage.getItem(COMMIT_LS_SLOT) || ''; } catch(e) {}
+  box.style.display = '';
+  if (prev && prev !== 'none') {
+    box.innerHTML = `<div class="commit-q">明天還是「${commitSlotLabel(prev)}」嗎？</div>
+      <div class="commit-opts">
+        <button type="button" class="commit-opt on" onclick="pickCommit('${prev}', 'confirm')">👍 是</button>
+        <button type="button" class="commit-opt" onclick="renderCommitOptions()">換一個</button>
+      </div>`;
+  } else {
+    renderCommitOptions();
+  }
+}
+function renderCommitOptions() {
+  const box = document.getElementById('commit-box');
+  box.innerHTML = `<div class="commit-q">明天大概什麼時候？<small>只是跟自己約一下，不會提醒你</small></div>
+    <div class="commit-opts">${COMMIT_SLOTS.map(s => `<button type="button" class="commit-opt" onclick="pickCommit('${s.k}', 'pick')">${s.label}</button>`).join('')}
+      <button type="button" class="commit-opt mute" onclick="pickCommit('off', 'off')">以後不用問我</button>
+    </div>`;
+}
+function pickCommit(k, mode) {
+  const box = document.getElementById('commit-box');
+  if (k === 'off') {
+    setCommitAskEnabled(false);
+    track('commit_time', { slot: 'off', mode });
+    box.innerHTML = `<div class="commit-q">好，不再問了。想改回來在 ⋯ 選單「明天約定」。</div>`;
+    return;
+  }
+  try { localStorage.setItem(COMMIT_LS_SLOT, k); } catch(e) {}
+  track('commit_time', { slot: k, mode });
+  box.innerHTML = `<div class="commit-q">${k === 'none' ? '好，明天見 🙂' : `好，明天「${commitSlotLabel(k)}」見 🙂`}</div>`;
 }
 
 // ══ COPY SHARE ══════════════════════════════════════════
@@ -3681,6 +3770,7 @@ function toggleMoreMenu(e) {
     return;
   }
   // 「我的留言」只給已登入玩家看（含只送過匿名的，因為他們有 uid）
+  renderCommitMenuLabel();
   const myMsgsBtn = document.getElementById('more-menu-my-msgs');
   if (myMsgsBtn) myMsgsBtn.style.display = currentUser ? 'block' : 'none';
   // Anchor the menu's top-right to just below the button's bottom-right,
@@ -4610,6 +4700,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
   <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言<span class="unread-dot" id="my-msgs-menu-dot" style="display:none;margin-left:8px;vertical-align:middle;"></span></button>
   <button onclick="openFontSizePicker(); closeMoreMenu()">🔤 字體大小</button>
+  <button onclick="toggleCommitAsk(); closeMoreMenu()" id="more-menu-commit">⏰ 明天約定：問我</button>
   <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
 </div>
 </body>

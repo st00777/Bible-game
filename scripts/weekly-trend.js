@@ -97,7 +97,7 @@ function weekLabel(w) {
   const p = (n, d) => d ? Math.round(n / d * 100) : 0;
 
   console.log(`\n## 週別趨勢表（最近 ${WEEKS} 週，週日~週六）\n`);
-  console.log('| 週別 | 新註冊 | 章節完成 | 默想率 | 閱讀率 | 活躍玩家¹ | 有事件玩家² |');
+  console.log('| 週別 | 新註冊 | 章節完成 | 默想率 | 閱讀勳章領取率 | 活躍玩家¹ | 有事件玩家² |');
   console.log('|---|---|---|---|---|---|---|');
   weeks.forEach(w => {
     const c = comp[w] || 0;

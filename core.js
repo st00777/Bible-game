@@ -183,6 +183,29 @@
     };
   }
 
+  // ── 累積靈修天數（2026-08-27 PR ①：🔥「連續」→「累積」）──────
+  // 口徑：completed 各章記錄的完成日期去重後的天數；合併日兩章同日只算 1 天。
+  // 不因 streak 中斷歸零（ADR 0001 視覺成長三原則：累計成就不歸零）。
+  function totalDevotionDays(completed) {
+    const seen = new Set();
+    Object.values(completed || {}).forEach(d => { if (/^\d{4}-\d{2}-\d{2}$/.test(d)) seen.add(d); });
+    return seen.size;
+  }
+
+  // ── 身上裝備的經文（AI 看裝備，2026-08-27 PR ①）───────────────
+  // 回傳目前穿戴四件裝備的 desc 經文字串（去重、去空、最多 4 句），只給經文不給名稱／emoji。
+  // 穿戴狀態存的是 emoji（hat/body/item/bg），從背包 items 反查同 slot 同 emoji 的物件。
+  function equippedVerses({ hat, body, item, bg, items }) {
+    const worn = { hat, body, hand: item, bg };
+    const out = [];
+    (items || []).forEach(it => {
+      if (!it || !it.desc || worn[it.slot] !== it.emoji) return;
+      const d = String(it.desc).trim();
+      if (d && !out.includes(d)) out.push(d);
+    });
+    return out.slice(0, 4);
+  }
+
   // ── 字串 ────────────────────────────────────────────────
   function escapeHtmlMyMsg(s) {
     return String(s)
@@ -197,5 +220,6 @@
     getScheduleChapters, findScheduleDate, isMakeupChapterOn,
     isChapterDoneIn, bookProgress, pickDefaultChapterFrom, todayChapterFor,
     levelTitle, resolveItem, computeCompletion, escapeHtmlMyMsg,
+    totalDevotionDays, equippedVerses,
   };
 });
