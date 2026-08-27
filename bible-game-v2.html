@@ -1136,6 +1136,12 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">2026.08.27 · 新約之旅・終點</div>
+      <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>紀念畫面：一年走完整本新約！8/28 起打開遊戲會看到一次「新約之旅・終點」；8/29 一起走進創世記</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">2026.08.23 · 書卷詳情頁（創世記）＋人物冊</div>
       <div class="log-date">2026年8月</div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>書櫃新功能：點「創世記」可進入書卷詳情頁，看導讀與人物冊</span></div>
@@ -1350,6 +1356,24 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 </div>
 
 <!-- Version notice -->
+<!-- 新約之旅・終點（2026-08-28 起一次性儀式；9/06 後不再出現。全體數字＝2026-08-24 快照，寫死不查詢）-->
+<div class="overlay center" id="nt-finale-overlay">
+  <div class="modal" style="max-width:380px;background:linear-gradient(180deg,#FFFDF8 0%,#F5E6C8 100%);">
+    <div style="font-size:40px;margin-bottom:6px;">✨</div>
+    <div class="sheet-title" style="font-size:20px;">新約之旅・終點</div>
+    <div style="font-size:14px;color:var(--text-soft);line-height:1.8;margin:10px 0 14px;">
+      2026 年 1 月 1 日，我們從馬太福音出發。<br>240 個日子、27 卷書、260 章——<br>今天，走到了啟示錄的最後一章。
+    </div>
+    <div style="background:rgba(255,255,255,.78);border-radius:13px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-size:15px;line-height:2;">這一年，大家在這裡<br>合力完成了 <b style="color:var(--green-dark);">1,320</b> 次靈修——<br>加起來，等於把整本新約走了 <b style="color:var(--green-dark);">5</b> 遍；<br>也留下了 <b style="color:var(--green-dark);">1,212</b> 篇寫給神的心裡話。</div>
+    </div>
+    <div id="nt-finale-personal" style="display:none;"></div>
+    <div style="background:var(--sky);border-radius:13px;padding:12px 14px;margin:4px 0 12px;font-size:14px;line-height:1.9;">「那美好的仗我已經打過了，當跑的路我已經跑盡了，所信的道我已經守住了。」<div style="font-size:12px;color:var(--text-soft);margin-top:4px;">—— 提摩太後書 4:7</div></div>
+    <div style="font-size:14px;line-height:1.8;margin:4px 0 16px;">8 月 29 日，我們回到起初——<b>創世記</b>。</div>
+    <button class="green-btn" onclick="closeNtFinale()">繼續靈修旅程 →</button>
+  </div>
+</div>
+
 <div class="overlay center" id="version-overlay">
   <div class="modal" style="max-width:360px;">
     <div style="font-size:32px;margin-bottom:10px;">🎉</div>
@@ -4399,6 +4423,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (!localStorage.getItem('tut_done')) {
       setTimeout(() => openOverlay('tut-overlay'), 500);
     }
+    maybeShowNtFinale();
   } else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
     // Returning from LINE redirect OR previously chose login/guest — show setup
     // (post-auth onAuthStateChanged may still advance to main app if cloud has setup)
@@ -4423,6 +4448,74 @@ function closeVersionNotice() {
   if (!localStorage.getItem('tut_done')) {
     setTimeout(() => openOverlay('tut-overlay'), 300);
   }
+}
+
+// ══ 新約之旅・終點（2026-08-28 一次性儀式）════════════════
+// 只讀既有資料（state.completed / state.streak / cachedStats），不新增欄位、不多打 API。
+// 預覽：?nt=preview（群體版）、?nt=preview2（含個人段；未達門檻時用示意數字），預覽不寫已看記錄。
+const NT_FINALE_START = '2026-08-28';
+const NT_FINALE_END = '2026-09-06';
+const NT_FINALE_THRESHOLD = 21; // 完成 21 章以上才顯示個人段（依 2026-08-24 分布：約 16 人）
+
+function ntFinalePersonal() {
+  const completed = state.completed || {};
+  const n = Object.keys(completed).length;
+  const dates = [...new Set(Object.values(completed).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
+  let run = 0, best = 0, prev = null;
+  dates.forEach(d => {
+    run = (prev && (new Date(d) - new Date(prev) === 86400000)) ? run + 1 : 1;
+    if (run > best) best = run;
+    prev = d;
+  });
+  best = Math.max(best, state.streak || 0);
+  const first = dates[0] ? `${parseInt(dates[0].slice(5, 7))} 月 ${parseInt(dates[0].slice(8, 10))} 日` : null;
+  return { n, best, first, refl: cachedStats.reflectionCount || 0 };
+}
+
+function showNtFinale(personal) {
+  const el = document.getElementById('nt-finale-personal');
+  if (personal) {
+    el.style.display = '';
+    el.innerHTML = `<div style="background:rgba(255,255,255,.78);border-radius:13px;padding:14px;margin-bottom:12px;border:1.5px solid var(--sand-dark);">
+      <div style="font-size:13px;font-weight:700;color:var(--warm);margin-bottom:8px;">—— 你的足跡 ——</div>
+      <div style="font-size:15px;padding:3px 0;">你完成了 <b>${personal.n}</b> 章${personal.refl ? `・寫下 <b>${personal.refl}</b> 篇默想` : ''}</div>
+      <div style="font-size:15px;padding:3px 0;">最長連續 <b>${personal.best}</b> 天</div>
+      ${personal.first ? `<div style="font-size:15px;padding:3px 0;">你的旅程始於 ${personal.first}</div>` : ''}
+      ${personal.mock ? '<div style="font-size:11px;color:var(--text-soft);margin-top:4px;">（預覽示意數字）</div>' : ''}
+    </div>`;
+  } else {
+    el.style.display = 'none';
+  }
+  openOverlay('nt-finale-overlay');
+}
+
+function closeNtFinale() {
+  const p = new URLSearchParams(location.search).get('nt');
+  if (p !== 'preview' && p !== 'preview2') localStorage.setItem('nt_finale_seen', '1');
+  closeOverlay('nt-finale-overlay');
+}
+
+function maybeShowNtFinale() {
+  const p = new URLSearchParams(location.search).get('nt');
+  if (p === 'preview' || p === 'preview2') {
+    let personal = null;
+    if (p === 'preview2') {
+      personal = ntFinalePersonal();
+      if (personal.n < NT_FINALE_THRESHOLD) personal = { n: 108, best: 105, first: '3 月 14 日', refl: 96, mock: true };
+    }
+    setTimeout(() => showNtFinale(personal), 800);
+    return;
+  }
+  if (localStorage.getItem('nt_finale_seen')) return;
+  const today = todayStr();
+  if (today < NT_FINALE_START || today > NT_FINALE_END) return;
+  let tries = 0;
+  const wait = () => {
+    if (document.querySelector('.overlay.show')) { if (++tries < 40) setTimeout(wait, 1500); return; }
+    const personal = ntFinalePersonal();
+    showNtFinale(personal.n >= NT_FINALE_THRESHOLD ? personal : null);
+  };
+  setTimeout(wait, 700);
 }
 
 // ── iOS keyboard: scroll input into view ──────────────────
