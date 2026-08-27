@@ -105,8 +105,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .more-menu.show{display:block;animation:popIn .2s ease;}
 .more-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;border-radius:8px;transition:background .15s;white-space:nowrap;}
 .more-menu button:hover{background:var(--sky);}
-.read-already-btn{display:block;width:100%;margin-top:8px;padding:9px 12px;background:none;border:1.5px dashed var(--sand-dark);border-radius:10px;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;}
-.read-already-btn small{display:block;font-size:11px;color:var(--text-soft);margin-top:2px;}
+.read-already-btn{display:block;width:100%;margin-top:10px;padding:12px 14px;background:white;border:2px solid var(--purple);border-radius:14px;font-family:inherit;font-size:15px;font-weight:700;color:var(--purple);cursor:pointer;box-shadow:0 3px 10px rgba(156,123,181,.18);transition:transform .1s,background .15s;}
+.read-already-btn:active{transform:scale(.98);background:rgba(156,123,181,.08);}
+.read-already-btn small{display:block;font-size:11px;font-weight:400;color:var(--text-soft);margin-top:3px;}
 .commit-box{margin-top:12px;padding:10px 12px;background:rgba(156,123,181,.08);border-radius:10px;text-align:left;}
 .commit-q{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;}
 .commit-q small{display:block;font-weight:400;font-size:11px;color:var(--text-soft);margin-top:2px;}
@@ -1088,7 +1089,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
             前往閱讀完整章節
             <span id="read-time-tag" class="read-time-tag">約5分鐘 →</span>
           </a>
-          <button type="button" class="read-already-btn" id="read-already-btn" onclick="markAsRead('already')">✅ 我已經讀過這章了<small>紙本／其他 App／小組共讀都算</small></button>
+          <button type="button" class="read-already-btn" id="read-already-btn" onclick="markAsRead('already')">✅ 我已經讀過這章了，領勳章<small>紙本／其他 App／小組共讀都算 · 同樣 +15 XP</small></button>
           <div class="read-done-row" id="read-done-row" style="display:none;">
             <span style="font-size:22px;">🏅</span>
             <div>
