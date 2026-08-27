@@ -1,8 +1,10 @@
 // scripts/core-metric.js
-// 核心指標（2026-08-24 拍板，取代「北極星」一詞）：
-//   核心句 ──「本週有幾個人完成靈修並寫下默想」（人數＋人名清單）
+// 核心指標（2026-08-24 拍板，取代「北極星」一詞；2026-08-27 改雙層）：
+//   主句   ──「本週有幾個人完成靈修」（任一章即算，人數＋人名清單）
+//   守門 0 ──「其中幾人寫默想」（雙層第二層）
 //   守門 1 ── 默想平均字數不掉（只算長度，絕不輸出默想內容——默想是悄悄話）
 //   守門 2 ── 連續 4 週未出現的人名（之前 8 週有靈修、最近 4 週消失 = 新流失警示）
+//   標記   ── 曾完成 100+ 章者在人名旁標 ⭐100+（只標示不召回，召回牌只打一次）
 // 看月趨勢＋人名清單。研究依據：docs/research-north-star-metric.md
 // 用法：npm run core
 // 資料源：Firebase Auth（displayName）+ Firestore users/{uid}/chapters（date / hasReflection / reflectionText）
@@ -94,40 +96,48 @@ function addWeeks(w, n) {
   const thisWeek = weekKey(new Date().toISOString().slice(0, 10));
   const weeks = [...new Set([...Object.keys(wkAny)])].sort();
 
-  // ── 核心句 ──
+  const tag = u => `${name[u]}${(chapterTotal[u] || 0) >= 100 ? ' ⭐100+' : ''}`;
+
+  // ── 核心句（雙層）──
+  const anyNow = wkAny[thisWeek] || new Set();
   const coreNow = wkCore[thisWeek] || new Set();
   console.log(`\n# 核心指標（產出於 ${new Date().toISOString().slice(0, 10)}）\n`);
-  console.log(`## 核心句：本週（${weekLabel(thisWeek)}，進行中）有 **${coreNow.size} 人**完成靈修並寫下默想\n`);
-  if (coreNow.size) console.log([...coreNow].map(u => `- ${name[u]}`).sort().join('\n'));
+  console.log(`## 主句：本週（${weekLabel(thisWeek)}，進行中）有 **${anyNow.size} 人**完成靈修（任一章即算）`);
+  console.log(`## 守門：其中 **${coreNow.size} 人**寫下默想\n`);
+  if (anyNow.size) console.log([...anyNow].map(u => `- ${tag(u)}${coreNow.has(u) ? '　✍️ 有默想' : ''}`).sort().join('\n'));
+  const hundred = uids.filter(u => (chapterTotal[u] || 0) >= 100).sort((a, b) => chapterTotal[b] - chapterTotal[a]);
+  console.log(`\n（⭐100+ 標記＝曾完成 100 章以上，共 ${hundred.length} 人：${hundred.map(u => `${name[u]} ${chapterTotal[u]}`).join('、') || '無'}；只標示不召回）`);
 
   // ── 週別明細（最近 8 週）──
   const recent8 = weeks.filter(w => w <= thisWeek).slice(-8);
   console.log(`\n## 週別明細（最近 8 週）\n`);
-  console.log('| 週別 | 核心人數¹ | 有靈修人數² | 默想平均字數（守門1） |');
+  console.log('| 週別 | 完成靈修人數¹（主句） | 其中寫默想² | 默想平均字數（守門1） |');
   console.log('|---|---|---|---|');
   recent8.forEach(w => {
     const c = wkCore[w] ? wkCore[w].size : 0;
     const a = wkAny[w] ? wkAny[w].size : 0;
     const L = wkLen[w]; const avg = L && L.n ? Math.round(L.sum / L.n) : '—';
-    console.log(`| ${weekLabel(w)}${w === thisWeek ? '（進行中）' : ''} | ${c} | ${a} | ${avg} |`);
+    console.log(`| ${weekLabel(w)}${w === thisWeek ? '（進行中）' : ''} | ${a} | ${c} | ${avg} |`);
   });
-  console.log('\n¹ 完成章節且寫默想的 unique 玩家　² 完成章節的 unique 玩家（含沒寫默想）');
+  console.log('\n¹ 完成任一章的 unique 玩家（含沒寫默想）　² 其中有寫默想的 unique 玩家');
 
   // ── 月趨勢 ──
-  const moCore = {}, moLen = {};
+  const moCore = {}, moAny = {}, moLen = {};
   weeks.forEach(w => {
     const mo = w.slice(0, 7);
     (moCore[mo] = moCore[mo] || new Set());
+    (moAny[mo] = moAny[mo] || new Set());
+    if (wkAny[w]) wkAny[w].forEach(u => moAny[mo].add(u));
     if (wkCore[w]) wkCore[w].forEach(u => moCore[mo].add(u));
     if (wkLen[w]) { const b = (moLen[mo] = moLen[mo] || { sum: 0, n: 0 }); b.sum += wkLen[w].sum; b.n += wkLen[w].n; }
   });
   const months = Object.keys(moCore).sort().slice(-6);
   console.log(`\n## 月趨勢（最近 6 個月）\n`);
-  console.log('| 月份 | 核心人數（該月≥1次完成＋默想） | 默想平均字數 |');
-  console.log('|---|---|---|');
+  console.log('| 月份 | 完成靈修人數（該月≥1章） | 其中寫默想 | 默想平均字數 |');
+  console.log('|---|---|---|---|');
   months.forEach(mo => {
     const L = moLen[mo]; const avg = L && L.n ? Math.round(L.sum / L.n) : '—';
-    console.log(`| ${mo} | ${moCore[mo].size} | ${avg} |`);
+    console.log(`| ${mo} | ${moAny[mo].size} | ${moCore[mo].size} | ${avg} |`);
   });
 
   // ── 守門 2：連續 4 週未出現 ──
@@ -145,7 +155,7 @@ function addWeeks(w, n) {
   if (gone.length) {
     console.log('| 玩家 | 最後靈修日 | 累計完成章數 |');
     console.log('|---|---|---|');
-    gone.forEach(u => console.log(`| ${name[u]} | ${lastSeen[u]} | ${chapterTotal[u] || 0} |`));
+    gone.forEach(u => console.log(`| ${tag(u)} | ${lastSeen[u]} | ${chapterTotal[u] || 0} |`));
   } else {
     console.log('（無——最近活躍的人都還在）');
   }

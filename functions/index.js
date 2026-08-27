@@ -158,7 +158,7 @@ exports.aiReflection = onRequest(
       return;
     }
 
-    const { chapter, reflectionTitle, playerText, uid, mood } = req.body;
+    const { chapter, reflectionTitle, playerText, uid, mood, equipment } = req.body;
     if (!playerText) {
       res.status(400).json({ error: 'Missing playerText' });
       return;
@@ -178,8 +178,20 @@ exports.aiReflection = onRequest(
 - 不要評判、不要診斷、不要替他總結情緒、不要問「你還好嗎？」這類關心句。
 ` : '';
 
+    // AI 看裝備（2026-08-27 PR ①，ADR 0001 9b①）：只收玩家身上四件裝備的 desc 經文（不含名稱／emoji），
+    // 規則「至多引一句、不合則不提」。陣列以外／空陣列 → 整段不出現，prompt 與舊版逐字相同。
+    const verses = Array.isArray(equipment)
+      ? equipment.filter(v => typeof v === 'string').map(v => v.trim().slice(0, 120)).filter(Boolean).slice(0, 4)
+      : [];
+    const equipmentBlock = verses.length ? `
+玩家這段日子隨身帶著幾句經文（來自他收集到的裝備）：
+${verses.map(v => `- ${v}`).join('\n')}
+- 只有在其中一句「真的」貼合他這次寫的默想時，才順帶引用那一句，最多引一句、原文照引、不要說明它來自裝備。
+- 沒有貼合的就完全不提，不要硬套、不要列舉、不要為了引用而引用。
+` : '';
+
     const systemPrompt = `你是一位溫暖的靈修同伴。使用者正在讀${chapter || '聖經'}，默想主題是「${reflectionTitle || '靈修'}」。
-${moodBlock}
+${moodBlock}${equipmentBlock}
 規則：
 - 用繁體中文
 - 只輸出2-3句回應，不要輸出其他任何內容
