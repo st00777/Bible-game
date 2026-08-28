@@ -76,8 +76,10 @@ node_modules/
 *.csv
 *.xlsx
 
-# Claude Code 工具產物（本機 worktree / 設定，不入庫）
-.claude/
+# Claude Code 工具產物（本機 worktree / 設定，不入庫）；agents／skills 是專案共用定義，要入庫
+.claude/*
+!.claude/agents/
+!.claude/skills/
 
 # 含玩家地理/留存敏感統計的策略分析（同上方 *.csv/*.xlsx 原則，不上公開 repo）
 靈修冒險-多領域專家分析.md

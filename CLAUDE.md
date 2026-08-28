@@ -11,7 +11,7 @@
 - **玩家正式站（GitHub Pages）**：`https://st00777.github.io/Bible-game/bible-game-v2.html` —— 玩家實際使用的唯一正式站，對應 `main` 分支
 - 固定測試站（Firebase hosting:main）：`bible-game-bcb84.web.app` —— 測試用，**不是正式站**
 - 臨時預覽（Firebase preview channel）：`bible-game-bcb84--dev-xxxxxx.web.app` —— dev 分支預覽用
-- 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）
+- 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）終驗＝`bible-playtest` skill 自動 17 步＋`docs/playtest-checklist.md` 真機 8 步（2026-08-28 起）。
 **GitHub Repo**：`github.com/st00777/Bible-game`
 **目前版本**：`2026.08.27`（日期版號制，2026-06-05 起；最後一個語意版號 v2.16 於 2026-06-14 上線。近期：8/23 A1 書卷詳情頁（創世記）、8/28 新約之旅・終點儀式、創11-17 內容）
 
