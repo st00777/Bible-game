@@ -1428,6 +1428,12 @@ let currentUser = null;
 let _sessionId = null;
 let _lastHiddenAt = null;
 function _newSessionId() { return crypto.randomUUID(); }
+// B1 停留時長：chapter_select 起算的秒數，question_view / choice_confirm / submit_reflection / complete_devotional 各帶一份
+let _chapterSelectAt = null;
+function _elapsed(params) {
+  if (_chapterSelectAt != null) params.elapsedSec = Math.round((Date.now() - _chapterSelectAt) / 1000);
+  return params;
+}
 function writeEventToFirestore(name, params) {
   if (!currentUser) return; // 訪客不記
   if (!_sessionId) _sessionId = _newSessionId();
@@ -3041,7 +3047,8 @@ function selectChapter(ch) {
   // 以及 selectChapter 函式體內 chapterFull(ch) 等用區域參數 ch 的位置污染。
   ch = data.chapter;
   selectedChapter = ch;
-  // B1: chapter_select
+  // B1: chapter_select（同時記起點，後續階段帶 elapsedSec 算各段停留）
+  _chapterSelectAt = Date.now();
   track('chapter_select', { chapter: ch });
 
   // Update badge
@@ -3063,7 +3070,7 @@ function selectChapter(ch) {
   document.getElementById('scene-text').textContent = data.scene;
   document.getElementById('scenario-q').textContent = data.q;
   // B1: question_view — 玩家看到情境題（selectChapter 一次性 render，等同 chapter_select 後立即看到題）
-  track('question_view', { chapter: ch });
+  track('question_view', _elapsed({ chapter: ch }));
 
   // Choices
   const container = document.getElementById('choices-container');
@@ -3126,7 +3133,7 @@ function selectChoice(btn, choice) {
   sessionChoice = choice;
   pendingChoice = null;
   // B1: choice_confirm
-  track('choice_confirm', { chapter: selectedChapter, choice });
+  track('choice_confirm', _elapsed({ chapter: selectedChapter, choice }));
   document.querySelectorAll('.choice-btn').forEach(b => {
     b.disabled = true;
     b.classList.remove('previewing');
@@ -3164,7 +3171,7 @@ async function submitReflection() {
   // 🔴 design-principles 紅線1：只記秒數、永遠不記默想內容、不做情感分析。
   const _reflParams = { chapter: selectedChapter };
   if (_reflEditStart != null) _reflParams.editDuration = Math.round((Date.now() - _reflEditStart) / 1000);
-  track('submit_reflection', _reflParams);
+  track('submit_reflection', _elapsed(_reflParams));
   _reflEditStart = null;  // 送出後即重置，不僅依賴 reflSubmitted／換章節，避免起點殘留
 
   // 默想落地脫鉤（治本）：在 AI fetch 之前就直寫 reflections 子集合，獨立於 AI 成敗。
@@ -3324,7 +3331,7 @@ async function finalizeCompletion() {
 
   renderAvatar();
   renderChapterGrid();
-  track('complete_devotional', { chapter: selectedChapter });
+  track('complete_devotional', _elapsed({ chapter: selectedChapter }));
 
   // 合併日完成第二章 toast：在 reward overlay open 後 1.8s 觸發，等 confetti 收尾再出現
   const afterReward = () => {
@@ -3611,6 +3618,7 @@ function saveWardrobe() {
   state.bg   = wardSel.bg;
   saveState();
   renderAvatar();
+  track('equipment_change', { hat: state.hat || '', body: state.body || '', hand: state.item || '', bg: state.bg || '' });
   closeOverlay('ward-overlay');
   showToast('✅ 裝扮已儲存！');
 }
@@ -4578,11 +4586,21 @@ function showNtFinale(personal) {
     el.style.display = 'none';
   }
   openOverlay('nt-finale-overlay');
+  // B1：儀式曝光（預覽模式不記）；personal 帶章數、mock 不記
+  if (!new URLSearchParams(location.search).get('nt')) {
+    _finaleOpenAt = Date.now();
+    track('finale_view', { hasPersonal: !!(personal && !personal.mock), chapters: personal && !personal.mock ? personal.n : 0 });
+  }
 }
 
+let _finaleOpenAt = null;
 function closeNtFinale() {
   const p = new URLSearchParams(location.search).get('nt');
   if (p !== 'preview' && p !== 'preview2') localStorage.setItem('nt_finale_seen', '1');
+  if (_finaleOpenAt != null) {
+    track('finale_close', { dwellSec: Math.round((Date.now() - _finaleOpenAt) / 1000) });
+    _finaleOpenAt = null;
+  }
   closeOverlay('nt-finale-overlay');
 }
 
