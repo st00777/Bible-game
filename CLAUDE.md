@@ -52,6 +52,8 @@ Bible-game/
 ├── README.md                      # GitHub 說明頁
 ├── docs/firestore-schema.md       # Firestore 完整 schema（CLAUDE.md 只留摘要）
 ├── docs/history/                  # 已上線規格／歷史快照／已完成清單歸檔（不隨每輪載入）
+├── docs/metric-changelog.md       # 指標口徑變更紀錄（改埋點／改 UI 影響指標語意時追一筆）
+├── .claude/agents/data-analyst.md # 數據分析 subagent（「更新遊戲數據」「看漏斗」交它跑，sonnet）
 ├── firebase.json                  # Firebase 設定（Functions/Firestore/Hosting）
 ├── firestore.rules                # Firestore 安全規則
 ├── functions/index.js             # Cloud Functions（lineLogin, aiReflection, autoCloseInactiveThreads）
@@ -62,6 +64,7 @@ Bible-game/
 ├── scripts/list-profiles.js       # 列玩家 profile/data（含 E1 分眾欄位）
 ├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
 ├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
+├── scripts/funnel.js              # B1 漏斗：週別選章→看題→確認→送默想→完成、掉人章節、閱讀來源、停留、儀式曝光（npm run funnel）
 ├── scripts/ga4-insights.js        # GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API）
 ├── scripts/validate-content.js    # Node 端內容自檢（錯誤 exit 1）
 ├── scripts/sync-shared.js         # 共用檔正本→三個部署單元複本（--check 只比對）
@@ -91,6 +94,7 @@ Bible-game/
 - `npm run analyze` ── Firestore 6 區塊報告（feedback / users / 靈修進度 / 成就 / 章節品質 ①-④ / 裝備 ⑤ / 默想歷史 ⑥）
 - `npm run logs [天數]` ── aiReflection 呼叫量、AI 真實回應比、錯誤類型分布（預設過去 1 天）
 - `npm run line-logs [天數]` ── lineLogin 成功率、HTTP 失敗分布、錯誤類型、失敗時段（預設過去 1 天）
+- `npm run funnel [週數]` ── B1 事件流漏斗（人／人×章兩種口徑）、掉人最多章節、閱讀勳章來源 bible_com vs already（口徑漂移守門）、各段停留中位數（elapsedSec，2026-08-28 起）、終點儀式 finale_view/close
 - `npm run ga4` ── GA4 深度指標：活躍規模 MAU(30天)/WAU(7天)/DAU(昨天)、9 核心事件觸發人數、週 cohort 留存（對齊 data-insights 口徑）
 
 前三支用 Firebase CLI refresh token 直接打 Cloud REST API；`npm run ga4` 改用 service account 金鑰（`ga4-key.json`，屬性檢視者權限）+ 純 Node crypto 簽 JWT 換 token 打 GA4 Data API。四支都不需額外安裝 SDK。
@@ -535,7 +539,7 @@ commit 前必須確認當前所在分支。
 - **重大決策前跑冷評估**：新功能／上正式版／殺併留，先開不帶當前上下文的 subagent 扮 PM 反方，輸出反對意見後 James 再拍板。
 - **上正式版、`firebase deploy`、改 schema 一律單獨明確確認**，不在策略聊天中順口帶過。
 - 被否決的提案寫進 ADR 0003「否決紀錄」；James 的顧慮與判斷寫進 memory。
-- 交接卡已歸檔 `docs/history/*-handover-2026-08.md`；`roles/*.md` 留作未來 subagent 定義材料（尚未改寫）。claude.ai 知識庫同步停做。
+- 交接卡已歸檔 `docs/history/*-handover-2026-08.md`；`roles/*.md` 留作未來 subagent 定義材料。**已改寫**：數據分析 → `.claude/agents/data-analyst.md`（2026-08-28，指標對齊 ADR 0001、兼口徑守門）；其餘尚未。claude.ai 知識庫同步停做。
 
 ---
 
