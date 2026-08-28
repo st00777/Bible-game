@@ -473,7 +473,7 @@ async function analyzeProgress(token, users) {
     console.log(`  累計章節完成:   ${totalDaysAll}`);
     console.log(`  累計靈修日數:   ${totalUniqueDays}${mergedDayInflation > 0 ? `（合併日視為 1 日，扣除 ${mergedDayInflation} 筆雙章記錄）` : ''}`);
     console.log(`  默想填寫率:     ${totalReflections}/${totalDaysAll} (${pct(totalReflections, totalDaysAll)})  ← 按章計算`);
-    console.log(`  完整閱讀率:     ${totalReads}/${totalDaysAll} (${pct(totalReads, totalDaysAll)})  ← 按章計算`);
+    console.log(`  閱讀勳章領取率: ${totalReads}/${totalDaysAll} (${pct(totalReads, totalDaysAll)})  ← 按章計算`);
     console.log(`  分享次數:       ${totalShares}`);
     console.log(`  補讀次數:       ${totalMakeups}`);
     console.log(`\n── 靈修時段分布 ──`);

@@ -133,6 +133,26 @@ test('computeCompletion：xp／升級／streak／合併日', () => {
   assert.equal(r.streakInc, 1); assert.equal(r.isMergedDayAllDone, true);
 });
 
+test('totalDevotionDays：日期去重、合併日同日算 1、忽略非日期值', () => {
+  assert.equal(core.totalDevotionDays({}), 0);
+  assert.equal(core.totalDevotionDays(undefined), 0);
+  assert.equal(core.totalDevotionDays({ ACT1: '2026-01-01', ROM1: '2026-01-05', ROM2: '2026-01-05', migrated: true, X: 'bad' }), 2);
+});
+
+test('equippedVerses：只回身上四件的 desc、去重、不含名稱', () => {
+  const items = [
+    { emoji: '🧥', name: 'a', desc: '「經文A」', slot: 'body' },
+    { emoji: '⚔️', name: 'b', desc: '「經文B」', slot: 'hand' },
+    { emoji: '👑', name: 'c', desc: '「經文C」', slot: 'hat' },     // 未穿
+    { emoji: '🌊', name: 'd', desc: '「經文B」', slot: 'bg' },      // 與 B 同句 → 去重
+    { emoji: '🕯️', name: 'e', slot: 'hand' },                       // 無 desc
+  ];
+  const out = core.equippedVerses({ hat: '', body: '🧥', item: '⚔️', bg: '🌊', items });
+  assert.deepEqual(out, ['「經文A」', '「經文B」']);
+  assert.deepEqual(core.equippedVerses({ hat: '', body: '🧑', item: '', bg: '', items: [] }), []);
+  assert.deepEqual(core.equippedVerses({}), []);
+});
+
 test('escapeHtmlMyMsg', () => {
   assert.equal(core.escapeHtmlMyMsg(`<a href="x">&'</a>`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
 });

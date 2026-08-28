@@ -7,4 +7,4 @@
 | `content-gen/` | 已完成批次的生成規格／取材／驗證／派工紀錄（9A–9C 啟示錄、GEN 創世記、P0 修補、BOOK_INTRO 草稿、創世記基調草案）。原為本機未追蹤檔，首次入 git 留底。 |
 | `pm/` | 被新版取代的 PM 卡片與交接補丁（W21–W23）。以 `git mv` 搬入，`git log --follow` 可追歷史。 |
 
-現行文件請看根目錄 `pm-handover.md`、`dev-coord-handover.md`、`roles/`、`sprint-log/`。
+現行文件請看 `CLAUDE.md`、`docs/adr/`（2026-08-28 起五視窗全部退役，交接卡歸檔於 `docs/history/*-handover-2026-08.md`，見 ADR 0003）。
