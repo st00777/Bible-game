@@ -1149,6 +1149,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
     <div class="log-entry">
       <div class="log-ver">2026.08.28 · 文案批＋自我約定＋AI 看裝備</div>
+      <div class="log-item"><span class="log-tag tag-new">內容</span><span>創世記 18–24 章（9/14–9/19，9/18 創22+23 合併日）</span></div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>「前往閱讀」旁多一個出口「我已經讀過這章了」——紙本、其他 App、小組共讀都算，同樣 +15 XP 閱讀勳章</span></div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>完成靈修後問一句「明天大概什麼時候？」——只是跟自己約一下，不推播；⋯ 選單可關閉</span></div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>AI 回應看得見你身上的裝備經文，合適時會引一句</span></div>
@@ -4516,6 +4517,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!localStorage.getItem('tut_done')) {
           setTimeout(() => openOverlay('tut-overlay'), 500);
         }
+      } else if (ntFinalePending()) {
+        // 終點儀式期間（8/28–9/06）且尚未看過：儀式先、公告後（closeNtFinale 再彈）
+        _versionNoticePending = true;
       } else {
         setTimeout(() => showVersionNotice(), 600);
       }
@@ -4594,6 +4598,14 @@ function showNtFinale(personal) {
 }
 
 let _finaleOpenAt = null;
+let _versionNoticePending = false;
+// 儀式是否會在本次開啟時彈出（未看過、在期間內、非預覽）
+function ntFinalePending() {
+  if (new URLSearchParams(location.search).get('nt')) return false;
+  if (localStorage.getItem('nt_finale_seen')) return false;
+  const today = todayStr();
+  return today >= NT_FINALE_START && today <= NT_FINALE_END;
+}
 function closeNtFinale() {
   const p = new URLSearchParams(location.search).get('nt');
   if (p !== 'preview' && p !== 'preview2') localStorage.setItem('nt_finale_seen', '1');
@@ -4602,6 +4614,10 @@ function closeNtFinale() {
     _finaleOpenAt = null;
   }
   closeOverlay('nt-finale-overlay');
+  if (_versionNoticePending) {
+    _versionNoticePending = false;
+    setTimeout(() => showVersionNotice(), 400);
+  }
 }
 
 function maybeShowNtFinale() {
