@@ -52,6 +52,8 @@ Bible-game/
 ├── README.md                      # GitHub 說明頁
 ├── docs/firestore-schema.md       # Firestore 完整 schema（CLAUDE.md 只留摘要）
 ├── docs/history/                  # 已上線規格／歷史快照／已完成清單歸檔（不隨每輪載入）
+├── docs/metric-changelog.md       # 指標口徑變更紀錄（改埋點／改 UI 影響指標語意時追一筆）
+├── .claude/agents/data-analyst.md # 數據分析 subagent（「更新遊戲數據」「看漏斗」交它跑，sonnet）
 ├── firebase.json                  # Firebase 設定（Functions/Firestore/Hosting）
 ├── firestore.rules                # Firestore 安全規則
 ├── functions/index.js             # Cloud Functions（lineLogin, aiReflection, autoCloseInactiveThreads）
@@ -537,7 +539,7 @@ commit 前必須確認當前所在分支。
 - **重大決策前跑冷評估**：新功能／上正式版／殺併留，先開不帶當前上下文的 subagent 扮 PM 反方，輸出反對意見後 James 再拍板。
 - **上正式版、`firebase deploy`、改 schema 一律單獨明確確認**，不在策略聊天中順口帶過。
 - 被否決的提案寫進 ADR 0003「否決紀錄」；James 的顧慮與判斷寫進 memory。
-- 交接卡已歸檔 `docs/history/*-handover-2026-08.md`；`roles/*.md` 留作未來 subagent 定義材料（尚未改寫）。claude.ai 知識庫同步停做。
+- 交接卡已歸檔 `docs/history/*-handover-2026-08.md`；`roles/*.md` 留作未來 subagent 定義材料。**已改寫**：數據分析 → `.claude/agents/data-analyst.md`（2026-08-28，指標對齊 ADR 0001、兼口徑守門）；其餘尚未。claude.ai 知識庫同步停做。
 
 ---
 
