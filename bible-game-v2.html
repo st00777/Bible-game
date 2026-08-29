@@ -486,9 +486,8 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .line-auth-btn.logged-in{background:linear-gradient(135deg,#c8f7d4,#a0f0be);border-color:#06C755;color:#027836;}
 
 /* Achievement system */
-.ach-tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--sky-deep);}
-.ach-tab{flex:1;background:none;border:none;padding:10px 8px;font-family:inherit;font-size:13px;font-weight:700;color:var(--text-soft);cursor:pointer;transition:all .15s;border-bottom:3px solid transparent;margin-bottom:-2px;}
-.ach-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+.books-page-sub{font-size:15px;font-weight:900;color:var(--text);margin:22px 0 4px;}
+.changelog-back{width:auto;margin:0 0 14px;padding:6px 14px;font-size:13px;}
 .ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .ach-card{background:white;border:2px solid var(--sky-deep);border-radius:14px;padding:12px 8px;text-align:center;transition:all .15s;position:relative;}
 .ach-card.unlocked{border-color:var(--green-dark);background:linear-gradient(135deg,#F0FAF0,#E8F5E9);}
@@ -512,8 +511,6 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .ach-unlock-verse{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:14px;margin:0 0 18px;font-size:14px;line-height:1.85;font-family:'Noto Serif TC',serif;text-align:left;}
 .ach-unlock-verse-ref{font-size:12px;color:var(--text-soft);text-align:right;margin-top:6px;font-family:'Noto Sans TC',sans-serif;}
 
-#ach-overlay .sheet{display:flex;flex-direction:column;height:90vh;overflow-y:hidden;}
-.ach-body{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;}
 
 /* Diary */
 .diary-search{width:100%;background:var(--sky);border:2px solid var(--sky-deep);border-radius:11px;padding:10px 12px;font-family:inherit;font-size:14px;color:var(--text);outline:none;margin-bottom:12px;box-sizing:border-box;}
@@ -584,6 +581,9 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .book-spine.lit{background:linear-gradient(135deg,#FFD54F,#FFB300);border:1px solid #F9A825;color:#5D4037;}
 .book-spine.progress{background:linear-gradient(135deg,#B8D9F0,#90CAF9);border:1px solid #64B5F6;color:var(--text);}
 .book-spine.locked{background:linear-gradient(135deg,#D7CCC8,#BCAAA4);border:1px solid #A1887F;color:#8D6E63;}
+.book-spine.locked .book-spine-emoji{filter:grayscale(1);opacity:.5;}
+.book-spine.lit{box-shadow:0 0 0 2px rgba(255,213,79,.55),0 0 14px rgba(255,179,0,.55);}
+.spine-badge{position:absolute;top:-8px;left:-6px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));animation:popIn .5s ease;}
 .book-spine-emoji{font-size:30px;margin-bottom:4px;}
 .book-spine-name{font-size:13px;font-weight:900;line-height:1.2;text-align:center;writing-mode:horizontal-tb;}
 .book-spine-pct{font-size:11px;font-weight:700;margin-top:3px;opacity:.8;}
@@ -605,6 +605,12 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .bd-chapter-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .bd-chapter{min-width:38px;text-align:center;padding:6px 8px;border-radius:10px;font-size:calc(var(--fs-body) - 4px);font-weight:700;border:2px solid var(--sky-deep);background:white;color:var(--text-soft);}
 .bd-chapter.done{background:var(--green);border-color:var(--green-dark);color:white;}
+.bd-item-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.bd-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:12px;background:var(--sky);border:2px solid var(--sky-deep);}
+.bd-item-emoji{font-size:26px;}
+.bd-item-name{font-size:calc(var(--fs-body) - 5px);font-weight:700;color:var(--text-soft);text-align:center;line-height:1.2;}
+.bd-item.silhouette .bd-item-emoji{filter:grayscale(1) brightness(.35);opacity:.45;}
+.bd-item.owned{background:#FFF8E1;border-color:#FFD54F;}
 .bd-char{border-radius:14px;padding:12px;margin-bottom:10px;background:var(--sand);box-shadow:0 2px 8px var(--shadow);}
 .bd-char-name{font-size:var(--fs-body);font-weight:900;color:var(--text);margin-bottom:6px;}
 .bd-period{font-size:calc(var(--fs-body) - 3px);line-height:1.6;padding:8px 0;border-top:1px dashed var(--sand-dark);}
@@ -897,25 +903,6 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
   </div>
 </div>
 
-<!-- Achievement page -->
-<div class="overlay" id="ach-overlay">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <div class="sheet-title">🏆 成就</div>
-      <button onclick="closeOverlay('ach-overlay')" class="sky-btn" style="width:auto;margin:0;padding:6px 14px;font-size:13px;">關閉</button>
-    </div>
-    <div class="ach-tabs">
-      <button class="ach-tab active" id="ach-tab-badges" onclick="switchAchTab('badges')">🏅 徽章</button>
-      <button class="ach-tab" id="ach-tab-library" onclick="switchAchTab('library')">📚 書卷</button>
-    </div>
-    <div class="ach-body">
-      <div id="ach-badges-page"></div>
-      <div id="ach-library-page" style="display:none;"></div>
-    </div>
-  </div>
-</div>
-
 <!-- Achievement unlock ceremony -->
 <div class="overlay center" id="ach-unlock-overlay">
   <div class="modal">
@@ -1010,7 +997,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
   <!-- Nav tabs -->
   <div class="nav-tabs">
     <button class="nav-tab active" id="tab-devotion" onclick="switchPage('devotion')">📖 今日靈修</button>
-    <button class="nav-tab" id="tab-changelog" onclick="switchPage('changelog')">📢 更新公告</button>
+    <button class="nav-tab" id="tab-books" onclick="switchPage('books')">📚 書卷與成就</button>
   </div>
 
   <!-- ── DEVOTION PAGE ── -->
@@ -1179,8 +1166,16 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 
   </div><!-- end devotion page -->
 
-  <!-- ── CHANGELOG PAGE ── -->
+  <!-- ── BOOKS PAGE（PR ③a 2026-08-29：書架＋徽章從成就 overlay 搬到主頁第二頁；更新公告分頁退役、只留「更多」與版本彈窗入口）── -->
+  <div class="page" id="page-books">
+    <div id="ach-library-page"></div>
+    <div class="books-page-sub">🏅 徽章</div>
+    <div id="ach-badges-page"></div>
+  </div>
+
+  <!-- ── CHANGELOG PAGE（無分頁，入口：更多選單／版本彈窗）── -->
   <div class="page" id="page-changelog">
+    <button type="button" class="sky-btn changelog-back" onclick="switchPage('devotion')">← 返回</button>
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
@@ -2190,23 +2185,8 @@ function reviewAchievement(key) {
 
 // ── Achievement page rendering ──
 
-function switchAchTab(tab) {
-  document.getElementById('ach-tab-badges').classList.toggle('active', tab === 'badges');
-  document.getElementById('ach-tab-library').classList.toggle('active', tab === 'library');
-  document.getElementById('ach-badges-page').style.display = tab === 'badges' ? '' : 'none';
-  document.getElementById('ach-library-page').style.display = tab === 'library' ? '' : 'none';
-  requestAnimationFrame(() => {
-    const body = document.querySelector('.ach-body');
-    if (body) body.scrollTo(0, 0);
-  });
-}
-
-function openAchievements() {
-  renderBadgesPage();
-  renderLibraryPage();
-  switchAchTab('badges');
-  openOverlay('ach-overlay');
-}
+// PR ③a：成就 overlay 退役，書架＋徽章併入主頁「📚 書卷」分頁（switchPage('books') 時重繪）
+function openAchievements() { switchPage('books'); }
 
 function renderBadgesPage() {
   const el = document.getElementById('ach-badges-page');
@@ -2261,7 +2241,8 @@ function renderLibraryPage() {
       // 其餘維持 A1 之前的純展示書背（無 onclick），Phase 2 逐卷加進清單即可。
       const openable = isBookDetailEnabled(book.key);
       html += `<div class="book-spine ${cls}${openable ? ' openable' : ''}"${openable ? ` onclick="openBookDetail('${book.key}')"` : ''}>
-        <div class="book-spine-emoji">${prog.complete ? '✨' : book.emoji}</div>
+        ${prog.complete ? '<div class="spine-badge">🏅</div>' : ''}
+        <div class="book-spine-emoji">${book.emoji}</div>
         <div class="book-spine-name">${book.name}</div>
         <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
         ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="width:${pct}%"></div></div>` : ''}
@@ -2341,6 +2322,28 @@ function renderBookDetail(bookKey) {
     html += `<div class="bd-chapter ${done ? 'done' : ''}">${done ? '✓' : (i + 1)}</div>`;
   });
   html += '</div></div>';
+
+  // ②-b 這卷的裝備（PR ③a 2026-08-29）：逐章列 baseItem／bonusItem，已入袋顯示、未入袋灰色剪影。
+  //    只讀 state.items，不寫狀態；測試假 DOM 沒有 getChapter／CHAPTERS 時整段不輸出（無內容即無區塊）。
+  if (typeof getChapter === 'function' && Array.isArray(state.items)) {
+    const owned = new Set(state.items.map(i => i.emoji + '|' + (i.name || '')));  // emoji 會撞（🌿 初始外衣 vs 橄欖葉子），連名稱一起比
+    const gender = state.gender || 'n';
+    const cells = [];
+    book.entries.forEach(ch => {
+      const data = getChapter(ch);
+      if (!data) return;
+      for (const raw of [data.baseItem, data.bonusItem]) {
+        const it = resolveItem(raw, gender);
+        if (!it || !it.emoji) continue;
+        const has = owned.has(it.emoji + '|' + (it.name || ''));
+        cells.push(`<div class="bd-item ${has ? 'owned' : 'silhouette'}" title="${has ? esc(it.name) : '？'}"><span class="bd-item-emoji">${it.emoji}</span><span class="bd-item-name">${has ? esc(it.name) : '？？？'}</span></div>`);
+      }
+    });
+    if (cells.length) {
+      const got = cells.filter(c => c.includes('owned')).length;
+      html += `<div class="bd-section"><div class="bd-section-title">🎒 這卷的裝備</div><div class="bd-progress-text">已收集 ${got} / ${cells.length} 件</div><div class="bd-item-grid">${cells.join('')}</div></div>`;
+    }
+  }
 
   // ③ 人物冊（遍歷 CHARACTERS，逐 period 判斷 book===key 與解鎖；只介紹、不含默想輸入）
   //    設計意圖（PM 2026-08-21 拍板，與上方 ① 導讀區同一條原則）：無內容即無區塊——
@@ -4615,10 +4618,14 @@ function launchConfetti() {
 // ══ PAGE SWITCH ═════════════════════════════════════════
 
 function switchPage(name) {
-  ['devotion','changelog'].forEach(p=>{
+  // books／devotion 有分頁鈕；changelog 沒有（入口：更多選單／版本彈窗），切到它時兩顆分頁都不亮
+  if (name === 'books') { renderLibraryPage(); renderBadgesPage(); }
+  ['devotion','books','changelog'].forEach(p=>{
     document.getElementById('page-'+p).classList.toggle('show',p===name);
-    document.getElementById('tab-'+p).classList.toggle('active',p===name);
+    const tab = document.getElementById('tab-'+p);
+    if (tab) tab.classList.toggle('active',p===name);
   });
+  window.scrollTo(0,0);
 }
 
 // ══ BOOT ════════════════════════════════════════════════
@@ -4866,7 +4873,6 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
 
 <!-- more-menu lives at body level to escape topbar's animation containing block -->
 <div class="more-menu" id="more-menu">
-  <button onclick="openAchievements(); closeMoreMenu()">🏆 成就</button>
   <button onclick="openDiary(); closeMoreMenu()">📖 靈修日記</button>
   <button onclick="openProfileSheet(); closeMoreMenu()">⚙️ 個人資料</button>
   <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
