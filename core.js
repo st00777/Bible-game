@@ -148,10 +148,31 @@
     return CHAPTERS[0].chapter;
   }
 
-  // ── 等級稱號 ─────────────────────────────────────────────
-  function levelTitle(lv) {
-    const t = ['', '初出發的旅人', '撒馬利亞的訪客', '曠野中的旅人', '傳道者', '腓利的同伴', '使徒的足跡'];
-    return t[Math.min(lv, t.length - 1)] || '資深信徒';
+  // ── 稱號（PR ③b 2026-08-29）：綁「完走卷數」的絕對累計里程碑，不綁比例（內容會一直加）、不綁等級。
+  //    稱號是第五個裝備部位（slot:'title'），解鎖後入袋、衣櫃可換；desc 經文皆過 CUNP1 逐字核對。
+  //    終點 66 卷＝整本聖經（教會一年約 24 卷，約 2.5–3 年）。
+  const TITLE_LADDER = [
+    { books: 1,  emoji: '🥾', name: '啟程者',   desc: '「你要離開本地、本族、父家，往我所要指示你的地去。」', ref: '創 12:1' },
+    { books: 3,  emoji: '🏕️', name: '客旅',     desc: '「承認自己在世上是客旅，是寄居的。」', ref: '來 11:13' },
+    { books: 6,  emoji: '🤝', name: '同行者',   desc: '「耶穌親自就近他們，和他們同行」', ref: '路 24:15' },
+    { books: 10, emoji: '📖', name: '門徒',     desc: '「你們若常常遵守我的道，就真是我的門徒」', ref: '約 8:31' },
+    { books: 15, emoji: '🕊️', name: '見證人',   desc: '「直到地極，作我的見證。」', ref: '徒 1:8' },
+    { books: 20, emoji: '✉️', name: '使者',     desc: '「所以，我們作基督的使者」', ref: '林後 5:20' },
+    { books: 30, emoji: '🏰', name: '守望者',   desc: '「人子啊，我立你作以色列家守望的人」', ref: '結 3:17' },
+    { books: 45, emoji: '🐑', name: '牧者',     desc: '「務要牧養在你們中間神的群羊」', ref: '彼前 5:2' },
+    { books: 66, emoji: '📜', name: '走遍全書的人', desc: '「聖經都是神所默示的」', ref: '提後 3:16' },
+  ];
+  // 完走 n 卷應持有的稱號清單（累計、不歸零）
+  function titlesForBooks(n) {
+    return TITLE_LADDER.filter(t => t.books <= n).map(t => ({ ...t, slot: 'title', chapter: 'title' }));
+  }
+  // 從 prev 卷到 now 卷之間新解鎖的稱號（領獎畫面用）
+  function titlesUnlockedBetween(prev, now) {
+    return TITLE_LADDER.filter(t => t.books > prev && t.books <= now).map(t => ({ ...t, slot: 'title', chapter: 'title' }));
+  }
+  // 下一個里程碑（書卷頁「再 M 卷成為 X」）；已到頂回 null
+  function nextTitle(n) {
+    return TITLE_LADDER.find(t => t.books > n) || null;
   }
 
   // ── 完成一章的純計算（裝備／xp／升級／streak／合併日判定）────
@@ -195,11 +216,13 @@
   // ── 身上裝備的經文（AI 看裝備，2026-08-27 PR ①）───────────────
   // 回傳目前穿戴四件裝備的 desc 經文字串（去重、去空、最多 4 句），只給經文不給名稱／emoji。
   // 穿戴狀態存的是 emoji（hat/body/item/bg），從背包 items 反查同 slot 同 emoji 的物件。
-  function equippedVerses({ hat, body, item, bg, items }) {
-    const worn = { hat, body, hand: item, bg };
+  function equippedVerses({ hat, body, item, bg, title, items }) {
+    const worn = { hat, body, hand: item, bg, title };
     const out = [];
     (items || []).forEach(it => {
-      if (!it || !it.desc || worn[it.slot] !== it.emoji) return;
+      if (!it || !it.desc) return;
+      const wornVal = it.slot === 'title' ? it.name : it.emoji;   // 稱號以名稱比對（emoji 可能重複）
+      if (worn[it.slot] !== wornVal) return;
       const d = String(it.desc).trim();
       if (d && !out.includes(d)) out.push(d);
     });
@@ -219,7 +242,7 @@
     chapterLabel, chapterFull,
     getScheduleChapters, findScheduleDate, isMakeupChapterOn,
     isChapterDoneIn, bookProgress, pickDefaultChapterFrom, todayChapterFor,
-    levelTitle, resolveItem, computeCompletion, escapeHtmlMyMsg,
+    TITLE_LADDER, titlesForBooks, titlesUnlockedBetween, nextTitle, resolveItem, computeCompletion, escapeHtmlMyMsg,
     totalDevotionDays, equippedVerses,
   };
 });

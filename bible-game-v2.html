@@ -156,6 +156,18 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .av-info{flex:1;}
 .av-name{font-size:var(--fs-body);font-weight:900;margin-bottom:3px;}
 .av-level{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);margin-bottom:7px;}
+.av-title{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:10px;background:rgba(156,123,181,.15);color:var(--purple);font-size:calc(var(--fs-body) - 4px);font-weight:700;vertical-align:middle;}
+.title-bar{display:flex;flex-direction:column;gap:2px;background:white;border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 2px 10px var(--shadow);}
+.tb-cur{font-size:var(--fs-body);font-weight:900;color:var(--purple);}
+.tb-sub{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);font-weight:700;}
+.r-tryon{margin-top:10px;}
+.r-tryon-sub{font-size:11px;color:var(--text-soft);text-align:center;margin-top:4px;}
+.r-title{margin:12px 0;padding:12px;border-radius:14px;background:linear-gradient(135deg,#FFF8E1,#FFECB3);border:2px solid #FFD54F;text-align:center;animation:popIn .5s ease;}
+.r-title-lbl{font-size:10px;font-weight:700;color:#8D6E63;letter-spacing:.1em;}
+.r-title-name{font-size:20px;font-weight:900;color:#5D4037;margin:4px 0;}
+.r-title-desc{font-size:11px;color:var(--text-soft);font-style:italic;}
+.r-title-sub{font-size:11px;color:var(--purple);margin-top:6px;}
+.wp-title{text-align:center;font-size:13px;font-weight:700;color:var(--purple);margin:-10px 0 12px;}
 .xp-bg{background:var(--sky-deep);border-radius:8px;height:7px;overflow:hidden;}
 .xp-fill{background:linear-gradient(90deg,var(--green),var(--green-dark));height:100%;border-radius:8px;transition:width .8s ease;}
 .xp-lbl{font-size:calc(var(--fs-body) - 4px);color:var(--text-soft);margin-top:3px;}
@@ -583,7 +595,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .book-spine.locked{background:linear-gradient(135deg,#D7CCC8,#BCAAA4);border:1px solid #A1887F;color:#8D6E63;}
 .book-spine.locked .book-spine-emoji{filter:grayscale(1);opacity:.5;}
 .book-spine.lit{box-shadow:0 0 0 2px rgba(255,213,79,.55),0 0 14px rgba(255,179,0,.55);}
-.book-badge{position:absolute;top:-8px;right:-6px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));animation:popIn .5s ease;}
+.book-badge{position:absolute;top:-8px;left:-6px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));animation:popIn .5s ease;}
 .book-spine-emoji{font-size:30px;margin-bottom:4px;}
 .book-spine-name{font-size:13px;font-weight:900;line-height:1.2;text-align:center;writing-mode:horizontal-tb;}
 .book-spine-pct{font-size:11px;font-weight:700;margin-top:3px;opacity:.8;}
@@ -936,11 +948,13 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
       <div class="wp-body" id="wp-body">🧑</div>
       <div class="wp-item" id="wp-item"></div>
     </div>
+    <div class="wp-title" id="wp-title"></div>
     <div class="slot-tabs" id="slot-tabs">
-      <button class="slot-tab active" onclick="switchSlot('hat',this)">🎩 帽子</button>
-      <button class="slot-tab" onclick="switchSlot('body',this)">👕 衣服</button>
-      <button class="slot-tab" onclick="switchSlot('hand',this)">✋ 手持</button>
-      <button class="slot-tab" onclick="switchSlot('bg',this)">🖼️ 背景</button>
+      <button class="slot-tab active" data-slot="hat" onclick="switchSlot('hat',this)">🎩 帽子</button>
+      <button class="slot-tab" data-slot="body" onclick="switchSlot('body',this)">👕 衣服</button>
+      <button class="slot-tab" data-slot="hand" onclick="switchSlot('hand',this)">✋ 手持</button>
+      <button class="slot-tab" data-slot="bg" onclick="switchSlot('bg',this)">🖼️ 背景</button>
+      <button class="slot-tab" data-slot="title" onclick="switchSlot('title',this)">🏷️ 稱號</button>
     </div>
     <div class="equip-grid" id="equip-grid"></div>
     <button class="green-btn" style="margin-top:14px;" onclick="saveWardrobe()">✅ 儲存裝扮</button>
@@ -958,6 +972,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
       <span class="r-item" id="r-item"></span>
     </div>
     <div id="item-reveal"></div>
+    <div class="r-title" id="r-title" style="display:none;"></div>
     <div class="rw-book" id="rw-book" style="display:none;"></div>
     <div class="share-box"><div id="share-text"></div></div>
     <div class="commit-box" id="commit-box" style="display:none;"></div>
@@ -1168,6 +1183,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 
   <!-- ── BOOKS PAGE（PR ③a 2026-08-29：書架＋徽章從成就 overlay 搬到主頁第二頁；更新公告分頁退役、只留「更多」與版本彈窗入口）── -->
   <div class="page" id="page-books">
+    <div class="title-bar" id="title-bar"></div>
     <div id="ach-library-page"></div>
     <div class="books-page-sub">🏅 徽章</div>
     <div id="ach-badges-page"></div>
@@ -1514,7 +1530,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Fields to sync with Firestore
-const SYNC_FIELDS = ['setup','name','gender','level','xp','streak','hat','body','item','bg','items','completed','rewardClaimed','rewardClaimedMigrated'];
+const SYNC_FIELDS = ['setup','name','gender','level','xp','streak','hat','body','item','bg','title','items','completed','rewardClaimed','rewardClaimedMigrated'];
 
 let firestoreSaveTimer = null;
 function saveToFirestore() {
@@ -2187,6 +2203,15 @@ function reviewAchievement(key) {
 
 // PR ③a：成就 overlay 退役，書架＋徽章併入主頁「📚 書卷」分頁（switchPage('books') 時重繪）
 function openAchievements() { switchPage('books'); }
+// 書卷頁頂：稱號從哪來、下一站在哪（唯一讓玩家看到「卷數→稱號」對應的位置）
+function renderTitleBar() {
+  const el = document.getElementById('title-bar');
+  const n = booksCompleted();
+  const next = nextTitle(n);
+  const cur = state.title ? `🏷️ ${state.title}` : '🏷️ 還沒有稱號';
+  const tail = next ? `再 ${next.books - n} 卷成為「${next.name}」` : '已走遍全書 📜';
+  el.innerHTML = `<span class="tb-cur">${cur}</span><span class="tb-sub">已完走 ${n} 卷 · ${tail}</span>`;
+}
 
 function renderBadgesPage() {
   const el = document.getElementById('ach-badges-page');
@@ -2447,6 +2472,11 @@ window.addEventListener('load', () => { handleLineCallback(); });
 // ══ STATE ══════════════════════════════════════════════════
 
 function loadState() {
+  const s = _loadStateRaw();
+  if (s.title === undefined) s.title = '';   // PR ③b 補欄位：舊存檔沒有 title，undefined 送 Firestore set 會丟錯
+  return s;
+}
+function _loadStateRaw() {
   return JSON.parse(localStorage.getItem('bible_state') || JSON.stringify({
     setup: false,
     name: '旅途中的信徒',
@@ -2458,6 +2488,7 @@ function loadState() {
     body: '🧑',
     item: '',
     bg: '🌿',
+    title: '',       // 稱號（第五個裝備部位，PR ③b）：目前掛的稱號名稱，'' = 不掛
     items: [],
     completed: {},   // { "ACT10": "YYYY-MM-DD", ... }
     rewardClaimed: {},           // 領裝備漏領補救：哪些章已放過領取動畫 { "ROM10": true }
@@ -2726,8 +2757,11 @@ function renderAvatar() {
     const bgEl = document.getElementById('av-bg');
     if (bgEl) bgEl.textContent = '';
   }
-  document.getElementById('av-name').textContent  = state.name;
-  document.getElementById('av-level').textContent = `Lv.${state.level} · ${levelTitle(state.level)}`;
+  ensureTitleItems();   // 稱號補發（幂等）：已完走卷數對應的稱號若不在背包就補入袋
+  const nameEl = document.getElementById('av-name');
+  nameEl.textContent = state.name;
+  if (state.title) { const chip = document.createElement('span'); chip.className = 'av-title'; chip.textContent = state.title; nameEl.appendChild(chip); }
+  document.getElementById('av-level').textContent = `Lv.${state.level}`;   // PR ③b：等級只留數字，稱號改綁完走卷數、掛在名字旁
   document.getElementById('streak-num').textContent = devotionDays();   // 2026-08-27：🔥 改顯示累積靈修天數（中斷不歸零）
   const pct = Math.min((state.xp/100)*100,100);
   document.getElementById('xp-fill').style.width = pct+'%';
@@ -2753,7 +2787,18 @@ function renderAvatar() {
   }
 }
 
-// levelTitle（等級稱號表）已搬到 core.js。
+// 稱號梯（TITLE_LADDER／titlesForBooks／titlesUnlockedBetween／nextTitle）在 core.js。
+// 補發：依目前完走卷數把應得稱號補進背包（以 slot+name 判重）；背包原本沒稱號且 state.title 空 → 自動掛最高那個。
+function ensureTitleItems() {
+  if (!Array.isArray(state.items)) return;
+  const should = titlesForBooks(booksCompleted());
+  const has = new Set(state.items.filter(i => i && i.slot === 'title').map(i => i.name));
+  const missing = should.filter(t => !has.has(t.name));
+  if (!missing.length) return;
+  missing.forEach(t => state.items.push(t));
+  if (!state.title) state.title = should[should.length - 1].name;
+  saveState();
+}
 
 // ══ CHAPTER GRID ══════════════════════════════════════════
 
@@ -3447,22 +3492,19 @@ async function finalizeCompletion() {
     today,
   });
 
-  // 套用（順序與原邏輯相同：裝上 avatar → 入袋 → xp/等級 → streak → completed）
-  const applyItem = (item) => {
-    if (!item) return;
-    if (item.slot==='hand') state.item = item.emoji;
-    if (item.slot==='hat')  state.hat  = item.emoji;
-    if (item.slot==='body') state.body = item.emoji;
-    if (item.slot==='bg')   state.bg   = item.emoji;
-  };
-  applyItem(r.newItem);
-  applyItem(r.bonusItem);
+  // 套用：入袋（PR ③b 砍自動換裝——新裝備只入背包，領獎畫面可「試穿」）→ xp/等級 → streak → completed → 稱號
+  const booksBefore = booksCompleted();
   state.items.push(r.newItem);
   if (r.bonusItem) state.items.push(r.bonusItem);
   state.xp = r.xp;
   state.level = r.level;
   state.streak += r.streakInc;
   state.completed[r.completedKey] = today;
+  // 稱號（第五部位）：完走卷數跨過里程碑就入袋，並自動掛上最新那個
+  const newTitles = titlesUnlockedBetween(booksBefore, booksCompleted())
+    .filter(t => !state.items.some(i => i && i.slot === 'title' && i.name === t.name));
+  newTitles.forEach(t => state.items.push(t));
+  if (newTitles.length) state.title = newTitles[newTitles.length - 1].name;
   const newItem = r.newItem, bonusItem = r.bonusItem, isMergedDayAllDone = r.isMergedDayAllDone;
   saveState();
   await flushToFirestore();  // 完成節點即時寫雲端：完成後 1.5s 內關 app 也不掉（其他 saveState 仍走 debounce）
@@ -3480,7 +3522,7 @@ async function finalizeCompletion() {
     }
     pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
-  showReward(newItem, bonusItem, hasBonus);   // 出席燈＋書卷收集在 showReward 內一併呈現
+  showReward(newItem, bonusItem, hasBonus, newTitles);   // 出席燈＋書卷收集＋稱號在 showReward 內一併呈現
   afterReward();
   setTimeout(() => checkAchievements(), 1500);
   // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
@@ -3548,10 +3590,23 @@ function replayReward() {
   renderRewardRecovery(ch);                                        // 刷新：補發鈕 → 「已收入背包 ✅」
 }
 
-function showReward(item, bonus, hasBonus) {
-  document.getElementById('r-hat').textContent = state.hat;
-  document.getElementById('r-body').textContent = state.body;
-  document.getElementById('r-item').textContent = state.item;
+let lastRewardItems = [];   // 領獎畫面「試穿」用：本次新入袋的裝備
+let pendingNudgeAfterWardrobe = false;
+function showReward(item, bonus, hasBonus, newTitles) {
+  newTitles = newTitles || [];
+  // 預覽：不再自動換裝（PR ③b），小人先照目前裝扮畫，再把新裝備疊上去當「試穿預覽」
+  const prev = { hat: state.hat, body: state.body, hand: state.item, bg: state.bg };
+  lastRewardItems = [item, bonus].filter(Boolean);
+  lastRewardItems.forEach(i => { if (i.slot in prev) prev[i.slot] = i.emoji; });
+  document.getElementById('r-hat').textContent = prev.hat;
+  document.getElementById('r-body').textContent = prev.body;
+  document.getElementById('r-item').textContent = prev.hand;
+  const titleEl = document.getElementById('r-title');
+  titleEl.style.display = newTitles.length ? '' : 'none';
+  if (newTitles.length) {
+    const t = newTitles[newTitles.length - 1];
+    titleEl.innerHTML = `<div class="r-title-lbl">🏷️ 獲得稱號</div><div class="r-title-name">${t.emoji} ${t.name}</div><div class="r-title-desc">${t.desc}</div><div class="r-title-sub">已掛在名字旁，衣櫃可換</div>`;
+  }
 
   const reveal = document.getElementById('item-reveal');
   if (bonus) {
@@ -3568,6 +3623,7 @@ function showReward(item, bonus, hasBonus) {
       <div style="margin-top:10px;padding:8px 12px;background:rgba(156,123,181,.1);border-radius:8px;font-size:12px;color:var(--purple);">💡 填寫默想可獲得默想裝備 ⭐</div>
     </div>`;
   }
+  reveal.innerHTML += '<button type="button" class="sky-btn r-tryon" onclick="tryOnReward()">👗 試穿新裝備</button><div class="r-tryon-sub">新裝備已收進背包，沒換裝也留著</div>';
 
   document.getElementById('share-text').innerHTML =
     `📖 ${chapterFull(selectedChapter)} 完成<br>今日裝備：${item.emoji} ${item.name}${bonus?`<br>默想裝備：${bonus.emoji} ${bonus.name}`:''}`;   // 2026-08-27：去天數行，只留章節＋當日裝備
@@ -3690,18 +3746,29 @@ function fallbackCopy(text, btn) {
 
 // ══ WARDROBE ══════════════════════════════════════════
 
-let wardSel = { hat:'', body:'🧑', hand:'', bg:'🌿' };
+let wardSel = { hat:'', body:'🧑', hand:'', bg:'🌿', title:'' };
 let wardSlot = 'hat';
 
 function renderWardrobeUI() {}
 
-function openWardrobe() {
-  wardSel = { hat:state.hat||'', body:state.body||'🧑', hand:state.item||'', bg:state.bg||'🌿' };
+function openWardrobe(preset) {
+  wardSel = { hat:state.hat||'', body:state.body||'🧑', hand:state.item||'', bg:state.bg||'🌿', title:state.title||'' };
+  if (preset) Object.assign(wardSel, preset);
   updateWardPreview();
-  wardSlot = 'hat';
-  document.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  renderEquipGrid('hat');
+  const first = (preset && Object.keys(preset)[0]) || 'hat';
+  wardSlot = first;
+  document.querySelectorAll('.slot-tab').forEach(t=>t.classList.toggle('active', t.dataset.slot === first));
+  renderEquipGrid(first);
   openOverlay('ward-overlay');
+}
+// 領獎畫面「試穿」：關領獎、開衣櫃，把本次新裝備預先套上（要不要留下由玩家按儲存決定）
+function tryOnReward() {
+  const preset = {};
+  lastRewardItems.forEach(i => { preset[i.slot] = i.emoji; });
+  const nudge = pendingProfileNudge; pendingProfileNudge = false;   // 分眾提示延到衣櫃關掉後（下次 closeReward 不會再來，改掛在 saveWardrobe 後）
+  closeReward();
+  setTimeout(() => openWardrobe(preset), 250);
+  if (nudge) pendingNudgeAfterWardrobe = true;
 }
 
 function switchSlot(slot, el) {
@@ -3716,19 +3783,21 @@ function renderEquipGrid(slot) {
   const collected = (state.items||[]).filter(i=>i&&i.slot===slot);
   // Fix 1: none option uses empty string, not ✖️
   const noneVal  = slot==='body'?'🧑':slot==='bg'?'🌿':'';
-  const noneName = slot==='body'?'素白旅人':slot==='bg'?'清晨草地':slot==='hat'?'不戴帽子':'空手';
+  const noneName = slot==='body'?'素白旅人':slot==='bg'?'清晨草地':slot==='hat'?'不戴帽子':slot==='title'?'不掛稱號':'空手';
   const seen = new Set();
   // Fix 2: always show none + all collected items for this slot
   const items = [{id:'none', emoji:noneVal, name:noneName, slot}];
-  collected.forEach(i=>{ if(!seen.has(i.emoji)){seen.add(i.emoji);items.push(i);} });
+  // 稱號以名稱判重／比對（emoji 可能重複），其他部位以 emoji
+  const keyOf = i => slot==='title' ? i.name : i.emoji;
+  collected.forEach(i=>{ if(!seen.has(keyOf(i))){seen.add(keyOf(i));items.push(i);} });
 
   // Show "no items" only if truly no collected items (none option always shows)
   const curVal = slot==='hand' ? wardSel.hand : wardSel[slot];
   grid.innerHTML = items.map(item=>{
-    const e = item.id==='none' ? noneVal : item.emoji;
+    const e = item.id==='none' ? noneVal : keyOf(item);
     const isEq = curVal === e;
-    const displayEmoji = item.id==='none' ? (noneVal || '✕') : e;
-    return `<div class="equip-item${isEq?' equipped':''}" onclick="equipItem('${slot}','${e}')">
+    const displayEmoji = item.id==='none' ? (noneVal || '✕') : item.emoji;
+    return `<div class="equip-item${isEq?' equipped':''}" onclick="equipItem('${slot}','${e.replace(/'/g, "\\'")}')">
       <div class="equip-emoji">${displayEmoji}</div>
       <div class="equip-name">${item.name}</div>
       ${isEq?'<div class="equip-check">✓</div>':''}
@@ -3736,7 +3805,7 @@ function renderEquipGrid(slot) {
   }).join('');
 
   if (collected.length === 0) {
-    grid.innerHTML += '<div style="grid-column:2/-1;display:flex;align-items:center;padding:8px 4px;font-size:12px;color:var(--text-soft);">完成靈修來收集裝備 🔒</div>';
+    grid.innerHTML += `<div style="grid-column:2/-1;display:flex;align-items:center;padding:8px 4px;font-size:12px;color:var(--text-soft);">${slot==='title' ? '走完一卷書就有第一個稱號 🔒' : '完成靈修來收集裝備 🔒'}</div>`;
   }
 }
 
@@ -3752,6 +3821,8 @@ function updateWardPreview() {
   document.getElementById('wp-body').textContent = wardSel.body;
   document.getElementById('wp-item').textContent = wardSel.hand;
   document.getElementById('wp-bg').textContent   = wardSel.bg;
+  const wt = document.getElementById('wp-title');
+  wt.textContent = wardSel.title ? `${state.name} · ${wardSel.title}` : state.name;
 }
 
 function saveWardrobe() {
@@ -3759,11 +3830,13 @@ function saveWardrobe() {
   state.body = wardSel.body;
   state.item = wardSel.hand;
   state.bg   = wardSel.bg;
+  state.title = wardSel.title || '';
   saveState();
   renderAvatar();
-  track('equipment_change', { hat: state.hat || '', body: state.body || '', hand: state.item || '', bg: state.bg || '' });
+  track('equipment_change', { hat: state.hat || '', body: state.body || '', hand: state.item || '', bg: state.bg || '', title: state.title || '' });
   closeOverlay('ward-overlay');
   showToast('✅ 裝扮已儲存！');
+  if (pendingNudgeAfterWardrobe) { pendingNudgeAfterWardrobe = false; setTimeout(() => maybeShowProfileNudge(), 600); }
 }
 
 // ══ DEV MODE ════════════════════════════════════════════
@@ -3854,7 +3927,7 @@ function doReset(type) {
     state = JSON.parse(JSON.stringify({
       setup:true, name, gender, body,
       level:1, xp:10, streak:0,
-      hat:'', item:'', bg:'🌿',
+      hat:'', item:'', bg:'🌿', title:'',
       items:[], completed:{}
     }));
     saveState();
@@ -4619,7 +4692,7 @@ function launchConfetti() {
 
 function switchPage(name) {
   // books／devotion 有分頁鈕；changelog 沒有（入口：更多選單／版本彈窗），切到它時兩顆分頁都不亮
-  if (name === 'books') { renderLibraryPage(); renderBadgesPage(); }
+  if (name === 'books') { renderTitleBar(); renderLibraryPage(); renderBadgesPage(); }
   ['devotion','books','changelog'].forEach(p=>{
     document.getElementById('page-'+p).classList.toggle('show',p===name);
     const tab = document.getElementById('tab-'+p);
