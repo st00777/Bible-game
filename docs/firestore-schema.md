@@ -8,7 +8,7 @@ users/{userId}/                          ← 主文件（進度同步）
   completed:  { "ACT10": "2026-04-01" } // 已完成章節（章節key → 完成日期）
   streak:     3                          // 連續天數
   items:      [ { emoji, name, desc, slot, chapter }, ... ]
-  hat / body / item / bg                 // 目前穿戴裝備
+  hat / body / item / bg / title         // 目前穿戴裝備；title＝稱號名稱（第五部位，2026-08-29 PR ③b，'' 不掛）
   level / xp                             // 等級與經驗值
   name / gender / setup                  // 玩家設定
   updatedAt:  Timestamp
