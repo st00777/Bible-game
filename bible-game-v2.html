@@ -2665,8 +2665,9 @@ function enterFocusMode(ch) {
   document.getElementById('focus-bar-ch').textContent = `📖 ${chapterFull(ch)}`;
   window.scrollTo({ top: 0 });
 }
-function exitFocusMode() {
+function exitFocusMode(opts) {
   if (!document.body.classList.contains('focus-mode')) return;
+  const noScroll = !!(opts && opts.noScroll);   // 合併日：closeReward 自己會捲到 day-info-bar，避免兩段捲動疊加
   document.body.classList.remove('focus-mode');
   // 回主畫面時整頁刷新（順便治測玩 ⚠️：領裝備後主畫面／日曆不即時更新）
   renderAvatar();
@@ -2674,7 +2675,7 @@ function exitFocusMode() {
   if (calSelectedDate) updateDayInfoBar(calSelectedDate, parseInt(calSelectedDate.split('-')[2], 10));
   renderCalEntry();
   renderAttendance();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 // 🔥 出席燈：今天完成任一章才亮；只管亮暗、不帶催促文案（ADR 0001 出席驅動）
 function renderAttendance() {
@@ -3481,11 +3482,14 @@ async function finalizeCompletion() {
     }
     pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
-  showDoneFlash(newItem, bonusItem, () => { showReward(newItem, bonusItem, hasBonus); afterReward(); });   // PR ②：短畫面先、領獎細節後（toast／nudge 以 reward 開啟為基準）
+  showDoneFlash(newItem, bonusItem, () => {   // PR ②：短畫面先、領獎細節後（toast／nudge／成就 都以 reward 開啟為基準，跳過短畫面也對得上）
+    showReward(newItem, bonusItem, hasBonus);
+    afterReward();
+    setTimeout(() => checkAchievements(), 1500);
+  });
   // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
   if (!state.rewardClaimed) state.rewardClaimed = {};
   state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
-  setTimeout(() => checkAchievements(), 4000);   // 成就彈窗延後到短畫面＋領獎開啟之後
 
   const btn = document.getElementById('complete-btn');
   btn.textContent = '✅ 已完成此章靈修';
@@ -3579,7 +3583,8 @@ function showReward(item, bonus, hasBonus) {
 
 function closeReward() {
   closeOverlay('reward-overlay');
-  exitFocusMode();   // PR ②：領完裝備回主畫面並刷新
+  const _sd = findScheduleDate(selectedChapter);
+  exitFocusMode({ noScroll: !!(_sd && getScheduleChapters(_sd).length >= 2) });   // PR ②：領完裝備回主畫面並刷新
   // E1：領獎收尾後觸發輕量分眾提示（throttled，內部會自動跳過不該問的場景）
   if (pendingProfileNudge) {
     pendingProfileNudge = false;
