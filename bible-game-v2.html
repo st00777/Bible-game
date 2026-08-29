@@ -463,16 +463,17 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;}
 .focus-bar .fb-ch{color:var(--purple);}
 .done-flash{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(255,253,248,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
 .done-flash.show{display:flex;}
-.df-card{background:var(--card);border-radius:20px;padding:22px 28px;box-shadow:0 8px 30px var(--shadow);text-align:center;min-width:220px;max-width:300px;animation:popIn .4s ease;}
+.df-card{background:var(--card);border-radius:20px;padding:24px 26px 20px;box-shadow:0 8px 30px var(--shadow);text-align:center;width:min(88vw,360px);animation:popIn .4s ease;}
 .df-card.out{animation:flashOut .3s ease forwards;}
 @keyframes flashOut{to{opacity:0;transform:scale(.96)}}
 .df-fire{font-size:22px;font-weight:900;color:var(--green-dark);}
 .df-fire-sub{font-size:11px;color:var(--text-soft);margin-top:3px;}
 .df-item{margin:14px 0 10px;font-size:13px;font-weight:700;}
 .df-item .em{font-size:32px;display:block;margin-bottom:4px;}
-.df-book{font-size:11px;color:var(--text-soft);}
-.df-bar{height:5px;background:var(--sky);border-radius:3px;margin-top:6px;overflow:hidden;}
-.df-bar i{display:block;height:100%;background:var(--purple);border-radius:3px;}
+.df-book{font-size:12px;color:var(--text-soft);}
+.df-bar{height:9px;background:var(--sky);border-radius:5px;margin-top:8px;overflow:hidden;}
+.df-bar i{display:block;height:100%;background:var(--purple);border-radius:5px;transition:width .9s cubic-bezier(.34,1.2,.64,1);}
+.df-hint{font-size:10px;color:var(--text-soft);opacity:.7;margin-top:12px;}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
 @keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin:0 2px;animation:dot-blink 1.2s infinite;}
@@ -2698,7 +2699,7 @@ function renderAttendance() {
   pill.classList.toggle('lit', lit);
   pill.title = lit ? '今天完成靈修了・累積靈修天數' : '累積靈修天數';
 }
-// 完成短畫面：出席燈 → 當日裝備 → 「📖 書卷 收集 n/N」；popIn .4s＋停 1.6s＋退場 .3s，點擊可跳過
+// 完成短畫面：出席燈 → 當日裝備 → 「📖 書卷 收集 n/N」；popIn .4s＋停 3.5s＋退場 .3s，點擊可跳過
 let _dfTimer = null, _dfDone = null;
 function showDoneFlash(item, bonus, next) {
   const book = BOOKS.find(b => b.entries.some(e => String(e) === String(selectedChapter)));
@@ -2708,15 +2709,18 @@ function showDoneFlash(item, bonus, next) {
   card.className = 'df-card';
   card.innerHTML = `<div class="df-fire">🔥 今天出席了</div><div class="df-fire-sub">累積靈修 ${devotionDays()} 天</div>
     <div class="df-item"><span class="em">${shown.emoji}</span>${shown.name}</div>
-    ${p ? `<div class="df-book">📖 ${book.name} 收集 ${p.done}/${p.total}<div class="df-bar"><i style="width:${Math.round(p.done / p.total * 100)}%"></i></div></div>` : ''}`;
+    ${p ? `<div class="df-book">📖 ${book.name} 收集 ${p.done}/${p.total}<div class="df-bar"><i id="df-bar-fill" style="width:${Math.round(Math.max(0, p.done - 1) / p.total * 100)}%"></i></div></div>` : ''}
+    <div class="df-hint">點一下繼續</div>`;
   renderAttendance();
   document.getElementById('done-flash').classList.add('show');
+  // 進度條先停在上一格，popIn 結束後才滑到新的一格（James 2026-08-29：要看得到「多了一格」）
+  if (p) setTimeout(() => { const f = document.getElementById('df-bar-fill'); if (f) f.style.width = `${Math.round(p.done / p.total * 100)}%`; }, 500);
   _dfDone = () => {
     _dfDone = null; clearTimeout(_dfTimer);
     card.classList.add('out');
     setTimeout(() => { document.getElementById('done-flash').classList.remove('show'); if (next) next(); }, 300);
   };
-  _dfTimer = setTimeout(() => { if (_dfDone) _dfDone(); }, 2000);
+  _dfTimer = setTimeout(() => { if (_dfDone) _dfDone(); }, 3900);   // popIn .4 ＋ 停 3.5（James：1.6 來不及看）
 }
 function skipDoneFlash() { if (_dfDone) _dfDone(); }
 
