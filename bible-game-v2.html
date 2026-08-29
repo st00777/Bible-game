@@ -276,6 +276,12 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .guide-ol-row:last-child{border-bottom:none;}
 .guide-ol-nodes{font-weight:700;color:var(--warm);flex-shrink:0;min-width:34px;}
 .guide-focus-box{background:rgba(156,123,181,.09);border-left:3px solid var(--purple);border-radius:0 9px 9px 0;padding:9px 12px;font-size:calc(var(--fs-body) - 2px);color:var(--text-soft);line-height:1.7;}
+.guide-hard-box{background:rgba(255,255,255,.55);border-radius:11px;padding:11px 13px;margin-top:9px;}
+.guide-hard-lbl{font-size:10px;font-weight:700;color:var(--text-soft);letter-spacing:.12em;margin-bottom:7px;}
+.guide-hard-row{font-size:calc(var(--fs-body) - 2px);line-height:1.7;padding:3px 0 3px 14px;position:relative;}
+.guide-hard-row::before{content:'·';position:absolute;left:3px;color:var(--warm);font-weight:700;}
+.guide-book-link{display:block;margin-top:10px;padding:10px 12px;border-radius:11px;background:rgba(156,123,181,.09);color:var(--purple);font-size:calc(var(--fs-body) - 2px);font-weight:600;text-align:center;cursor:pointer;}
+.guide-book-link:active{transform:scale(.98);}
 /* Read step */
 .read-encourage-box{font-size:calc(var(--fs-body) - 2px);color:var(--text-soft);line-height:1.75;padding:10px 12px;background:rgba(255,255,255,.5);border-radius:11px;margin:10px 0 10px;}
 .read-encourage-box strong{color:var(--green-dark);}
@@ -567,6 +573,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .bd-section{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .45s ease forwards;}
 .bd-section-title{font-size:calc(var(--fs-body) - 1px);font-weight:900;color:var(--purple);margin-bottom:10px;}
 .bd-intro-row{font-size:calc(var(--fs-body) - 2px);color:var(--text);line-height:1.7;margin-bottom:4px;}
+.bd-intro-item{padding:2px 0 2px 12px;position:relative;}
+.bd-intro-item::before{content:'·';position:absolute;left:2px;color:var(--warm);font-weight:700;}
 .bd-intro-row .bd-label{color:var(--text-soft);font-weight:700;margin-right:6px;}
 .bd-progress-text{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);font-weight:700;margin-bottom:10px;}
 .bd-chapter-grid{display:flex;flex-wrap:wrap;gap:6px;}
@@ -2258,14 +2266,19 @@ function renderBookDetail(bookKey) {
       ? `<img class="bd-cover" src="${esc(cover)}" alt="${esc(book.name)} 封面">`
       : `<div class="bd-cover-emoji">${esc(cover)}</div>`;
   }
+  //    2026-08-29 加三個「幫讀者的欄位」：summary（這卷在講什麼）／structure（怎麼分段，陣列）／tips（會卡的地方，陣列）。
+  //    作者／時間／地點若經文沒說就留空（不填「不詳」佔位），同一條「無內容即無區塊」原則。
   const introRows = intro
-    ? [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
-        .filter(([, val]) => val && String(val).trim())
+    ? [['這卷在講什麼', intro.summary], ['怎麼分段', intro.structure], ['讀的時候會卡的地方', intro.tips],
+       ['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
+        .map(([label, val]) => [label, Array.isArray(val) ? val.filter(v => v && String(v).trim()) : val])
+        .filter(([, val]) => Array.isArray(val) ? val.length : (val && String(val).trim()))
     : [];
   if (introRows.length) {
     html += '<div class="bd-section"><div class="bd-section-title">📜 書卷導讀</div>';
     for (const [label, val] of introRows) {
-      html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${esc(val)}</div>`;
+      const body = Array.isArray(val) ? val.map(v => `<div class="bd-intro-item">${esc(v)}</div>`).join('') : esc(val);
+      html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${body}</div>`;
     }
     html += '</div>';
   }
@@ -2705,6 +2718,18 @@ function renderGuide(data) {
   document.getElementById('step2-sub').textContent = `前往 Bible.com 閱讀 · 約${data.readTime || 5}分鐘`;
   document.getElementById('step1-sub').textContent = `章節大綱，幫助理解脈絡 · 約2分鐘`;
 
+  // 難章幫助（2026-08-29 James 拍板）：guide.hard 選填＝這章讀者具體會卡的 1-3 點；沒填就沒有區塊。
+  // 不預設「這章很難」的立場，只給幫助；同一原則的另一半是下方導向書卷背景的入口。
+  const hardList = Array.isArray(data.guide.hard) ? data.guide.hard.filter(h => h && String(h).trim()) : [];
+  const hardHtml = hardList.length
+    ? `<div class="guide-hard-box"><div class="guide-hard-lbl">讀的時候可能卡住的地方</div>${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}</div>`
+    : '';
+  // 書卷背景入口：只有 BOOK_DETAIL_ENABLED 內的書卷才顯示（否則點了沒東西開）
+  const guideBook = BOOKS.find(b => b.entries.some(e => String(e) === String(data.chapter)));
+  const bookLinkHtml = (guideBook && isBookDetailEnabled(guideBook.key))
+    ? `<div class="guide-book-link" onclick="openBookDetail('${guideBook.key}')">📚 這章讀起來吃力？先認識《${guideBook.name}》 →</div>`
+    : '';
+
   // Build guide inner
   const outline = data.guide.outline.map(o =>
     `<div class="guide-ol-row"><span class="guide-ol-nodes">${o.nodes}</span><span>${o.text}</span></div>`
@@ -2716,7 +2741,8 @@ function renderGuide(data) {
       <div class="guide-outline-lbl">本章重點</div>
       ${outline}
     </div>
-    <div class="guide-focus-box">💡 ${data.guide.focus}</div>`;
+    <div class="guide-focus-box">💡 ${data.guide.focus}</div>
+    ${hardHtml}${bookLinkHtml}`;
 
   // Auto open step 1
   setTimeout(() => {
