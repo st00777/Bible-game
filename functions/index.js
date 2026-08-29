@@ -125,7 +125,9 @@ async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 3) 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n玩家的默想：${userText}` }] }],
-      generationConfig: { maxOutputTokens: 1500, temperature: 0.9 },
+      // thinkingBudget 0：2.5-flash 的思考 token 也算在 maxOutputTokens 內，思考一長就把回答截在句中
+      // （2026-08-29 玩家多次看到半句話）。2-3 句溫暖回應不需要打草稿，直接關掉。
+      generationConfig: { maxOutputTokens: 1500, temperature: 0.9, thinkingConfig: { thinkingBudget: 0 } },
     }),
   });
   if (!res.ok) {
@@ -143,7 +145,25 @@ async function callGoogleAI(model, systemPrompt, userText, apiKey, retries = 3) 
     return null;
   }
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  const cand = data.candidates?.[0];
+  const text = cand?.content?.parts?.map(p => p.text || '').join('') || null;
+  // 回傳 { text, truncated }：finishReason=MAX_TOKENS 代表話講一半被截，由呼叫端決定重試
+  return { text, truncated: cand?.finishReason === 'MAX_TOKENS' };
+}
+
+// 被截斷時的重試：同一份 prompt 加上「濃縮」指令，不砍句、不改語意（James 2026-08-29 定案）
+const CONDENSE_HINT = `
+- 這次請把回應濃縮：只保留最核心的一個洞見，2 句以內、每句不超過 40 字，務必把話說完`;
+
+async function generateReflection(systemPrompt, userText, apiKey, logTag) {
+  const first = await callGoogleAI(GEMINI_MODEL, systemPrompt, userText, apiKey);
+  if (!first) return null;
+  if (!first.truncated) return first.text;
+  console.warn(`aiReflection truncated (MAX_TOKENS), retry condensed: ${logTag}`);
+  const second = await callGoogleAI(GEMINI_MODEL, systemPrompt + CONDENSE_HINT, userText, apiKey);
+  if (second && !second.truncated && second.text) return second.text;
+  console.warn(`aiReflection truncated twice, fallback: ${logTag}`);
+  return null; // 兩次都截斷 → 不讓半句話出去，退 fallback
 }
 
 exports.aiReflection = onRequest(
@@ -202,7 +222,7 @@ ${moodBlock}${equipmentBlock}
 
     try {
       const apiKey = googleAiApiKey.value();
-      const aiResponse = await callGoogleAI(GEMINI_MODEL, systemPrompt, playerText, apiKey);
+      const aiResponse = await generateReflection(systemPrompt, playerText, apiKey, `uid=${callerId} chapter=${chapter || ''}`);
       const isFallback = !aiResponse;
       console.log(`aiReflection result: uid=${callerId} chapter=${chapter || ''} fallback=${isFallback}`);
       res.json({
