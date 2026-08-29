@@ -29,7 +29,7 @@ async function main() {
   const errFilter = `resource.type="cloud_run_revision"
     AND resource.labels.service_name="${SERVICE}"
     AND timestamp>="${since}"
-    AND (severity>=ERROR OR textPayload:"error" OR textPayload:"retry")`;
+    AND (severity>=ERROR OR textPayload:"error" OR textPayload:"retry" OR textPayload:"truncated")`;
 
   const [requests, errors] = await Promise.all([
     fetchLogs(token, reqFilter),
@@ -51,7 +51,10 @@ async function main() {
     const t = e.textPayload || '';
     return /error:/i.test(t) && !/retry/i.test(t);
   });
-  const retries = errors.filter(e => /retry/i.test(e.textPayload || '')).length;
+  const retries = errors.filter(e => /retry/i.test(e.textPayload || '') && !/truncated/.test(e.textPayload || '')).length;
+  // 回應被截斷（MAX_TOKENS）：一次＝濃縮重試成功；twice＝兩次都截、玩家拿 fallback（2026-08-29 起）
+  const truncOnce = errors.filter(e => /truncated \(MAX_TOKENS\)/.test(e.textPayload || '')).length;
+  const truncTwice = errors.filter(e => /truncated twice/.test(e.textPayload || '')).length;
 
   // 錯誤類型分布
   const errorTypes = {};
@@ -61,7 +64,7 @@ async function main() {
   }
 
   // 成功率：玩家拿到真實 AI 回應 = HTTP 2xx - AI fallback
-  const aiSuccess = Math.max(0, http2xx - aiErrors.length);
+  const aiSuccess = Math.max(0, http2xx - aiErrors.length - truncTwice);
   const successRate = total > 0 ? (aiSuccess / total * 100).toFixed(1) : '—';
 
   console.log(`\n📊 過去 ${days} 天 aiReflection 統計（自 ${since.slice(0,16).replace('T',' ')} UTC 起）\n`);
@@ -72,6 +75,7 @@ async function main() {
   console.log(`  AI 真實回應    ${aiSuccess} ${total > 0 ? `(${successRate}%)` : ''}`);
   console.log(`  AI fallback    ${aiErrors.length}  ${aiErrors.length > 0 && total > 0 ? `(${(aiErrors.length/total*100).toFixed(1)}%)` : ''}`);
   if (retries > 0) console.log(`  retry 觸發     ${retries}`);
+  if (truncOnce > 0) console.log(`  回應截斷→濃縮重試 ${truncOnce}（其中兩次都截、退 fallback：${truncTwice}）`);
 
   if (Object.keys(errorTypes).length > 0) {
     console.log('\n  錯誤類型分布:');

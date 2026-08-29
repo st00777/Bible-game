@@ -96,7 +96,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .topbar-right{display:flex;align-items:center;gap:8px;}
 .icon-btn{width:32px;height:32px;background:white;border:none;border-radius:10px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px var(--shadow);transition:all .2s;flex-shrink:0;}
 .icon-btn:hover{transform:scale(1.1);}
-.streak-pill{background:var(--warm);color:white;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(255,138,101,.4);}
+/* 🔥 當日出席燈（PR ②，2026-08-29）：亮＝今天完成任一章（綠＝完成語意）、暗＝低對比中性；不用橘（催促語意）。數字＝累積靈修天數，不隨燈態變。 */
+.streak-pill{background:var(--sky);color:var(--text-soft);font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;border:2px solid var(--sky-deep);transition:background .3s,color .3s;}
+.streak-pill .fire{opacity:.4;transition:opacity .3s;}
+.streak-pill.lit{background:var(--green-dark);color:white;border-color:var(--green-dark);box-shadow:0 3px 10px rgba(76,175,80,.4);}
+.streak-pill.lit .fire{opacity:1;}
 .more-wrap{position:relative;z-index:999;}
 /* 未讀紅點（曠野呼聲 v2 — 玩家有新回覆）；樣式延續 admin Phase 3B .fb-unread-dot */
 .unread-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#FF5252;box-shadow:0 0 0 2px white, 0 0 6px rgba(255,82,82,.5);}
@@ -276,6 +280,12 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .guide-ol-row:last-child{border-bottom:none;}
 .guide-ol-nodes{font-weight:700;color:var(--warm);flex-shrink:0;min-width:34px;}
 .guide-focus-box{background:rgba(156,123,181,.09);border-left:3px solid var(--purple);border-radius:0 9px 9px 0;padding:9px 12px;font-size:calc(var(--fs-body) - 2px);color:var(--text-soft);line-height:1.7;}
+.guide-hard-lbl{font-size:10px;font-weight:700;color:var(--text-soft);letter-spacing:.12em;margin:10px 0 5px;padding-top:9px;border-top:1px solid rgba(156,123,181,.18);}
+.guide-hard-row{font-size:calc(var(--fs-body) - 2px);line-height:1.7;padding:2px 0 2px 14px;position:relative;}
+.guide-hard-row::before{content:'·';position:absolute;left:3px;color:var(--warm);font-weight:700;}
+.guide-book-link{display:block;margin-top:12px;padding:12px 14px;border-radius:13px;background:linear-gradient(135deg,var(--purple),#7B5EA7);color:white;font-size:calc(var(--fs-body) - 1px);font-weight:700;text-align:center;cursor:pointer;box-shadow:0 4px 14px rgba(156,123,181,.4);transition:transform .15s,box-shadow .15s;}
+.guide-book-link:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(156,123,181,.5);}
+.guide-book-link:active{transform:scale(.98);}
 /* Read step */
 .read-encourage-box{font-size:calc(var(--fs-body) - 2px);color:var(--text-soft);line-height:1.75;padding:10px 12px;background:rgba(255,255,255,.5);border-radius:11px;margin:10px 0 10px;}
 .read-encourage-box strong{color:var(--green-dark);}
@@ -439,6 +449,30 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
 /* Animations */
 @keyframes popIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+/* ── PR ② 焦點模式／日曆收合／完成短畫面（2026-08-29，ADR 0001 視覺成長第一期）── */
+.cal-entry{display:flex;align-items:center;gap:10px;background:var(--sky);border:2px solid var(--sky-deep);border-radius:16px;padding:11px 15px;margin-bottom:14px;min-height:44px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text);opacity:0;animation:popIn .5s ease forwards .28s;transition:transform .15s;}
+.cal-entry:active{transform:translateY(1px);}
+.cal-entry .ce-sub{font-size:11px;font-weight:400;color:var(--text-soft);margin-top:2px;}
+.cal-entry .ce-arrow{margin-left:auto;color:var(--purple);transition:transform .3s cubic-bezier(.34,1.2,.64,1);}
+body.cal-open .cal-entry .ce-arrow{transform:rotate(180deg);}
+#cal-card.collapsed{display:none;}
+body.focus-mode .avatar-card,body.focus-mode .unlock-hint,body.focus-mode #cal-card,body.focus-mode .cal-entry,body.focus-mode .day-info-bar,body.focus-mode .nav-tabs{display:none!important;}
+.focus-bar{display:none;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:9px 12px;margin-bottom:14px;box-shadow:0 2px 10px var(--shadow);font-size:13px;font-weight:700;}
+body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;}
+.focus-bar button{background:var(--sky);border:2px solid var(--sky-deep);border-radius:12px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;min-height:36px;}
+.focus-bar .fb-ch{color:var(--purple);}
+.done-flash{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(255,253,248,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
+.done-flash.show{display:flex;}
+.df-card{background:var(--card);border-radius:20px;padding:22px 28px;box-shadow:0 8px 30px var(--shadow);text-align:center;min-width:220px;max-width:300px;animation:popIn .4s ease;}
+.df-card.out{animation:flashOut .3s ease forwards;}
+@keyframes flashOut{to{opacity:0;transform:scale(.96)}}
+.df-fire{font-size:22px;font-weight:900;color:var(--green-dark);}
+.df-fire-sub{font-size:11px;color:var(--text-soft);margin-top:3px;}
+.df-item{margin:14px 0 10px;font-size:13px;font-weight:700;}
+.df-item .em{font-size:32px;display:block;margin-bottom:4px;}
+.df-book{font-size:11px;color:var(--text-soft);}
+.df-bar{height:5px;background:var(--sky);border-radius:3px;margin-top:6px;overflow:hidden;}
+.df-bar i{display:block;height:100%;background:var(--purple);border-radius:3px;}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
 @keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin:0 2px;animation:dot-blink 1.2s infinite;}
@@ -567,6 +601,11 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .bd-section{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .45s ease forwards;}
 .bd-section-title{font-size:calc(var(--fs-body) - 1px);font-weight:900;color:var(--purple);margin-bottom:10px;}
 .bd-intro-row{font-size:calc(var(--fs-body) - 2px);color:var(--text);line-height:1.7;margin-bottom:4px;}
+.bd-intro-summary{font-size:var(--fs-body);line-height:1.8;color:var(--text);margin-bottom:6px;}
+.bd-intro-lbl{font-size:10px;font-weight:700;color:var(--text-soft);letter-spacing:.12em;margin:10px 0 4px;}
+.bd-intro-item{padding:2px 0 2px 12px;position:relative;font-size:calc(var(--fs-body) - 2px);line-height:1.7;}
+.bd-intro-item::before{content:'·';position:absolute;left:2px;color:var(--warm);font-weight:700;}
+.bd-intro-meta{margin-top:10px;padding-top:9px;border-top:1px solid rgba(61,43,31,.06);}
 .bd-intro-row .bd-label{color:var(--text-soft);font-weight:700;margin-right:6px;}
 .bd-progress-text{font-size:calc(var(--fs-body) - 3px);color:var(--text-soft);font-weight:700;margin-bottom:10px;}
 .bd-chapter-grid{display:flex;flex-wrap:wrap;gap:6px;}
@@ -927,6 +966,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
   </div>
 </div>
 
+<!-- 完成短畫面（PR ②）：領裝備瞬間 2.3 秒出席宣告，點任一處跳過，之後才開 reward-overlay -->
+<div class="done-flash" id="done-flash" onclick="skipDoneFlash()"><div class="df-card" id="df-card"></div></div>
+
 <!-- Reward modal -->
 <div class="overlay center" id="reward-overlay">
   <div class="modal">
@@ -969,7 +1011,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
         <button class="icon-btn" id="more-menu-btn" onclick="toggleMoreMenu(event)" title="更多">⋯</button>
         <span class="unread-dot unread-dot-corner" id="more-btn-dot" style="display:none;"></span>
       </div>
-      <div class="streak-pill" onclick="devModeClick()" title="累積靈修天數">🔥 <span id="streak-num">0</span></div>
+      <div class="streak-pill" id="streak-pill" onclick="devModeClick()" title="累積靈修天數"><span class="fire">🔥</span> <span id="streak-num">0</span></div>
     </div>
   </div>
 
@@ -981,6 +1023,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 
   <!-- ── DEVOTION PAGE ── -->
   <div class="page show" id="page-devotion">
+
+    <!-- 焦點模式頂欄（PR ②）：選章後只留經文→情境→默想，其餘卡片隱藏 -->
+    <div class="focus-bar" id="focus-bar"><button type="button" onclick="exitFocusMode()">← 返回</button><span class="fb-ch" id="focus-bar-ch"></span></div>
 
     <!-- Avatar -->
     <div class="avatar-card">
@@ -1010,8 +1055,10 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     </div>
 
     <!-- Chapter selector -->
+    <!-- 日曆入口（PR ②）：日曆預設收合，這條是補讀／看其他日期的展開口 -->
+    <div class="cal-entry" id="cal-entry" onclick="toggleCalendar()"><span>📅</span><div><div id="cal-entry-main">補讀或看其他日期</div><div class="ce-sub" id="cal-entry-sub"></div></div><span class="ce-arrow">▾</span></div>
     <!-- Calendar selector -->
-    <div class="cal-card" id="cal-card">
+    <div class="cal-card collapsed" id="cal-card">
       <div class="cal-header">
         <button class="cal-nav" onclick="calChangeMonth(-1)">‹</button>
         <div style="text-align:center;">
@@ -1145,6 +1192,18 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.08.29 · 焦點模式＋完成短畫面＋出席燈</div>
+      <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>焦點模式：按「開始靈修」後畫面只留經文→導讀→情境→默想，頂端「← 返回」回主畫面</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>完成靈修的一瞬間：🔥出席燈亮起＋今日裝備＋「📖 這卷書 收集 n/N」，點一下可跳過</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>難的章節導讀多一段「這章讀者常卡在哪、怎麼讀過去」；導讀底部「先認識這卷書」可看書卷背景</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>書卷背景全開：使徒行傳起 23 卷＋創世記的作者／時間／主題／結構／讀法提示＋人物冊</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>日曆預設收起，主畫面留一行「補讀或看其他日期」，點開展開</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>右上角 🔥 改為「當日出席燈」：今天完成任一章就亮、沒完成是暗的；數字仍是累積靈修天數</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>領完裝備回主畫面會即時更新日曆與進度</span></div>
     </div>
 
     <div class="log-entry">
@@ -2258,14 +2317,24 @@ function renderBookDetail(bookKey) {
       ? `<img class="bd-cover" src="${esc(cover)}" alt="${esc(book.name)} 封面">`
       : `<div class="bd-cover-emoji">${esc(cover)}</div>`;
   }
-  const introRows = intro
-    ? [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
-        .filter(([, val]) => val && String(val).trim())
-    : [];
-  if (introRows.length) {
+  //    2026-08-29 加三個「幫讀者的欄位」：summary（這卷在講什麼）／structure（怎麼分段，陣列）／tips（會卡的地方，陣列）。
+  //    作者／時間／地點若經文沒說，寫明「經文沒有明確記載」（James 2026-08-29：留空不好，沒定義就說沒定義）。
+  const fillArr = v => Array.isArray(v) ? v.filter(x => x && String(x).trim()) : [];
+  const fillStr = v => (v && String(v).trim()) ? String(v) : '';
+  const summary = intro ? fillStr(intro.summary) : '';
+  const listRows = intro ? [['怎麼分段', fillArr(intro.structure)], ['讀的時候會卡的地方', fillArr(intro.tips)]].filter(([, a]) => a.length) : [];
+  const metaRows = intro ? [['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]].filter(([, v]) => fillStr(v)) : [];
+  if (summary || listRows.length || metaRows.length) {
     html += '<div class="bd-section"><div class="bd-section-title">📜 書卷導讀</div>';
-    for (const [label, val] of introRows) {
-      html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${esc(val)}</div>`;
+    // 美術審查（2026-08-29）：敘事段落（summary／清單）與速查表（作者…給誰）分層，中間一條分節線
+    if (summary) html += `<div class="bd-intro-summary">${esc(summary)}</div>`;
+    for (const [label, arr] of listRows) {
+      html += `<div class="bd-intro-lbl">${label}</div>${arr.map(v => `<div class="bd-intro-item">${esc(v)}</div>`).join('')}`;
+    }
+    if (metaRows.length) {
+      html += '<div class="bd-intro-meta">';
+      for (const [label, val] of metaRows) html += `<div class="bd-intro-row"><span class="bd-label">${label}</span>${esc(val)}</div>`;
+      html += '</div>';
     }
     html += '</div>';
   }
@@ -2577,10 +2646,79 @@ function initApp() {
   calSelectedDate = ds;
   renderCalendar();
   updateDayInfoBar(ds, calToday.getDate());
+  renderCalEntry();
+  renderAttendance();
   // Auto-load today's chapter content below
   const todayCh = getTodayChapter();
   if (todayCh) selectChapter(todayCh);
 }
+
+// ── PR ② 焦點模式／日曆收合／出席燈／完成短畫面（2026-08-29）──
+let _calOpen = false;
+function toggleCalendar(force) {
+  _calOpen = force !== undefined ? !!force : !_calOpen;
+  document.getElementById('cal-card').classList.toggle('collapsed', !_calOpen);
+  document.body.classList.toggle('cal-open', _calOpen);
+  renderCalEntry();
+  if (_calOpen) setTimeout(() => document.getElementById('cal-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+}
+function renderCalEntry() {
+  const main = document.getElementById('cal-entry-main'), sub = document.getElementById('cal-entry-sub');
+  if (!main) return;
+  if (_calOpen) { main.textContent = '收起日曆'; sub.textContent = ''; return; }
+  const todayCh = getTodayChapter();
+  const done = todayCh && isChapterDone(todayCh);
+  main.textContent = done ? '今天完成了・補讀或看其他日期' : '補讀或看其他日期';
+  sub.textContent = `${calToday.getMonth() + 1}/${calToday.getDate()} 今日：${todayCh ? chapterFull(todayCh) : '—'}`;
+}
+// 焦點模式：玩家按「開始靈修」載入章節後進入；隱藏 avatar／XP／日曆／頁籤，只留經文→情境→默想
+function enterFocusMode(ch) {
+  document.body.classList.add('focus-mode');
+  document.getElementById('focus-bar-ch').textContent = `📖 ${chapterFull(ch)}`;
+  window.scrollTo({ top: 0 });
+}
+function exitFocusMode(opts) {
+  if (!document.body.classList.contains('focus-mode')) return;
+  const noScroll = !!(opts && opts.noScroll);   // 合併日：closeReward 自己會捲到 day-info-bar，避免兩段捲動疊加
+  document.body.classList.remove('focus-mode');
+  // 回主畫面時整頁刷新（順便治測玩 ⚠️：領裝備後主畫面／日曆不即時更新）
+  renderAvatar();
+  renderCalendar();
+  if (calSelectedDate) updateDayInfoBar(calSelectedDate, parseInt(calSelectedDate.split('-')[2], 10));
+  renderCalEntry();
+  renderAttendance();
+  if (!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// 🔥 出席燈：今天完成任一章才亮；只管亮暗、不帶催促文案（ADR 0001 出席驅動）
+function renderAttendance() {
+  const pill = document.getElementById('streak-pill');
+  if (!pill) return;
+  const today = todayStr();
+  const lit = Object.values(state.completed || {}).some(d => d === today);
+  pill.classList.toggle('lit', lit);
+  pill.title = lit ? '今天完成靈修了・累積靈修天數' : '累積靈修天數';
+}
+// 完成短畫面：出席燈 → 當日裝備 → 「📖 書卷 收集 n/N」；popIn .4s＋停 1.6s＋退場 .3s，點擊可跳過
+let _dfTimer = null, _dfDone = null;
+function showDoneFlash(item, bonus, next) {
+  const book = BOOKS.find(b => b.entries.some(e => String(e) === String(selectedChapter)));
+  const p = book ? getBookProgress(book) : null;
+  const card = document.getElementById('df-card');
+  const shown = bonus || item;
+  card.className = 'df-card';
+  card.innerHTML = `<div class="df-fire">🔥 今天出席了</div><div class="df-fire-sub">累積靈修 ${devotionDays()} 天</div>
+    <div class="df-item"><span class="em">${shown.emoji}</span>${shown.name}</div>
+    ${p ? `<div class="df-book">📖 ${book.name} 收集 ${p.done}/${p.total}<div class="df-bar"><i style="width:${Math.round(p.done / p.total * 100)}%"></i></div></div>` : ''}`;
+  renderAttendance();
+  document.getElementById('done-flash').classList.add('show');
+  _dfDone = () => {
+    _dfDone = null; clearTimeout(_dfTimer);
+    card.classList.add('out');
+    setTimeout(() => { document.getElementById('done-flash').classList.remove('show'); if (next) next(); }, 300);
+  };
+  _dfTimer = setTimeout(() => { if (_dfDone) _dfDone(); }, 2000);
+}
+function skipDoneFlash() { if (_dfDone) _dfDone(); }
 
 function renderAvatar() {
   document.getElementById('av-hat').textContent  = state.hat;
@@ -2705,6 +2843,19 @@ function renderGuide(data) {
   document.getElementById('step2-sub').textContent = `前往 Bible.com 閱讀 · 約${data.readTime || 5}分鐘`;
   document.getElementById('step1-sub').textContent = `章節大綱，幫助理解脈絡 · 約2分鐘`;
 
+  // 難章幫助（2026-08-29 James 拍板）：guide.hard 選填＝這章讀者具體會卡的 1-3 點；沒填就沒有區塊。
+  // 不預設「這章很難」的立場，只給幫助；同一原則的另一半是下方導向書卷背景的入口。
+  const hardList = Array.isArray(data.guide.hard) ? data.guide.hard.filter(h => h && String(h).trim()) : [];
+  // 美術審查（2026-08-29）：hard 併進 focus 同一個紫框容器，不另開白盒（避免白—紫—白三明治）
+  const hardHtml = hardList.length
+    ? `<div class="guide-hard-lbl">讀的時候可能卡住的地方</div>${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}`
+    : '';
+  // 書卷背景入口：只有 BOOK_DETAIL_ENABLED 內的書卷才顯示（否則點了沒東西開）
+  const guideBook = BOOKS.find(b => b.entries.some(e => String(e) === String(data.chapter)));
+  const bookLinkHtml = (guideBook && isBookDetailEnabled(guideBook.key))
+    ? `<div class="guide-book-link" onclick="openBookDetail('${guideBook.key}')">📚 這章讀起來吃力？先認識《${guideBook.name}》 →</div>`
+    : '';
+
   // Build guide inner
   const outline = data.guide.outline.map(o =>
     `<div class="guide-ol-row"><span class="guide-ol-nodes">${o.nodes}</span><span>${o.text}</span></div>`
@@ -2716,7 +2867,8 @@ function renderGuide(data) {
       <div class="guide-outline-lbl">本章重點</div>
       ${outline}
     </div>
-    <div class="guide-focus-box">💡 ${data.guide.focus}</div>`;
+    <div class="guide-focus-box">💡 ${data.guide.focus}${hardHtml}</div>
+    ${bookLinkHtml}`;
 
   // Auto open step 1
   setTimeout(() => {
@@ -2951,6 +3103,7 @@ function proceedToChapter() {
   selectChapter(pick);          // 注意：selectChapter 重置區會把 sessionMood 歸 null…
   sessionMood = _pendingMood;   // …故必須在 selectChapter 之後才賦值本次心情
   _pendingMood = null;
+  enterFocusMode(pick);         // PR ②：主動開始靈修 → 焦點模式
   setTimeout(() => {
     document.querySelector('.verse-card').scrollIntoView({behavior:'smooth', block:'start'});
   }, 200);
@@ -3341,12 +3494,14 @@ async function finalizeCompletion() {
     }
     pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
-  showReward(newItem, bonusItem, hasBonus);
+  showDoneFlash(newItem, bonusItem, () => {   // PR ②：短畫面先、領獎細節後（toast／nudge／成就 都以 reward 開啟為基準，跳過短畫面也對得上）
+    showReward(newItem, bonusItem, hasBonus);
+    afterReward();
+    setTimeout(() => checkAchievements(), 1500);
+  });
   // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
   if (!state.rewardClaimed) state.rewardClaimed = {};
   state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
-  setTimeout(() => checkAchievements(), 1500);
-  afterReward();
 
   const btn = document.getElementById('complete-btn');
   btn.textContent = '✅ 已完成此章靈修';
@@ -3440,6 +3595,8 @@ function showReward(item, bonus, hasBonus) {
 
 function closeReward() {
   closeOverlay('reward-overlay');
+  const _sd = findScheduleDate(selectedChapter);
+  exitFocusMode({ noScroll: !!(_sd && getScheduleChapters(_sd).length >= 2) });   // PR ②：領完裝備回主畫面並刷新
   // E1：領獎收尾後觸發輕量分眾提示（throttled，內部會自動跳過不該問的場景）
   if (pendingProfileNudge) {
     pendingProfileNudge = false;
