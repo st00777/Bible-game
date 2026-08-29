@@ -458,21 +458,15 @@ body.cal-open .cal-entry .ce-arrow{transform:rotate(180deg);}
 #cal-card.collapsed{display:none;}
 body.focus-mode .avatar-card,body.focus-mode .unlock-hint,body.focus-mode #cal-card,body.focus-mode .cal-entry,body.focus-mode .day-info-bar,body.focus-mode .nav-tabs{display:none!important;}
 .focus-bar{display:none;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:9px 12px;margin-bottom:14px;box-shadow:0 2px 10px var(--shadow);font-size:13px;font-weight:700;}
-body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;}
+body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky;top:8px;z-index:20;}   /* sticky：捲下去仍看得到「← 返回」（8/29 終驗備註） */
 .focus-bar button{background:var(--sky);border:2px solid var(--sky-deep);border-radius:12px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;min-height:36px;}
 .focus-bar .fb-ch{color:var(--purple);}
-.done-flash{position:fixed;inset:0;z-index:95;display:none;align-items:center;justify-content:center;background:rgba(255,253,248,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);}
-.done-flash.show{display:flex;}
-.df-card{background:var(--card);border-radius:20px;padding:22px 28px;box-shadow:0 8px 30px var(--shadow);text-align:center;min-width:220px;max-width:300px;animation:popIn .4s ease;}
-.df-card.out{animation:flashOut .3s ease forwards;}
-@keyframes flashOut{to{opacity:0;transform:scale(.96)}}
-.df-fire{font-size:22px;font-weight:900;color:var(--green-dark);}
-.df-fire-sub{font-size:11px;color:var(--text-soft);margin-top:3px;}
-.df-item{margin:14px 0 10px;font-size:13px;font-weight:700;}
-.df-item .em{font-size:32px;display:block;margin-bottom:4px;}
-.df-book{font-size:11px;color:var(--text-soft);}
-.df-bar{height:5px;background:var(--sky);border-radius:3px;margin-top:6px;overflow:hidden;}
-.df-bar i{display:block;height:100%;background:var(--purple);border-radius:3px;}
+.rw-attend{margin-bottom:8px;}
+.rw-fire{font-size:22px;font-weight:900;color:var(--green-dark);}
+.rw-fire-sub{font-size:11px;color:var(--text-soft);margin-top:2px;}
+.rw-book{font-size:12px;color:var(--text-soft);margin:10px 0 4px;text-align:center;}
+.rw-bar{height:9px;background:var(--sky);border-radius:5px;margin-top:8px;overflow:hidden;}
+.rw-bar i{display:block;height:100%;background:var(--purple);border-radius:5px;transition:width .9s cubic-bezier(.34,1.2,.64,1);}
 @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
 @keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--purple);margin:0 2px;animation:dot-blink 1.2s infinite;}
@@ -966,13 +960,10 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;}
   </div>
 </div>
 
-<!-- 完成短畫面（PR ②）：領裝備瞬間 2.3 秒出席宣告，點任一處跳過，之後才開 reward-overlay -->
-<div class="done-flash" id="done-flash" onclick="skipDoneFlash()"><div class="df-card" id="df-card"></div></div>
-
 <!-- Reward modal -->
 <div class="overlay center" id="reward-overlay">
   <div class="modal">
-    <div style="font-size:26px;margin-bottom:10px;">🎉</div>
+    <div class="rw-attend" id="rw-attend"><div class="rw-fire">🔥 今天出席了</div><div class="rw-fire-sub" id="rw-fire-sub"></div></div>
     <div class="sheet-title" id="reward-title">裝備獲得！</div>
     <div class="reward-av" id="reward-av">
       <span class="r-hat" id="r-hat"></span>
@@ -980,6 +971,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;}
       <span class="r-item" id="r-item"></span>
     </div>
     <div id="item-reveal"></div>
+    <div class="rw-book" id="rw-book" style="display:none;"></div>
     <div class="share-box"><div id="share-text"></div></div>
     <div class="commit-box" id="commit-box" style="display:none;"></div>
     <button class="green-btn" onclick="copyShare()">📋 複製分享給小組</button>
@@ -1192,6 +1184,18 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;}
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.08.29 · 焦點模式＋完成短畫面＋出席燈</div>
+      <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>焦點模式：按「開始靈修」後畫面只留經文→導讀→情境→默想，頂端「← 返回」回主畫面</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>完成靈修的一瞬間：🔥出席燈亮起＋今日裝備＋「📖 這卷書 收集 n/N」，點一下可跳過</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>難的章節導讀多一段「這章讀者常卡在哪、怎麼讀過去」；導讀底部「先認識這卷書」可看書卷背景</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>書卷背景全開：使徒行傳起 23 卷＋創世記的作者／時間／主題／結構／讀法提示＋人物冊</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>日曆預設收起，主畫面留一行「補讀或看其他日期」，點開展開</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>右上角 🔥 改為「當日出席燈」：今天完成任一章就亮、沒完成是暗的；數字仍是累積靈修天數</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>領完裝備回主畫面會即時更新日曆與進度</span></div>
     </div>
 
     <div class="log-entry">
@@ -2686,27 +2690,18 @@ function renderAttendance() {
   pill.classList.toggle('lit', lit);
   pill.title = lit ? '今天完成靈修了・累積靈修天數' : '累積靈修天數';
 }
-// 完成短畫面：出席燈 → 當日裝備 → 「📖 書卷 收集 n/N」；popIn .4s＋停 1.6s＋退場 .3s，點擊可跳過
-let _dfTimer = null, _dfDone = null;
-function showDoneFlash(item, bonus, next) {
+// 出席燈＋書卷收集併入領獎畫面（James 2026-08-29：兩個動畫合一，不再有短畫面）。進度條開啟後從上一格滑到新格。
+function renderRewardAttendance() {
+  document.getElementById('rw-fire-sub').textContent = `累積靈修 ${devotionDays()} 天`;
   const book = BOOKS.find(b => b.entries.some(e => String(e) === String(selectedChapter)));
   const p = book ? getBookProgress(book) : null;
-  const card = document.getElementById('df-card');
-  const shown = bonus || item;
-  card.className = 'df-card';
-  card.innerHTML = `<div class="df-fire">🔥 今天出席了</div><div class="df-fire-sub">累積靈修 ${devotionDays()} 天</div>
-    <div class="df-item"><span class="em">${shown.emoji}</span>${shown.name}</div>
-    ${p ? `<div class="df-book">📖 ${book.name} 收集 ${p.done}/${p.total}<div class="df-bar"><i style="width:${Math.round(p.done / p.total * 100)}%"></i></div></div>` : ''}`;
+  const el = document.getElementById('rw-book');
+  if (!p) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `📖 ${book.name} 收集 ${p.done}/${p.total}<div class="rw-bar"><i id="rw-bar-fill" style="width:${Math.round(Math.max(0, p.done - 1) / p.total * 100)}%"></i></div>`;
+  setTimeout(() => { const f = document.getElementById('rw-bar-fill'); if (f) f.style.width = `${Math.round(p.done / p.total * 100)}%`; }, 900);
   renderAttendance();
-  document.getElementById('done-flash').classList.add('show');
-  _dfDone = () => {
-    _dfDone = null; clearTimeout(_dfTimer);
-    card.classList.add('out');
-    setTimeout(() => { document.getElementById('done-flash').classList.remove('show'); if (next) next(); }, 300);
-  };
-  _dfTimer = setTimeout(() => { if (_dfDone) _dfDone(); }, 2000);
 }
-function skipDoneFlash() { if (_dfDone) _dfDone(); }
 
 function renderAvatar() {
   document.getElementById('av-hat').textContent  = state.hat;
@@ -3482,11 +3477,9 @@ async function finalizeCompletion() {
     }
     pendingProfileNudge = true; // E1：玩家關掉領獎 modal 後觸發 nudge
   };
-  showDoneFlash(newItem, bonusItem, () => {   // PR ②：短畫面先、領獎細節後（toast／nudge／成就 都以 reward 開啟為基準，跳過短畫面也對得上）
-    showReward(newItem, bonusItem, hasBonus);
-    afterReward();
-    setTimeout(() => checkAchievements(), 1500);
-  });
+  showReward(newItem, bonusItem, hasBonus);   // 出席燈＋書卷收集在 showReward 內一併呈現
+  afterReward();
+  setTimeout(() => checkAchievements(), 1500);
   // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
   if (!state.rewardClaimed) state.rewardClaimed = {};
   state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
@@ -3577,6 +3570,7 @@ function showReward(item, bonus, hasBonus) {
     `📖 ${chapterFull(selectedChapter)} 完成<br>今日裝備：${item.emoji} ${item.name}${bonus?`<br>默想裝備：${bonus.emoji} ${bonus.name}`:''}`;   // 2026-08-27：去天數行，只留章節＋當日裝備
 
   renderCommitBox();   // 自我約定（可關閉；只存 localStorage）
+  renderRewardAttendance();
   launchConfetti();
   setTimeout(() => openOverlay('reward-overlay'), 300);
 }
