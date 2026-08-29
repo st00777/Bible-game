@@ -1965,9 +1965,19 @@ function skipProfileNudge() {
 
 // ── 儲存單章完整記錄 + 更新統計 ──────────────────────────────
 async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, reflectionText) {
-  if (!currentUser) return;
-  const key = chapterKey(ch);
   const h = new Date().getHours();
+  if (!currentUser) {
+    // issue #32：訪客只累計本機統計供成就判定（欄位與雲端 stats/data 同名）
+    const f = { totalDays: 1 };
+    if (hasReflection) f.reflectionCount = 1;
+    if (hasRead)       f.readCount       = 1;
+    if (h >= 5 && h < 9)     f.morningCount = 1;
+    if (h >= 22 || h < 5)    f.nightCount   = 1;
+    if (isMakeupChapter(ch)) f.makeupCount  = 1;
+    bumpLocalStats(f);
+    return;
+  }
+  const key = chapterKey(ch);
   const inc = firebase.firestore.FieldValue.increment;
   try {
     // 每章完整記錄
@@ -2041,8 +2051,18 @@ function completedCount() { return Object.keys(state.completed || {}).length; }
 
 // Stats cache (filled from Firestore for logged-in users)
 let cachedStats = {};
+// issue #32：訪客沒有 Firestore stats 路徑 → 讀經／默想／清晨／補讀類成就永遠解不開。
+// 訪客改用 localStorage 累計同一組欄位（只在本機、不進雲端）；登入後以 Firestore 為準。
+const LOCAL_STATS_KEY = 'local_stats';
+function loadLocalStats() { try { return JSON.parse(localStorage.getItem(LOCAL_STATS_KEY) || '{}'); } catch(e) { return {}; } }
+function bumpLocalStats(fields) {
+  const st = loadLocalStats();
+  Object.keys(fields).forEach(k => { st[k] = (st[k] || 0) + fields[k]; });
+  localStorage.setItem(LOCAL_STATS_KEY, JSON.stringify(st));
+  cachedStats = st;
+}
 async function loadStats() {
-  if (!currentUser) return;
+  if (!currentUser) { cachedStats = loadLocalStats(); return; }
   try {
     const doc = await db.collection('users').doc(currentUser.uid).collection('stats').doc('data').get();
     if (doc.exists) cachedStats = doc.data();
@@ -2130,7 +2150,7 @@ let achievementQueue = [];
 let showingAchievement = false;
 
 async function checkAchievements() {
-  if (currentUser) await loadStats();
+  await loadStats();   // 訪客走 localStorage、登入走 Firestore（issue #32）
   const newlyUnlocked = [];
   for (const a of ACHIEVEMENTS) {
     if (unlockedAchievements[a.key]) continue;
@@ -2708,13 +2728,18 @@ function exitFocusMode(opts) {
   if (!document.body.classList.contains('focus-mode')) return;
   const noScroll = !!(opts && opts.noScroll);   // 合併日：closeReward 自己會捲到 day-info-bar，避免兩段捲動疊加
   document.body.classList.remove('focus-mode');
-  // 回主畫面時整頁刷新（順便治測玩 ⚠️：領裝備後主畫面／日曆不即時更新）
+  refreshHome();
+  if (!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// 主畫面整頁刷新（avatar／日曆／今日卡／日曆入口／出席燈）。
+// issue #31：今日章在 initApp 就自動載入首頁下方，玩家不按「開始靈修」也能做完 → 不在焦點模式，
+// 刷新不能只綁在 exitFocusMode 裡，closeReward 要無條件呼叫這支。
+function refreshHome() {
   renderAvatar();
   renderCalendar();
   if (calSelectedDate) updateDayInfoBar(calSelectedDate, parseInt(calSelectedDate.split('-')[2], 10));
   renderCalEntry();
   renderAttendance();
-  if (!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 // 🔥 出席燈：今天完成任一章才亮；只管亮暗、不帶催促文案（ADR 0001 出席驅動）
 function renderAttendance() {
@@ -3637,7 +3662,11 @@ function showReward(item, bonus, hasBonus, newTitles) {
 function closeReward() {
   closeOverlay('reward-overlay');
   const _sd = findScheduleDate(selectedChapter);
-  exitFocusMode({ noScroll: !!(_sd && getScheduleChapters(_sd).length >= 2) });   // PR ②：領完裝備回主畫面並刷新
+  if (document.body.classList.contains('focus-mode')) {
+    exitFocusMode({ noScroll: !!(_sd && getScheduleChapters(_sd).length >= 2) });   // PR ②：領完裝備回主畫面並刷新
+  } else {
+    refreshHome();   // issue #31：非焦點模式（首頁自動載入的今日章直接做完）也要刷新今日卡／日曆
+  }
   // E1：領獎收尾後觸發輕量分眾提示（throttled，內部會自動跳過不該問的場景）
   if (pendingProfileNudge) {
     pendingProfileNudge = false;
