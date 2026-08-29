@@ -2267,7 +2267,7 @@ function renderBookDetail(bookKey) {
       : `<div class="bd-cover-emoji">${esc(cover)}</div>`;
   }
   //    2026-08-29 加三個「幫讀者的欄位」：summary（這卷在講什麼）／structure（怎麼分段，陣列）／tips（會卡的地方，陣列）。
-  //    作者／時間／地點若經文沒說就留空（不填「不詳」佔位），同一條「無內容即無區塊」原則。
+  //    作者／時間／地點若經文沒說，寫明「經文沒有明確記載」（James 2026-08-29：留空不好，沒定義就說沒定義）。
   const introRows = intro
     ? [['這卷在講什麼', intro.summary], ['怎麼分段', intro.structure], ['讀的時候會卡的地方', intro.tips],
        ['作者', intro.author], ['時間', intro.time], ['地點', intro.place], ['主題', intro.theme], ['給誰', intro.audience]]
