@@ -583,7 +583,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .book-spine.locked{background:linear-gradient(135deg,#D7CCC8,#BCAAA4);border:1px solid #A1887F;color:#8D6E63;}
 .book-spine.locked .book-spine-emoji{filter:grayscale(1);opacity:.5;}
 .book-spine.lit{box-shadow:0 0 0 2px rgba(255,213,79,.55),0 0 14px rgba(255,179,0,.55);}
-.book-badge{position:absolute;top:-8px;right:-6px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));animation:popIn .5s ease;}
+.spine-badge{position:absolute;top:-8px;left:-6px;font-size:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));animation:popIn .5s ease;}
 .book-spine-emoji{font-size:30px;margin-bottom:4px;}
 .book-spine-name{font-size:13px;font-weight:900;line-height:1.2;text-align:center;writing-mode:horizontal-tb;}
 .book-spine-pct{font-size:11px;font-weight:700;margin-top:3px;opacity:.8;}
@@ -2241,7 +2241,7 @@ function renderLibraryPage() {
       // 其餘維持 A1 之前的純展示書背（無 onclick），Phase 2 逐卷加進清單即可。
       const openable = isBookDetailEnabled(book.key);
       html += `<div class="book-spine ${cls}${openable ? ' openable' : ''}"${openable ? ` onclick="openBookDetail('${book.key}')"` : ''}>
-        ${prog.complete ? '<div class="book-badge">🏅</div>' : ''}
+        ${prog.complete ? '<div class="spine-badge">🏅</div>' : ''}
         <div class="book-spine-emoji">${book.emoji}</div>
         <div class="book-spine-name">${book.name}</div>
         <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
