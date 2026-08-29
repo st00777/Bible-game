@@ -1,6 +1,6 @@
 // scripts/funnel.js
 // 靈修主流程漏斗（B1 事件流）：按週看 選章 → 看題 → 確認選項 → 送默想 → 完成 各段掉多少人，
-// 加上：掉最多的章節、閱讀勳章來源（bible_com vs already，8/23 已讀按鈕改版後口徑追蹤）、終點儀式曝光、各段停留中位數。
+// 加上：掉最多的章節、閱讀來源（bible_com vs already）、閱讀率兩條線（外連／自述已讀，8/29 起）、devotionHabit 交叉、終點儀式曝光、各段停留中位數、events vs chapters 口徑守門。
 // 用法：npm run funnel [週數，預設 6]
 // 資料源：users/{uid}/events（5/24 起，訪客不記）。重用 _shared.js 的 Firebase CLI token。
 const { PROJECT, getAccessToken } = require('./_shared.js');
@@ -97,6 +97,41 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   }
   console.log('※ 閱讀率若下滑但 already 佔比上升，代表指標語意變了（領勳章 ≠ 有讀），不是玩家少讀。');
 
+  // ── 4b. 閱讀率拆兩條線（2026-08-29 起）：分母＝該週完成靈修的人；外連＝有 bible_com 的人、自述＝有 already 的人 ──
+  // 兩條線各自可比，不再混成一個「閱讀勳章率」；already 上升不代表少讀，只是自述取代外連。
+  const doneBy = {}, srcBy = {};
+  for (const wk of weeks) {
+    doneBy[wk] = new Set(inWin.filter(e => e.wk === wk && e.type === 'complete_devotional').map(e => e.uid));
+    srcBy[wk] = { bible_com: new Set(), already: new Set() };
+    inWin.filter(e => e.wk === wk && e.type === 'read_chapter').forEach(e => {
+      const k = (!e.meta.source || e.meta.source === 'bible_com') ? 'bible_com' : e.meta.source === 'already' ? 'already' : null;
+      if (k && doneBy[wk].has(e.uid)) srcBy[wk][k].add(e.uid);
+    });
+  }
+  console.log(`\n## 閱讀率兩條線（分母＝該週完成靈修人數）\n\n| 週別 | 完成人 | 外連 bible_com | 自述已讀 already | 任一 |\n|---|---|---|---|---|`);
+  for (const wk of weeks) {
+    const d = doneBy[wk].size, b = srcBy[wk].bible_com.size, a = srcBy[wk].already.size, u = new Set([...srcBy[wk].bible_com, ...srcBy[wk].already]).size;
+    console.log(`| ${weekLabel(wk)} | ${d} | ${b}（${pct(b, d)}） | ${a}（${pct(a, d)}） | ${u}（${pct(u, d)}） |`);
+  }
+
+  // ── 4c. devotionHabit 交叉（profile/data，E1 分眾；只拉窗口內有完成的人）──
+  const HABIT = { stable: '穩定每天', intermittent: '斷續', beginner: '新手摸索', starting: '想開始' };
+  const doneUids = [...new Set(weeks.flatMap(wk => [...doneBy[wk]]))];
+  const habit = {};
+  for (let i = 0; i < doneUids.length; i += BATCH) {
+    await Promise.all(doneUids.slice(i, i + BATCH).map(async uid => {
+      const r = await fetch(`${FB}/users/${uid}/profile/data`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({}));
+      habit[uid] = r.fields ? (parse(r).devotionHabit || '') : '';
+    }));
+  }
+  console.log(`\n## 靈修習慣 × 閱讀來源（窗口 ${WEEKS} 週合計，人×週）\n\n| 自述習慣 | 人 | 完成人×週 | 外連 | 自述已讀 |\n|---|---|---|---|---|`);
+  for (const h of [...Object.keys(HABIT), '']) {
+    const us = doneUids.filter(u => (habit[u] || '') === h); if (!us.length) continue;
+    let pw = 0, bw = 0, aw = 0;
+    for (const wk of weeks) us.forEach(u => { if (doneBy[wk].has(u)) { pw++; if (srcBy[wk].bible_com.has(u)) bw++; if (srcBy[wk].already.has(u)) aw++; } });
+    console.log(`| ${HABIT[h] || '未填'} | ${us.length} | ${pw} | ${bw}（${pct(bw, pw)}） | ${aw}（${pct(aw, pw)}） |`);
+  }
+
   // ── 5. 各段停留（elapsedSec 自 chapter_select 起算，僅新版事件有） ──
   const el = {}; STAGES.slice(1).forEach(s => el[s] = inWin.filter(e => e.type === s && e.meta.elapsedSec != null).map(e => e.meta.elapsedSec));
   const has = Object.values(el).some(a => a.length);
@@ -113,4 +148,22 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   const SEC = ['read_chapter', 'share', 'diary_open', 'equipment_change', 'submit_feedback', 'achievement_review'];
   console.log(`\n## 次要事件週計數\n\n| 週別 | ${SEC.join(' | ')} |\n|---|${SEC.map(() => '---').join('|')}|`);
   for (const wk of weeks) console.log(`| ${weekLabel(wk)} | ${SEC.map(s => inWin.filter(e => e.wk === wk && e.type === s).length).join(' | ')} |`);
+
+  // ── 8. 口徑守門：最近一週 events 的「完成」名單 vs chapters 集合（npm run core 的口徑）──
+  // 2026-08-29 data-analyst 發現觸發儀式的人不在核心句名單裡，兩邊口徑要對得上才能一起讀。
+  const lastWk = weeks[weeks.length - 1];
+  const evSet = doneBy[lastWk] || new Set();
+  const chSet = new Set();
+  for (let i = 0; i < uids.length; i += BATCH) {
+    await Promise.all(uids.slice(i, i + BATCH).map(async uid => {
+      const chs = await fetchCol(token, `users/${uid}/chapters`).catch(() => []);
+      if (chs.some(c => { const x = parse(c); return x.date && weekKey(x.date) === lastWk; })) chSet.add(uid);
+    }));
+  }
+  const onlyEv = [...evSet].filter(u => !chSet.has(u)), onlyCh = [...chSet].filter(u => !evSet.has(u));
+  console.log(`
+## 口徑守門（${weekLabel(lastWk)}）：events 完成 ${evSet.size} 人 vs chapters 完成 ${chSet.size} 人
+`);
+  console.log(`只在 events：${onlyEv.length}${onlyEv.length ? '（' + onlyEv.map(u => u.slice(0, 8)).join(', ') + '）' : ''}；只在 chapters：${onlyCh.length}${onlyCh.length ? '（' + onlyCh.map(u => u.slice(0, 8)).join(', ') + '）' : ''}`);
+  if (onlyEv.length || onlyCh.length) console.log('※ 不一致原因候選：chapters.date 是玩家裝置日期、events.ts 是伺服器 UTC 轉台北；補讀舊章節 chapters.date 記的是「章節日」而非完成日；訪客期完成後登入。');
 })().catch(e => { console.error(e); process.exit(1); });
