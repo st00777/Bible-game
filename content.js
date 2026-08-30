@@ -1,6 +1,6 @@
 // ══ 靈修冒險 content.js ══════════════════════════════════
 // 版本號：每次更新內容或機制時修改
-const GAME_VERSION = '2026.08.30';
+const GAME_VERSION = '2026.08.31';
 
 // ── Feature flags ──────────────────────────────────────────
 // 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
@@ -21,7 +21,8 @@ const FEATURE_FEEDBACK_V2 = true;
 // 2026-08-28 PR ①（文案批＋自我約定＋AI 看裝備）＋創18-24：改為「儀式先、公告後」排序
 //   （closeNtFinale 後才彈 showVersionNotice），不再連環彈，故設 false 彈公告。
 // 2026-08-29 PR ②（焦點模式＋完成短畫面＋出席燈）＋難章幫助＋新約 24 卷背景：玩家可見，設 false 彈公告。
-const SUPPRESS_VERSION_POPUP = false;
+// 2026-08-31 安全修正（LINE 登入 state 必驗、曠野呼聲規則綁 uid）：純後台修、玩家無感，設 true 不彈公告。
+const SUPPRESS_VERSION_POPUP = true;
 
 // ── AI 回應 fallback 文案（單一正本）────────────────────────
 // 玩家端（fetch 失敗時備用）＋ scripts/analyze-feedback.js（辨識舊資料 fallback）都讀這裡。
