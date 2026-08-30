@@ -100,10 +100,16 @@ test('todayChapterFor：今天有就今天；沒有退回最近過去日；再�
   assert.equal(core.todayChapterFor('2025-12-01', {}), 1);                      // 沒有任何過去日 → CHAPTERS[0]
 });
 
-test('levelTitle 封頂', () => {
-  assert.equal(core.levelTitle(1), '初出發的旅人');
-  assert.equal(core.levelTitle(6), '使徒的足跡');
-  assert.equal(core.levelTitle(99), '使徒的足跡');
+test('稱號梯：titlesForBooks 累計、titlesUnlockedBetween 只回區間、nextTitle 到頂 null', () => {
+  assert.deepEqual(core.titlesForBooks(0), []);
+  assert.deepEqual(core.titlesForBooks(3).map(t => t.name), ['啟程者', '客旅']);
+  assert.ok(core.titlesForBooks(1).every(t => t.slot === 'title' && t.chapter === 'title'));
+  assert.deepEqual(core.titlesUnlockedBetween(2, 6).map(t => t.name), ['客旅', '同行者']);
+  assert.deepEqual(core.titlesUnlockedBetween(3, 3), []);
+  assert.equal(core.nextTitle(23).name, '守望者');
+  assert.equal(core.nextTitle(66), null);
+  assert.equal(core.TITLE_LADDER.length, 9);
+  core.TITLE_LADDER.forEach(t => assert.match(t.desc, /^「.+」$/));
 });
 
 test('resolveItem 依性別、無 default 原樣回', () => {
@@ -149,6 +155,10 @@ test('equippedVerses：只回身上四件的 desc、去重、不含名稱', () =
   ];
   const out = core.equippedVerses({ hat: '', body: '🧥', item: '⚔️', bg: '🌊', items });
   assert.deepEqual(out, ['「經文A」', '「經文B」']);
+  // 稱號以名稱比對：同 emoji 不同名不算穿上
+  const titled = [...items, { emoji: '📖', name: '門徒', desc: '「經文T」', slot: 'title' }];
+  assert.deepEqual(core.equippedVerses({ hat: '', body: '🧥', item: '', bg: '', title: '門徒', items: titled }), ['「經文A」', '「經文T」']);
+  assert.deepEqual(core.equippedVerses({ hat: '', body: '🧥', item: '', bg: '', title: '', items: titled }), ['「經文A」']);
   assert.deepEqual(core.equippedVerses({ hat: '', body: '🧑', item: '', bg: '', items: [] }), []);
   assert.deepEqual(core.equippedVerses({}), []);
 });
