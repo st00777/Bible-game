@@ -1,6 +1,6 @@
 // ══ 靈修冒險 content.js ══════════════════════════════════
 // 版本號：每次更新內容或機制時修改
-const GAME_VERSION = '2026.08.31';
+const GAME_VERSION = '2026.08.30';
 
 // ── Feature flags ──────────────────────────────────────────
 // 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
