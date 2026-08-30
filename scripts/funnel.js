@@ -144,6 +144,29 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   if (!fv.length) console.log('尚無 finale_view 事件（埋點上線前上線的儀式看不到曝光）。');
   else console.log(`曝光 ${fv.length} 人次（${new Set(fv.map(e => e.uid)).size} 人），有個人段 ${fv.filter(e => e.meta.hasPersonal).length}；關閉 ${fc.length}，停留中位 ${median(fc.map(e => e.meta.dwellSec).filter(x => x != null)) ?? '—'} 秒。`);
 
+  // ── 6b. 新功能觸及（2026-08-30 埋點；PR ①②③ 與說明頁 #53）──
+  console.log(`\n## 新功能觸及（2026-08-30 起才有埋點）\n`);
+  const cnt = t => { const es = inWin.filter(e => e.type === t); return `${es.length} 次／${new Set(es.map(e => e.uid)).size} 人`; };
+  const dwell = t => { const a = inWin.filter(e => e.type === t).map(e => e.meta.dwellSec).filter(x => x != null); return a.length ? `中位停留 ${median(a)} 秒` : '—'; };
+  const fx = inWin.filter(e => e.type === 'focus_exit');
+  console.log(`- 焦點模式：進入 ${cnt('focus_enter')}；退出 ${fx.length} 次，其中在焦點內完成 ${fx.filter(e => e.meta.completed).length}，${dwell('focus_exit')}`);
+  console.log(`- 完成短畫面：${cnt('reward_view')}，${dwell('reward_close')}；稱號解鎖 ${cnt('title_unlocked')}`);
+  const ps = inWin.filter(e => e.type === 'page_switch' && e.meta.page === 'books');
+  console.log(`- 📚 書卷與成就分頁：切入 ${ps.length} 次／${new Set(ps.map(e => e.uid)).size} 人；書卷詳情頁開啟 ${cnt('book_detail_open')}`);
+  const to = inWin.filter(e => e.type === 'tutorial_open'), tc = inWin.filter(e => e.type === 'tutorial_close');
+  const src = {}; to.forEach(e => { src[e.meta.source] = (src[e.meta.source] || 0) + 1; });
+  console.log(`- 說明頁：開啟 ${to.length} 次／${new Set(to.map(e => e.uid)).size} 人（來源 ${JSON.stringify(src)}）；關閉 ${tc.length}，勾不再顯示 ${tc.filter(e => e.meta.noRepeat).length}，${dwell('tutorial_close')}`);
+  const ai = inWin.filter(e => e.type === 'ai_response_received' && e.meta.withEquipment != null);
+  console.log(`- AI 看裝備：有裝備上下文 ${ai.filter(e => e.meta.withEquipment).length}／${ai.length} 次`);
+  const ge = inWin.filter(e => e.type === 'guide_expand');
+  console.log(`- 導讀展開：${ge.length} 次／${new Set(ge.map(e => e.uid)).size} 人（其中有難處區塊 ${ge.filter(e => e.meta.hasHard).length}）`);
+  const ms = inWin.filter(e => e.type === 'chapter_select' && e.meta.merged);
+  console.log(`- 合併日選章：${ms.length} 次（先讀第 1 章 ${ms.filter(e => e.meta.order === 1).length}、第 2 章 ${ms.filter(e => e.meta.order === 2).length}）`);
+  const lv = inWin.filter(e => e.type === 'app_leave' && e.meta.lastStep); const ls = {}; lv.forEach(e => { ls[e.meta.lastStep] = (ls[e.meta.lastStep] || 0) + 1; });
+  console.log(`- 中途離開點（app_leave.lastStep）：${JSON.stringify(ls)}`);
+  const lg = inWin.filter(e => e.type === 'login' && e.meta.trigger); const lt = {}; lg.forEach(e => { lt[e.meta.trigger] = (lt[e.meta.trigger] || 0) + 1; });
+  console.log(`- 登入入口（login.trigger）：${JSON.stringify(lt)}`);
+
   // ── 7. 其他次要事件週計數 ──
   const SEC = ['read_chapter', 'share', 'diary_open', 'equipment_change', 'submit_feedback', 'achievement_review'];
   console.log(`\n## 次要事件週計數\n\n| 週別 | ${SEC.join(' | ')} |\n|---|${SEC.map(() => '---').join('|')}|`);
