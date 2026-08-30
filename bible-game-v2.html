@@ -380,6 +380,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .tut-icon{width:40px;height:40px;background:white;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;box-shadow:0 2px 8px var(--shadow);}
 .tut-step-title{font-size:14px;font-weight:700;margin-bottom:3px;}
 .tut-step-desc{font-size:12px;color:var(--text-soft);line-height:1.6;}
+.tut-list{margin:0 0 6px;padding-left:18px;font-size:12px;color:var(--text-soft);line-height:1.65;}
+.tut-list li{margin-bottom:6px;}
+.tut-list b{color:var(--text);font-weight:700;}
 .tut-tip{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:11px 14px;font-size:13px;line-height:1.7;margin-bottom:18px;display:flex;gap:9px;align-items:flex-start;}
 .repeat-row{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:14px;cursor:pointer;}
 .repeat-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--green-dark);cursor:pointer;}
@@ -740,15 +743,21 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
     </div>
     <div class="sheet-sub">每天只需 3–5 分鐘，讓你的分身跟著你成長</div>
     <div class="tut-step"><div class="tut-icon">📅</div><div><div class="tut-step-title">① 選今天要讀的章節</div><div class="tut-step-desc">從上方日曆選擇章節，可以補讀過去未完成的章節。</div></div></div>
-    <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">② 讀今日經文</div><div class="tut-step-desc">點「閱讀完整章節」可前往聖經網站閱讀全文。</div></div></div>
+    <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">② 讀今日經文</div><div class="tut-step-desc">點「閱讀完整章節」可前往聖經網站閱讀全文，讀完回來領閱讀勳章 +15 XP。導讀有時會多一段「這章比較難的地方」，先看一眼再讀。</div></div></div>
     <div class="tut-step"><div class="tut-icon">🎭</div><div><div class="tut-step-title">③ 回應今日情境</div><div class="tut-step-desc">沒有對錯，選最有共鳴的答案。👆 點第一下預覽，再點一次確認，避免誤觸。</div></div></div>
-    <div class="tut-step"><div class="tut-icon">💭</div><div><div class="tut-step-title">④ 選做默想（可跳過）</div><div class="tut-step-desc">寫幾句話，AI 給個人化回應，還能解鎖默想裝備！</div></div></div>
-    <div class="tut-step"><div class="tut-icon">🎒</div><div><div class="tut-step-title">⑤ 領取裝備，分身成長</div><div class="tut-step-desc">完成後獲得與章節相關的裝備，可截圖分享給小組！</div></div></div>
+    <div class="tut-step"><div class="tut-icon">💭</div><div><div class="tut-step-title">④ 選做默想（可跳過）</div><div class="tut-step-desc">寫幾句話，AI 給個人化回應（會參考你身上裝備的經文），還能解鎖默想裝備！</div></div></div>
+    <div class="tut-step"><div class="tut-icon">🎒</div><div><div class="tut-step-title">⑤ 領取裝備，分身成長</div><div class="tut-step-desc">完成後獲得與章節相關的裝備，可直接「試穿」或截圖分享給小組！累計走完的書卷數到里程碑，還會解鎖第五個部位「稱號」。</div></div></div>
     <div class="tut-step"><div class="tut-icon">👗</div><div><div class="tut-step-title">⑥ 衣櫃換裝（3天後解鎖）</div><div class="tut-step-desc">累積靈修 3 天後解鎖衣櫃，自由搭配收集到的裝備（中斷不歸零）。</div></div></div>
     <div class="sec-lbl" style="margin-top:18px;">✨ 更多功能</div>
-    <div class="tut-step"><div class="tut-icon">🏆</div><div><div class="tut-step-title">成就系統</div><div class="tut-step-desc">完成靈修、累積天數、填寫默想都會解鎖徽章。點擊已解鎖的徽章可以重溫當時的時刻。</div></div></div>
+    <div class="tut-step"><div class="tut-icon">📚</div><div><div class="tut-step-title">書卷與成就</div><div class="tut-step-desc">主畫面切到「📚 書卷與成就」分頁：書架看每卷進度（點書背可翻開）、每卷徽章與已解鎖成就都在這裡。完成靈修、累積天數、填寫默想都會解鎖成就。</div></div></div>
     <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">靈修日記</div><div class="tut-step-desc">每次填寫默想後自動記錄。在 ⋯ 選單開啟，可以回顧過去寫的默想與靈修回應，支援關鍵字搜尋。</div></div></div>
     <div class="tut-step"><div class="tut-icon">🏜️</div><div><div class="tut-step-title">曠野呼聲</div><div class="tut-step-desc">在 ⋯ 選單開啟，分享今天靈修的感受、遊戲建議或靈性感受，可以匿名或具名留言給開發團隊。</div></div></div>
+    <div class="sec-lbl" style="margin-top:14px;">🔍 小細節</div>
+    <ul class="tut-list">
+      <li><b>焦點模式</b>：選好章節後畫面會收合，只留今天要做的事；完成或按返回就回到主畫面。</li>
+      <li><b>🔥 出席燈</b>：今天完成任一章就亮；數字是累積靈修天數，中斷不歸零。完成時會看到今日裝備與「這卷書收集 n/N」。</li>
+      <li><b>自我約定</b>：完成後可以寫下「明天大概什麼時候」，只存在你的手機上，可隨時關閉。</li>
+    </ul>
     <div class="tut-tip"><span style="font-size:18px;flex-shrink:0;">💡</span><span>每個裝備都與你讀過的聖經章節有關——分身會慢慢記錄你走過的靈修旅程。</span></div>
     <label class="repeat-row"><input type="checkbox" id="tut-no-repeat"><span class="repeat-lbl">下次不再顯示</span></label>
     <button class="green-btn" onclick="closeTut()">明白了，開始靈修 ✨</button>
@@ -1196,6 +1205,12 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.08.31 · 遊戲說明頁更新</div>
+      <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>「❓ 遊戲說明」補上焦點模式、🔥出席燈、書卷與成就分頁、稱號、自我約定、難章提示與閱讀勳章；成就入口改指向「📚 書卷與成就」分頁</span></div>
     </div>
 
     <div class="log-entry">
