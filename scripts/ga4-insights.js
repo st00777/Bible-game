@@ -195,6 +195,61 @@ async function main() {
     console.log(`   ${c.name}  ${cells.join(' ')}`);
   });
   console.log('\n   ※ 對照 5/29 快照：MAU 203 / WAU 52 / DAU 16；早期 cohort（4/19-25 週）W4 留存約 50%');
+
+  // ④ 層別：正式站 vs 測試站、來源、裝置 ────────────────────────
+  // 2026-08-30 起：8/23 週 GA4 新客 75 人但 Firestore 註冊只 +6，查出 dev 預覽站與正式站共用同一個 measurement ID，
+  // 測玩流量全混進來。同日前端改為「只有 st00777.github.io 才送 GA4」，之前的資料只能靠這裡的 hostName 事後拆。
+  const PROD_HOST = 'st00777.github.io';
+  const prodOnly = { filter: { fieldName: 'hostName', stringFilter: { matchType: 'EXACT', value: PROD_HOST } } };
+  const seg = async (dims, range, extra = {}) => {
+    const r = await runReport(token, {
+      dimensions: dims.map((name) => ({ name })),
+      metrics: [{ name: 'activeUsers' }, { name: 'newUsers' }],
+      dateRanges: [{ startDate: range[0], endDate: range[1] }],
+      ...extra,
+    });
+    return (r.rows || []).map((row) => ({
+      k: row.dimensionValues.map((d) => d.value).join(' / '),
+      active: Number(row.metricValues[0].value),
+      newU: Number(row.metricValues[1].value),
+    })).sort((a, b) => b.active - a.active);
+  };
+  const pr = (rows, limit = 8) => {
+    if (!rows.length) { console.log('   （無資料）'); return; }
+    rows.slice(0, limit).forEach((x) => console.log(`   ${x.k.padEnd(44)}${String(x.active).padStart(6)}  ${String(x.newU).padStart(6)}`));
+    if (rows.length > limit) console.log(`   …另 ${rows.length - limit} 列略`);
+  };
+
+  console.log('\n④ 層別（近30天）                              活躍    新客');
+  console.log('   ── 站別（hostName）：只有 ' + PROD_HOST + ' 是玩家正式站，其餘全是測試流量 ──');
+  pr(await seg(['hostName'], ['30daysAgo', 'today']));
+
+  const [pMau, pWau, pDau] = await Promise.all([
+    ['30daysAgo', 'today'], ['7daysAgo', 'today'], ['yesterday', 'yesterday'],
+  ].map(([a, b]) => runReport(token, {
+    metrics: [{ name: 'activeUsers' }], dateRanges: [{ startDate: a, endDate: b }], dimensionFilter: prodOnly,
+  }).then((r) => Number(r.rows?.[0]?.metricValues?.[0]?.value || 0))));
+  console.log(`\n   ── 正式站限定活躍：MAU ${pMau} / WAU ${pWau} / DAU ${pDau}（① 全站：${mau} / ${wau} / ${dau}）──`);
+
+  console.log('\n   ── 正式站新客週序列（firstSessionDate 落在該週；跟 Firestore 註冊數對照）──');
+  const wkRows = await seg(['firstSessionDate'], ['42daysAgo', 'today'], { dimensionFilter: prodOnly });
+  const byWk = {};
+  for (const x of wkRows) {
+    if (!/^\d{8}$/.test(x.k)) continue;
+    const d = new Date(Date.UTC(+x.k.slice(0, 4), +x.k.slice(4, 6) - 1, +x.k.slice(6, 8)));
+    d.setUTCDate(d.getUTCDate() - d.getUTCDay());
+    const wk = d.toISOString().slice(0, 10);
+    byWk[wk] = (byWk[wk] || 0) + x.newU;
+  }
+  Object.keys(byWk).sort().forEach((wk) => console.log(`   週起 ${wk}${String(byWk[wk]).padStart(8)}`));
+
+  console.log('\n   ── 正式站來源（sessionSource / sessionMedium）──');
+  pr(await seg(['sessionSource', 'sessionMedium'], ['30daysAgo', 'today'], { dimensionFilter: prodOnly }));
+  console.log('\n   ── 正式站裝置（deviceCategory）：自動化測玩多為 desktop，玩家絕大多數 mobile ──');
+  pr(await seg(['deviceCategory'], ['30daysAgo', 'today'], { dimensionFilter: prodOnly }));
+  console.log('\n   ── 正式站瀏覽器（browser）：LINE 內建瀏覽器 cookie 不持久時，同一人每次開都可能算新客 ──');
+  pr(await seg(['browser'], ['30daysAgo', 'today'], { dimensionFilter: prodOnly }));
+  console.log('\n   ※ sessionSource 出現 already／bible_com 是 08-30 前 read_chapter.source 撞 GA4 保留字所致，08-30 起前端改送 event_source。');
 }
 
 main().catch((err) => {
