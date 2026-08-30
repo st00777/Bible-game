@@ -3309,7 +3309,7 @@ function selectChapter(ch) {
   // B1（2026-08-30）：合併日帶 merged／order（order＝今天該日已完成幾章＋1，看玩家先讀哪章）
   const _sdSel = findScheduleDate(ch); const _dayChs = _sdSel ? getScheduleChapters(_sdSel) : [];
   const _selP = { chapter: ch };
-  if (_dayChs.length >= 2) { _selP.merged = true; _selP.order = _dayChs.filter(c => (state.completed || []).includes(c)).length + 1; }
+  if (_dayChs.length >= 2) { _selP.merged = true; _selP.order = _dayChs.filter(c => (state.completed || {})[String(c)]).length + 1; }
   track('chapter_select', _selP);
 
   // Update badge
