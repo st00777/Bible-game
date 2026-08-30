@@ -11,3 +11,4 @@
 | 2026-08-28 | `question_view / choice_confirm / submit_reflection / complete_devotional` | 各加 `elapsedSec`（自 chapter_select 起算） | 停留時長自此週起才有 |
 | 2026-08-28 | `finale_view / finale_close / equipment_change` | 新事件 | 儀式 8/28 上線當天無曝光資料（埋點晚一步） |
 | 2026-08-29 | 閱讀率（`read_chapter`） | `npm run funnel` 改為兩條線：外連 bible_com／自述已讀 already，分母＝該週完成靈修人；加 devotionHabit 交叉、events vs chapters 口徑守門 | 舊「閱讀勳章率」不再單列；8/16 週起兩條線可比。8/29 守門：events 14＝chapters 14 |
+| 2026-08-30 | 新事件 `focus_enter/focus_exit`、`reward_view/reward_close`、`title_unlocked`、`page_switch`、`book_detail_open`、`tutorial_open/tutorial_close`、`guide_expand`；既有事件加參數：`ai_response_received.withEquipment`、`chapter_select.merged/order`、`login.trigger`、`app_leave.lastStep` | PR ①②③＋說明頁 #53 效果埋點（之前全無）；`npm run funnel` 加「新功能觸及」區塊 | 這些指標自 08-30 週起才有；8/28–8/30 三天新功能曝光永久缺 |

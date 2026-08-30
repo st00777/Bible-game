@@ -380,6 +380,9 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .tut-icon{width:40px;height:40px;background:white;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;box-shadow:0 2px 8px var(--shadow);}
 .tut-step-title{font-size:14px;font-weight:700;margin-bottom:3px;}
 .tut-step-desc{font-size:12px;color:var(--text-soft);line-height:1.6;}
+.tut-list{margin:0 0 6px;padding-left:18px;font-size:12px;color:var(--text-soft);line-height:1.65;}
+.tut-list li{margin-bottom:6px;}
+.tut-list b{color:var(--text);font-weight:700;}
 .tut-tip{background:linear-gradient(135deg,#FFF8E7,#FFF3D4);border:2px solid var(--sand-dark);border-radius:13px;padding:11px 14px;font-size:13px;line-height:1.7;margin-bottom:18px;display:flex;gap:9px;align-items:flex-start;}
 .repeat-row{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:14px;cursor:pointer;}
 .repeat-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--green-dark);cursor:pointer;}
@@ -740,15 +743,21 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
     </div>
     <div class="sheet-sub">每天只需 3–5 分鐘，讓你的分身跟著你成長</div>
     <div class="tut-step"><div class="tut-icon">📅</div><div><div class="tut-step-title">① 選今天要讀的章節</div><div class="tut-step-desc">從上方日曆選擇章節，可以補讀過去未完成的章節。</div></div></div>
-    <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">② 讀今日經文</div><div class="tut-step-desc">點「閱讀完整章節」可前往聖經網站閱讀全文。</div></div></div>
+    <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">② 讀今日經文</div><div class="tut-step-desc">點「閱讀完整章節」可前往聖經網站閱讀全文，讀完回來領閱讀勳章 +15 XP。導讀有時會多一段「這章比較難的地方」，先看一眼再讀。</div></div></div>
     <div class="tut-step"><div class="tut-icon">🎭</div><div><div class="tut-step-title">③ 回應今日情境</div><div class="tut-step-desc">沒有對錯，選最有共鳴的答案。👆 點第一下預覽，再點一次確認，避免誤觸。</div></div></div>
-    <div class="tut-step"><div class="tut-icon">💭</div><div><div class="tut-step-title">④ 選做默想（可跳過）</div><div class="tut-step-desc">寫幾句話，AI 給個人化回應，還能解鎖默想裝備！</div></div></div>
-    <div class="tut-step"><div class="tut-icon">🎒</div><div><div class="tut-step-title">⑤ 領取裝備，分身成長</div><div class="tut-step-desc">完成後獲得與章節相關的裝備，可截圖分享給小組！</div></div></div>
+    <div class="tut-step"><div class="tut-icon">💭</div><div><div class="tut-step-title">④ 選做默想（可跳過）</div><div class="tut-step-desc">寫幾句話，AI 給個人化回應（會參考你身上裝備的經文），還能解鎖默想裝備！</div></div></div>
+    <div class="tut-step"><div class="tut-icon">🎒</div><div><div class="tut-step-title">⑤ 領取裝備，分身成長</div><div class="tut-step-desc">完成後獲得與章節相關的裝備，可直接「試穿」或截圖分享給小組！累計走完的書卷數到里程碑，還會解鎖第五個部位「稱號」。</div></div></div>
     <div class="tut-step"><div class="tut-icon">👗</div><div><div class="tut-step-title">⑥ 衣櫃換裝（3天後解鎖）</div><div class="tut-step-desc">累積靈修 3 天後解鎖衣櫃，自由搭配收集到的裝備（中斷不歸零）。</div></div></div>
     <div class="sec-lbl" style="margin-top:18px;">✨ 更多功能</div>
-    <div class="tut-step"><div class="tut-icon">🏆</div><div><div class="tut-step-title">成就系統</div><div class="tut-step-desc">完成靈修、累積天數、填寫默想都會解鎖徽章。點擊已解鎖的徽章可以重溫當時的時刻。</div></div></div>
+    <div class="tut-step"><div class="tut-icon">📚</div><div><div class="tut-step-title">書卷與成就</div><div class="tut-step-desc">主畫面切到「📚 書卷與成就」分頁：書架看每卷進度（點書背可翻開）、每卷徽章與已解鎖成就都在這裡。完成靈修、累積天數、填寫默想都會解鎖成就。</div></div></div>
     <div class="tut-step"><div class="tut-icon">📖</div><div><div class="tut-step-title">靈修日記</div><div class="tut-step-desc">每次填寫默想後自動記錄。在 ⋯ 選單開啟，可以回顧過去寫的默想與靈修回應，支援關鍵字搜尋。</div></div></div>
     <div class="tut-step"><div class="tut-icon">🏜️</div><div><div class="tut-step-title">曠野呼聲</div><div class="tut-step-desc">在 ⋯ 選單開啟，分享今天靈修的感受、遊戲建議或靈性感受，可以匿名或具名留言給開發團隊。</div></div></div>
+    <div class="sec-lbl" style="margin-top:14px;">🔍 小細節</div>
+    <ul class="tut-list">
+      <li><b>焦點模式</b>：選好章節後畫面會收合，只留今天要做的事；完成或按返回就回到主畫面。</li>
+      <li><b>🔥 出席燈</b>：今天完成任一章就亮；數字是累積靈修天數，中斷不歸零。完成時會看到今日裝備與「這卷書收集 n/N」。</li>
+      <li><b>自我約定</b>：完成後可以寫下「明天大概什麼時候」，只存在你的手機上，可隨時關閉。</li>
+    </ul>
     <div class="tut-tip"><span style="font-size:18px;flex-shrink:0;">💡</span><span>每個裝備都與你讀過的聖經章節有關——分身會慢慢記錄你走過的靈修旅程。</span></div>
     <label class="repeat-row"><input type="checkbox" id="tut-no-repeat"><span class="repeat-lbl">下次不再顯示</span></label>
     <button class="green-btn" onclick="closeTut()">明白了，開始靈修 ✨</button>
@@ -1199,6 +1208,23 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">2026.08.31 · 遊戲說明頁更新</div>
+      <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>「❓ 遊戲說明」補上焦點模式、🔥出席燈、書卷與成就分頁、稱號、自我約定、難章提示與閱讀勳章；成就入口改指向「📚 書卷與成就」分頁</span></div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.08.30 · 書卷與成就分頁＋稱號＋創世記選項調整</div>
+      <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-fix">後台</span><span>補上焦點模式、完成畫面、書卷分頁、說明頁等新功能的使用統計埋點（玩家端無變化）</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>主畫面分頁「📖 今日靈修｜📚 書卷與成就」：書架、每卷徽章、已解鎖成就移到第二頁，原成就視窗退役</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>第五個裝備部位「稱號」：累計走完的書卷數到里程碑（9 級，終點 66 卷）就解鎖，在衣櫃換上</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>領獎畫面可直接「試穿」：衣櫃疊在領獎畫面上開，關掉回到領獎畫面，儲存後小人同步新裝扮</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>創世記 2／4／6／8／11 章情境題：四個選項涵蓋更多立場，「最近過得還好」「已經放下了」的人也有一格可選</span></div>
+      <div class="log-item"><span class="log-tag tag-fix">調整</span><span>訪客模式也能解鎖讀經／默想／時段／補讀類成就</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">2026.08.29 · 焦點模式＋完成短畫面＋出席燈</div>
       <div class="log-date">2026年8月</div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>焦點模式：按「開始靈修」後畫面只留經文→導讀→情境→默想，頂端「← 返回」回主畫面</span></div>
@@ -1518,12 +1544,23 @@ function writeEventToFirestore(name, params) {
     .set(doc)
     .catch(e => console.warn('Event write error:', name, e));
 }
+// B1（2026-08-30）：離開時停在哪一步（中途離開點）。home＝沒在章內；其餘依本章旗標推
+function _currentStep() {
+  try {
+    if (typeof selectedChapter === 'undefined' || selectedChapter == null) return 'home';
+    if (document.getElementById('reward-overlay')?.classList.contains('show')) return 'reward';
+    if (reflSubmitted) return 'reflection_done';
+    if (choiceConfirmed) return 'reflection';
+    if (sessionHasRead) return 'question';
+    return 'read';
+  } catch (e) { return 'unknown'; }
+}
 // visibilitychange：hidden 記時間；resume 時若 > 30 min 換新 sessionId
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _lastHiddenAt = Date.now();
     // B1: app_leave（頁面切到背景／鎖屏／切 tab 都算離開）
-    track('app_leave', { sessionId: _sessionId });
+    track('app_leave', { sessionId: _sessionId, lastStep: _currentStep() });
   } else if (document.visibilityState === 'visible' && _lastHiddenAt) {
     if (Date.now() - _lastHiddenAt > 30 * 60 * 1000) _sessionId = _newSessionId();
     _lastHiddenAt = null;
@@ -1649,7 +1686,7 @@ function handleAuthClick() {
     }
   } else {
     auth.signInWithPopup(googleProvider).then(() => {
-      track('login', { method: 'google' });
+      track('login', { method: 'google', trigger: 'header' });
     }).catch(e => {
       console.warn('Login error:', e);
       showToast('登入失敗，請再試一次');
@@ -1731,7 +1768,7 @@ async function handleLineCallback() {
     }
 
     showToast('✅ LINE 登入成功');
-    track('login', { method: 'line' });
+    track('login', { method: 'line', trigger: 'welcome' });
   } catch (e) {
     console.error('LINE login error:', e);
     showToast('LINE 登入失敗，請再試一次');
@@ -1965,9 +2002,19 @@ function skipProfileNudge() {
 
 // ── 儲存單章完整記錄 + 更新統計 ──────────────────────────────
 async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, reflectionText) {
-  if (!currentUser) return;
-  const key = chapterKey(ch);
   const h = new Date().getHours();
+  if (!currentUser) {
+    // issue #32：訪客只累計本機統計供成就判定（欄位與雲端 stats/data 同名）
+    const f = { totalDays: 1 };
+    if (hasReflection) f.reflectionCount = 1;
+    if (hasRead)       f.readCount       = 1;
+    if (h >= 5 && h < 9)     f.morningCount = 1;
+    if (h >= 22 || h < 5)    f.nightCount   = 1;
+    if (isMakeupChapter(ch)) f.makeupCount  = 1;
+    bumpLocalStats(f);
+    return;
+  }
+  const key = chapterKey(ch);
   const inc = firebase.firestore.FieldValue.increment;
   try {
     // 每章完整記錄
@@ -2041,8 +2088,18 @@ function completedCount() { return Object.keys(state.completed || {}).length; }
 
 // Stats cache (filled from Firestore for logged-in users)
 let cachedStats = {};
+// issue #32：訪客沒有 Firestore stats 路徑 → 讀經／默想／清晨／補讀類成就永遠解不開。
+// 訪客改用 localStorage 累計同一組欄位（只在本機、不進雲端）；登入後以 Firestore 為準。
+const LOCAL_STATS_KEY = 'local_stats';
+function loadLocalStats() { try { return JSON.parse(localStorage.getItem(LOCAL_STATS_KEY) || '{}'); } catch(e) { return {}; } }
+function bumpLocalStats(fields) {
+  const st = loadLocalStats();
+  Object.keys(fields).forEach(k => { st[k] = (st[k] || 0) + fields[k]; });
+  localStorage.setItem(LOCAL_STATS_KEY, JSON.stringify(st));
+  cachedStats = st;
+}
 async function loadStats() {
-  if (!currentUser) return;
+  if (!currentUser) { cachedStats = loadLocalStats(); return; }
   try {
     const doc = await db.collection('users').doc(currentUser.uid).collection('stats').doc('data').get();
     if (doc.exists) cachedStats = doc.data();
@@ -2130,7 +2187,7 @@ let achievementQueue = [];
 let showingAchievement = false;
 
 async function checkAchievements() {
-  if (currentUser) await loadStats();
+  await loadStats();   // 訪客走 localStorage、登入走 Firestore（issue #32）
   const newlyUnlocked = [];
   for (const a of ACHIEVEMENTS) {
     if (unlockedAchievements[a.key]) continue;
@@ -2289,6 +2346,7 @@ function isBookDetailEnabled(bookKey) {
 }
 function openBookDetail(bookKey) {
   if (!isBookDetailEnabled(bookKey)) return;
+  track('book_detail_open', { book: bookKey });
   renderBookDetail(bookKey);
   openOverlay('book-detail-overlay');
 }
@@ -2593,7 +2651,7 @@ function finishSetup() {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   initApp();
-  if (!localStorage.getItem('tut_done')) openOverlay('tut-overlay');
+  if (!localStorage.getItem('tut_done')) openTutorial('setup');
 }
 
 // ── Screen routing ────────────────────────────────────────
@@ -2625,7 +2683,7 @@ function chooseLineLogin() {
 function chooseGoogleLogin() {
   localStorage.setItem('login_choice_made', '1');
   auth.signInWithPopup(googleProvider).then(() => {
-    track('login', { method: 'google' });
+    track('login', { method: 'google', trigger: 'welcome' });
   }).catch(e => {
     console.warn('Google login error:', e);
     showToast('登入失敗，請再試一次');
@@ -2634,7 +2692,7 @@ function chooseGoogleLogin() {
 }
 function chooseGuestMode() {
   localStorage.setItem('login_choice_made', '1');
-  track('login', { method: 'guest' });
+  track('login', { method: 'guest', trigger: 'welcome' });
   showSetupScreen();
 }
 
@@ -2699,22 +2757,33 @@ function renderCalEntry() {
   sub.textContent = `${calToday.getMonth() + 1}/${calToday.getDate()} 今日：${todayCh ? chapterFull(todayCh) : '—'}`;
 }
 // 焦點模式：玩家按「開始靈修」載入章節後進入；隱藏 avatar／XP／日曆／頁籤，只留經文→情境→默想
+// B1（2026-08-30）：焦點模式進出；exit 帶停留秒數與是否在本次焦點內完成（showReward 會把 _focusRewarded 設 true）
+let _focusEnterAt = null, _focusRewarded = false;
 function enterFocusMode(ch) {
+  _focusEnterAt = Date.now(); _focusRewarded = false;
+  track('focus_enter', { chapter: ch });
   document.body.classList.add('focus-mode');
   document.getElementById('focus-bar-ch').textContent = `📖 ${chapterFull(ch)}`;
   window.scrollTo({ top: 0 });
 }
 function exitFocusMode(opts) {
   if (!document.body.classList.contains('focus-mode')) return;
+  track('focus_exit', { chapter: selectedChapter, dwellSec: _focusEnterAt ? Math.round((Date.now() - _focusEnterAt) / 1000) : 0, completed: _focusRewarded });
+  _focusEnterAt = null;
   const noScroll = !!(opts && opts.noScroll);   // 合併日：closeReward 自己會捲到 day-info-bar，避免兩段捲動疊加
   document.body.classList.remove('focus-mode');
-  // 回主畫面時整頁刷新（順便治測玩 ⚠️：領裝備後主畫面／日曆不即時更新）
+  refreshHome();
+  if (!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// 主畫面整頁刷新（avatar／日曆／今日卡／日曆入口／出席燈）。
+// issue #31：今日章在 initApp 就自動載入首頁下方，玩家不按「開始靈修」也能做完 → 不在焦點模式，
+// 刷新不能只綁在 exitFocusMode 裡，closeReward 要無條件呼叫這支。
+function refreshHome() {
   renderAvatar();
   renderCalendar();
   if (calSelectedDate) updateDayInfoBar(calSelectedDate, parseInt(calSelectedDate.split('-')[2], 10));
   renderCalEntry();
   renderAttendance();
-  if (!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 // 🔥 出席燈：今天完成任一章才亮；只管亮暗、不帶催促文案（ADR 0001 出席驅動）
 function renderAttendance() {
@@ -2811,6 +2880,8 @@ let chapterReadDone = false;
 
 function toggleGuideStep() {
   guideStepOpen = !guideStepOpen;
+  // B1（2026-08-30）：導讀展開率；hasHard＝這章有無「難處」區塊（8/29 起的 guide.hard）
+  if (guideStepOpen) { const g = getChapter(selectedChapter); track('guide_expand', { chapter: selectedChapter, hasHard: !!(g && Array.isArray(g.guide?.hard) && g.guide.hard.length) }); }
   document.getElementById('guide-content').classList.toggle('open', guideStepOpen);
   document.getElementById('step1-arrow').classList.toggle('open', guideStepOpen);
 }
@@ -3235,7 +3306,11 @@ function selectChapter(ch) {
   selectedChapter = ch;
   // B1: chapter_select（同時記起點，後續階段帶 elapsedSec 算各段停留）
   _chapterSelectAt = Date.now();
-  track('chapter_select', { chapter: ch });
+  // B1（2026-08-30）：合併日帶 merged／order（order＝今天該日已完成幾章＋1，看玩家先讀哪章）
+  const _sdSel = findScheduleDate(ch); const _dayChs = _sdSel ? getScheduleChapters(_sdSel) : [];
+  const _selP = { chapter: ch };
+  if (_dayChs.length >= 2) { _selP.merged = true; _selP.order = _dayChs.filter(c => (state.completed || []).includes(c)).length + 1; }
+  track('chapter_select', _selP);
 
   // Update badge
   document.getElementById('book-badge').textContent = `📖 ${chapterFull(ch)}`;
@@ -3408,13 +3483,13 @@ async function submitReflection() {
     lastAiIsFallback = d.isFallback === true || !d.aiResponse;
     aiText.textContent = lastAiResponse;
     // B1: ai_response_received（API 回應收到，含 server 端 fallback 旗標）
-    track('ai_response_received', { chapter: selectedChapter, isFallback: lastAiIsFallback });
+    track('ai_response_received', { chapter: selectedChapter, isFallback: lastAiIsFallback, withEquipment: equippedVerses(state).length > 0 });
   } catch(e) {
     lastAiResponse = fallback;
     lastAiIsFallback = true;
     aiText.textContent = fallback;
     // B1: ai_response_received（網路失敗也算 received、以 fallback 文案呈現）
-    track('ai_response_received', { chapter: selectedChapter, isFallback: true });
+    track('ai_response_received', { chapter: selectedChapter, isFallback: true, withEquipment: equippedVerses(state).length > 0 });
   }
   return true;   // 默想已落地（或訪客無需雲端存）→ 允許進入可完成路徑
 }
@@ -3592,8 +3667,13 @@ function replayReward() {
 }
 
 let lastRewardItems = [];   // 領獎畫面「試穿」用：本次新入袋的裝備
+let _rewardOpenAt = null;
 function showReward(item, bonus, hasBonus, newTitles) {
   newTitles = newTitles || [];
+  // B1（2026-08-30）：完成短畫面曝光；稱號解鎖各記一筆（PR ③b）
+  _rewardOpenAt = Date.now(); _focusRewarded = true;
+  track('reward_view', { chapter: selectedChapter, hasBonus: !!bonus, newTitles: newTitles.length });
+  newTitles.forEach(t => track('title_unlocked', { chapter: selectedChapter, title: t.name, booksDone: t.books != null ? t.books : undefined }));
   // 預覽：不再自動換裝（PR ③b），小人先照目前裝扮畫，再把新裝備疊上去當「試穿預覽」
   const prev = { hat: state.hat, body: state.body, hand: state.item, bg: state.bg };
   lastRewardItems = [item, bonus].filter(Boolean);
@@ -3635,9 +3715,15 @@ function showReward(item, bonus, hasBonus, newTitles) {
 }
 
 function closeReward() {
+  track('reward_close', { chapter: selectedChapter, dwellSec: _rewardOpenAt ? Math.round((Date.now() - _rewardOpenAt) / 1000) : 0 });
+  _rewardOpenAt = null;
   closeOverlay('reward-overlay');
   const _sd = findScheduleDate(selectedChapter);
-  exitFocusMode({ noScroll: !!(_sd && getScheduleChapters(_sd).length >= 2) });   // PR ②：領完裝備回主畫面並刷新
+  if (document.body.classList.contains('focus-mode')) {
+    exitFocusMode({ noScroll: !!(_sd && getScheduleChapters(_sd).length >= 2) });   // PR ②：領完裝備回主畫面並刷新
+  } else {
+    refreshHome();   // issue #31：非焦點模式（首頁自動載入的今日章直接做完）也要刷新今日卡／日曆
+  }
   // E1：領獎收尾後觸發輕量分眾提示（throttled，內部會自動跳過不該問的場景）
   if (pendingProfileNudge) {
     pendingProfileNudge = false;
@@ -3957,8 +4043,18 @@ function closeOverlay(id) {
   }
 }
 
+// B1（2026-08-30）：說明頁曝光／關閉；source：first（首次自動）／version（公告後）／setup（建角色後）／menu（手動）
+let _tutOpenAt = null;
+function openTutorial(source) {
+  _tutOpenAt = Date.now();
+  track('tutorial_open', { source: source || 'unknown' });
+  openOverlay('tut-overlay');
+}
 function closeTut() {
-  if (document.getElementById('tut-no-repeat').checked) localStorage.setItem('tut_done','1');
+  const noRepeat = document.getElementById('tut-no-repeat').checked;
+  track('tutorial_close', { noRepeat, dwellSec: _tutOpenAt ? Math.round((Date.now() - _tutOpenAt) / 1000) : 0 });
+  _tutOpenAt = null;
+  if (noRepeat) localStorage.setItem('tut_done','1');
   closeOverlay('tut-overlay');
 }
 
@@ -4696,7 +4792,10 @@ function launchConfetti() {
 
 // ══ PAGE SWITCH ═════════════════════════════════════════
 
+let _currentPage = 'devotion';
 function switchPage(name) {
+  if (name !== _currentPage) track('page_switch', { page: name, from: _currentPage });
+  _currentPage = name;
   // books／devotion 有分頁鈕；changelog 沒有（入口：更多選單／版本彈窗），切到它時兩顆分頁都不亮
   if (name === 'books') { renderTitleBar(); renderLibraryPage(); renderBadgesPage(); }
   ['devotion','books','changelog'].forEach(p=>{
@@ -4740,7 +4839,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP) {
         localStorage.setItem('last_seen_version', GAME_VERSION);
         if (!localStorage.getItem('tut_done')) {
-          setTimeout(() => openOverlay('tut-overlay'), 500);
+          setTimeout(() => openTutorial('first'), 500);
         }
       } else if (ntFinalePending()) {
         // 終點儀式期間（8/28–9/06）且尚未看過：儀式先、公告後（closeNtFinale 再彈）
@@ -4749,7 +4848,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => showVersionNotice(), 600);
       }
     } else if (!localStorage.getItem('tut_done')) {
-      setTimeout(() => openOverlay('tut-overlay'), 500);
+      setTimeout(() => openTutorial('first'), 500);
     }
     maybeShowNtFinale();
   } else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
@@ -4774,7 +4873,7 @@ function closeVersionNotice() {
   localStorage.setItem('last_seen_version', GAME_VERSION);
   closeOverlay('version-overlay');
   if (!localStorage.getItem('tut_done')) {
-    setTimeout(() => openOverlay('tut-overlay'), 300);
+    setTimeout(() => openTutorial('version'), 300);
   }
 }
 
@@ -4954,7 +5053,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
 <div class="more-menu" id="more-menu">
   <button onclick="openDiary(); closeMoreMenu()">📖 靈修日記</button>
   <button onclick="openProfileSheet(); closeMoreMenu()">⚙️ 個人資料</button>
-  <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
+  <button onclick="openTutorial('menu'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
   <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言<span class="unread-dot" id="my-msgs-menu-dot" style="display:none;margin-left:8px;vertical-align:middle;"></span></button>

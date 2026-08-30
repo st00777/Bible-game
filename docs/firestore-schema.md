@@ -68,6 +68,9 @@ users/{userId}/events/{eventId}          ← B1 事件流 timeline（v2.15 已�
   metadata:   { isFallback: false, choice: 'D', editDuration: 145 }  // optional，事件相依欄位
   // doc id 用 ${Date.now()}-${random4}；fire-and-forget、訪客（未登入）不寫
   // track() helper（bible-game-v2.html）雙寫 GA4 + 此子集合；驗證見 scripts/verify-b1-events.js
+  // 2026-08-30 加：focus_enter/exit{dwellSec,completed}、reward_view/close{hasBonus,newTitles,dwellSec}、title_unlocked{title,booksDone}、
+  //   page_switch{page,from}、book_detail_open{book}、tutorial_open/close{source,noRepeat,dwellSec}、guide_expand{hasHard}；
+  //   既有事件加 ai_response_received.withEquipment、chapter_select.merged/order、login.trigger、app_leave.lastStep（完整表見 docs/metric-changelog.md）
 
 feedback/{docId}                         ← 曠野呼聲回饋（頂層集合）
   mood:        '平靜/有動力/有點累/經文太難/其他'

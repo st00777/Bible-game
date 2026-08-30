@@ -36,6 +36,7 @@ function run({ BOOKS, BOOK_INTRO = {}, CHARACTERS = {}, BOOK_DETAIL_ENABLED, com
     __opened: false,
   });
   ctx.openOverlay = () => { ctx.__opened = true; };
+  ctx.track = () => {};   // B1 埋點 stub（2026-08-30 openBookDetail 加 book_detail_open）
   vm.runInContext(src, ctx);
   return { ctx, document };
 }
