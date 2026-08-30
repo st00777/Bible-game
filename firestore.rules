@@ -33,6 +33,17 @@ service cloud.firestore {
                 && request.resource.data.mood in moods()
                 && request.resource.data.category in categories()
                 && (!('wantReply' in request.resource.data) || request.resource.data.wantReply is bool)
+                && request.resource.data.message is string
+                && request.resource.data.createdAt == request.time
+                // 身分綁定（2026-08-31 安全審查）：匿名 → uid/displayName 必為 null；
+                // 具名 → 必須登入且 uid 等於自己的 uid，防止未登入者冒名塞留言到別人的信箱
+                && ((request.resource.data.isAnonymous == true
+                        && request.resource.data.uid == null
+                        && request.resource.data.displayName == null)
+                    || (request.resource.data.isAnonymous == false
+                        && request.auth != null
+                        && request.resource.data.uid == request.auth.uid
+                        && (request.resource.data.displayName == null || request.resource.data.displayName is string)))
                 // 匿名留言禁止 wantReply=true（無法追蹤回覆）
                 && (request.resource.data.isAnonymous != true
                     || !('wantReply' in request.resource.data)

@@ -1720,7 +1720,8 @@ function handleLineLoginClick() {
   const stateArr = new Uint8Array(16);
   crypto.getRandomValues(stateArr);
   const state = Array.from(stateArr).map(b => b.toString(16).padStart(2, '0')).join('');
-  sessionStorage.setItem('line_state', state);
+  // 用 localStorage（不是 sessionStorage）：LINE 內建瀏覽器可能在新分頁開回呼頁，sessionStorage 會遺失
+  localStorage.setItem('line_state', JSON.stringify({ v: state, t: Date.now() }));
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: LINE_CLIENT_ID,
@@ -1740,9 +1741,14 @@ async function handleLineCallback() {
   // Clear URL params before doing anything
   history.replaceState({}, '', location.pathname);
 
-  const savedState = sessionStorage.getItem('line_state');
-  sessionStorage.removeItem('line_state');
-  if (savedState && state !== savedState) {
+  let savedState = null;
+  try {
+    const raw = JSON.parse(localStorage.getItem('line_state') || 'null');
+    if (raw && raw.v && Date.now() - raw.t < 10 * 60 * 1000) savedState = raw.v;
+  } catch (e) {}
+  localStorage.removeItem('line_state');
+  // state 必驗（2026-08-31 安全審查）：沒有本機發出的 state 就一律拒絕，防止別人把自己的 code 連結丟給玩家（login CSRF）
+  if (!savedState || state !== savedState) {
     showToast('LINE 登入驗證失敗，請再試一次');
     return;
   }
