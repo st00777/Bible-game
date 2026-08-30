@@ -1216,6 +1216,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
     <div class="log-entry">
       <div class="log-ver">2026.08.30 · 書卷與成就分頁＋稱號＋創世記選項調整</div>
       <div class="log-date">2026年8月</div>
+      <div class="log-item"><span class="log-tag tag-fix">後台</span><span>補上焦點模式、完成畫面、書卷分頁、說明頁等新功能的使用統計埋點（玩家端無變化）</span></div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>主畫面分頁「📖 今日靈修｜📚 書卷與成就」：書架、每卷徽章、已解鎖成就移到第二頁，原成就視窗退役</span></div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>第五個裝備部位「稱號」：累計走完的書卷數到里程碑（9 級，終點 66 卷）就解鎖，在衣櫃換上</span></div>
       <div class="log-item"><span class="log-tag tag-new">新增</span><span>領獎畫面可直接「試穿」：衣櫃疊在領獎畫面上開，關掉回到領獎畫面，儲存後小人同步新裝扮</span></div>
@@ -1543,12 +1544,23 @@ function writeEventToFirestore(name, params) {
     .set(doc)
     .catch(e => console.warn('Event write error:', name, e));
 }
+// B1（2026-08-30）：離開時停在哪一步（中途離開點）。home＝沒在章內；其餘依本章旗標推
+function _currentStep() {
+  try {
+    if (typeof selectedChapter === 'undefined' || selectedChapter == null) return 'home';
+    if (document.getElementById('reward-overlay')?.classList.contains('show')) return 'reward';
+    if (reflSubmitted) return 'reflection_done';
+    if (choiceConfirmed) return 'reflection';
+    if (sessionHasRead) return 'question';
+    return 'read';
+  } catch (e) { return 'unknown'; }
+}
 // visibilitychange：hidden 記時間；resume 時若 > 30 min 換新 sessionId
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     _lastHiddenAt = Date.now();
     // B1: app_leave（頁面切到背景／鎖屏／切 tab 都算離開）
-    track('app_leave', { sessionId: _sessionId });
+    track('app_leave', { sessionId: _sessionId, lastStep: _currentStep() });
   } else if (document.visibilityState === 'visible' && _lastHiddenAt) {
     if (Date.now() - _lastHiddenAt > 30 * 60 * 1000) _sessionId = _newSessionId();
     _lastHiddenAt = null;
@@ -1674,7 +1686,7 @@ function handleAuthClick() {
     }
   } else {
     auth.signInWithPopup(googleProvider).then(() => {
-      track('login', { method: 'google' });
+      track('login', { method: 'google', trigger: 'header' });
     }).catch(e => {
       console.warn('Login error:', e);
       showToast('登入失敗，請再試一次');
@@ -1756,7 +1768,7 @@ async function handleLineCallback() {
     }
 
     showToast('✅ LINE 登入成功');
-    track('login', { method: 'line' });
+    track('login', { method: 'line', trigger: 'welcome' });
   } catch (e) {
     console.error('LINE login error:', e);
     showToast('LINE 登入失敗，請再試一次');
@@ -2334,6 +2346,7 @@ function isBookDetailEnabled(bookKey) {
 }
 function openBookDetail(bookKey) {
   if (!isBookDetailEnabled(bookKey)) return;
+  track('book_detail_open', { book: bookKey });
   renderBookDetail(bookKey);
   openOverlay('book-detail-overlay');
 }
@@ -2638,7 +2651,7 @@ function finishSetup() {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   initApp();
-  if (!localStorage.getItem('tut_done')) openOverlay('tut-overlay');
+  if (!localStorage.getItem('tut_done')) openTutorial('setup');
 }
 
 // ── Screen routing ────────────────────────────────────────
@@ -2670,7 +2683,7 @@ function chooseLineLogin() {
 function chooseGoogleLogin() {
   localStorage.setItem('login_choice_made', '1');
   auth.signInWithPopup(googleProvider).then(() => {
-    track('login', { method: 'google' });
+    track('login', { method: 'google', trigger: 'welcome' });
   }).catch(e => {
     console.warn('Google login error:', e);
     showToast('登入失敗，請再試一次');
@@ -2679,7 +2692,7 @@ function chooseGoogleLogin() {
 }
 function chooseGuestMode() {
   localStorage.setItem('login_choice_made', '1');
-  track('login', { method: 'guest' });
+  track('login', { method: 'guest', trigger: 'welcome' });
   showSetupScreen();
 }
 
@@ -2744,13 +2757,19 @@ function renderCalEntry() {
   sub.textContent = `${calToday.getMonth() + 1}/${calToday.getDate()} 今日：${todayCh ? chapterFull(todayCh) : '—'}`;
 }
 // 焦點模式：玩家按「開始靈修」載入章節後進入；隱藏 avatar／XP／日曆／頁籤，只留經文→情境→默想
+// B1（2026-08-30）：焦點模式進出；exit 帶停留秒數與是否在本次焦點內完成（showReward 會把 _focusRewarded 設 true）
+let _focusEnterAt = null, _focusRewarded = false;
 function enterFocusMode(ch) {
+  _focusEnterAt = Date.now(); _focusRewarded = false;
+  track('focus_enter', { chapter: ch });
   document.body.classList.add('focus-mode');
   document.getElementById('focus-bar-ch').textContent = `📖 ${chapterFull(ch)}`;
   window.scrollTo({ top: 0 });
 }
 function exitFocusMode(opts) {
   if (!document.body.classList.contains('focus-mode')) return;
+  track('focus_exit', { chapter: selectedChapter, dwellSec: _focusEnterAt ? Math.round((Date.now() - _focusEnterAt) / 1000) : 0, completed: _focusRewarded });
+  _focusEnterAt = null;
   const noScroll = !!(opts && opts.noScroll);   // 合併日：closeReward 自己會捲到 day-info-bar，避免兩段捲動疊加
   document.body.classList.remove('focus-mode');
   refreshHome();
@@ -2861,6 +2880,8 @@ let chapterReadDone = false;
 
 function toggleGuideStep() {
   guideStepOpen = !guideStepOpen;
+  // B1（2026-08-30）：導讀展開率；hasHard＝這章有無「難處」區塊（8/29 起的 guide.hard）
+  if (guideStepOpen) { const g = getChapter(selectedChapter); track('guide_expand', { chapter: selectedChapter, hasHard: !!(g && Array.isArray(g.guide?.hard) && g.guide.hard.length) }); }
   document.getElementById('guide-content').classList.toggle('open', guideStepOpen);
   document.getElementById('step1-arrow').classList.toggle('open', guideStepOpen);
 }
@@ -3285,7 +3306,11 @@ function selectChapter(ch) {
   selectedChapter = ch;
   // B1: chapter_select（同時記起點，後續階段帶 elapsedSec 算各段停留）
   _chapterSelectAt = Date.now();
-  track('chapter_select', { chapter: ch });
+  // B1（2026-08-30）：合併日帶 merged／order（order＝今天該日已完成幾章＋1，看玩家先讀哪章）
+  const _sdSel = findScheduleDate(ch); const _dayChs = _sdSel ? getScheduleChapters(_sdSel) : [];
+  const _selP = { chapter: ch };
+  if (_dayChs.length >= 2) { _selP.merged = true; _selP.order = _dayChs.filter(c => (state.completed || []).includes(c)).length + 1; }
+  track('chapter_select', _selP);
 
   // Update badge
   document.getElementById('book-badge').textContent = `📖 ${chapterFull(ch)}`;
@@ -3458,13 +3483,13 @@ async function submitReflection() {
     lastAiIsFallback = d.isFallback === true || !d.aiResponse;
     aiText.textContent = lastAiResponse;
     // B1: ai_response_received（API 回應收到，含 server 端 fallback 旗標）
-    track('ai_response_received', { chapter: selectedChapter, isFallback: lastAiIsFallback });
+    track('ai_response_received', { chapter: selectedChapter, isFallback: lastAiIsFallback, withEquipment: equippedVerses(state).length > 0 });
   } catch(e) {
     lastAiResponse = fallback;
     lastAiIsFallback = true;
     aiText.textContent = fallback;
     // B1: ai_response_received（網路失敗也算 received、以 fallback 文案呈現）
-    track('ai_response_received', { chapter: selectedChapter, isFallback: true });
+    track('ai_response_received', { chapter: selectedChapter, isFallback: true, withEquipment: equippedVerses(state).length > 0 });
   }
   return true;   // 默想已落地（或訪客無需雲端存）→ 允許進入可完成路徑
 }
@@ -3642,8 +3667,13 @@ function replayReward() {
 }
 
 let lastRewardItems = [];   // 領獎畫面「試穿」用：本次新入袋的裝備
+let _rewardOpenAt = null;
 function showReward(item, bonus, hasBonus, newTitles) {
   newTitles = newTitles || [];
+  // B1（2026-08-30）：完成短畫面曝光；稱號解鎖各記一筆（PR ③b）
+  _rewardOpenAt = Date.now(); _focusRewarded = true;
+  track('reward_view', { chapter: selectedChapter, hasBonus: !!bonus, newTitles: newTitles.length });
+  newTitles.forEach(t => track('title_unlocked', { chapter: selectedChapter, title: t.name, booksDone: t.books != null ? t.books : undefined }));
   // 預覽：不再自動換裝（PR ③b），小人先照目前裝扮畫，再把新裝備疊上去當「試穿預覽」
   const prev = { hat: state.hat, body: state.body, hand: state.item, bg: state.bg };
   lastRewardItems = [item, bonus].filter(Boolean);
@@ -3685,6 +3715,8 @@ function showReward(item, bonus, hasBonus, newTitles) {
 }
 
 function closeReward() {
+  track('reward_close', { chapter: selectedChapter, dwellSec: _rewardOpenAt ? Math.round((Date.now() - _rewardOpenAt) / 1000) : 0 });
+  _rewardOpenAt = null;
   closeOverlay('reward-overlay');
   const _sd = findScheduleDate(selectedChapter);
   if (document.body.classList.contains('focus-mode')) {
@@ -4011,8 +4043,18 @@ function closeOverlay(id) {
   }
 }
 
+// B1（2026-08-30）：說明頁曝光／關閉；source：first（首次自動）／version（公告後）／setup（建角色後）／menu（手動）
+let _tutOpenAt = null;
+function openTutorial(source) {
+  _tutOpenAt = Date.now();
+  track('tutorial_open', { source: source || 'unknown' });
+  openOverlay('tut-overlay');
+}
 function closeTut() {
-  if (document.getElementById('tut-no-repeat').checked) localStorage.setItem('tut_done','1');
+  const noRepeat = document.getElementById('tut-no-repeat').checked;
+  track('tutorial_close', { noRepeat, dwellSec: _tutOpenAt ? Math.round((Date.now() - _tutOpenAt) / 1000) : 0 });
+  _tutOpenAt = null;
+  if (noRepeat) localStorage.setItem('tut_done','1');
   closeOverlay('tut-overlay');
 }
 
@@ -4750,7 +4792,10 @@ function launchConfetti() {
 
 // ══ PAGE SWITCH ═════════════════════════════════════════
 
+let _currentPage = 'devotion';
 function switchPage(name) {
+  if (name !== _currentPage) track('page_switch', { page: name, from: _currentPage });
+  _currentPage = name;
   // books／devotion 有分頁鈕；changelog 沒有（入口：更多選單／版本彈窗），切到它時兩顆分頁都不亮
   if (name === 'books') { renderTitleBar(); renderLibraryPage(); renderBadgesPage(); }
   ['devotion','books','changelog'].forEach(p=>{
@@ -4794,7 +4839,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP) {
         localStorage.setItem('last_seen_version', GAME_VERSION);
         if (!localStorage.getItem('tut_done')) {
-          setTimeout(() => openOverlay('tut-overlay'), 500);
+          setTimeout(() => openTutorial('first'), 500);
         }
       } else if (ntFinalePending()) {
         // 終點儀式期間（8/28–9/06）且尚未看過：儀式先、公告後（closeNtFinale 再彈）
@@ -4803,7 +4848,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => showVersionNotice(), 600);
       }
     } else if (!localStorage.getItem('tut_done')) {
-      setTimeout(() => openOverlay('tut-overlay'), 500);
+      setTimeout(() => openTutorial('first'), 500);
     }
     maybeShowNtFinale();
   } else if (localStorage.getItem('login_choice_made') === '1' || new URLSearchParams(location.search).get('code')) {
@@ -4828,7 +4873,7 @@ function closeVersionNotice() {
   localStorage.setItem('last_seen_version', GAME_VERSION);
   closeOverlay('version-overlay');
   if (!localStorage.getItem('tut_done')) {
-    setTimeout(() => openOverlay('tut-overlay'), 300);
+    setTimeout(() => openTutorial('version'), 300);
   }
 }
 
@@ -5008,7 +5053,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
 <div class="more-menu" id="more-menu">
   <button onclick="openDiary(); closeMoreMenu()">📖 靈修日記</button>
   <button onclick="openProfileSheet(); closeMoreMenu()">⚙️ 個人資料</button>
-  <button onclick="openOverlay('tut-overlay'); closeMoreMenu()">❓ 遊戲說明</button>
+  <button onclick="openTutorial('menu'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
   <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言<span class="unread-dot" id="my-msgs-menu-dot" style="display:none;margin-left:8px;vertical-align:middle;"></span></button>
