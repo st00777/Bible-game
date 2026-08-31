@@ -88,6 +88,12 @@
     return ch;
   }
 
+  // 章節所屬書卷（BOOKS 反查）；數字／純數字字串＝使徒行傳；找不到回 null
+  function bookOfChapter(ch) {
+    const key = /^\d+$/.test(String(ch)) ? `ACT${ch}` : chapterKey(ch);
+    return BOOKS.find(b => b.entries.some(en => chapterKey(en) === key)) || null;
+  }
+
   // ── 排程（讀 SCHEDULE）─────────────────────────────────────
   function getScheduleChapters(date) {
     return SCHEDULE[date] || [];
@@ -239,7 +245,7 @@
   return {
     chapterKey, getChapter, resetChapterIndex,
     dateStr, calDateStr, calWeekOfMonth, calWeeksInMonth, timeOfDay, formatThreadTime,
-    chapterLabel, chapterFull,
+    chapterLabel, chapterFull, bookOfChapter,
     getScheduleChapters, findScheduleDate, isMakeupChapterOn,
     isChapterDoneIn, bookProgress, pickDefaultChapterFrom, todayChapterFor,
     TITLE_LADDER, titlesForBooks, titlesUnlockedBetween, nextTitle, resolveItem, computeCompletion, escapeHtmlMyMsg,

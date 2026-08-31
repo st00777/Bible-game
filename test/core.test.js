@@ -37,6 +37,15 @@ test('chapterKey / getChapter 三種形態都查得到', () => {
   assert.equal(core.getChapter(99), null);
 });
 
+test('bookOfChapter：數字／數字字串／字串 key／未知 key', () => {
+  assert.equal(core.bookOfChapter(2).key, 'ACT');
+  assert.equal(core.bookOfChapter('2').key, 'ACT');     // 日記 legacy 數字字串 key
+  assert.equal(core.bookOfChapter('ACT1').key, 'ACT');
+  assert.equal(core.bookOfChapter('ROM2').key, 'ROM');
+  assert.equal(core.bookOfChapter('EPH9'), null);       // 假表沒有的書卷
+  assert.equal(core.bookOfChapter('migrated'), null);   // 魔法 key 不炸
+});
+
 test('日期／日曆算術', () => {
   assert.equal(core.dateStr(new Date(2026, 0, 5)), '2026-01-05');
   assert.equal(core.calDateStr(2026, 0, 5), '2026-01-05');
