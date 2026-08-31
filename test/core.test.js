@@ -46,6 +46,20 @@ test('bookOfChapter：數字／數字字串／字串 key／未知 key', () => {
   assert.equal(core.bookOfChapter('migrated'), null);   // 魔法 key 不炸
 });
 
+test('applyXp：加點／封頂升級回 10', () => {
+  assert.deepEqual(core.applyXp(10, 1, 15), { xp: 25, level: 1 });
+  assert.deepEqual(core.applyXp(90, 1, 15), { xp: 10, level: 2 });   // 105→封頂 100→升級回 10
+  assert.deepEqual(core.applyXp(65, 3, 35), { xp: 10, level: 4 });
+  assert.deepEqual(core.applyXp(64, 3, 35), { xp: 99, level: 3 });
+});
+
+test('bestStreak：最長連續 run', () => {
+  assert.equal(core.bestStreak({}), 0);
+  assert.equal(core.bestStreak({ a: '2026-01-01' }), 1);
+  assert.equal(core.bestStreak({ a: '2026-01-01', b: '2026-01-02', c: '2026-01-04' }), 2);
+  assert.equal(core.bestStreak({ a: '2026-01-01', b: '2026-01-01', c: '2026-01-02' }), 2);  // 合併日同日去重
+});
+
 test('日期／日曆算術', () => {
   assert.equal(core.dateStr(new Date(2026, 0, 5)), '2026-01-05');
   assert.equal(core.calDateStr(2026, 0, 5), '2026-01-05');

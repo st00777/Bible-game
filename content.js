@@ -8104,6 +8104,31 @@ function validateContent() {
     });
   }
 
+  // 8) 單章物件形狀（2026-08-31 D5）：情境題四選項、responses A-D 齊、核心欄位非空、裝備 slot 合法。
+  //    這是內容產線每週交付物的 shape 契約，先前只活在 CLAUDE.md 文件裡。
+  const SLOTS = ['hat', 'body', 'hand', 'bg'];
+  CHAPTERS.forEach(c => {
+    const k = String(c.chapter);
+    ['verse', 'verseRef', 'scene', 'q', 'reflectionTitle', 'reflection'].forEach(f => {
+      if (!String(c[f] || '').trim()) errors.push(`CHAPTERS：${k} 缺 ${f}`);
+    });
+    if (!Array.isArray(c.choices) || c.choices.length !== 4
+        || c.choices.some(o => !o || !String(o.k || '').trim() || !String(o.text || '').trim())) {
+      errors.push(`CHAPTERS：${k} choices 不是 4 格完整選項`);
+    }
+    ['A', 'B', 'C', 'D'].forEach(kk => {
+      if (!String((c.responses || {})[kk] || '').trim()) errors.push(`CHAPTERS：${k} responses 缺 ${kk}`);
+    });
+    [['baseItem', c.baseItem], ['bonusItem', c.bonusItem]].forEach(([nm, it]) => {
+      if (!it || typeof it !== 'object') { errors.push(`CHAPTERS：${k} 缺 ${nm}`); return; }
+      const variants = it.default ? Object.values(it).filter(v => v && typeof v === 'object') : [it];
+      variants.forEach(v => {
+        if (!String(v.emoji || '').trim() || !String(v.name || '').trim()) errors.push(`CHAPTERS：${k} ${nm} 缺 emoji/name`);
+        if (!SLOTS.includes(v.slot || it.slot)) errors.push(`CHAPTERS：${k} ${nm} slot 不合法`);
+      });
+    });
+  });
+
   if (errors.length) {
     console.error(`🚨 內容自檢：${errors.length} 條結構錯誤（新章節上線前必修）`);
     errors.forEach(m => console.error('  ✗ ' + m));

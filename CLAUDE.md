@@ -62,7 +62,6 @@ Bible-game/
 ├── scripts/check-ai-logs.js       # aiReflection 呼叫量／成功率（npm run logs）
 ├── scripts/check-line-logs.js     # lineLogin 成功率／失敗分布（npm run line-logs）
 ├── scripts/list-profiles.js       # 列玩家 profile/data（含 E1 分眾欄位）
-├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
 ├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
 ├── scripts/funnel.js              # B1 漏斗：週別選章→看題→確認→送默想→完成、掉人章節、閱讀來源、停留、儀式曝光（npm run funnel）
 ├── scripts/ga4-insights.js        # GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API）

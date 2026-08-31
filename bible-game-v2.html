@@ -2054,8 +2054,11 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
       record.aiResponse = lastAiResponse;
       record.aiIsFallback = lastAiIsFallback;
     }
-    await db.collection('users').doc(currentUser.uid)
-      .collection('chapters').doc(key).set(record);
+    // 2026-08-31 D1：chapters／stats／profile 三筆合成一個 batch（1 RTT），
+    // 縮短手機弱網下「寫到一半被切到背景」掉統計的時窗。
+    const userRef = db.collection('users').doc(currentUser.uid);
+    const batch = db.batch();
+    batch.set(userRef.collection('chapters').doc(key), record);
     // 默想歷史保留：reflections 子集合寫入已 relocate 到 submitReflection（AI fetch 之前、獨立於 AI 成敗），
     // 確保「沒領就離開」時玩家默想仍落地。此處（finalize 路徑）不再重複寫子集合，避免同篇雙筆（doc id=Date.now()）。
     // 累計統計
@@ -2065,13 +2068,10 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
     if (h >= 5 && h < 9)        statsUpdates.morningCount = inc(1);
     if (h >= 22 || h < 5)       statsUpdates.nightCount   = inc(1);
     if (isMakeupChapter(ch))    statsUpdates.makeupCount  = inc(1);
-    await db.collection('users').doc(currentUser.uid)
-      .collection('stats').doc('data')
-      .set(statsUpdates, { merge: true });
+    batch.set(userRef.collection('stats').doc('data'), statsUpdates, { merge: true });
     // profile.totalDays 同步更新
-    await db.collection('users').doc(currentUser.uid)
-      .collection('profile').doc('data')
-      .set({ totalDays: inc(1) }, { merge: true });
+    batch.set(userRef.collection('profile').doc('data'), { totalDays: inc(1) }, { merge: true });
+    await batch.commit();
   } catch(e) { console.warn('Chapter record error:', e); }
 }
 
@@ -2180,10 +2180,8 @@ const ACHIEVEMENTS = [
    check:()=>itemCount()>=80,progress:()=>`${Math.min(itemCount(),80)}/80`},
   // ── 社群 ──
   // 2026-08-27 PR ①：分享類成就下架（retired）——不再新發、已得者保留紀錄與展示
-  {key:'first_share',retired:true,name:'分享祝福',desc:'第1次分享給小組',emoji:'📤',tier:'bronze',verse:'「你們的光也當這樣照在人前，叫他們看見你們的好行為。」',verseRef:'—— 馬太福音 5:16',
-   check:()=>(cachedStats.shareCount||0)>=1},
-  {key:'share_10',retired:true,name:'福音使者',desc:'累計分享10次',emoji:'📢',tier:'silver',verse:'「報福音傳喜信的人，他們的腳蹤何等佳美。」',verseRef:'—— 羅馬書 10:15',
-   check:()=>(cachedStats.shareCount||0)>=10,progress:()=>`${Math.min(cachedStats.shareCount||0,10)}/10`},
+  {key:'first_share',retired:true,name:'分享祝福',desc:'第1次分享給小組',emoji:'📤',tier:'bronze',verse:'「你們的光也當這樣照在人前，叫他們看見你們的好行為。」',verseRef:'—— 馬太福音 5:16'},   // retired：check 閉包已移除（renderBadges 對未解鎖 retired 一律過濾）
+  {key:'share_10',retired:true,name:'福音使者',desc:'累計分享10次',emoji:'📢',tier:'silver',verse:'「報福音傳喜信的人，他們的腳蹤何等佳美。」',verseRef:'—— 羅馬書 10:15'},   // retired：check/progress 閉包已移除（同上）
   {key:'first_feedback',name:'曠野之聲',desc:'第1次填寫回饋',emoji:'🏜️',tier:'bronze',verse:'「在曠野有人聲喊著說：預備主的道，修直他的路。」',verseRef:'—— 馬可福音 1:3',
    check:()=>!!localStorage.getItem('has_submitted_feedback')},
   // ── 書架 ──
@@ -2214,9 +2212,6 @@ async function checkAchievements() {
   for (const a of ACHIEVEMENTS) {
     if (unlockedAchievements[a.key]) continue;
     if (a.retired) continue;   // 下架成就不再新發
-    if (a.tier === 'gold') {
-      // Gold hidden until all silver of same category unlocked? No, just check
-    }
     try {
       if (a.check()) {
         unlockedAchievements[a.key] = new Date().toISOString();
@@ -2281,8 +2276,8 @@ function reviewAchievement(key) {
 
 // ── Achievement page rendering ──
 
-// PR ③a：成就 overlay 退役，書架＋徽章併入主頁「📚 書卷」分頁（switchPage('books') 時重繪）
-function openAchievements() { switchPage('books'); }
+// PR ③a：成就 overlay 退役，唯一入口＝主頁「📚 書卷與成就」分頁（switchPage('books')）；
+// 舊別名 openAchievements() 已無任何呼叫點，2026-08-31 D16 移除。
 // 書卷頁頂：稱號從哪來、下一站在哪（唯一讓玩家看到「卷數→稱號」對應的位置）
 function renderTitleBar() {
   const el = document.getElementById('title-bar');
@@ -2744,7 +2739,6 @@ let sessionHasRead = false;  // 本章是否點閱讀完整章節
 
 function initApp() {
   renderAvatar();
-  renderWardrobeUI();
   // Init calendar to today
   calYear  = calToday.getFullYear();
   calMonth = calToday.getMonth();
@@ -2819,7 +2813,7 @@ function renderAttendance() {
 // 出席燈＋書卷收集併入領獎畫面（James 2026-08-29：兩個動畫合一，不再有短畫面）。進度條開啟後從上一格滑到新格。
 function renderRewardAttendance() {
   document.getElementById('rw-fire-sub').textContent = `累積靈修 ${devotionDays()} 天`;
-  const book = BOOKS.find(b => b.entries.some(e => String(e) === String(selectedChapter)));
+  const book = bookOfChapter(selectedChapter);   // 2026-08-31 D4：統一走 core.js 反查
   const p = book ? getBookProgress(book) : null;
   const el = document.getElementById('rw-book');
   if (!p) { el.style.display = 'none'; return; }
@@ -2919,9 +2913,9 @@ function markAsRead(source) {
   if (chapterReadDone) return;
   sessionHasRead = true;
   track('read_chapter', { chapter: selectedChapter, source: source || 'bible_com' });
-  // Give bonus XP
-  state.xp = Math.min(state.xp + 15, 100);
-  if (state.xp >= 100) { state.level++; state.xp = 10; }
+  // Give bonus XP（2026-08-31 D3：改走 core.applyXp，升級公式單一正本）
+  const _xpUp = applyXp(state.xp, state.level, 15);
+  state.xp = _xpUp.xp; state.level = _xpUp.level;
   saveState();
   renderAvatar();
   chapterReadDone = true;
@@ -2978,7 +2972,7 @@ function renderGuide(data) {
     ? `<div class="guide-hard-lbl">讀的時候可能卡住的地方</div>${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}`
     : '';
   // 書卷背景入口：只有 BOOK_DETAIL_ENABLED 內的書卷才顯示（否則點了沒東西開）
-  const guideBook = BOOKS.find(b => b.entries.some(e => String(e) === String(data.chapter)));
+  const guideBook = bookOfChapter(data.chapter);   // 2026-08-31 D4：統一走 core.js 反查
   const bookLinkHtml = (guideBook && isBookDetailEnabled(guideBook.key))
     ? `<div class="guide-book-link" onclick="openBookDetail('${guideBook.key}')">📚 這章讀起來吃力？先認識《${guideBook.name}》 →</div>`
     : '';
@@ -3606,6 +3600,10 @@ async function finalizeCompletion() {
   newTitles.forEach(t => state.items.push(t));
   if (newTitles.length) state.title = newTitles[newTitles.length - 1].name;
   const newItem = r.newItem, bonusItem = r.bonusItem, isMergedDayAllDone = r.isMergedDayAllDone;
+  // f469a3d：完成即記已領（completed 必伴隨 rewardClaimed）。2026-08-31 D1：提前到 flush 前，
+  // 與 completed 同一次寫入落地，省掉原本尾端第二次 saveState 的整份 user-doc debounce 寫入。
+  if (!state.rewardClaimed) state.rewardClaimed = {};
+  state.rewardClaimed[chapterKey(selectedChapter)] = true;
   saveState();
   await flushToFirestore();  // 完成節點即時寫雲端：完成後 1.5s 內關 app 也不掉（其他 saveState 仍走 debounce）
   const reflText2 = document.getElementById('refl-text').value.trim();
@@ -3625,9 +3623,6 @@ async function finalizeCompletion() {
   showReward(newItem, bonusItem, hasBonus, newTitles);   // 出席燈＋書卷收集＋稱號在 showReward 內一併呈現
   afterReward();
   setTimeout(() => checkAchievements(), 1500);
-  // f469a3d：完成即記已領（治本後 completed 必伴隨 rewardClaimed，新資料不再產生孤兒）
-  if (!state.rewardClaimed) state.rewardClaimed = {};
-  state.rewardClaimed[chapterKey(selectedChapter)] = true; saveState();
 
   const btn = document.getElementById('complete-btn');
   btn.textContent = '✅ 已完成此章靈修';
@@ -3859,7 +3854,6 @@ function fallbackCopy(text, btn) {
 let wardSel = { hat:'', body:'🧑', hand:'', bg:'🌿', title:'' };
 let wardSlot = 'hat';
 
-function renderWardrobeUI() {}
 
 function openWardrobe(preset) {
   wardSel = { hat:state.hat||'', body:state.body||'🧑', hand:state.item||'', bg:state.bg||'🌿', title:state.title||'' };
@@ -4915,13 +4909,7 @@ function ntFinalePersonal() {
   const completed = state.completed || {};
   const n = Object.keys(completed).length;
   const dates = [...new Set(Object.values(completed).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
-  let run = 0, best = 0, prev = null;
-  dates.forEach(d => {
-    run = (prev && (new Date(d) - new Date(prev) === 86400000)) ? run + 1 : 1;
-    if (run > best) best = run;
-    prev = d;
-  });
-  best = Math.max(best, state.streak || 0);
+  const best = Math.max(bestStreak(completed), state.streak || 0);   // 2026-08-31 D3：run 計算移入 core.js（可測）
   const first = dates[0] ? `${parseInt(dates[0].slice(5, 7))} 月 ${parseInt(dates[0].slice(8, 10))} 日` : null;
   return { n, best, first, refl: cachedStats.reflectionCount || 0 };
 }

@@ -187,13 +187,18 @@
     if (itemData.default) return itemData[gender] || itemData.default;
     return itemData;
   }
+  // XP 加點＋升級（封頂 100 即升級並回到 10）——completeDevotional 與 markAsRead 共用的單一正本
+  function applyXp(xp, level, delta) {
+    let nextXp = Math.min(xp + delta, 100);
+    let nextLevel = level;
+    if (nextXp >= 100) { nextLevel++; nextXp = 10; }
+    return { xp: nextXp, level: nextLevel };
+  }
   function computeCompletion({ data, chapter, hasBonus, gender, xp, level, completed, dayChapters, today }) {
     const newItem = { ...resolveItem(data.baseItem, gender), chapter };
     const bonusItem = hasBonus ? { ...resolveItem(data.bonusItem, gender), chapter } : null;
-    // xp / 升級：有默想 +35、無 +20，封頂 100 即升級並回到 10
-    let nextXp = Math.min(xp + (hasBonus ? 35 : 20), 100);
-    let nextLevel = level;
-    if (nextXp >= 100) { nextLevel++; nextXp = 10; }
+    // xp / 升級：有默想 +35、無 +20
+    const { xp: nextXp, level: nextLevel } = applyXp(xp, level, hasBonus ? 35 : 20);
     // streak：合併日同日內若已完成另一章，第二章不重複 +streak（今日仍算一次靈修）
     const sameDayOtherChapters = dayChapters.filter(c => c !== chapter);
     const sameDayAlreadyDoneToday = sameDayOtherChapters.some(c => completed[chapterKey(c)] === today);
@@ -213,6 +218,17 @@
   // ── 累積靈修天數（2026-08-27 PR ①：🔥「連續」→「累積」）──────
   // 口徑：completed 各章記錄的完成日期去重後的天數；合併日兩章同日只算 1 天。
   // 不因 streak 中斷歸零（ADR 0001 視覺成長三原則：累計成就不歸零）。
+  // 歷史最佳連續天數：completed 完成日期去重排序後的最長連續 run（終點儀式個人段用）
+  function bestStreak(completed) {
+    const dates = [...new Set(Object.values(completed || {}).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
+    let run = 0, best = 0, prev = null;
+    dates.forEach(d => {
+      run = (prev && (new Date(d) - new Date(prev) === 86400000)) ? run + 1 : 1;
+      if (run > best) best = run;
+      prev = d;
+    });
+    return best;
+  }
   function totalDevotionDays(completed) {
     const seen = new Set();
     Object.values(completed || {}).forEach(d => { if (/^\d{4}-\d{2}-\d{2}$/.test(d)) seen.add(d); });
@@ -248,7 +264,7 @@
     chapterLabel, chapterFull, bookOfChapter,
     getScheduleChapters, findScheduleDate, isMakeupChapterOn,
     isChapterDoneIn, bookProgress, pickDefaultChapterFrom, todayChapterFor,
-    TITLE_LADDER, titlesForBooks, titlesUnlockedBetween, nextTitle, resolveItem, computeCompletion, escapeHtmlMyMsg,
-    totalDevotionDays, equippedVerses,
+    TITLE_LADDER, titlesForBooks, titlesUnlockedBetween, nextTitle, resolveItem, applyXp, computeCompletion, escapeHtmlMyMsg,
+    totalDevotionDays, bestStreak, equippedVerses,
   };
 });
