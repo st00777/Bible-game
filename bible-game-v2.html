@@ -2929,7 +2929,9 @@ function markAsRead(source) {
   document.getElementById('step2-badge').classList.add('done');
   document.getElementById('step2-sub').textContent = '已完成閱讀 · 閱讀勳章獲得！';
   document.getElementById('step2-done').style.display = 'flex';
-  document.getElementById('read-full-btn') && (document.querySelector('.read-full-btn').style.display = 'none');
+  // 2026-08-31 修（issue #75 A1）：原本查不存在的 id 'read-full-btn'（實際 id 是 bible-link），按鈕從未被隱藏
+  const _fullBtn = document.querySelector('.read-full-btn');
+  if (_fullBtn) _fullBtn.style.display = 'none';
   const alreadyBtn = document.getElementById('read-already-btn'); if (alreadyBtn) alreadyBtn.style.display = 'none';
   document.getElementById('read-done-row').style.display = 'flex';
 }
@@ -3331,7 +3333,7 @@ function selectChapter(ch) {
   // B1（2026-08-30）：合併日帶 merged／order（order＝今天該日已完成幾章＋1，看玩家先讀哪章）
   const _sdSel = findScheduleDate(ch); const _dayChs = _sdSel ? getScheduleChapters(_sdSel) : [];
   const _selP = { chapter: ch };
-  if (_dayChs.length >= 2) { _selP.merged = true; _selP.order = _dayChs.filter(c => (state.completed || {})[String(c)]).length + 1; }
+  if (_dayChs.length >= 2) { _selP.merged = true; _selP.order = _dayChs.filter(c => isChapterDone(c)).length + 1; }   // 2026-08-31 修：改走 chapterKey 正規化（原 String(c) 對使徒行傳數字 key 永遠 miss，order 恆為 1）
   track('chapter_select', _selP);
 
   // Update badge
@@ -4029,9 +4031,13 @@ function unlockAllItems() {
 function doReset(type) {
   closeOverlay('reset-overlay');
   if (type==='all') {
-    localStorage.removeItem('bible_state');
-    localStorage.removeItem('avatar_state');
-    localStorage.removeItem('tut_done');
+    // 2026-08-31 修（issue #75 A4）：原本只清 3 個 key，成就（ach_unlocked）、訪客統計（local_stats）、
+    // 自我約定等全部殘留。新增 key 時記得加進這張表（未來可抽成 LS_KEYS 登錄表）。
+    ['bible_state','avatar_state','tut_done','ach_unlocked','local_stats',
+     'has_submitted_feedback','last_seen_version','line_state','login_choice_made',
+     'nt_finale_seen','profile_nudge_last_shown','profile_nudge_last_skip',
+     'profile_nudge_skip_count','commit_ask_enabled','commit_slot','fontSize'
+    ].forEach(k => localStorage.removeItem(k));
     location.reload();
   } else {
     // Keep name & gender, reset progress
@@ -4308,12 +4314,10 @@ function renderDiaryList(entries) {
   // Group by book
   const groups = {};
   entries.forEach(e => {
-    let bookName = '其他';
-    if (/^\d+$/.test(e.key) || e.key.startsWith('ACT')) bookName = '使徒行傳';
-    else if (e.key.startsWith('ROM')) bookName = '羅馬書';
-    else if (e.key.startsWith('COR1_')) bookName = '哥林多前書';
-    else if (e.key.startsWith('COR2_')) bookName = '哥林多後書';
-    else if (e.key.startsWith('GAL')) bookName = '加拉太書';
+    // 2026-08-31 修（issue #75 A2）：改用 BOOKS 反查（core.js bookOfChapter），
+    // 原寫死前綴鏈只到加拉太書，弗以後的日記全被歸「其他」
+    const _bk = bookOfChapter(e.key);
+    const bookName = _bk ? _bk.name : '其他';
     if (!groups[bookName]) groups[bookName] = [];
     groups[bookName].push(e);
   });
@@ -4856,10 +4860,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Version update notice
     const lastSeen = localStorage.getItem('last_seen_version');
     if (lastSeen !== GAME_VERSION) {
-      // SUPPRESS_VERSION_POPUP=true 走 silent 升級：靜默更新 lastSeen、不彈公告
-      // 避免長期累積（下次釋出時不會補看舊 notes 混淆）
+      // SUPPRESS_VERSION_POPUP=true 走 silent 升級：不彈公告、也「不」動 lastSeen。
+      // 2026-08-31 修（issue #75 A5）：原本靜默寫入 lastSeen，會把玩家還沒看到的上一版公告
+      // 一併標成已讀（08.30 公告被 08.31 吞掉）。lastSeen 只在玩家真正看過公告時更新，
+      // 下次彈公告的版本會正常補彈（只顯示該版 notes）。
       if (typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP) {
-        localStorage.setItem('last_seen_version', GAME_VERSION);
         if (!localStorage.getItem('tut_done')) {
           setTimeout(() => openTutorial('first'), 500);
         }
