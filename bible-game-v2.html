@@ -2377,7 +2377,7 @@ function renderBookDetail(bookKey) {
   if (!book) return;
   const titleEl = document.getElementById('bd-title');
   if (titleEl) titleEl.textContent = `${book.emoji} ${book.name}`;
-  const esc = (typeof escapeHtmlMyMsg === 'function') ? escapeHtmlMyMsg : (x => x);
+  const esc = escapeHtmlMyMsg;   // 2026-08-31 加固（issue #76 B4）：移除 identity fallback——core.js 沒載入時寧可 fail-loud，不能退成不轉義
   let html = '';
 
   // ① 導讀區（讀 BOOK_INTRO[key]）
@@ -4329,9 +4329,9 @@ function renderDiaryList(entries) {
       const ch = getChapter(e.key);
       const title = ch?.reflectionTitle || '';
       const chLabel = chapterFull(ch?.chapter || e.key);
-      const preview = e.reflectionText ? e.reflectionText.slice(0, 60) + (e.reflectionText.length > 60 ? '...' : '') : '（有填寫默想，但文字未保存）';
+      const preview = e.reflectionText ? escapeHtmlMyMsg(e.reflectionText.slice(0, 60)) + (e.reflectionText.length > 60 ? '...' : '') : '（有填寫默想，但文字未保存）';   // 2026-08-31 加固（issue #76 B6）
       const date = e.date || '';
-      html += `<div class="diary-card" onclick="showDiaryDetail('${e.key}')">
+      html += `<div class="diary-card" onclick="showDiaryDetail('${escapeHtmlMyMsg(e.key)}')">
         <div class="diary-card-header"><span class="diary-card-chapter">${chLabel}</span><span class="diary-card-date">${date}</span></div>
         ${title ? `<div class="diary-card-title">💭 ${title}</div>` : ''}
         <div class="diary-card-preview">${preview}</div>
@@ -4473,7 +4473,7 @@ function renderMyMessagesList(entries) {
     const preview = msg
       ? `<div class="my-msg-preview">${escapeHtmlMyMsg(msg.slice(0, 40))}${msg.length > 40 ? '…' : ''}</div>`
       : '<div class="my-msg-preview-empty">（沒有文字內容）</div>';
-    html += `<div class="my-msg-card" onclick="openMyMessageThread('${d.id}')">
+    html += `<div class="my-msg-card" onclick="openMyMessageThread('${escapeHtmlMyMsg(d.id)}')">
       <div class="my-msg-row">
         <span class="my-msg-date">${date}</span>
         <span style="display:inline-flex;align-items:center;">${unreadDot}${badge}</span>
