@@ -150,7 +150,7 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   const dwell = t => { const a = inWin.filter(e => e.type === t).map(e => e.meta.dwellSec).filter(x => x != null); return a.length ? `中位停留 ${median(a)} 秒` : '—'; };
   const fx = inWin.filter(e => e.type === 'focus_exit');
   console.log(`- 焦點模式：進入 ${cnt('focus_enter')}；退出 ${fx.length} 次，其中在焦點內完成 ${fx.filter(e => e.meta.completed).length}，${dwell('focus_exit')}`);
-  console.log(`- 完成短畫面：${cnt('reward_view')}，${dwell('reward_close')}；稱號解鎖 ${cnt('title_unlocked')}`);
+  console.log(`- 領獎畫面（原完成短畫面已併入）：${cnt('reward_view')}，${dwell('reward_close')}；稱號解鎖 ${cnt('title_unlocked')}`);
   const ps = inWin.filter(e => e.type === 'page_switch' && e.meta.page === 'books');
   console.log(`- 📚 書卷與成就分頁：切入 ${ps.length} 次／${new Set(ps.map(e => e.uid)).size} 人；書卷詳情頁開啟 ${cnt('book_detail_open')}`);
   const to = inWin.filter(e => e.type === 'tutorial_open'), tc = inWin.filter(e => e.type === 'tutorial_close');

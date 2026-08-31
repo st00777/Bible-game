@@ -30,6 +30,8 @@ const SUPPRESS_VERSION_POPUP = true;
 // 不一致即中止部署（issue #7）。
 const AI_FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
 
+// 2026.08.31 為純後台版（SUPPRESS_VERSION_POPUP=true），notes 維持 08.30 批；
+// 下次彈公告的進版必須重寫本陣列。
 const VERSION_NOTES = [
   '❓ 遊戲說明頁更新：補上焦點模式、🔥出席燈、書卷與成就分頁、稱號、自我約定與難章提示，成就入口改指向「📚 書卷與成就」分頁（「更多」選單可隨時查看）'
 ];
@@ -950,9 +952,9 @@ const BOOKS = [
 ];
 
 // ── A1 書卷詳情頁 feature flag ──────────────────────────────
-// Phase 1（2026-08-23 James 拍板）只開「創世記」一卷的垂直切片：書櫃上只有清單內的書背
-// 點得開詳情頁，其餘書卷維持 A1 之前的樣子（純展示、不可點）。
-// Phase 2 滾動鋪開＝該卷導讀／人物／美術齊了，就把 key 加進這個陣列，不用動程式。
+// 2026-08-29 起全開：新約 23 卷＋創世記共 24 卷都在清單內，所有書背都點得開詳情頁
+//（原 Phase 1「只開創世記垂直切片」與 Phase 2 滾動鋪開均已完成；flag 退役另議，見 CLAUDE.md ③d 段）。
+// 未來新增書卷（出埃及記等）＝該卷導讀／人物齊了，就把 key 加進這個陣列，不用動程式。
 const BOOK_DETAIL_ENABLED = ['ACT','ROM','COR1','COR2','GAL','EPH','PHP','COL','TH1','TH2','TIM1','TIM2','TIT','PHM','HEB','JAS','PE1','PE2','JN1','JN2','JN3','JUD','REV','GEN']; // 2026-08-29 新約 23 卷背景＋人物齊，全開（美術不等）
 
 const CHARACTERS = {
