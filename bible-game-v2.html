@@ -2025,8 +2025,9 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
     const f = { totalDays: 1 };
     if (hasReflection) f.reflectionCount = 1;
     if (hasRead)       f.readCount       = 1;
-    if (h >= 5 && h < 9)     f.morningCount = 1;
-    if (h >= 22 || h < 5)    f.nightCount   = 1;
+    const _fl = statHourFlags(h);   // D14：時段口徑單一正本（core.js）
+    if (_fl.morning) f.morningCount = 1;
+    if (_fl.night)   f.nightCount   = 1;
     if (isMakeupChapter(ch)) f.makeupCount  = 1;
     bumpLocalStats(f);
     return;
@@ -2060,8 +2061,9 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
     const statsUpdates = { totalDays: inc(1) };
     if (hasReflection) statsUpdates.reflectionCount = inc(1);
     if (hasRead)       statsUpdates.readCount       = inc(1);
-    if (h >= 5 && h < 9)        statsUpdates.morningCount = inc(1);
-    if (h >= 22 || h < 5)       statsUpdates.nightCount   = inc(1);
+    const _fl2 = statHourFlags(h);   // D14：與訪客分支同一正本，口徑不再兩處各寫
+    if (_fl2.morning) statsUpdates.morningCount = inc(1);
+    if (_fl2.night)   statsUpdates.nightCount   = inc(1);
     if (isMakeupChapter(ch))    statsUpdates.makeupCount  = inc(1);
     batch.set(userRef.collection('stats').doc('data'), statsUpdates, { merge: true });
     // profile.totalDays 同步更新
@@ -2108,6 +2110,13 @@ let cachedStats = {};
 // issue #32：訪客沒有 Firestore stats 路徑 → 讀經／默想／清晨／補讀類成就永遠解不開。
 // 訪客改用 localStorage 累計同一組欄位（只在本機、不進雲端）；登入後以 Firestore 為準。
 const LOCAL_STATS_KEY = 'local_stats';
+
+// 本 app 擁有的 localStorage key 單一登錄表（D17）：新增 key 時加在這裡，
+// doReset('all') 讀這張表整清——別再回去 doReset 裡手加（issue #75 A4 的教訓）。
+const LS_KEYS = ['bible_state','avatar_state','tut_done','ach_unlocked','local_stats',
+  'has_submitted_feedback','last_seen_version','line_state','login_choice_made',
+  'nt_finale_seen','profile_nudge_last_shown','profile_nudge_last_skip',
+  'profile_nudge_skip_count','commit_ask_enabled','commit_slot','fontSize'];
 function loadLocalStats() { try { return JSON.parse(localStorage.getItem(LOCAL_STATS_KEY) || '{}'); } catch(e) { return {}; } }
 function bumpLocalStats(fields) {
   const st = loadLocalStats();
@@ -3274,7 +3283,7 @@ function openMonthPicker() {
   document.getElementById('month-grid-picker').innerHTML = months.map((m,i) =>
     `<div class="month-item${i===calMonth?' active':''}" onclick="calSelectMonth(${i})">${m}</div>`
   ).join('');
-  document.getElementById('month-picker-overlay').classList.add('show');
+  openOverlay('month-picker-overlay');   // 2026-09-01 D10：走 helper 取得 body 捲動鎖（原直接 classList 無鎖）
 }
 
 function calSelectMonth(m) {
@@ -3284,7 +3293,7 @@ function calSelectMonth(m) {
 }
 
 function closeMonthPicker() {
-  document.getElementById('month-picker-overlay').classList.remove('show');
+  closeOverlay('month-picker-overlay');   // 2026-09-01 D10：對稱走 helper
 }
 
 // ══ CHAPTER GRID (kept for wardrobe/reset refresh) ═══════
@@ -4020,13 +4029,8 @@ function unlockAllItems() {
 function doReset(type) {
   closeOverlay('reset-overlay');
   if (type==='all') {
-    // 2026-08-31 修（issue #75 A4）：原本只清 3 個 key，成就（ach_unlocked）、訪客統計（local_stats）、
-    // 自我約定等全部殘留。新增 key 時記得加進這張表（未來可抽成 LS_KEYS 登錄表）。
-    ['bible_state','avatar_state','tut_done','ach_unlocked','local_stats',
-     'has_submitted_feedback','last_seen_version','line_state','login_choice_made',
-     'nt_finale_seen','profile_nudge_last_shown','profile_nudge_last_skip',
-     'profile_nudge_skip_count','commit_ask_enabled','commit_slot','fontSize'
-    ].forEach(k => localStorage.removeItem(k));
+    // issue #75 A4：全清 app 擁有的 key（單一登錄表 LS_KEYS，D17）
+    LS_KEYS.forEach(k => localStorage.removeItem(k));
     location.reload();
   } else {
     // Keep name & gender, reset progress
@@ -4055,7 +4059,8 @@ function closeOverlay(id) {
   const el = document.getElementById(id);
   el.classList.remove('show');
   el.classList.remove('stack-top');
-  if (!document.querySelector('.overlay.show')) {
+  // month-picker 用自己的 CSS class（非 .overlay），解鎖檢查一併涵蓋（D10）
+  if (!document.querySelector('.overlay.show, .month-picker-overlay.show')) {
     document.body.style.overflow = '';
   }
 }
@@ -4848,16 +4853,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showMainAppScreen();
     // Version update notice
     const lastSeen = localStorage.getItem('last_seen_version');
-    if (lastSeen !== GAME_VERSION) {
-      // SUPPRESS_VERSION_POPUP=true 走 silent 升級：不彈公告、也「不」動 lastSeen。
-      // 2026-08-31 修（issue #75 A5）：原本靜默寫入 lastSeen，會把玩家還沒看到的上一版公告
-      // 一併標成已讀（08.30 公告被 08.31 吞掉）。lastSeen 只在玩家真正看過公告時更新，
-      // 下次彈公告的版本會正常補彈（只顯示該版 notes）。
-      if (typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP) {
-        if (!localStorage.getItem('tut_done')) {
-          setTimeout(() => openTutorial('first'), 500);
-        }
-      } else if (ntFinalePending()) {
+    // 彈不彈＝core.shouldShowVersionNotice（D11 移入 core 可測）。
+    // suppress 版不彈、也「不」動 lastSeen（issue #75 A5：否則會吞掉玩家還沒看到的上一版公告；
+    // lastSeen 只在玩家真正看過公告時更新——見 closeVersionNotice）。
+    const _suppress = typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP;
+    if (shouldShowVersionNotice(lastSeen, GAME_VERSION, _suppress)) {
+      if (ntFinalePending()) {
         // 終點儀式期間（8/28–9/06）且尚未看過：儀式先、公告後（closeNtFinale 再彈）
         _versionNoticePending = true;
       } else {
