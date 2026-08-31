@@ -13,11 +13,14 @@ admin.initializeApp();
 const lineChannelSecret = defineSecret('LINE_CHANNEL_SECRET');
 const googleAiApiKey = defineSecret('GOOGLE_AI_API_KEY');
 const LINE_CHANNEL_ID = '2009801861';
-const ALLOWED_ORIGINS = [
-  'https://st00777.github.io',                        // prod (GitHub Pages)
-  'https://bible-game-bcb84--dev-01luz2yz.web.app',   // dev preview (Firebase Hosting channel)
-  'https://bible-game-bcb84.web.app',                 // 固定測試站 (hosting:main)
-];
+// 站台單一表（D18）：origin＋app 路徑一起維護——新增/輪替 preview channel 只改這裡，
+// CORS 白名單與 LINE redirect 白名單同步推導，不會再漏改其中一份（過往 CORS 修復的教訓）。
+const SITES = {
+  'https://st00777.github.io': '/Bible-game/bible-game-v2.html',                 // prod (GitHub Pages)
+  'https://bible-game-bcb84--dev-01luz2yz.web.app': '/bible-game-v2.html',       // dev preview (Firebase Hosting channel)
+  'https://bible-game-bcb84.web.app': '/bible-game-v2.html',                     // 固定測試站 (hosting:main)
+};
+const ALLOWED_ORIGINS = Object.keys(SITES);
 
 // AI 失敗時回給玩家的 fallback 文字。
 // 單一正本在 ../content.js 的 AI_FALLBACK_TEXT；functions 部署邊界無法 import，所以這裡留複本。
@@ -37,11 +40,7 @@ exports.lineLogin = onRequest(
       return;
     }
 
-    const VALID_REDIRECTS = [
-      'https://st00777.github.io/Bible-game/bible-game-v2.html',
-      'https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html',
-      'https://bible-game-bcb84.web.app/bible-game-v2.html',
-    ];
+    const VALID_REDIRECTS = ALLOWED_ORIGINS.map(o => o + SITES[o]);   // D18：由 SITES 表推導
 
     const { code, redirect_uri } = req.body;
     if (!code || !redirect_uri) {

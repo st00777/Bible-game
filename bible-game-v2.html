@@ -1799,6 +1799,9 @@ async function updateLineProfile(lineDisplayName, linePictureUrl) {
   try {
     const now = firebase.firestore.FieldValue.serverTimestamp();
     const doc = await ref.get();
+    // D13：同 updateProfile——讀到的 doc 直接餵快取
+    profileCache = doc.exists ? doc.data() : {};
+    renderGroupChip();
     if (!doc.exists || !doc.data().firstLoginAt) {
       await ref.set({
         firstLoginAt: now,
@@ -1834,6 +1837,9 @@ async function updateProfile() {
   try {
     const now = firebase.firestore.FieldValue.serverTimestamp();
     const doc = await ref.get();
+    // D13：這次讀到的就是 profile/data，直接餵快取（原本 onAuthStateChanged 還會再讀一次）
+    profileCache = doc.exists ? doc.data() : {};
+    renderGroupChip();
     if (!doc.exists || !doc.data().firstLoginAt) {
       await ref.set({
         firstLoginAt: now,
@@ -2529,12 +2535,12 @@ auth.onAuthStateChanged(async user => {
     }
   }
   // Only call updateProfile for Google users; LINE profile is handled by updateLineProfile
+  // D13：updateProfile 內會順手餵 profileCache（省一次讀）；LINE 返站（無 callback）才走 loadProfileData
   if (!user.uid.startsWith('line:')) updateProfile();
+  else loadProfileData();   // E1：分眾資料快取（LINE 首登由 updateLineProfile 餵）
   initAchievements();
   // Phase 2D：登入後檢查曠野呼聲新回覆，有就亮紅點 + 同 session 彈一次 Toast
   checkUnreadFeedback({ toast: true });
-  // E1：載入分眾資料快取（給領獎後 nudge / av-info chip / 個人資料 sheet 用）
-  loadProfileData();
 });
 
 // Handle LINE OAuth callback on page load
@@ -4666,14 +4672,17 @@ async function sendThreadMessage() {
     }));
     await batch.commit();
 
-    // 重讀完整資料（保證 local state 跟 server 一致，serverTimestamp / increment 真正值才回得來）
-    const [parentSnap, messagesSnap] = await Promise.all([
-      feedbackRef.get(),
-      feedbackRef.collection('messages').orderBy('createdAt', 'asc').get(),
-    ]);
-    currentThreadData = { id: currentThreadDocId, ...parentSnap.data() };
-    currentThreadMessages = [];
-    messagesSnap.forEach(d => currentThreadMessages.push({ id: d.id, ...d.data() }));
+    // 2026-09-01 D12：本地 append 取代整串重讀（原本每送一則要 1+N 個 doc 讀，隨 thread 變長線性成長）。
+    // admin/detail.html appendAdminBubble 已用同模式。createdAt 先用用戶端 Timestamp.now() 呈現
+    //（renderThreadView 有 toDate 防呆；下次開 thread 自然拿到 server 真值），parent 欄位照 schema 轉移。
+    currentThreadData.status = 'awaiting_admin';
+    currentThreadData.unreadByAdmin = true;
+    currentThreadData.messageCount = (currentThreadData.messageCount || 0) + 1;
+    currentThreadMessages.push({
+      id: msgRef.id, role: 'player', text,
+      createdAt: firebase.firestore.Timestamp.now(),
+      authorUid: currentUser.uid, authorType: 'human',
+    });
 
     // 清空 textarea + 重新渲染（自動滾到底）
     ta.value = '';
