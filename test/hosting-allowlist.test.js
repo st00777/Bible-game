@@ -13,7 +13,7 @@ const PUBLIC_ALLOW = ['index.html', 'bible-game-v2.html', 'content.js', 'core.js
 // A1 圖片目錄：public/img/ 只允許圖片檔（封面／人物立繪），由 deploy.sh 從根目錄 img/ 同步
 const PUBLIC_IMG_DIR = 'img/';
 const IMG_EXT = /\.(png|jpe?g|webp|gif|svg)$/i;
-const ADMIN_ALLOW = ['index.html', 'list.html', 'detail.html', 'shared/feedback-schema.js'];
+const ADMIN_ALLOW = ['index.html', 'list.html', 'detail.html', 'common.js', 'shared/feedback-schema.js'];
 
 function listFiles(dir, base = dir) {
   if (!fs.existsSync(dir)) return [];

@@ -249,23 +249,12 @@ body{
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <!-- 曠野呼聲狀態機／容錯讀取單一正本（issue #5）：正本在 repo 根 shared/，admin/ 複本由 scripts/sync-shared.js 同步 -->
 <script src="shared/feedback-schema.js"></script>
+<!-- admin 三頁共用碼（firebaseConfig / auth / 白名單 gate / 渲染 helpers，issue #78）-->
+<script src="common.js"></script>
 
 <script>
-// ── Firebase init（同主站 firebaseConfig）───────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
-  authDomain: "bible-game-bcb84.firebaseapp.com",
-  projectId: "bible-game-bcb84",
-  storageBucket: "bible-game-bcb84.firebasestorage.app",
-  messagingSenderId: "998309781226",
-  appId: "1:998309781226:web:3393ab62963940ef720193"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+// ── Firebase init / ADMIN_EMAILS → admin/common.js（issue #78）─
 const db = firebase.firestore();
-
-// ── 白名單（同 admin/index.html，重複定義避免架構過早優化）──
-const ADMIN_EMAILS = ['st00777@hotmail.com'];
 
 // ── Filter state（含預設值）─────────────────────────────
 const ALL_STATUSES = FEEDBACK_STATUSES;  // 來自 shared/feedback-schema.js
@@ -280,18 +269,9 @@ let allFeedback = [];  // 全部 50 筆，client-side filter
 // ── normalize helpers：normalizeFeedbackStatus / normalizeUnread / normalizeMessageCount / normalizeLastMessageAt
 //    都由 shared/feedback-schema.js 提供（issue #5 單一正本），這裡不再放複本。
 
-// ── HTML escape（同 Phase 2B escapeHtmlMyMsg 風格）─────
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+// ── escapeHtml / formatDateTime → admin/common.js（issue #78）─
 
-// ── 時間格式化 ──────────────────────────────────────────
-function formatDateTime(d) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+// ── 時間格式化（相對時間，僅本頁用）────────────────────
 function relativeTime(d) {
   const now = Date.now();
   const diff = now - d.getTime();
@@ -306,23 +286,17 @@ function relativeTime(d) {
   return Math.floor(diff/(365*day)) + ' 年前';
 }
 
-// ── Auth state monitor（守衛）──────────────────────────
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    window.location.replace('./index.html');
-    return;
+// ── Auth state monitor（守衛，本體在 admin/common.js initAdminGate）─
+// 未登入／不在白名單 → 預設導回 index.html
+initAdminGate({
+  denyLogLabel: 'Unauthorized list access:',
+  onAuthorized(user, email) {
+    // 守衛通過
+    document.getElementById('header-email').textContent = email;
+    initFilterUI();
+    wireCardNavigation();
+    loadFeedbackList();
   }
-  const email = (user.email || '').toLowerCase();
-  if (!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
-    console.warn('Unauthorized list access:', email);
-    window.location.replace('./index.html');
-    return;
-  }
-  // 守衛通過
-  document.getElementById('header-email').textContent = email;
-  initFilterUI();
-  wireCardNavigation();
-  loadFeedbackList();
 });
 
 // ── 卡片點擊 → 進入對話詳情頁（Phase 3C）──────────────
@@ -437,8 +411,7 @@ function applyFilter(list) {
   });
 }
 
-const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
-const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+// ── moodEmoji / catEmoji → admin/common.js（issue #78）─
 
 function renderList() {
   // 排序：lastMessageAt 降序（容錯：沒有就用 createdAt）
@@ -512,19 +485,7 @@ function renderList() {
   container.innerHTML = html;
 }
 
-function renderAdminBadge(status) {
-  // admin 視角 4 色：new 藍 / awaiting_admin 橘 / awaiting_player 綠 / closed 灰
-  if (status === 'new') {
-    return '<span class="fb-badge fb-badge-new">🆕 新留言</span>';
-  }
-  if (status === 'awaiting_admin') {
-    return '<span class="fb-badge fb-badge-wait">🕊️ 等待回覆</span>';
-  }
-  if (status === 'awaiting_player') {
-    return '<span class="fb-badge fb-badge-replied">💬 已回覆</span>';
-  }
-  return '<span class="fb-badge fb-badge-closed">✓ 已結束</span>';
-}
+// ── renderAdminBadge → admin/common.js（issue #78）─
 </script>
 
 </body>
