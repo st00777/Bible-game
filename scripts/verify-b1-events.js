@@ -6,9 +6,8 @@
 //
 // 認證沿用 _shared.js（從 ~/.config/configstore/firebase-tools.json 取 OAuth refresh token）
 
-const { PROJECT, getAccessToken } = require('./_shared');
-
-const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+// value 解碼／Auth 列帳號用 _shared.js 正本
+const { getAccessToken, FIRESTORE_BASE, parseFirestoreValue: parseValue, fetchAllUsers: listAllUsers } = require('./_shared');
 
 // 9 個核心事件名（依 GA4 既有命名統一）
 const CORE_EVENTS = [
@@ -24,24 +23,7 @@ const CORE_EVENTS = [
 ];
 const NO_CHAPTER_EVENTS = ['app_open', 'app_leave'];
 
-// ── Firestore REST value parser（同 analyze-feedback.js 樣式）──
-function parseValue(v) {
-  if (!v) return null;
-  if (v.stringValue !== undefined) return v.stringValue;
-  if (v.booleanValue !== undefined) return v.booleanValue;
-  if (v.integerValue !== undefined) return Number(v.integerValue);
-  if (v.doubleValue !== undefined) return v.doubleValue;
-  if (v.timestampValue !== undefined) return v.timestampValue;
-  if (v.nullValue !== undefined) return null;
-  if (v.mapValue) {
-    const obj = {};
-    for (const [k, mv] of Object.entries(v.mapValue.fields || {})) obj[k] = parseValue(mv);
-    return obj;
-  }
-  if (v.arrayValue) return (v.arrayValue.values || []).map(parseValue);
-  return null;
-}
-
+// parseDoc 在 _shared.js parseDoc 之外多掛 _path / _docId / _uid，維持本地版
 function parseDoc(doc) {
   const fields = doc.fields || {};
   const out = {};
@@ -74,20 +56,6 @@ async function listUserEvents(token, uid, limit = 20) {
   }
   const arr = await res.json();
   return arr.filter(r => r.document).map(r => parseDoc(r.document));
-}
-
-// ── 列所有 users（用於 mode A：逐個 user 撈 events 子集合）──
-async function listAllUsers(token) {
-  const users = [];
-  let nextPageToken = '';
-  while (true) {
-    const url = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchGet?maxResults=500${nextPageToken ? '&nextPageToken=' + nextPageToken : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.users) users.push(...body.users);
-    if (body.nextPageToken) { nextPageToken = body.nextPageToken; } else break;
-  }
-  return users;
 }
 
 // ── 對單一 user 撈最近 1h events ──

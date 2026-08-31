@@ -9,44 +9,9 @@
 //   （district 牧區 / groupName 小組 兩欄玩家填寫時就知道是給團隊牽線用，本來就是具名）。
 //   要查名字才跑這支，不混進每日報告。
 
-const { PROJECT, getAccessToken } = require('./_shared');
+// Firestore REST helpers 從 _shared.js 共用
+const { getAccessToken, FIRESTORE_BASE, parseDoc, fetchCollection } = require('./_shared');
 
-const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
-
-// ── Firestore REST helpers（與 analyze-feedback.js 同一套寫法）──
-function parseFirestoreValue(v) {
-  if (!v) return null;
-  if (v.stringValue !== undefined) return v.stringValue;
-  if (v.booleanValue !== undefined) return v.booleanValue;
-  if (v.integerValue !== undefined) return Number(v.integerValue);
-  if (v.doubleValue !== undefined) return v.doubleValue;
-  if (v.timestampValue !== undefined) return v.timestampValue;
-  if (v.nullValue !== undefined) return null;
-  if (v.mapValue) {
-    const obj = {};
-    for (const [k, mv] of Object.entries(v.mapValue.fields || {})) obj[k] = parseFirestoreValue(mv);
-    return obj;
-  }
-  if (v.arrayValue) return (v.arrayValue.values || []).map(parseFirestoreValue);
-  return null;
-}
-function parseDoc(doc) {
-  const obj = {};
-  for (const [k, v] of Object.entries(doc.fields || {})) obj[k] = parseFirestoreValue(v);
-  return obj;
-}
-async function fetchCollection(token, collection) {
-  const docs = [];
-  let pageToken = '';
-  while (true) {
-    const url = `${FIRESTORE_BASE}/${collection}?pageSize=300${pageToken ? '&pageToken=' + pageToken : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.documents) docs.push(...body.documents);
-    if (body.nextPageToken) { pageToken = body.nextPageToken; } else break;
-  }
-  return docs;
-}
 async function fetchSubDoc(token, userId, subcol, docId) {
   const url = `${FIRESTORE_BASE}/users/${userId}/${subcol}/${docId}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

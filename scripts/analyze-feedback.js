@@ -3,8 +3,8 @@
 // 用法: npm run analyze
 // 需要 Firebase CLI 已登入 (firebase login)
 
-// PROJECT、getAccessToken 從 _shared.js 共用（三個腳本同一個專案 + 同一套 OAuth 流程）
-const { PROJECT, getAccessToken } = require('./_shared');
+// getAccessToken 與 Firestore/Auth REST helpers 從 _shared.js 共用
+const { getAccessToken, FIRESTORE_BASE, fetchCollection, parseDoc, fetchAllUsers } = require('./_shared');
 
 // ── Load SCHEDULE from content.js ────────────────────────
 // 用 vm 沙箱載入 content.js，避免污染全域；content.js 純資料、無 browser API 引用
@@ -32,68 +32,6 @@ Object.entries(SCHEDULE).forEach(([d, chs]) => {
     });
   }
 });
-
-// ── Firestore REST helpers ───────────────────────────────
-
-const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
-
-async function fetchCollection(token, collection) {
-  const docs = [];
-  let pageToken = '';
-  while (true) {
-    const url = `${FIRESTORE_BASE}/${collection}?pageSize=300${pageToken ? '&pageToken=' + pageToken : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.documents) docs.push(...body.documents);
-    if (body.nextPageToken) { pageToken = body.nextPageToken; } else break;
-  }
-  return docs;
-}
-
-function parseFirestoreValue(v) {
-  if (!v) return null;
-  if (v.stringValue !== undefined) return v.stringValue;
-  if (v.booleanValue !== undefined) return v.booleanValue;
-  if (v.integerValue !== undefined) return Number(v.integerValue);
-  if (v.doubleValue !== undefined) return v.doubleValue;
-  if (v.timestampValue !== undefined) return v.timestampValue;
-  if (v.nullValue !== undefined) return null;
-  if (v.mapValue) {
-    const obj = {};
-    for (const [k, mv] of Object.entries(v.mapValue.fields || {})) {
-      obj[k] = parseFirestoreValue(mv);
-    }
-    return obj;
-  }
-  if (v.arrayValue) {
-    return (v.arrayValue.values || []).map(parseFirestoreValue);
-  }
-  return null;
-}
-
-function parseDoc(doc) {
-  const fields = doc.fields || {};
-  const obj = {};
-  for (const [k, v] of Object.entries(fields)) {
-    obj[k] = parseFirestoreValue(v);
-  }
-  return obj;
-}
-
-// ── Firebase Auth REST ───────────────────────────────────
-
-async function fetchAllUsers(token) {
-  const users = [];
-  let nextPageToken = '';
-  while (true) {
-    const url = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchGet?maxResults=500${nextPageToken ? '&nextPageToken=' + nextPageToken : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.users) users.push(...body.users);
-    if (body.nextPageToken) { nextPageToken = body.nextPageToken; } else break;
-  }
-  return users;
-}
 
 // ── Formatting helpers ───────────────────────────────────
 

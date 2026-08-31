@@ -5,58 +5,10 @@
 // 資料源：Firebase Auth（註冊）+ Firestore users/{uid}/chapters（完成/默想/閱讀/嚴格活躍）+ users/{uid}/events（B1，5/24 起）
 // 重用 _shared.js 的 Firebase CLI refresh token，不需額外 SDK。輸出為 markdown 表格，可直接貼進 data-insights。
 
-const { PROJECT, getAccessToken } = require('./_shared.js');
-const FB = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+// Firestore value 解析／週鍵（週日起算）皆用 _shared.js 正本（口徑守門）
+const { getAccessToken, parseDoc: parse, fetchCollection: fetchCol, fetchAllUsers: allUsers, weekKey, weekLabel } = require('./_shared.js');
 
 const WEEKS = Math.max(2, parseInt(process.argv[2], 10) || 6);
-
-// ── Firestore value 解析（與 analyze-feedback.js 同邏輯）──
-function pv(v) {
-  if (!v) return null;
-  if (v.stringValue !== undefined) return v.stringValue;
-  if (v.booleanValue !== undefined) return v.booleanValue;
-  if (v.integerValue !== undefined) return Number(v.integerValue);
-  if (v.doubleValue !== undefined) return v.doubleValue;
-  if (v.timestampValue !== undefined) return v.timestampValue;
-  if (v.mapValue) { const o = {}; for (const [k, m] of Object.entries(v.mapValue.fields || {})) o[k] = pv(m); return o; }
-  if (v.arrayValue) return (v.arrayValue.values || []).map(pv);
-  return null;
-}
-function parse(d) { const o = {}; for (const [k, v] of Object.entries(d.fields || {})) o[k] = pv(v); return o; }
-
-async function fetchCol(token, col) {
-  const docs = []; let pt = '';
-  while (true) {
-    const url = `${FB}/${col}?pageSize=300${pt ? '&pageToken=' + pt : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.documents) docs.push(...body.documents);
-    if (body.nextPageToken) pt = body.nextPageToken; else break;
-  }
-  return docs;
-}
-async function allUsers(token) {
-  const users = []; let pt = '';
-  while (true) {
-    const url = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchGet?maxResults=500${pt ? '&nextPageToken=' + pt : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.users) users.push(...body.users);
-    if (body.nextPageToken) pt = body.nextPageToken; else break;
-  }
-  return users;
-}
-
-// 該週週日（YYYY-MM-DD），週日起算
-function weekKey(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() - d.getUTCDay());
-  return d.toISOString().slice(0, 10);
-}
-function weekLabel(w) {
-  const e = new Date(w + 'T00:00:00Z'); e.setUTCDate(e.getUTCDate() + 6);
-  return `${w.slice(5)}~${e.toISOString().slice(5, 10)}`;
-}
 
 (async () => {
   console.log('正在取得憑證並讀取 Firestore（章節 + 事件子集合，較慢請稍候）...');
