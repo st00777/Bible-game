@@ -3,48 +3,14 @@
 // 加上：掉最多的章節、閱讀來源（bible_com vs already）、閱讀率兩條線（外連／自述已讀，8/29 起）、devotionHabit 交叉、終點儀式曝光、各段停留中位數、events vs chapters 口徑守門。
 // 用法：npm run funnel [週數，預設 6]
 // 資料源：users/{uid}/events（5/24 起，訪客不記）。重用 _shared.js 的 Firebase CLI token。
-const { PROJECT, getAccessToken } = require('./_shared.js');
-const FB = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
+const { getAccessToken, FIRESTORE_BASE: FB, parseDoc: parse, fetchCollection: fetchCol, fetchAllUsers, weekKey, weekLabel } = require('./_shared.js');
 const WEEKS = Number(process.argv[2]) || 6;
 const STAGES = ['chapter_select', 'question_view', 'choice_confirm', 'submit_reflection', 'complete_devotional'];
 const STAGE_LABEL = { chapter_select: '選章', question_view: '看題', choice_confirm: '確認', submit_reflection: '送默想', complete_devotional: '完成' };
 
-function pv(v) {
-  if (!v) return null;
-  if (v.stringValue !== undefined) return v.stringValue;
-  if (v.booleanValue !== undefined) return v.booleanValue;
-  if (v.integerValue !== undefined) return Number(v.integerValue);
-  if (v.doubleValue !== undefined) return v.doubleValue;
-  if (v.timestampValue !== undefined) return v.timestampValue;
-  if (v.mapValue) { const o = {}; for (const [k, m] of Object.entries(v.mapValue.fields || {})) o[k] = pv(m); return o; }
-  if (v.arrayValue) return (v.arrayValue.values || []).map(pv);
-  return null;
-}
-function parse(d) { const o = {}; for (const [k, v] of Object.entries(d.fields || {})) o[k] = pv(v); return o; }
-async function fetchCol(token, col) {
-  const docs = []; let pt = '';
-  while (true) {
-    const res = await fetch(`${FB}/${col}?pageSize=300${pt ? '&pageToken=' + pt : ''}`, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.documents) docs.push(...body.documents);
-    if (body.nextPageToken) pt = body.nextPageToken; else break;
-  }
-  return docs;
-}
-async function allUids(token) {
-  const uids = []; let pt = '';
-  while (true) {
-    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchGet?maxResults=500${pt ? '&nextPageToken=' + pt : ''}`, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.users) uids.push(...body.users.map(u => u.localId));
-    if (body.nextPageToken) pt = body.nextPageToken; else break;
-  }
-  return uids;
-}
+async function allUids(token) { return (await fetchAllUsers(token)).map(u => u.localId); }
 // 台北時間日期（事件 ts 是 UTC）
 function tpeDate(ts) { return new Date(new Date(ts).getTime() + 8 * 3600e3).toISOString().slice(0, 10); }
-function weekKey(dateStr) { const d = new Date(dateStr + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d.toISOString().slice(0, 10); }
-function weekLabel(w) { const e = new Date(w + 'T00:00:00Z'); e.setUTCDate(e.getUTCDate() + 6); return `${w.slice(5)}~${e.toISOString().slice(5, 10)}`; }
 function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; }
 const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
 
