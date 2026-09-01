@@ -18,6 +18,8 @@
 BOOKS 各卷上的過渡旗標：`true` 代表該卷章節物件未補齊、仍用舊的 merged 倍數統計。現況（2026-08-31）：25 卷全為 `false`，過渡已完成，此旗標是待退役的歷史遺留。
 **不是**「這卷有沒有合併日」的開關——合併日由 SCHEDULE 陣列長度決定，與此旗標無關。
 
+
+（2026-09-01 更新：本機制已退役——欄位與雙路徑已自 content.js／core.js 移除；此詞條保留供閱讀舊文件時對照。）
 ## 曠野呼聲
 
 玩家留言與管理員多輪對話的回饋系統。每個 thread 走四狀態狀態機 `new / awaiting_admin / awaiting_player / closed`（closed 為終態，30 天無動靜自動關閉），單一正本在 `shared/feedback-schema.js`。

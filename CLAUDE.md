@@ -87,7 +87,7 @@ Bible-game/
 **資料同步**：登入後進度自動同步 Firestore；未登入使用 localStorage
 **Firebase 專案**：`bible-game-bcb84`
 **AI 回應**：Google AI Studio（Gemini 2.5 Flash），透過 Cloud Function `aiReflection` 代理呼叫
-**Feature flag**：`FEATURE_FEEDBACK_V2 = true`（content.js，2026-05-24 起開放曠野呼聲 v2 入口）；規格與 flag 機制見 `docs/history/feedback-v2-spec.md`
+**Feature flag**：無現役 flag（`FEATURE_FEEDBACK_V2` 與 `BOOK_DETAIL_ENABLED` 已於 2026-09-01 退役、功能恆開）；曠野呼聲 v2 規格史見 `docs/history/feedback-v2-spec.md`
 **追蹤**：Google Analytics GA4（measurement ID `G-HZ3EGYB8BB`；Data API 用的 property ID 是 `534159832`，純數字、在 GA4 屬性設定找）
 **數據分析**：
 - `npm run analyze` ── Firestore 6 區塊報告（feedback / users / 靈修進度 / 成就 / 章節品質 ①-④ / 裝備 ⑤ / 默想歷史 ⑥）
@@ -287,7 +287,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - **雙入口 UI 玩家自選**：日曆點該日進「合併日選擇頁」，玩家選要先讀哪一章。
 - **任一章完成即算今日有靈修**：streak 計算只 +1（不論玩家當天完成幾章），避免合併日 streak 灌水。
 - **兩章各自獨立獎勵**：完成每章都領基本 + 稀有裝備、各自寫默想。
-- **書卷統計依實際章節數**：BOOKS.entries 完整列出所有章節（含合併日的兩章），廢除 merged 倍數機制（過渡已完成，25 卷全為 mergedActive:false，flag 退役見批次 D）。
+- **書卷統計依實際章節數**：BOOKS.entries 完整列出所有章節（含合併日的兩章），廢除 merged 倍數機制（過渡已完成；mergedActive 機制 2026-09-01 退役，欄位與雙路徑已自程式移除）。
 
 > **Phase B 漸進釋出策略**（各書卷合併日切換進度、三條指導原則）見 `docs/history/merged-chapter-phase-b.md`。
 
@@ -449,7 +449,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - [x] **PR ③** 書卷詳情頁第二期：③a 分頁「📖 今日靈修｜📚 書卷與成就」＋卷徽章＋裝備剪影（PR #48）、③b 稱號＝第五裝備部位、綁累計完走卷數 9 級（PR #49）── 2026.08.30 上線（James 8/30 拍板與創世記選項回補整段上，PR #55）。
   - ℹ️ 成就 overlay 已隨 ③a 退役：成就／書架／徽章唯一入口＝主頁「📚 書卷與成就」分頁，`openAchievements()` 僅為 `switchPage('books')` 別名；說明頁與文件不得再寫「成就視窗／點徽章」舊入口。
   - ❌ ③c「每卷專屬稱號／每卷真稀有」── **2026-08-29 James 拍板砍**：與 ③b 累計階梯重複，玩家完走一卷會拿兩個稱號、語意打架；用現有機制即可。每卷的專屬感交給 ③d。
-  - ⏸ ③d 書卷完走儀式＋AI 旅程故事 ── **2026-08-30 James 擱置**：pm-critic 冷評估（年底前觸發者可能 <5 人、只看一次×AI fallback、choiceSelected 送 AI 隱私未定）＋靜態最小版模擬看過後「沒有很喜歡」。PR ③ 到 ③b 為止；BOOK_DETAIL_ENABLED 退役另議。
+  - ⏸ ③d 書卷完走儀式＋AI 旅程故事 ── **2026-08-30 James 擱置**：pm-critic 冷評估（年底前觸發者可能 <5 人、只看一次×AI fallback、choiceSelected 送 AI 隱私未定）＋靜態最小版模擬看過後「沒有很喜歡」。PR ③ 到 ③b 為止；BOOK_DETAIL_ENABLED 已於 2026-09-01 退役。
 - [ ] 等級階梯（只解周邊）＋「試煉」實驗（PR ③ 後）
 - [ ] 時段成就統計 UI（資料已在收集）──「併」：併入視覺成長主菜（2026-08-24）
 - [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）──「併」：併入視覺成長主菜（2026-08-24）
@@ -498,7 +498,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 4. 禁止再 cherry-pick 到 main、禁止直接在 main 改內容——任何只進 main 的 commit 都會讓兩邊再度分岔
 ```
 - 2026-08-23 已把 2026-06-10（`7f07c4b`）以來 main 上 46 個 cherry-pick 影子 commit 反向合進 dev（`9162f65`，樹與 dev 相同、玩家零影響）；分岔研究與方案見 `docs/merge-plan-2026-08-23.md`。
-- 每批內容發布（如 GEN11+）就是一次 dev→main PR；不要累積。A1 書卷詳情頁由 `BOOK_DETAIL_ENABLED` flag 控制逐卷開放，不用 feature branch 卡住。
+- 每批內容發布（如 GEN11+）就是一次 dev→main PR；不要累積。A1 書卷詳情頁全卷恆開（flag 已於 2026-09-01 退役）。
 
 **什麼變更可以緊急跳過 dev**
 - 只有緊急 hotfix：修 main 後**同一天**把 main 合回 dev（`git merge origin/main` 進 dev），不得留著。

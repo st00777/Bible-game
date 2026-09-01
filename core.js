@@ -129,17 +129,10 @@
   }
   function bookProgress(book, completed) {
     completed = completed || {};
-    // mergedActive:false 的書卷（entries 已補滿、廢除 merged 倍數）：用 entries.length 當分母
-    // 預設（mergedActive 未設定或 true）：保留舊邏輯 — entries × merged 倍數 vs totalChapters
-    if (book.mergedActive === false) {
-      const doneEntries = book.entries.filter(ch => completed[chapterKey(ch)]).length;
-      return { done: doneEntries, total: book.entries.length, complete: doneEntries >= book.entries.length };
-    }
-    let doneChapters = 0;
-    book.entries.forEach(ch => {
-      if (completed[chapterKey(ch)]) doneChapters += ((book.merged && (book.merged[ch] || book.merged[String(ch)])) || 1);
-    });
-    return { done: doneChapters, total: book.totalChapters, complete: doneChapters >= book.totalChapters };
+    // 分母一律走 entries（mergedActive 過渡機制 2026-09-01 D8 退役：24 卷 entries 早已補滿、merged 倍數廢除；
+    // BOOKS 殘留的 merged/mergedActive 欄位即使存在也被忽略）
+    const doneEntries = book.entries.filter(ch => completed[chapterKey(ch)]).length;
+    return { done: doneEntries, total: book.entries.length, complete: doneEntries >= book.entries.length };
   }
   // 預設章節挑選：合併日優先挑「第一個未完成」，全完成則回第一個（重讀模式）
   function pickDefaultChapterFrom(chapters, completed) {

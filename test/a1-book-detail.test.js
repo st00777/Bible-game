@@ -1,5 +1,5 @@
 // A1 書卷詳情頁（Phase 1 創世記切片）程式面守門：
-// ① 書櫃只有 BOOK_DETAIL_ENABLED 內的書背綁 onclick；② 封面／人物圖「有圖才輸出」；③ 翻頁動畫尊重 reduced-motion。
+// ① 書櫃所有書背一律綁 onclick（BOOK_DETAIL_ENABLED 已於 2026-09-01 D8 退役、全卷恆開）；② 封面／人物圖「有圖才輸出」；③ 翻頁動畫尊重 reduced-motion。
 // 用假 DOM 跑 renderLibraryPage／renderBookDetail，不開瀏覽器。
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -44,23 +44,17 @@ function run({ BOOKS, BOOK_INTRO = {}, CHARACTERS = {}, BOOK_DETAIL_ENABLED, com
 const GEN = { key: 'GEN', name: '創世記', emoji: '🌍', entries: ['GEN1', 'GEN2'] };
 const ACT = { key: 'ACT', name: '使徒行傳', emoji: '🏛️', entries: [10, 11] };
 
-test('書櫃：只有 BOOK_DETAIL_ENABLED 內的書背綁 onclick＋openable，其餘純展示', () => {
-  const { ctx, document } = run({ BOOKS: [GEN, ACT], BOOK_DETAIL_ENABLED: ['GEN'] });
+test('書櫃：所有書背一律綁 onclick 開詳情頁（flag 退役、全卷恆開）', () => {
+  const { ctx, document } = run({ BOOKS: [GEN, ACT] });
   vm.runInContext('renderLibraryPage()', ctx);
   const out = document.els['ach-library-page'].innerHTML;
-  assert.match(out, /class="book-spine [a-z]+ openable" onclick="openBookDetail\('GEN'\)"/);
-  assert.doesNotMatch(out, /openBookDetail\('ACT'\)/);
-  assert.equal((out.match(/openable/g) || []).length, 1);
+  assert.match(out, /onclick="openBookDetail\('GEN'\)"/);
+  assert.match(out, /onclick="openBookDetail\('ACT'\)"/);
 });
 
-test('沒定義 BOOK_DETAIL_ENABLED ＝ 全關；openBookDetail 對未開放書卷不開 overlay', () => {
-  const a = run({ BOOKS: [GEN, ACT] });
-  vm.runInContext('renderLibraryPage()', a.ctx);
-  assert.doesNotMatch(a.document.els['ach-library-page'].innerHTML, /openBookDetail/);
-  const b = run({ BOOKS: [GEN, ACT], BOOK_DETAIL_ENABLED: ['GEN'] });
+test('openBookDetail：任一書卷都開得了 overlay（無 flag 守衛）', () => {
+  const b = run({ BOOKS: [GEN, ACT] });
   vm.runInContext("openBookDetail('ACT')", b.ctx);
-  assert.equal(b.ctx.__opened, false);
-  vm.runInContext("openBookDetail('GEN')", b.ctx);
   assert.equal(b.ctx.__opened, true);
 });
 
