@@ -38,7 +38,8 @@
 
 ```
 Bible-game/
-├── bible-game-v2.html             # 遊戲主體（機制、介面、邏輯）
+├── bible-game-v2.html             # 遊戲主體（結構與樣式；主邏輯已抽至 app.js）
+├── app.js                         # 遊戲主邏輯（2026-09-01 自 HTML 抽出；SDK 與本檔皆 defer，冷載入不再卡 parser）
 ├── content.js                     # 靈修內容（每週更新這個）；末尾 validateContent() 五張表自檢（npm run validate:content）
 ├── core.js                        # 零 DOM 依賴的純邏輯（chapterKey／進度／日曆／完成計分…），Node 可測；onclick 仍呼叫同名全域
 ├── shared/feedback-schema.js      # 曠野呼聲狀態機單一正本；npm run sync-shared 複製到 public/shared、admin/shared、functions/lib
@@ -72,15 +73,15 @@ Bible-game/
 
 **重要原則**：
 - 每次更新靈修內容只需修改 `content.js`
-- `bible-game-v2.html` 只在機制或介面有改動時才動；純規則（不碰 DOM／state）請放 `core.js` 並補 `test/core.test.js`
-- 改完 HTML／content／shared 跑 `npm test`（含 HTML 標籤平衡與 inline script 編譯檢查）
+- 機制邏輯在 `app.js`、結構樣式在 `bible-game-v2.html`（2026-09-01 起分離）；純規則（不碰 DOM／state）請放 `core.js` 並補 `test/core.test.js`
+- 改完 HTML／app.js／content／shared 跑 `npm test`（含 HTML 標籤平衡、inline script 與 app.js 編譯檢查）
 - 每次更新記得修改 `content.js` 裡的 `GAME_VERSION` 和 `VERSION_NOTES`
 
 ---
 
 ## 技術架構
 
-**前端**：HTML + CSS + JavaScript（單一 HTML 檔案 + content.js）
+**前端**：HTML + CSS + JavaScript（bible-game-v2.html + app.js + content.js，無建置步驟）
 **部署**：GitHub Pages（HTTPS，免費）
 **後端**：Firebase（Firestore Database + Authentication + Cloud Functions Gen 2）
 **登入方式**：Google 登入、LINE 登入（未登入可繼續使用訪客模式）

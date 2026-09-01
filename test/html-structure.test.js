@@ -1,5 +1,5 @@
 // HTML 結構守門：每次改 HTML 後必做的兩件事自動化
-//   ① inline <script> 逐段語法檢查（等同 node --check）
+//   ① inline <script> 逐段語法檢查（等同 node --check）；app.js（2026-09-01 抽出的主邏輯）另行語法檢查
 //   ② 主要標籤開合平衡（結尾標籤被吃掉＝全白＋零錯誤＋單請求的那種 bug）
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -45,3 +45,12 @@ for (const page of PAGES) {
     }
   });
 }
+
+// app.js（D2 抽出的主邏輯）：語法可編譯＋頁面以 defer 載入
+test('app.js 可編譯且 bible-game-v2.html 以 defer 載入', () => {
+  const vm = require('vm');
+  const code = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+  assert.doesNotThrow(() => new vm.Script(code, { filename: 'app.js' }));
+  const html = fs.readFileSync(path.join(ROOT, 'bible-game-v2.html'), 'utf8');
+  assert.ok(html.includes('<script src="app.js" defer></script>'), 'bible-game-v2.html 沒以 defer 載入 app.js');
+});
