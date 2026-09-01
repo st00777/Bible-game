@@ -4075,7 +4075,7 @@ function closeTut() {
   _tutOpenAt = null;
   if (noRepeat) localStorage.setItem('tut_done','1');
   closeOverlay('tut-overlay');
-  startupPromptNext();   // D22：隊列尾——教學之後目前沒有排項；menu 開啟時隊列已空、此呼叫為 no-op
+  startupPromptDone('tutorial');   // D22：僅隊列開出的教學會推進；menu 手動開關因 id 不符為 no-op（審查 ⑤）
 }
 
 // ── Font size ─────────────────────────────────────────────
@@ -4844,11 +4844,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 公告規則不變：suppress 版不彈、也「不」動 lastSeen（issue #75 A5；lastSeen 只在 closeVersionNotice 更新）。
     const _suppress = typeof SUPPRESS_VERSION_POPUP !== 'undefined' && SUPPRESS_VERSION_POPUP;
     _startupQueue = [
-      { when: () => !!new URLSearchParams(location.search).get('nt') || ntFinalePending(),
+      { id: 'finale', when: () => !!new URLSearchParams(location.search).get('nt') || ntFinalePending(),
         show: () => maybeShowNtFinale(), delay: 0 },   // 期間／預覽／已看過／等其他 overlay 的判定都在 maybeShowNtFinale 內
-      { when: () => shouldShowVersionNotice(localStorage.getItem('last_seen_version'), GAME_VERSION, _suppress),
+      { id: 'version', when: () => shouldShowVersionNotice(localStorage.getItem('last_seen_version'), GAME_VERSION, _suppress),
         show: () => { _versionNoticeShown = true; showVersionNotice(); }, delay: 600 },
-      { when: () => !localStorage.getItem('tut_done'),
+      { id: 'tutorial', when: () => !localStorage.getItem('tut_done'),
         show: () => openTutorial(_versionNoticeShown ? 'version' : 'first'), delay: 500 },
     ];
     startupPromptNext();
@@ -4873,7 +4873,7 @@ function showVersionNotice() {
 function closeVersionNotice() {
   localStorage.setItem('last_seen_version', GAME_VERSION);
   closeOverlay('version-overlay');
-  startupPromptNext(300);   // D22：下一個開機彈窗接手（教學 source='version'，口徑同舊行為）
+  startupPromptDone('version', 300);   // D22：隊列開出的公告關閉→教學接手（source='version'，口徑同舊行為）
 }
 
 // ══ 新約之旅・終點（2026-08-28 一次性儀式）════════════════
@@ -4921,11 +4921,21 @@ let _finaleOpenAt = null;
 // 不要再加 flag 手動接力（原 _versionNoticePending 機制已退役）。
 let _startupQueue = [];
 let _versionNoticeShown = false;   // 教學埋點 source 判定：跟在公告後='version'、否則='first'（口徑不變）
+let _activeStartupPrompt = null;   // 目前由隊列開出、顯示中的 prompt id；防手動開關（如 menu 開教學）誤推隊列（審查 ⑤）
 function startupPromptNext(delayMs) {
+  _activeStartupPrompt = null;
   const p = _startupQueue.shift();
   if (!p) return;
-  if (p.when()) setTimeout(p.show, delayMs != null ? delayMs : p.delay);
-  else startupPromptNext(delayMs);   // 條件不成立就同步跳下一個
+  if (p.when()) {
+    setTimeout(() => { _activeStartupPrompt = p.id; p.show(); }, delayMs != null ? delayMs : p.delay);
+  } else {
+    startupPromptNext(delayMs);   // 條件不成立就同步跳下一個
+  }
+}
+// close handler 專用：帶自己的 id——不是隊列開出的那次（例如玩家從 menu 手動開教學）就 no-op
+function startupPromptDone(id, delayMs) {
+  if (_activeStartupPrompt !== id) return;
+  startupPromptNext(delayMs);
 }
 // 儀式是否會在本次開啟時彈出（未看過、在期間內、非預覽）
 function ntFinalePending() {
@@ -4942,7 +4952,7 @@ function closeNtFinale() {
     _finaleOpenAt = null;
   }
   closeOverlay('nt-finale-overlay');
-  startupPromptNext(400);   // D22：下一個開機彈窗（公告→教學）接手
+  startupPromptDone('finale', 400);   // D22：隊列開出的儀式關閉→下一個（公告→教學）接手；手動路徑 no-op
 }
 
 function maybeShowNtFinale() {
@@ -4961,7 +4971,10 @@ function maybeShowNtFinale() {
   if (today < NT_FINALE_START || today > NT_FINALE_END) return;
   let tries = 0;
   const wait = () => {
-    if (document.querySelector('.overlay.show')) { if (++tries < 40) setTimeout(wait, 1500); return; }
+    if (document.querySelector('.overlay.show')) {
+      if (++tries < 40) { setTimeout(wait, 1500); } else { startupPromptDone('finale'); }   // 60 秒等不到就放棄儀式、讓公告/教學接手（審查 ⑥）
+      return;
+    }
     const personal = ntFinalePersonal();
     showNtFinale(personal.n >= NT_FINALE_THRESHOLD ? personal : null);
   };
