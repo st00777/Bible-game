@@ -2902,6 +2902,11 @@ function showDiaryDetail(key) {
 // 與寫入物件產生器（playerReplyUpdate / playerMarkReadUpdate）都在 shared/feedback-schema.js（issue #5），
 // 由頁面載入 shared/feedback-schema.js 掛成全域；這裡不再放複本。
 
+// 曠野呼聲 mood/category → emoji 對照（單一正本，2026-09-01 D21；原「我的留言」列表與 thread 各養一份）
+// key 集合＝firestore.rules moods()/categories()（test/rules-ui.test.js 守 enum 對齊）
+const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
+const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+
 let myMessagesData = [];
 
 async function openMyMessages() {
@@ -2941,8 +2946,6 @@ function renderMyMessagesList(entries) {
     return;
   }
 
-  const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
-  const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
 
   let html = `<div style="font-size:12px;color:var(--text-soft);margin-bottom:10px;">共 ${entries.length} 則</div>`;
   entries.forEach(d => {
@@ -3051,8 +3054,6 @@ function renderThreadView() {
   // Badge
   document.getElementById('thread-badge').innerHTML = renderMyMsgBadge(status);
 
-  const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
-  const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
 
   const ts = d.createdAt && typeof d.createdAt.toDate === 'function' ? d.createdAt.toDate() : null;
   const dateStr = ts ? formatThreadTime(ts) : '—';
