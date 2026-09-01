@@ -66,26 +66,38 @@
     return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  // 版本公告是否應彈（lastSeen 為 null＝新裝置也彈；suppress 版永不彈、且呼叫端不得標記已讀）
+  function shouldShowVersionNotice(lastSeen, version, suppress) {
+    return !suppress && lastSeen !== version;
+  }
+
+  // 統計時段旗標（CLAUDE.md 口徑：清晨 05:00–08:59、深夜 22:00–04:59）；saveChapterRecord 訪客/雲端共用
+  function statHourFlags(h) {
+    return { morning: h >= 5 && h < 9, night: h >= 22 || h < 5 };
+  }
+
   // ── 章節顯示名（讀 BOOKS 的 prefix / shortName / name）──────
   // 章節短標籤（日曆方格／列表用）— 例如「徒10」、「林前1」、「羅3」；加新書卷只要 BOOKS 有 prefix + shortName
-  function chapterLabel(ch) {
-    if (typeof ch === 'number') return `徒${ch}`;
+  // 內部：字串 key 依 BOOKS prefix 拆成（書, 章號）；找不到回 null（D20：兩個格式化函式共用）
+  function splitByPrefix(ch) {
+    if (typeof ch !== 'string') return null;
     for (const book of BOOKS) {
-      if (book.prefix && typeof ch === 'string' && ch.startsWith(book.prefix)) {
-        return `${book.shortName}${ch.slice(book.prefix.length)}`;
+      if (book.prefix && ch.startsWith(book.prefix)) {
+        return { book, num: ch.slice(book.prefix.length) };
       }
     }
-    return ch;  // 找不到對應書卷時原樣回傳避免崩潰
+    return null;
+  }
+  function chapterLabel(ch) {
+    if (typeof ch === 'number') return `徒${ch}`;
+    const m = splitByPrefix(ch);
+    return m ? `${m.book.shortName}${m.num}` : ch;  // 找不到對應書卷時原樣回傳避免崩潰
   }
   // 章節完整中文（標題用）— 例如「使徒行傳 第10章」
   function chapterFull(ch) {
     if (typeof ch === 'number') return `使徒行傳 第${ch}章`;
-    for (const book of BOOKS) {
-      if (book.prefix && typeof ch === 'string' && ch.startsWith(book.prefix)) {
-        return `${book.name} 第${ch.slice(book.prefix.length)}章`;
-      }
-    }
-    return ch;
+    const m = splitByPrefix(ch);
+    return m ? `${m.book.name} 第${m.num}章` : ch;
   }
 
   // 章節所屬書卷（BOOKS 反查）；數字／純數字字串＝使徒行傳；找不到回 null
@@ -261,6 +273,7 @@
   return {
     chapterKey, getChapter, resetChapterIndex,
     dateStr, calDateStr, calWeekOfMonth, calWeeksInMonth, timeOfDay, formatThreadTime,
+    shouldShowVersionNotice, statHourFlags,
     chapterLabel, chapterFull, bookOfChapter,
     getScheduleChapters, findScheduleDate, isMakeupChapterOn,
     isChapterDoneIn, bookProgress, pickDefaultChapterFrom, todayChapterFor,

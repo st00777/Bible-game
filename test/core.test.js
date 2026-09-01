@@ -60,6 +60,17 @@ test('bestStreak：最長連續 run', () => {
   assert.equal(core.bestStreak({ a: '2026-01-01', b: '2026-01-01', c: '2026-01-02' }), 2);  // 合併日同日去重
 });
 
+test('shouldShowVersionNotice / statHourFlags', () => {
+  assert.equal(core.shouldShowVersionNotice(null, '2026.08.31', false), true);    // 新裝置
+  assert.equal(core.shouldShowVersionNotice('2026.08.30', '2026.08.31', false), true);
+  assert.equal(core.shouldShowVersionNotice('2026.08.30', '2026.08.31', true), false);  // suppress 不彈
+  assert.equal(core.shouldShowVersionNotice('2026.08.31', '2026.08.31', false), false); // 已看過
+  assert.deepEqual(core.statHourFlags(5),  { morning: true,  night: false });
+  assert.deepEqual(core.statHourFlags(9),  { morning: false, night: false });
+  assert.deepEqual(core.statHourFlags(22), { morning: false, night: true });
+  assert.deepEqual(core.statHourFlags(4),  { morning: false, night: true });
+});
+
 test('日期／日曆算術', () => {
   assert.equal(core.dateStr(new Date(2026, 0, 5)), '2026-01-05');
   assert.equal(core.calDateStr(2026, 0, 5), '2026-01-05');
