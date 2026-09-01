@@ -198,15 +198,16 @@ test('escapeHtmlMyMsg', () => {
   assert.equal(core.escapeHtmlMyMsg(`<a href="x">&'</a>`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
 });
 
-test('HTML 不再自己定義已搬走的函式，但仍有載入 core.js', () => {
+test('app.js 不再自己定義已搬走的函式，HTML 仍載入 core.js（2026-09-01 D2：主邏輯移居 app.js）', () => {
   const html = fs.readFileSync(path.join(ROOT, 'bible-game-v2.html'), 'utf8');
+  const appjs = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
   assert.ok(html.includes('<script src="core.js"></script>'));
   for (const fn of Object.keys(core)) {
     if (fn === 'resetChapterIndex') continue;
-    assert.ok(!new RegExp(`^function ${fn}\\s*\\(`, 'm').test(html), `bible-game-v2.html 仍定義 ${fn}`);
+    assert.ok(!new RegExp(`^function ${fn}\\s*\\(`, 'm').test(appjs), `app.js 仍定義 ${fn}`);
   }
   // 薄包裝還在（名字是 onclick／其他函式的公開介面，不能消失）
   for (const wrapper of ['todayStr', 'getTimeOfDay', 'isMakeupChapter', 'getBookProgress', 'isChapterDone', 'pickDefaultChapter', 'getTodayChapter', 'calIsToday', 'resetSessionState']) {
-    assert.ok(new RegExp(`^function ${wrapper}\\s*\\(`, 'm').test(html), `bible-game-v2.html 缺薄包裝 ${wrapper}`);
+    assert.ok(new RegExp(`^function ${wrapper}\\s*\\(`, 'm').test(appjs), `app.js 缺薄包裝 ${wrapper}`);
   }
 });

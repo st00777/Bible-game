@@ -13,7 +13,7 @@ CMD="${1:-}"
 sync_public() {
   mkdir -p public
   node scripts/sync-shared.js
-  cp -f index.html bible-game-v2.html content.js core.js public/
+  cp -f index.html bible-game-v2.html app.js content.js core.js public/
   # A1 圖片（封面／人物立繪）正本在根目錄 img/a1/，跟著同步；rsync --delete 讓刪圖也同步、不留孤兒
   mkdir -p img/a1 public/img
   rsync -a --delete img/ public/img/

@@ -8,13 +8,14 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const html = fs.readFileSync(path.join(ROOT, 'bible-game-v2.html'), 'utf8');
+const html = fs.readFileSync(path.join(ROOT, 'bible-game-v2.html'), 'utf8');           // CSS 斷言用
+const appjs = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');                       // 主邏輯（D2 抽出）
 
-// 只抽書櫃＋詳情頁那段函式原始碼（從 renderLibraryPage 到「分享次數」註解前），避免載整頁
+// 只抽書櫃＋詳情頁那段函式原始碼（從 renderLibraryPage 到「分享次數」註解前），避免載整檔
 function slice(from, to) {
-  const a = html.indexOf(from), b = html.indexOf(to, a);
+  const a = appjs.indexOf(from), b = appjs.indexOf(to, a);
   assert.ok(a > 0 && b > a, `找不到 ${from} ～ ${to}`);
-  return html.slice(a, b);
+  return appjs.slice(a, b);
 }
 const src = slice('function renderLibraryPage()', '// ── 分享次數');
 
