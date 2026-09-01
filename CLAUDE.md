@@ -1,6 +1,6 @@
 # 靈修冒險遊戲 · 專案記憶文件
 > 給 Claude Code、Claude AI Project 和共同開發者閱讀的專案說明
-> 最後更新：2026-08-30（全年讀經進度補齊到 12/31、進度版本定案）
+> 最後更新：2026-08-31（安全修正 2026.08.31 上線）
 
 ---
 
@@ -13,7 +13,7 @@
 - 臨時預覽（Firebase preview channel）：`bible-game-bcb84--dev-xxxxxx.web.app` —— dev 分支預覽用
 - 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）終驗＝`bible-playtest` skill 自動 17 步＋`docs/playtest-checklist.md` 真機 8 步（2026-08-28 起）。
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：`2026.08.30`（日期版號制，2026-06-05 起；最後一個語意版號 v2.16 於 2026-06-14 上線。近期：8/28 PR ①、8/29 PR ② 焦點模式＋出席燈、8/30 PR ③a/③b 書卷與成就分頁＋稱號＋創世記 2·4·6·8·11 情境題配額回補；同日 #53 說明頁更新＋主畫面隱藏背景雲朵，併入 08.30 不彈公告；同日 #68/#69 創世記 25-36 內容上線、不進版）
+**目前版本**：`2026.08.31`（安全修正：曠野呼聲 create 規則綁 uid＋LINE 登入 state 必驗，純後台不彈公告，PR #71-#73；規則已部署。前版 日期版號制，2026-06-05 起；最後一個語意版號 v2.16 於 2026-06-14 上線。近期：8/28 PR ①、8/29 PR ② 焦點模式＋出席燈、8/30 PR ③a/③b 書卷與成就分頁＋稱號＋創世記 2·4·6·8·11 情境題配額回補；同日 #53 說明頁更新＋主畫面隱藏背景雲朵，併入 08.30 不彈公告；同日 #68/#69 創世記 25-36 內容上線、不進版）
 
 **核心定位**：
 針對大光教會成人查經班的每日靈修輔助遊戲。
@@ -38,7 +38,8 @@
 
 ```
 Bible-game/
-├── bible-game-v2.html             # 遊戲主體（機制、介面、邏輯）
+├── bible-game-v2.html             # 遊戲主體（結構與樣式；主邏輯已抽至 app.js）
+├── app.js                         # 遊戲主邏輯（2026-09-01 自 HTML 抽出；SDK 與本檔皆 defer，冷載入不再卡 parser）
 ├── content.js                     # 靈修內容（每週更新這個）；末尾 validateContent() 五張表自檢（npm run validate:content）
 ├── core.js                        # 零 DOM 依賴的純邏輯（chapterKey／進度／日曆／完成計分…），Node 可測；onclick 仍呼叫同名全域
 ├── shared/feedback-schema.js      # 曠野呼聲狀態機單一正本；npm run sync-shared 複製到 public/shared、admin/shared、functions/lib
@@ -62,7 +63,6 @@ Bible-game/
 ├── scripts/check-ai-logs.js       # aiReflection 呼叫量／成功率（npm run logs）
 ├── scripts/check-line-logs.js     # lineLogin 成功率／失敗分布（npm run line-logs）
 ├── scripts/list-profiles.js       # 列玩家 profile/data（含 E1 分眾欄位）
-├── scripts/migrate-feedback-v2.js # 曠野呼聲 v1→v2 schema 一次性 migration
 ├── scripts/verify-b1-events.js    # B1 事件流落地驗證（列 uid events + 9 事件覆蓋）
 ├── scripts/funnel.js              # B1 漏斗：週別選章→看題→確認→送默想→完成、掉人章節、閱讀來源、停留、儀式曝光（npm run funnel）
 ├── scripts/ga4-insights.js        # GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API）
@@ -73,22 +73,22 @@ Bible-game/
 
 **重要原則**：
 - 每次更新靈修內容只需修改 `content.js`
-- `bible-game-v2.html` 只在機制或介面有改動時才動；純規則（不碰 DOM／state）請放 `core.js` 並補 `test/core.test.js`
-- 改完 HTML／content／shared 跑 `npm test`（含 HTML 標籤平衡與 inline script 編譯檢查）
+- 機制邏輯在 `app.js`、結構樣式在 `bible-game-v2.html`（2026-09-01 起分離）；純規則（不碰 DOM／state）請放 `core.js` 並補 `test/core.test.js`
+- 改完 HTML／app.js／content／shared 跑 `npm test`（含 HTML 標籤平衡、inline script 與 app.js 編譯檢查）
 - 每次更新記得修改 `content.js` 裡的 `GAME_VERSION` 和 `VERSION_NOTES`
 
 ---
 
 ## 技術架構
 
-**前端**：HTML + CSS + JavaScript（單一 HTML 檔案 + content.js）
+**前端**：HTML + CSS + JavaScript（bible-game-v2.html + app.js + content.js，無建置步驟）
 **部署**：GitHub Pages（HTTPS，免費）
 **後端**：Firebase（Firestore Database + Authentication + Cloud Functions Gen 2）
 **登入方式**：Google 登入、LINE 登入（未登入可繼續使用訪客模式）
 **資料同步**：登入後進度自動同步 Firestore；未登入使用 localStorage
 **Firebase 專案**：`bible-game-bcb84`
 **AI 回應**：Google AI Studio（Gemini 2.5 Flash），透過 Cloud Function `aiReflection` 代理呼叫
-**Feature flag**：`FEATURE_FEEDBACK_V2 = true`（content.js，2026-05-24 起開放曠野呼聲 v2 入口）；規格與 flag 機制見 `docs/history/feedback-v2-spec.md`
+**Feature flag**：無現役 flag（`FEATURE_FEEDBACK_V2` 與 `BOOK_DETAIL_ENABLED` 已於 2026-09-01 退役、功能恆開）；曠野呼聲 v2 規格史見 `docs/history/feedback-v2-spec.md`
 **追蹤**：Google Analytics GA4（measurement ID `G-HZ3EGYB8BB`；Data API 用的 property ID 是 `534159832`，純數字、在 GA4 屬性設定找）
 **數據分析**：
 - `npm run analyze` ── Firestore 6 區塊報告（feedback / users / 靈修進度 / 成就 / 章節品質 ①-④ / 裝備 ⑤ / 默想歷史 ⑥）
@@ -268,10 +268,10 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 **合併章節（全年 19 處）**：
 - 5/22 林後5+6 → 雙章呈現（v2.11 已上線，COR2_6 章節物件已備齊）
-- 6/03 加5+6 → 雙章呈現（死線前 GAL5 章節物件待補）
-- 6/14 西1+2 → 雙章呈現（COL1 / COL2 章節物件未補，整書卷尚未開始）
-- 6/26 提前2+3 → 雙章呈現（TIM1_2 / TIM1_3 章節物件未補，整書卷尚未開始）
-- 7/08 來1+2 → 雙章呈現（HEB1 / HEB2 章節物件未補，整書卷尚未開始）
+- 6/03 加5+6 → 雙章呈現（已上線）
+- 6/14 西1+2 → 雙章呈現（已上線）
+- 6/26 提前2+3 → 雙章呈現（已上線）
+- 7/08 來1+2 → 雙章呈現（已上線）
 - 8/02 約一1+2 → 雙章呈現
 - 8/13 啟5+6 → 雙章呈現
 - 8/25 啟18+19 → 雙章呈現
@@ -288,7 +288,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 - **雙入口 UI 玩家自選**：日曆點該日進「合併日選擇頁」，玩家選要先讀哪一章。
 - **任一章完成即算今日有靈修**：streak 計算只 +1（不論玩家當天完成幾章），避免合併日 streak 灌水。
 - **兩章各自獨立獎勵**：完成每章都領基本 + 稀有裝備、各自寫默想。
-- **書卷統計依實際章節數**：BOOKS.entries 完整列出所有章節（含合併日的兩章），廢除 merged 倍數機制；其他尚未補章節物件的書卷暫保留 mergedActive flag 過渡。
+- **書卷統計依實際章節數**：BOOKS.entries 完整列出所有章節（含合併日的兩章），廢除 merged 倍數機制（過渡已完成；mergedActive 機制 2026-09-01 退役，欄位與雙路徑已自程式移除）。
 
 > **Phase B 漸進釋出策略**（各書卷合併日切換進度、三條指導原則）見 `docs/history/merged-chapter-phase-b.md`。
 
@@ -307,7 +307,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 ### 化身系統
 - 暱稱＋性別（弟兄/姐妹/不設定）
 - 四個裝備部位：帽子、衣服、手持、背景
-- 連續3天解鎖衣櫃換裝
+- 累積靈修 3 天解鎖衣櫃換裝（中斷不歸零，PR ① 2026-08-28 起）
 - XP＋等級系統
 
 ### 性別專屬初始裝備
@@ -326,7 +326,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 ### 開發者模式
 - 觸發：連點右上角🔥天數按鈕 3下
 - 密碼：`acts2026dev`
-- 功能：解鎖所有裝備、連續天數設為3天
+- 功能：解鎖所有裝備、出席天數設為3天
 
 ---
 
@@ -445,12 +445,12 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 
 **待開發**
 - [x] **PR ①** 文案批＋自我約定＋AI 看裝備 ── 2026.08.28 上線
-- [x] **PR ②** 焦點模式＋完成短畫面＋🔥出席燈 ── 2026.08.29 上線（PR #40；儀式曝光僅 2-3 人未等數據，James 8/29 拍板直接做）
+- [x] **PR ②** 焦點模式＋完成短畫面＋🔥出席燈 ── 2026.08.29 上線（PR #40；儀式曝光僅 2-3 人未等數據，James 8/29 拍板直接做；完成短畫面已於 8/29 併入領獎畫面，James 拍板）
 - [x] 遊戲說明頁（tut-overlay）更新（issue #53，方案 B：六步驟訂正文案＋「更多功能」兩層、成就入口改分頁）── 2026-08-30 上正式站（PR #59/#60→dev、#61→main；併入 2026.08.30、不彈公告）。方案 C「精簡＋就地提示」經 pm-critic 否決（ADR 0003 否決紀錄）。順手：主畫面隱藏背景雲朵 `body.in-app .cloud`。
 - [x] **PR ③** 書卷詳情頁第二期：③a 分頁「📖 今日靈修｜📚 書卷與成就」＋卷徽章＋裝備剪影（PR #48）、③b 稱號＝第五裝備部位、綁累計完走卷數 9 級（PR #49）── 2026.08.30 上線（James 8/30 拍板與創世記選項回補整段上，PR #55）。
   - ℹ️ 成就 overlay 已隨 ③a 退役：成就／書架／徽章唯一入口＝主頁「📚 書卷與成就」分頁，`openAchievements()` 僅為 `switchPage('books')` 別名；說明頁與文件不得再寫「成就視窗／點徽章」舊入口。
   - ❌ ③c「每卷專屬稱號／每卷真稀有」── **2026-08-29 James 拍板砍**：與 ③b 累計階梯重複，玩家完走一卷會拿兩個稱號、語意打架；用現有機制即可。每卷的專屬感交給 ③d。
-  - ⏸ ③d 書卷完走儀式＋AI 旅程故事 ── **2026-08-30 James 擱置**：pm-critic 冷評估（年底前觸發者可能 <5 人、只看一次×AI fallback、choiceSelected 送 AI 隱私未定）＋靜態最小版模擬看過後「沒有很喜歡」。PR ③ 到 ③b 為止；BOOK_DETAIL_ENABLED 退役另議。
+  - ⏸ ③d 書卷完走儀式＋AI 旅程故事 ── **2026-08-30 James 擱置**：pm-critic 冷評估（年底前觸發者可能 <5 人、只看一次×AI fallback、choiceSelected 送 AI 隱私未定）＋靜態最小版模擬看過後「沒有很喜歡」。PR ③ 到 ③b 為止；BOOK_DETAIL_ENABLED 已於 2026-09-01 退役。
 - [ ] 等級階梯（只解周邊）＋「試煉」實驗（PR ③ 後）
 - [ ] 時段成就統計 UI（資料已在收集）──「併」：併入視覺成長主菜（2026-08-24）
 - [ ] 介面美化（免費素材，可愛風，方向未定：像素vs插畫）──「併」：併入視覺成長主菜（2026-08-24）
@@ -499,7 +499,7 @@ const CHAPTERS = [...];            // 每日靈修內容陣列
 4. 禁止再 cherry-pick 到 main、禁止直接在 main 改內容——任何只進 main 的 commit 都會讓兩邊再度分岔
 ```
 - 2026-08-23 已把 2026-06-10（`7f07c4b`）以來 main 上 46 個 cherry-pick 影子 commit 反向合進 dev（`9162f65`，樹與 dev 相同、玩家零影響）；分岔研究與方案見 `docs/merge-plan-2026-08-23.md`。
-- 每批內容發布（如 GEN11+）就是一次 dev→main PR；不要累積。A1 書卷詳情頁由 `BOOK_DETAIL_ENABLED` flag 控制逐卷開放，不用 feature branch 卡住。
+- 每批內容發布（如 GEN11+）就是一次 dev→main PR；不要累積。A1 書卷詳情頁全卷恆開（flag 已於 2026-09-01 退役）。
 
 **什麼變更可以緊急跳過 dev**
 - 只有緊急 hotfix：修 main 後**同一天**把 main 合回 dev（`git merge origin/main` 進 dev），不得留著。

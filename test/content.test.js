@@ -29,8 +29,17 @@ function runWith(tables) {
 }
 
 const okIntro = { author: 'a', time: 't', place: 'p', theme: 'th', audience: 'au' };
+// 完整形狀的假章節（2026-08-31 檢查 8 之後，「健康」章節必須齊 shape 契約全欄位）
+const fullChapter = ch => ({
+  chapter: ch, verse: 'v', verseRef: 'r', scene: 's', q: 'q',
+  reflectionTitle: 't', reflection: 'rf',
+  choices: [{ k: 'A', text: 'a' }, { k: 'B', text: 'b' }, { k: 'C', text: 'c' }, { k: 'D', text: 'd' }],
+  responses: { A: 'ra', B: 'rb', C: 'rc', D: 'rd' },
+  baseItem: { emoji: '📖', name: 'n', slot: 'hand' },
+  bonusItem: { default: { emoji: '🌿', name: 'n2', slot: 'bg' }, m: { emoji: '⚔️', name: 'n3', slot: 'bg' } },
+});
 const healthy = {
-  CHAPTERS: [{ chapter: 1 }, { chapter: 'GEN1' }],
+  CHAPTERS: [fullChapter(1), fullChapter('GEN1')],
   BOOKS: [
     { key: 'ACT', name: '使徒行傳', entries: [1], totalChapters: 1 },
     { key: 'GEN', name: '創世記', entries: ['GEN1'], totalChapters: 1 }
@@ -51,6 +60,17 @@ test('健康假資料：零錯誤零待補', () => {
   const r = runWith(healthy);
   assert.equal(r.errors.length, 0);
   assert.equal(r.warns.length, 0);
+});
+
+test('檢查 8：缺 responses.D／choices 三格／slot 不合法 → error', () => {
+  const broken = fullChapter('GEN1');
+  delete broken.responses.D;
+  broken.choices = broken.choices.slice(0, 3);
+  broken.baseItem = { emoji: '📖', name: 'n', slot: 'foot' };
+  const r = runWith({ ...healthy, CHAPTERS: [fullChapter(1), broken] });
+  assert.ok(r.errors.some(m => m.includes('responses 缺 D')));
+  assert.ok(r.errors.some(m => m.includes('choices 不是 4 格')));
+  assert.ok(r.errors.some(m => m.includes('slot 不合法')));
 });
 
 test('同一章出現在兩本書 → error', () => {
@@ -90,20 +110,4 @@ test('totalChapters 與 entries 數不符 → warn', () => {
   assert.ok(r.warns.some(m => m.includes('totalChapters=28')));
 });
 
-// ── A1 feature flag（BOOK_DETAIL_ENABLED）──
-test('BOOK_DETAIL_ENABLED 列了不存在的書卷 → error；沒定義常數 → 不檢查', () => {
-  const bad = runWith({ ...healthy, BOOK_DETAIL_ENABLED: ['GEN', 'XXX'] });
-  assert.ok(bad.errors.some(m => m.includes('BOOK_DETAIL_ENABLED：XXX')));
-  const ok = runWith({ ...healthy, BOOK_DETAIL_ENABLED: ['GEN'] });
-  assert.equal(ok.errors.length, 0);
-  assert.equal(runWith(healthy).errors.length, 0);
-});
-
-test('真實 content.js：BOOK_DETAIL_ENABLED 是 BOOKS 的子集（Phase 1 含 GEN）', () => {
-  const ctx = vm.createContext({ console: { log() {}, warn() {}, error() {} } });
-  vm.runInContext(contentSrc, ctx, { filename: 'content.js' });
-  const { BOOK_DETAIL_ENABLED, BOOKS } = vm.runInContext('({ BOOK_DETAIL_ENABLED, BOOKS })', ctx);
-  assert.ok(Array.isArray(BOOK_DETAIL_ENABLED) && BOOK_DETAIL_ENABLED.includes('GEN'));
-  const keys = new Set(BOOKS.map(b => b.key));
-  for (const k of BOOK_DETAIL_ENABLED) assert.ok(keys.has(k), `${k} 不在 BOOKS`);
-});
+// BOOK_DETAIL_ENABLED 已退役（2026-09-01 D8）——相關檢查與測試移除。

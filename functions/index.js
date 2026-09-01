@@ -13,11 +13,14 @@ admin.initializeApp();
 const lineChannelSecret = defineSecret('LINE_CHANNEL_SECRET');
 const googleAiApiKey = defineSecret('GOOGLE_AI_API_KEY');
 const LINE_CHANNEL_ID = '2009801861';
-const ALLOWED_ORIGINS = [
-  'https://st00777.github.io',                        // prod (GitHub Pages)
-  'https://bible-game-bcb84--dev-01luz2yz.web.app',   // dev preview (Firebase Hosting channel)
-  'https://bible-game-bcb84.web.app',                 // 固定測試站 (hosting:main)
-];
+// 站台單一表（D18）：origin＋app 路徑一起維護——新增/輪替 preview channel 只改這裡，
+// CORS 白名單與 LINE redirect 白名單同步推導，不會再漏改其中一份（過往 CORS 修復的教訓）。
+const SITES = {
+  'https://st00777.github.io': '/Bible-game/bible-game-v2.html',                 // prod (GitHub Pages)
+  'https://bible-game-bcb84--dev-01luz2yz.web.app': '/bible-game-v2.html',       // dev preview (Firebase Hosting channel)
+  'https://bible-game-bcb84.web.app': '/bible-game-v2.html',                     // 固定測試站 (hosting:main)
+};
+const ALLOWED_ORIGINS = Object.keys(SITES);
 
 // AI 失敗時回給玩家的 fallback 文字。
 // 單一正本在 ../content.js 的 AI_FALLBACK_TEXT；functions 部署邊界無法 import，所以這裡留複本。
@@ -37,11 +40,7 @@ exports.lineLogin = onRequest(
       return;
     }
 
-    const VALID_REDIRECTS = [
-      'https://st00777.github.io/Bible-game/bible-game-v2.html',
-      'https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html',
-      'https://bible-game-bcb84.web.app/bible-game-v2.html',
-    ];
+    const VALID_REDIRECTS = ALLOWED_ORIGINS.map(o => o + SITES[o]);   // D18：由 SITES 表推導
 
     const { code, redirect_uri } = req.body;
     if (!code || !redirect_uri) {
@@ -179,22 +178,28 @@ exports.aiReflection = onRequest(
     }
 
     const { chapter, reflectionTitle, playerText, uid, mood, equipment } = req.body;
-    if (!playerText) {
+    if (!playerText || typeof playerText !== 'string') {
       res.status(400).json({ error: 'Missing playerText' });
       return;
     }
+    // 伺服器端長度上限（2026-08-31 加固，issue #76 B5）：默想框沒有 UI maxlength，
+    // 所以超長時「截斷」而不是拒絕——玩家仍拿到真 AI 回應（取前 2000 字），不會掉到 fallback。
+    const playerTextS = playerText.slice(0, 2000);
+    const chapterS = (typeof chapter === 'string' ? chapter : (typeof chapter === 'number' ? String(chapter) : '')).slice(0, 60);
+    const titleS = (typeof reflectionTitle === 'string' ? reflectionTitle : '').slice(0, 60);
+    const moodS = (typeof mood === 'string' ? mood : '').slice(0, 20);
     // 紀錄玩家身份（不是必填，訪客 / 未登入時為 'anonymous'），讓 logs 能 cross reference 玩家行為與 bug 回報
     const callerId = uid || 'anonymous';
-    console.log(`aiReflection call: uid=${callerId} chapter=${chapter || ''} title=${reflectionTitle || ''} textLen=${playerText.length}`);
+    console.log(`aiReflection call: uid=${callerId} chapter=${chapterS} title=${titleS} textLen=${playerText.length}`);
 
     // 情緒2.0：玩家當次選的心情當「帶來的起點」餵 prompt（冷框架承接，不診斷/不評判）。
     // 🔴 design-principles 紅線3/4/1：起點≠現狀、不當開場主角、即時餵不另存；mood 空（先不說）整段不出現、prompt 逐字同舊版。
-    const moodBlock = mood ? `
-玩家這次進來時，從幾個選項裡挑了「${mood}」當作今天帶來的起點。
+    const moodBlock = moodS ? `
+玩家這次進來時，從幾個選項裡挑了「${moodS}」當作今天帶來的起點。
 請把它當成「他帶進來的脈絡」輕輕承接——這是他進門時的起點，不是他此刻的狀態；
 他現在的狀態，請你從他寫的默想本文去讀，不要用這個起點去推測或診斷他現在怎麼了。
 - 先回應他寫的默想本文，再順帶把這個起點輕輕帶進來，不要用心情當開場第一句；也不要整段圍著它打轉——它是順帶的背景，不是主角。
-- 用承認、留空間的語氣，例如「你今天帶著『${mood}』來到神面前」。
+- 用承認、留空間的語氣，例如「你今天帶著『${moodS}』來到神面前」。
 - 不要評判、不要診斷、不要替他總結情緒、不要問「你還好嗎？」這類關心句。
 ` : '';
 
@@ -210,7 +215,7 @@ ${verses.map(v => `- ${v}`).join('\n')}
 - 沒有貼合的就完全不提，不要硬套、不要列舉、不要為了引用而引用。
 ` : '';
 
-    const systemPrompt = `你是一位溫暖的靈修同伴。使用者正在讀${chapter || '聖經'}，默想主題是「${reflectionTitle || '靈修'}」。
+    const systemPrompt = `你是一位溫暖的靈修同伴。使用者正在讀${chapterS || '聖經'}，默想主題是「${titleS || '靈修'}」。
 ${moodBlock}${equipmentBlock}
 規則：
 - 用繁體中文
@@ -222,15 +227,15 @@ ${moodBlock}${equipmentBlock}
 
     try {
       const apiKey = googleAiApiKey.value();
-      const aiResponse = await generateReflection(systemPrompt, playerText, apiKey, `uid=${callerId} chapter=${chapter || ''}`);
+      const aiResponse = await generateReflection(systemPrompt, playerTextS, apiKey, `uid=${callerId} chapter=${chapterS}`);
       const isFallback = !aiResponse;
-      console.log(`aiReflection result: uid=${callerId} chapter=${chapter || ''} fallback=${isFallback}`);
+      console.log(`aiReflection result: uid=${callerId} chapter=${chapterS} fallback=${isFallback}`);
       res.json({
         aiResponse: aiResponse || FALLBACK_TEXT,
         isFallback,
       });
     } catch (e) {
-      console.error(`aiReflection error: uid=${callerId} chapter=${chapter || ''}`, e);
+      console.error(`aiReflection error: uid=${callerId} chapter=${chapterS}`, e);
       res.status(500).json({ error: 'AI response failed' });
     }
   }

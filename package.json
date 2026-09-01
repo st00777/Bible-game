@@ -14,7 +14,6 @@
     "ga4": "node scripts/ga4-insights.js",
     "logs": "node scripts/check-ai-logs.js",
     "line-logs": "node scripts/check-line-logs.js",
-    "migrate:feedback-v2": "node scripts/migrate-feedback-v2.js",
-    "migrate:feedback-v2:apply": "node scripts/migrate-feedback-v2.js --apply"
+    "_retired_migrate_feedback_v2": "已完成的一次性 migration（2026-05-24），腳本移至 archive/scripts/；防誤觸 --apply 改寫正式資料"
   }
 }

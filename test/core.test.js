@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..');
 
 globalThis.BOOKS = [
   { key: 'ACT', name: '使徒行傳', shortName: '徒', entries: [1, 2, 3], totalChapters: 3 },
-  { key: 'ROM', name: '羅馬書', shortName: '羅', prefix: 'ROM', entries: ['ROM1', 'ROM2'], totalChapters: 2, mergedActive: false },
+  { key: 'ROM', name: '羅馬書', shortName: '羅', prefix: 'ROM', entries: ['ROM1', 'ROM2'], totalChapters: 2 },
   { key: 'COR1', name: '哥林多前書', shortName: '林前', prefix: 'COR1_', entries: ['COR1_1', 'COR1_2'], totalChapters: 3, merged: { COR1_1: 2 } },
 ];
 globalThis.CHAPTERS = [
@@ -35,6 +35,40 @@ test('chapterKey / getChapter 三種形態都查得到', () => {
   assert.equal(core.getChapter('ACT1').verse, 'v1');
   assert.equal(core.getChapter('ROM2').chapter, 'ROM2');
   assert.equal(core.getChapter(99), null);
+});
+
+test('bookOfChapter：數字／數字字串／字串 key／未知 key', () => {
+  assert.equal(core.bookOfChapter(2).key, 'ACT');
+  assert.equal(core.bookOfChapter('2').key, 'ACT');     // 日記 legacy 數字字串 key
+  assert.equal(core.bookOfChapter('ACT1').key, 'ACT');
+  assert.equal(core.bookOfChapter('ROM2').key, 'ROM');
+  assert.equal(core.bookOfChapter('EPH9'), null);       // 假表沒有的書卷
+  assert.equal(core.bookOfChapter('migrated'), null);   // 魔法 key 不炸
+});
+
+test('applyXp：加點／封頂升級回 10', () => {
+  assert.deepEqual(core.applyXp(10, 1, 15), { xp: 25, level: 1 });
+  assert.deepEqual(core.applyXp(90, 1, 15), { xp: 10, level: 2 });   // 105→封頂 100→升級回 10
+  assert.deepEqual(core.applyXp(65, 3, 35), { xp: 10, level: 4 });
+  assert.deepEqual(core.applyXp(64, 3, 35), { xp: 99, level: 3 });
+});
+
+test('bestStreak：最長連續 run', () => {
+  assert.equal(core.bestStreak({}), 0);
+  assert.equal(core.bestStreak({ a: '2026-01-01' }), 1);
+  assert.equal(core.bestStreak({ a: '2026-01-01', b: '2026-01-02', c: '2026-01-04' }), 2);
+  assert.equal(core.bestStreak({ a: '2026-01-01', b: '2026-01-01', c: '2026-01-02' }), 2);  // 合併日同日去重
+});
+
+test('shouldShowVersionNotice / statHourFlags', () => {
+  assert.equal(core.shouldShowVersionNotice(null, '2026.08.31', false), true);    // 新裝置
+  assert.equal(core.shouldShowVersionNotice('2026.08.30', '2026.08.31', false), true);
+  assert.equal(core.shouldShowVersionNotice('2026.08.30', '2026.08.31', true), false);  // suppress 不彈
+  assert.equal(core.shouldShowVersionNotice('2026.08.31', '2026.08.31', false), false); // 已看過
+  assert.deepEqual(core.statHourFlags(5),  { morning: true,  night: false });
+  assert.deepEqual(core.statHourFlags(9),  { morning: false, night: false });
+  assert.deepEqual(core.statHourFlags(22), { morning: false, night: true });
+  assert.deepEqual(core.statHourFlags(4),  { morning: false, night: true });
 });
 
 test('日期／日曆算術', () => {
@@ -75,14 +109,11 @@ test('排程查詢與補讀判定', () => {
   assert.equal(core.isMakeupChapterOn('UNSCHEDULED', '2026-12-31'), false);
 });
 
-test('bookProgress：mergedActive:false 用 entries 當分母；預設走 merged 倍數 vs totalChapters', () => {
-  const completed = { ACT1: '2026-01-01', ROM1: '2026-01-05', COR1_1: '2026-02-01' };
+test('bookProgress：一律 entries 當分母（mergedActive/merged 已退役，殘留欄位被忽略）', () => {
+  const completed = { ACT1: '2026-01-01', COR1_1: '2026-02-01' };
   assert.deepEqual(core.bookProgress(globalThis.BOOKS[0], completed), { done: 1, total: 3, complete: false });
-  assert.deepEqual(core.bookProgress(globalThis.BOOKS[1], completed), { done: 1, total: 2, complete: false });
-  assert.deepEqual(core.bookProgress(globalThis.BOOKS[2], completed), { done: 2, total: 3, complete: false });  // COR1_1 算 2 章
-  assert.equal(core.isChapterDoneIn('ROM1', completed), true);
-  assert.equal(core.isChapterDoneIn(2, completed), false);
-  assert.equal(core.isChapterDoneIn(2, undefined), false);
+  assert.deepEqual(core.bookProgress(globalThis.BOOKS[1], completed), { done: 0, total: 2, complete: false });
+  assert.deepEqual(core.bookProgress(globalThis.BOOKS[2], completed), { done: 1, total: 2, complete: false });  // merged 倍數殘留被忽略
 });
 
 test('pickDefaultChapterFrom：先挑第一個未完成且有內容；全完成回第一個有內容；沒內容回 null', () => {
@@ -167,15 +198,16 @@ test('escapeHtmlMyMsg', () => {
   assert.equal(core.escapeHtmlMyMsg(`<a href="x">&'</a>`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
 });
 
-test('HTML 不再自己定義已搬走的函式，但仍有載入 core.js', () => {
+test('app.js 不再自己定義已搬走的函式，HTML 仍載入 core.js（2026-09-01 D2：主邏輯移居 app.js）', () => {
   const html = fs.readFileSync(path.join(ROOT, 'bible-game-v2.html'), 'utf8');
+  const appjs = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
   assert.ok(html.includes('<script src="core.js"></script>'));
   for (const fn of Object.keys(core)) {
     if (fn === 'resetChapterIndex') continue;
-    assert.ok(!new RegExp(`^function ${fn}\\s*\\(`, 'm').test(html), `bible-game-v2.html 仍定義 ${fn}`);
+    assert.ok(!new RegExp(`^function ${fn}\\s*\\(`, 'm').test(appjs), `app.js 仍定義 ${fn}`);
   }
   // 薄包裝還在（名字是 onclick／其他函式的公開介面，不能消失）
   for (const wrapper of ['todayStr', 'getTimeOfDay', 'isMakeupChapter', 'getBookProgress', 'isChapterDone', 'pickDefaultChapter', 'getTodayChapter', 'calIsToday', 'resetSessionState']) {
-    assert.ok(new RegExp(`^function ${wrapper}\\s*\\(`, 'm').test(html), `bible-game-v2.html 缺薄包裝 ${wrapper}`);
+    assert.ok(new RegExp(`^function ${wrapper}\\s*\\(`, 'm').test(appjs), `app.js 缺薄包裝 ${wrapper}`);
   }
 });

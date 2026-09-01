@@ -352,23 +352,12 @@ body{
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <!-- 曠野呼聲狀態機／容錯讀取單一正本（issue #5）：正本在 repo 根 shared/，admin/ 複本由 scripts/sync-shared.js 同步 -->
 <script src="shared/feedback-schema.js"></script>
+<!-- admin 三頁共用碼（firebaseConfig / auth / 白名單 gate / 渲染 helpers，issue #78）-->
+<script src="common.js"></script>
 
 <script>
-// ── Firebase init（同主站 firebaseConfig）───────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
-  authDomain: "bible-game-bcb84.firebaseapp.com",
-  projectId: "bible-game-bcb84",
-  storageBucket: "bible-game-bcb84.firebasestorage.app",
-  messagingSenderId: "998309781226",
-  appId: "1:998309781226:web:3393ab62963940ef720193"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+// ── Firebase init / ADMIN_EMAILS → admin/common.js（issue #78）─
 const db = firebase.firestore();
-
-// ── 白名單（同 admin/list.html，重複定義避免架構過早優化）──
-const ADMIN_EMAILS = ['st00777@hotmail.com'];
 
 // ── 從 URL 取 thread id ─────────────────────────────────
 const threadId = new URLSearchParams(window.location.search).get('id');
@@ -381,18 +370,9 @@ let threadData = null;   // feedback 主文件快取（送出回覆 / 標記結�
 // ── normalize helpers：normalizeFeedbackStatus / normalizeUnread（＋list.html 用的另外兩支）
 //    都由 shared/feedback-schema.js 提供（issue #5 單一正本），這裡不再放複本。
 
-// ── HTML escape（同 list.html escapeHtml）───────────────
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+// ── escapeHtml / formatDateTime → admin/common.js（issue #78）─
 
-// ── 時間格式化（同 list.html）──────────────────────────
-function formatDateTime(d) {
-  const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+// ── 時間格式化（僅本頁用）──────────────────────────────
 function formatDate(d) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
@@ -402,31 +382,24 @@ function tsToDate(ts) {
   return ts && typeof ts.toDate === 'function' ? ts.toDate() : null;
 }
 
-const moodEmoji = { '平靜':'😇','有動力':'🔥','有點累':'😴','經文太難':'🤔','其他':'✏️' };
-const catEmoji = { '靈性感受':'🙏','遊戲體驗':'🎮','我的異象':'💡','其他':'✏️' };
+// ── moodEmoji / catEmoji → admin/common.js（issue #78）─
 
-// ── Auth state monitor（守衛，同 list.html）─────────────
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    window.location.replace('./index.html');
-    return;
-  }
-  const email = (user.email || '').toLowerCase();
-  if (!ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
-    console.warn('Unauthorized detail access:', email);
-    window.location.replace('./index.html');
-    return;
-  }
-  // 守衛通過
-  currentAdminUid = user.uid;
-  currentAdminEmail = email;
-  document.getElementById('header-email').textContent = email;
+// ── Auth state monitor（守衛，本體在 admin/common.js initAdminGate）─
+// 未登入／不在白名單 → 預設導回 index.html
+initAdminGate({
+  denyLogLabel: 'Unauthorized detail access:',
+  onAuthorized(user, email) {
+    // 守衛通過
+    currentAdminUid = user.uid;
+    currentAdminEmail = email;
+    document.getElementById('header-email').textContent = email;
 
-  if (!threadId) {
-    showFatal('缺少留言 ID，請從留言列表點進來');
-    return;
+    if (!threadId) {
+      showFatal('缺少留言 ID，請從留言列表點進來');
+      return;
+    }
+    loadThread();
   }
-  loadThread();
 });
 
 // ── 致命狀態（找不到 / 載入失敗）──────────────────────
@@ -506,19 +479,7 @@ function renderMeta(d) {
     <div class="tm-sub"><span>留言時間 ${escapeHtml(createdStr)}</span><span>${wantReplyStr}</span></div>`;
 }
 
-function renderAdminBadge(status) {
-  // 沿用 list.html renderAdminBadge：new 藍 / awaiting_admin 橘 / awaiting_player 綠 / closed 灰
-  if (status === 'new') {
-    return '<span class="fb-badge fb-badge-new">🆕 新留言</span>';
-  }
-  if (status === 'awaiting_admin') {
-    return '<span class="fb-badge fb-badge-wait">🕊️ 等待回覆</span>';
-  }
-  if (status === 'awaiting_player') {
-    return '<span class="fb-badge fb-badge-replied">💬 已回覆</span>';
-  }
-  return '<span class="fb-badge fb-badge-closed">✓ 已結束</span>';
-}
+// ── renderAdminBadge → admin/common.js（issue #78）─
 
 // ── 渲染對話串 ──────────────────────────────────────────
 // 結構：第一則固定是玩家「原始留言」（feedback.message，v1 起點），

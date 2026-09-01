@@ -247,24 +247,12 @@ body{
 <!-- Firebase SDK（用跟主站同樣的 9.22.2 compat 版本）-->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<!-- admin 三頁共用碼（firebaseConfig / auth / 白名單 gate / 渲染 helpers，issue #78）-->
+<script src="common.js"></script>
 
 <script>
-// ── Firebase init（同主站 firebaseConfig）───────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyC2uJBxG8MvG1_zRF7_R35a1vMFgmnvonQ",
-  authDomain: "bible-game-bcb84.firebaseapp.com",
-  projectId: "bible-game-bcb84",
-  storageBucket: "bible-game-bcb84.firebasestorage.app",
-  messagingSenderId: "998309781226",
-  appId: "1:998309781226:web:3393ab62963940ef720193"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+// ── Firebase init / ADMIN_EMAILS → admin/common.js（issue #78）─
 const googleProvider = new firebase.auth.GoogleAuthProvider();
-
-// ── 白名單（跟 firestore.rules 的 isAdmin() 同步）───────
-// 注意：前端寫死的白名單只是 UX 第一道防線，真正的安全靠 firestore.rules
-const ADMIN_EMAILS = ['st00777@hotmail.com'];
 
 // ── Screen 切換 ─────────────────────────────────────────
 function showScreen(name) {
@@ -299,8 +287,9 @@ async function handleLogout() {
 }
 
 // ── Auth state monitor（決定顯示哪個畫面）──────────────
-auth.onAuthStateChanged(user => {
-  if (!user) {
+// gate 本體在 admin/common.js initAdminGate；本頁不轉址，三個 callback 各切畫面
+initAdminGate({
+  onSignedOut() {
     // 重置登入按鈕狀態：登出後（或首次未登入）回到 A 畫面時，
     // 確保按鈕不會卡在 handleLogin 設的 disabled / 「登入中…」狀態
     const btn = document.getElementById('btn-login');
@@ -309,16 +298,15 @@ auth.onAuthStateChanged(user => {
       btn.innerHTML = '<span class="google-logo">G</span>使用 Google 登入';
     }
     showScreen('login');
-    return;
-  }
-  const email = (user.email || '').toLowerCase();
-  if (ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email)) {
+  },
+  onAuthorized(user, email) {
     // 白名單通過
     document.getElementById('user-name').textContent = user.displayName || email;
     document.getElementById('user-name-2').textContent = user.displayName || '(未設定名稱)';
     document.getElementById('user-email').textContent = email;
     showScreen('authorized');
-  } else {
+  },
+  onDenied(user, email) {
     // 不在白名單
     console.warn('Unauthorized admin login attempt:', email, 'uid=', user.uid);
     document.getElementById('deny-email').textContent = email || '(無 email)';

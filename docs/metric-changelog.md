@@ -14,3 +14,5 @@
 | 2026-08-30 | 新事件 `focus_enter/focus_exit`、`reward_view/reward_close`、`title_unlocked`、`page_switch`、`book_detail_open`、`tutorial_open/tutorial_close`、`guide_expand`；既有事件加參數：`ai_response_received.withEquipment`、`chapter_select.merged/order`、`login.trigger`、`app_leave.lastStep` | PR ①②③＋說明頁 #53 效果埋點（之前全無）；`npm run funnel` 加「新功能觸及」區塊 | 這些指標自 08-30 週起才有；8/28–8/30 三天新功能曝光永久缺 |
 \n| 2026-08-30 | GA4 全部指標（MAU/WAU/DAU、新客 cohort、事件人數） | 前端改為只有正式站 `st00777.github.io` 才送 GA4；`npm run ga4` 加 ④ 層別（hostName／正式站限定活躍／新客週序列／來源／裝置） | 08-30 之前的 GA4 數字含 dev 預覽站與測玩流量（8/23 週新客 75 主因），判讀請用 ④ 的正式站限定值；08-30 起才乾淨 |\n
 | 2026-08-30 | GA4 `sessionSource`；`read_chapter`／`tutorial_open` 的 `source` 參數 | gtag 那份把 `source` 改名 `event_source`（撞 GA4 保留字，曾污染流量來源）；Firestore 欄位不變 | GA4 端 08-30 前 source 值不可用；Firestore／funnel 不受影響 |
+| 2026-08-31 | `chapter_select.order`（合併日） | 修口徑 bug：原以 `String(c)` 比對 completed，使徒行傳數字 key 永遠 miss，合併日補讀 `order` 恆為 1；改走 `chapterKey` 正規化 | 08-31 前使徒行傳合併日的 `order` 不可信（其他書卷不受影響） |
+| 2026-09-01 | `tutorial_open`（source=first） | D22 開機彈窗改隊列制：終點儀式窗（至 9/06）內新玩家改為「儀式先、教學後」，且儀式卡住 60 秒才放棄時教學延後觸發 | 9/01-9/06 間 first 的觸發時點稍晚；9/07 起與舊口徑無差 |

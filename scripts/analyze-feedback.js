@@ -3,8 +3,8 @@
 // 用法: npm run analyze
 // 需要 Firebase CLI 已登入 (firebase login)
 
-// PROJECT、getAccessToken 從 _shared.js 共用（三個腳本同一個專案 + 同一套 OAuth 流程）
-const { PROJECT, getAccessToken } = require('./_shared');
+// getAccessToken 與 Firestore/Auth REST helpers 從 _shared.js 共用
+const { getAccessToken, FIRESTORE_BASE, fetchCollection, parseDoc, fetchAllUsers } = require('./_shared');
 
 // ── Load SCHEDULE from content.js ────────────────────────
 // 用 vm 沙箱載入 content.js，避免污染全域；content.js 純資料、無 browser API 引用
@@ -32,68 +32,6 @@ Object.entries(SCHEDULE).forEach(([d, chs]) => {
     });
   }
 });
-
-// ── Firestore REST helpers ───────────────────────────────
-
-const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
-
-async function fetchCollection(token, collection) {
-  const docs = [];
-  let pageToken = '';
-  while (true) {
-    const url = `${FIRESTORE_BASE}/${collection}?pageSize=300${pageToken ? '&pageToken=' + pageToken : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.documents) docs.push(...body.documents);
-    if (body.nextPageToken) { pageToken = body.nextPageToken; } else break;
-  }
-  return docs;
-}
-
-function parseFirestoreValue(v) {
-  if (!v) return null;
-  if (v.stringValue !== undefined) return v.stringValue;
-  if (v.booleanValue !== undefined) return v.booleanValue;
-  if (v.integerValue !== undefined) return Number(v.integerValue);
-  if (v.doubleValue !== undefined) return v.doubleValue;
-  if (v.timestampValue !== undefined) return v.timestampValue;
-  if (v.nullValue !== undefined) return null;
-  if (v.mapValue) {
-    const obj = {};
-    for (const [k, mv] of Object.entries(v.mapValue.fields || {})) {
-      obj[k] = parseFirestoreValue(mv);
-    }
-    return obj;
-  }
-  if (v.arrayValue) {
-    return (v.arrayValue.values || []).map(parseFirestoreValue);
-  }
-  return null;
-}
-
-function parseDoc(doc) {
-  const fields = doc.fields || {};
-  const obj = {};
-  for (const [k, v] of Object.entries(fields)) {
-    obj[k] = parseFirestoreValue(v);
-  }
-  return obj;
-}
-
-// ── Firebase Auth REST ───────────────────────────────────
-
-async function fetchAllUsers(token) {
-  const users = [];
-  let nextPageToken = '';
-  while (true) {
-    const url = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:batchGet?maxResults=500${nextPageToken ? '&nextPageToken=' + nextPageToken : ''}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const body = await res.json();
-    if (body.users) users.push(...body.users);
-    if (body.nextPageToken) { nextPageToken = body.nextPageToken; } else break;
-  }
-  return users;
-}
 
 // ── Formatting helpers ───────────────────────────────────
 
@@ -443,8 +381,17 @@ async function analyzeProgress(token, users) {
   let totalMornings = 0, totalNights = 0, totalDaysAll = 0;
   let statsCount = 0;
 
-  for (const p of players) {
-    const stats = await fetchSubDoc(token, p.uid, 'stats', 'data');
+  // D15（2026-09-01）：逐玩家序列讀改 10-wide 併發批次（與本檔既有 batch 模式同款），
+  // ~40 玩家 × 3 個迴圈的牆鐘時間從 3×N 個 RTT 降為 3×N/10。輸出順序不變（批次 map 保序）。
+  const mapBatched = async (items, size, fn) => {
+    const out = [];
+    for (let i = 0; i < items.length; i += size) {
+      out.push(...await Promise.all(items.slice(i, i + size).map(fn)));
+    }
+    return out;
+  };
+  const statsList = await mapBatched(players, 10, p => fetchSubDoc(token, p.uid, 'stats', 'data'));
+  for (const stats of statsList) {
     if (stats) {
       statsCount++;
       totalReflections += stats.reflectionCount || 0;
@@ -488,8 +435,8 @@ async function analyzeProgress(token, users) {
   console.log('\n── 成就解鎖統計 ──');
   const achCount = {};
   let achPlayersChecked = 0;
-  for (const p of players) {
-    const ach = await fetchSubDoc(token, p.uid, 'achievements', 'data');
+  const achList = await mapBatched(players, 10, p => fetchSubDoc(token, p.uid, 'achievements', 'data'));
+  for (const ach of achList) {
     if (ach && ach.unlockedAt && typeof ach.unlockedAt === 'object') {
       achPlayersChecked++;
       Object.keys(ach.unlockedAt).forEach(key => {
@@ -510,14 +457,11 @@ async function analyzeProgress(token, users) {
   // ── 拉所有玩家的 chapters 子集合，給後續內容品質分析用 ──
   console.log('\n正在讀取每章記錄（給內容分析用）...');
   const allChapters = [];
-  for (const p of players) {
+  const chaptersByPlayer = await mapBatched(players, 10, async p => {
     const docs = await fetchCollection(token, `users/${p.uid}/chapters`);
-    docs.forEach(d => {
-      const data = parseDoc(d);
-      const key = d.name.split('/').pop();
-      allChapters.push({ uid: p.uid, name: p.name, key, ...data });
-    });
-  }
+    return docs.map(d => ({ uid: p.uid, name: p.name, key: d.name.split('/').pop(), ...parseDoc(d) }));
+  });
+  chaptersByPlayer.forEach(list => allChapters.push(...list));
 
   console.log('\n╔══════════════════════════════════════════╗');
   console.log('║       📚  內容品質與行為深度分析         ║');
