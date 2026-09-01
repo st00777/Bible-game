@@ -4675,6 +4675,7 @@ async function sendThreadMessage() {
     // 2026-09-01 D12：本地 append 取代整串重讀（原本每送一則要 1+N 個 doc 讀，隨 thread 變長線性成長）。
     // admin/detail.html appendAdminBubble 已用同模式。createdAt 先用用戶端 Timestamp.now() 呈現
     //（renderThreadView 有 toDate 防呆；下次開 thread 自然拿到 server 真值），parent 欄位照 schema 轉移。
+    // lastMessageAt 刻意不在本地轉移（無 UI 讀它；下次全量讀取自然補回真值）——若之後要拿它排序，先改這裡。
     currentThreadData.status = 'awaiting_admin';
     currentThreadData.unreadByAdmin = true;
     currentThreadData.messageCount = (currentThreadData.messageCount || 0) + 1;
