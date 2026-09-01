@@ -381,8 +381,17 @@ async function analyzeProgress(token, users) {
   let totalMornings = 0, totalNights = 0, totalDaysAll = 0;
   let statsCount = 0;
 
-  for (const p of players) {
-    const stats = await fetchSubDoc(token, p.uid, 'stats', 'data');
+  // D15（2026-09-01）：逐玩家序列讀改 10-wide 併發批次（與本檔既有 batch 模式同款），
+  // ~40 玩家 × 3 個迴圈的牆鐘時間從 3×N 個 RTT 降為 3×N/10。輸出順序不變（批次 map 保序）。
+  const mapBatched = async (items, size, fn) => {
+    const out = [];
+    for (let i = 0; i < items.length; i += size) {
+      out.push(...await Promise.all(items.slice(i, i + size).map(fn)));
+    }
+    return out;
+  };
+  const statsList = await mapBatched(players, 10, p => fetchSubDoc(token, p.uid, 'stats', 'data'));
+  for (const stats of statsList) {
     if (stats) {
       statsCount++;
       totalReflections += stats.reflectionCount || 0;
@@ -426,8 +435,8 @@ async function analyzeProgress(token, users) {
   console.log('\n── 成就解鎖統計 ──');
   const achCount = {};
   let achPlayersChecked = 0;
-  for (const p of players) {
-    const ach = await fetchSubDoc(token, p.uid, 'achievements', 'data');
+  const achList = await mapBatched(players, 10, p => fetchSubDoc(token, p.uid, 'achievements', 'data'));
+  for (const ach of achList) {
     if (ach && ach.unlockedAt && typeof ach.unlockedAt === 'object') {
       achPlayersChecked++;
       Object.keys(ach.unlockedAt).forEach(key => {
@@ -448,14 +457,11 @@ async function analyzeProgress(token, users) {
   // ── 拉所有玩家的 chapters 子集合，給後續內容品質分析用 ──
   console.log('\n正在讀取每章記錄（給內容分析用）...');
   const allChapters = [];
-  for (const p of players) {
+  const chaptersByPlayer = await mapBatched(players, 10, async p => {
     const docs = await fetchCollection(token, `users/${p.uid}/chapters`);
-    docs.forEach(d => {
-      const data = parseDoc(d);
-      const key = d.name.split('/').pop();
-      allChapters.push({ uid: p.uid, name: p.name, key, ...data });
-    });
-  }
+    return docs.map(d => ({ uid: p.uid, name: p.name, key: d.name.split('/').pop(), ...parseDoc(d) }));
+  });
+  chaptersByPlayer.forEach(list => allChapters.push(...list));
 
   console.log('\n╔══════════════════════════════════════════╗');
   console.log('║       📚  內容品質與行為深度分析         ║');
