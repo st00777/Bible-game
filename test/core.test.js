@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..');
 
 globalThis.BOOKS = [
   { key: 'ACT', name: '使徒行傳', shortName: '徒', entries: [1, 2, 3], totalChapters: 3 },
-  { key: 'ROM', name: '羅馬書', shortName: '羅', prefix: 'ROM', entries: ['ROM1', 'ROM2'], totalChapters: 2, mergedActive: false },
+  { key: 'ROM', name: '羅馬書', shortName: '羅', prefix: 'ROM', entries: ['ROM1', 'ROM2'], totalChapters: 2 },
   { key: 'COR1', name: '哥林多前書', shortName: '林前', prefix: 'COR1_', entries: ['COR1_1', 'COR1_2'], totalChapters: 3, merged: { COR1_1: 2 } },
 ];
 globalThis.CHAPTERS = [
@@ -109,14 +109,11 @@ test('排程查詢與補讀判定', () => {
   assert.equal(core.isMakeupChapterOn('UNSCHEDULED', '2026-12-31'), false);
 });
 
-test('bookProgress：mergedActive:false 用 entries 當分母；預設走 merged 倍數 vs totalChapters', () => {
-  const completed = { ACT1: '2026-01-01', ROM1: '2026-01-05', COR1_1: '2026-02-01' };
+test('bookProgress：一律 entries 當分母（mergedActive/merged 已退役，殘留欄位被忽略）', () => {
+  const completed = { ACT1: '2026-01-01', COR1_1: '2026-02-01' };
   assert.deepEqual(core.bookProgress(globalThis.BOOKS[0], completed), { done: 1, total: 3, complete: false });
-  assert.deepEqual(core.bookProgress(globalThis.BOOKS[1], completed), { done: 1, total: 2, complete: false });
-  assert.deepEqual(core.bookProgress(globalThis.BOOKS[2], completed), { done: 2, total: 3, complete: false });  // COR1_1 算 2 章
-  assert.equal(core.isChapterDoneIn('ROM1', completed), true);
-  assert.equal(core.isChapterDoneIn(2, completed), false);
-  assert.equal(core.isChapterDoneIn(2, undefined), false);
+  assert.deepEqual(core.bookProgress(globalThis.BOOKS[1], completed), { done: 0, total: 2, complete: false });
+  assert.deepEqual(core.bookProgress(globalThis.BOOKS[2], completed), { done: 1, total: 2, complete: false });  // merged 倍數殘留被忽略
 });
 
 test('pickDefaultChapterFrom：先挑第一個未完成且有內容；全完成回第一個有內容；沒內容回 null', () => {

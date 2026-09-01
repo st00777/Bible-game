@@ -3,10 +3,8 @@
 const GAME_VERSION = '2026.08.31';
 
 // ── Feature flags ──────────────────────────────────────────
-// 曠野呼聲 v2 玩家端入口（wantReply 勾選 / 我的留言 / thread）。Phase 3C team 端回覆工具
-// 完整前先隱藏所有 v2 玩家入口，避免玩家送出有「希望收到回覆」期待後沒人能回。
-// flag=false 時：玩家走 v1 流程（mood + category + message + isAnonymous）；後端資料層仍保持 v2 schema
-const FEATURE_FEEDBACK_V2 = true;
+// FEATURE_FEEDBACK_V2 已退役（2026-09-01 D8，James 拍板）：2026-05-24 起永久 true、
+// 玩家已有 wantReply threads 關不掉；flag 與全部守衛移除。規格史見 docs/history/feedback-v2-spec.md。
 
 // 此 flag 控制版本公告彈窗。true = silent 升級（更新 lastSeen 但不彈），
 // false = 一般行為（不一致就彈）。
@@ -879,83 +877,81 @@ const BOOK_INTRO = {
 const BOOKS = [
   { key:'ACT', name:'使徒行傳', shortName:'徒', emoji:'🏛️', totalChapters:19,
     entries:[10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28],
-    merged:{}, mergedActive:false },
+    },
   { key:'ROM', name:'羅馬書', shortName:'羅', prefix:'ROM', emoji:'📜', totalChapters:16,
     entries:['ROM1','ROM2','ROM3','ROM4','ROM5','ROM6','ROM7','ROM8','ROM9','ROM10','ROM11','ROM12','ROM13','ROM14','ROM15','ROM16'],
-    merged:{}, mergedActive:false },
+    },
   { key:'COR1', name:'哥林多前書', shortName:'林前', prefix:'COR1_', emoji:'✉️', totalChapters:16,
     entries:['COR1_1','COR1_2','COR1_3','COR1_4','COR1_5','COR1_6','COR1_7','COR1_8','COR1_9','COR1_10','COR1_11','COR1_12','COR1_13','COR1_14','COR1_15','COR1_16'],
-    merged:{}, mergedActive:false },
+    },
   { key:'COR2', name:'哥林多後書', shortName:'林後', prefix:'COR2_', emoji:'💌', totalChapters:13,
     entries:['COR2_1','COR2_2','COR2_3','COR2_4','COR2_5','COR2_6','COR2_7','COR2_8','COR2_9','COR2_10','COR2_11','COR2_12','COR2_13'],
-    merged:{}, mergedActive:false },
+    },
   { key:'GAL', name:'加拉太書', shortName:'加', prefix:'GAL', emoji:'✉️', totalChapters:6,
     entries:['GAL1','GAL2','GAL3','GAL4','GAL5','GAL6'],
-    merged:{}, mergedActive:false },
+    },
   { key:'EPH', name:'以弗所書', shortName:'弗', prefix:'EPH', emoji:'💍', totalChapters:6,
     entries:['EPH1','EPH2','EPH3','EPH4','EPH5','EPH6'],
-    merged:{}, mergedActive:false },
+    },
   { key:'PHP', name:'腓立比書', shortName:'腓', prefix:'PHP', emoji:'🌅', totalChapters:4,
     entries:['PHP1','PHP2','PHP3','PHP4'],
-    merged:{}, mergedActive:false },
+    },
   { key:'COL', name:'歌羅西書', shortName:'西', prefix:'COL', emoji:'👑', totalChapters:4,
     entries:['COL1','COL2','COL3','COL4'],
-    merged:{}, mergedActive:false },
+    },
   { key:'TH1', name:'帖撒羅尼迦前書', shortName:'帖前', prefix:'TH1_', emoji:'⏳', totalChapters:5,
     entries:['TH1_1','TH1_2','TH1_3','TH1_4','TH1_5'],
-    merged:{}, mergedActive:false },
+    },
   { key:'TH2', name:'帖撒羅尼迦後書', shortName:'帖後', prefix:'TH2_', emoji:'🛡️', totalChapters:3,
     entries:['TH2_1','TH2_2','TH2_3'],
-    merged:{}, mergedActive:false },
+    },
   { key:'TIM1', name:'提摩太前書', shortName:'提前', prefix:'TIM1_', emoji:'🎓', totalChapters:6,
     entries:['TIM1_1','TIM1_2','TIM1_3','TIM1_4','TIM1_5','TIM1_6'],
-    merged:{}, mergedActive:false },
+    },
   { key:'TIM2', name:'提摩太後書', shortName:'提後', prefix:'TIM2_', emoji:'🪖', totalChapters:4,
     entries:['TIM2_1','TIM2_2','TIM2_3','TIM2_4'],
-    merged:{}, mergedActive:false },
+    },
   { key:'TIT', name:'提多書', shortName:'多', prefix:'TIT', emoji:'⚓', totalChapters:3,
     entries:['TIT1','TIT2','TIT3'],
-    merged:{}, mergedActive:false },
+    },
   { key:'PHM', name:'腓利門書', shortName:'門', prefix:'PHM', emoji:'🤝', totalChapters:1,
     entries:['PHM1'],
-    merged:{}, mergedActive:false },
+    },
   { key:'HEB', name:'希伯來書', shortName:'來', prefix:'HEB', emoji:'🕊️', totalChapters:13,
     entries:['HEB1','HEB2','HEB3','HEB4','HEB5','HEB6','HEB7','HEB8','HEB9','HEB10','HEB11','HEB12','HEB13'],
-    merged:{}, mergedActive:false },
+    },
   { key:'JAS', name:'雅各書', shortName:'雅', prefix:'JAS', emoji:'⚖️', totalChapters:5,
     entries:['JAS1','JAS2','JAS3','JAS4','JAS5'],
-    merged:{}, mergedActive:false },
+    },
   { key:'PE1', name:'彼得前書', shortName:'彼前', prefix:'PE1_', emoji:'🪨', totalChapters:5,
     entries:['PE1_1','PE1_2','PE1_3','PE1_4','PE1_5'],
-    merged:{}, mergedActive:false },
+    },
   { key:'PE2', name:'彼得後書', shortName:'彼後', prefix:'PE2_', emoji:'📜', totalChapters:3,
     entries:['PE2_1','PE2_2','PE2_3'],
-    merged:{}, mergedActive:false },
+    },
   { key:'JN1', name:'約翰一書', shortName:'約一', prefix:'JN1_', emoji:'💛', totalChapters:5,
     entries:['JN1_1','JN1_2','JN1_3','JN1_4','JN1_5'],
-    merged:{}, mergedActive:false },
+    },
   { key:'JN2', name:'約翰二書', shortName:'約二', prefix:'JN2_', emoji:'📩', totalChapters:1,
     entries:['JN2_1'],
-    merged:{}, mergedActive:false },
+    },
   { key:'JN3', name:'約翰三書', shortName:'約三', prefix:'JN3_', emoji:'📨', totalChapters:1,
     entries:['JN3_1'],
-    merged:{}, mergedActive:false },
+    },
   { key:'JUD', name:'猶大書', shortName:'猶', prefix:'JUD', emoji:'🛡️', totalChapters:1,
     entries:['JUD1'],
-    merged:{}, mergedActive:false },
+    },
   { key:'REV', name:'啟示錄', shortName:'啟', prefix:'REV', emoji:'📖', totalChapters:22,
     entries:['REV1','REV2','REV3','REV4','REV5','REV6','REV7','REV8','REV9','REV10','REV11','REV12','REV13','REV14','REV15','REV16','REV17','REV18','REV19','REV20','REV21','REV22'],
-    merged:{}, mergedActive:false },
+    },
   { key:'GEN', name:'創世記', shortName:'創', prefix:'GEN', emoji:'🌍', totalChapters:50,
     entries:['GEN1','GEN2','GEN3','GEN4','GEN5','GEN6','GEN7','GEN8','GEN9','GEN10','GEN11','GEN12','GEN13','GEN14','GEN15','GEN16','GEN17','GEN18','GEN19','GEN20','GEN21','GEN22','GEN23','GEN24','GEN25','GEN26','GEN27','GEN28','GEN29','GEN30','GEN31','GEN32','GEN33','GEN34','GEN35','GEN36','GEN37','GEN38','GEN39','GEN40','GEN41','GEN42','GEN43','GEN44','GEN45','GEN46','GEN47','GEN48','GEN49','GEN50'],
-    merged:{}, mergedActive:false },
+    },
 ];
 
-// ── A1 書卷詳情頁 feature flag ──────────────────────────────
-// 2026-08-29 起全開：新約 23 卷＋創世記共 24 卷都在清單內，所有書背都點得開詳情頁
-//（原 Phase 1「只開創世記垂直切片」與 Phase 2 滾動鋪開均已完成；flag 退役另議，見 CLAUDE.md ③d 段）。
-// 未來新增書卷（出埃及記等）＝該卷導讀／人物齊了，就把 key 加進這個陣列，不用動程式。
-const BOOK_DETAIL_ENABLED = ['ACT','ROM','COR1','COR2','GAL','EPH','PHP','COL','TH1','TH2','TIM1','TIM2','TIT','PHM','HEB','JAS','PE1','PE2','JN1','JN2','JN3','JUD','REV','GEN']; // 2026-08-29 新約 23 卷背景＋人物齊，全開（美術不等）
+// ── A1 書卷詳情頁 ──────────────────────────────────────────
+// BOOK_DETAIL_ENABLED 已退役（2026-09-01 D8，James 拍板）：2026-08-29 起 24 卷全開、flag 恆真。
+// 所有書背一律點得開詳情頁；新書卷（出埃及記等）補齊導讀／人物即自然可開，不需任何開關。
 
 const CHARACTERS = {
   // 結構：name（頂層）+ periods{ <時期key>: { book, title, desc, unlock, image? } }
@@ -8089,7 +8085,7 @@ function validateContent() {
     }
   });
 
-  // 6) totalChapters 與 entries 數量對不上（mergedActive:false 時分母走 entries，
+  // 6) totalChapters 與 entries 數量對不上（分母一律走 entries；
   //    totalChapters 只是過期標籤，但留著會誤導下一個維護的人）
   BOOKS.forEach(b => {
     if (b.totalChapters !== b.entries.length) {
@@ -8097,14 +8093,7 @@ function validateContent() {
     }
   });
 
-  // 7) A1 feature flag：BOOK_DETAIL_ENABLED 列的 key 都要真的存在於 BOOKS
-  //    （打錯字＝那卷永遠開不了，玩家看不出來，只有這裡會報）
-  if (typeof BOOK_DETAIL_ENABLED !== 'undefined') {
-    const bookKeys = new Set(BOOKS.map(b => b.key));
-    BOOK_DETAIL_ENABLED.forEach(k => {
-      if (!bookKeys.has(k)) errors.push(`BOOK_DETAIL_ENABLED：${k} 不在 BOOKS 裡（A1 詳情頁開不了）`);
-    });
-  }
+  // 7) 已退役（2026-09-01 D8）：BOOK_DETAIL_ENABLED flag 移除，全書卷詳情頁恆開，無需檢查。
 
   // 8) 單章物件形狀（2026-08-31 D5）：情境題四選項、responses A-D 齊、核心欄位非空、裝備 slot 合法。
   //    這是內容產線每週交付物的 shape 契約，先前只活在 CLAUDE.md 文件裡。

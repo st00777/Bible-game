@@ -646,9 +646,8 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
 .bd-lock-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
 .bd-lock-tag.on{background:var(--green);color:white;}
 .bd-lock-tag.off{background:var(--sand-dark);color:var(--text-soft);}
-/* A1 Phase 1：只有 BOOK_DETAIL_ENABLED 內的書背點得開，右上角小書籤提示「可翻開」 */
-.book-spine.openable::after{content:'📖';position:absolute;top:3px;right:4px;font-size:10px;opacity:.85;}
-.book-spine:not(.openable){cursor:default;}
+/* 書背右上角小書籤提示「可翻開」（全卷恆開） */
+.book-spine::after{content:'📖';position:absolute;top:3px;right:4px;font-size:10px;opacity:.85;}
 /* A1 翻頁動畫：詳情頁像從書櫃抽出一本書、輕輕翻開（transform+opacity，≤450ms，不催促）。
    沿用 .overlay/.sheet 的 show 機制，只對 #book-detail-overlay 生效；返回時反向收合。 */
 #book-detail-overlay{perspective:1200px;}
@@ -817,10 +816,9 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
         </button>
       </div>
 
-      <div class="fb-label" data-v2-only="wantReply">希望收到團隊回覆？</div>
+      <div class="fb-label">希望收到團隊回覆？</div>
       <!-- v2 多輪對話：匿名留言時兩顆按鈕會被 selectFbOption 鎖成灰色並自動選「不用回覆」 -->
-      <!-- FEATURE_FEEDBACK_V2=false 時整個 wantReply 區塊（label + opts + hint）會被 init 階段移除 -->
-      <div class="fb-opts" id="fb-want-reply" data-v2-only="wantReply">
+      <div class="fb-opts" id="fb-want-reply">
         <button class="fb-opt fb-opt-row" data-val="yes" onclick="selectFbOption('fb-want-reply','wantReply',this)">
           <span>💬</span><span>我想收到回覆<small>需具名留言</small></span>
         </button>
@@ -828,7 +826,7 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
           <span>📭</span><span>不用回覆<small>單純分享想法</small></span>
         </button>
       </div>
-      <div id="fb-want-reply-hint" data-v2-only="wantReply" style="display:none;font-size:12px;color:#999;line-height:1.6;margin-top:4px;">📌 匿名留言無法收到回覆，如希望收到回覆請改具名</div>
+      <div id="fb-want-reply-hint" style="display:none;font-size:12px;color:#999;line-height:1.6;margin-top:4px;">📌 匿名留言無法收到回覆，如希望收到回覆請改具名</div>
 
       <div class="fb-label">分類</div>
       <!-- ⚠️ 修改下面 4 個 category 選項時請同步更新 firestore.rules 的 categories() helper（line 15） -->
@@ -2103,7 +2101,7 @@ async function initAchievements() {
 // 書卷表 BOOKS 已搬到 content.js（issue #2：內容資料集中管理＋自檢），
 // 加新書卷請改 content.js，這裡不再放內容資料。
 
-// 書卷進度算法在 core.js bookProgress（merged 倍數／mergedActive 規則都在那）；這裡只把 state.completed 餵進去
+// 書卷進度算法在 core.js bookProgress（分母一律 entries）；這裡只把 state.completed 餵進去
 function getBookProgress(book) { return bookProgress(book, state.completed); }
 function booksCompleted() {
   return BOOKS.filter(b => getBookProgress(b).complete).length;
@@ -2347,10 +2345,8 @@ function renderLibraryPage() {
       const prog = getBookProgress(book);
       const pct = Math.round(prog.done / prog.total * 100);
       const cls = prog.complete ? 'lit' : (prog.done > 0 ? 'progress' : 'locked');
-      // A1 feature flag（content.js BOOK_DETAIL_ENABLED）：清單內的書背才綁 onclick 開詳情頁，
-      // 其餘維持 A1 之前的純展示書背（無 onclick），Phase 2 逐卷加進清單即可。
-      const openable = isBookDetailEnabled(book.key);
-      html += `<div class="book-spine ${cls}${openable ? ' openable' : ''}"${openable ? ` onclick="openBookDetail('${book.key}')"` : ''}>
+      // 全書卷詳情頁恆開（BOOK_DETAIL_ENABLED 已退役，2026-09-01 D8）
+      html += `<div class="book-spine ${cls}" onclick="openBookDetail('${book.key}')">
         ${prog.complete ? '<div class="spine-badge">🏅</div>' : ''}
         <div class="book-spine-emoji">${book.emoji}</div>
         <div class="book-spine-name">${book.name}</div>
@@ -2367,12 +2363,7 @@ function renderLibraryPage() {
 }
 
 // ── A1 書卷詳情頁（純新增 view；只讀 state.completed，不寫狀態、不碰主流程）──
-// Phase 1 feature flag：只有 content.js 的 BOOK_DETAIL_ENABLED 列到的書卷開得了（沒定義該常數＝全關）。
-function isBookDetailEnabled(bookKey) {
-  return (typeof BOOK_DETAIL_ENABLED !== 'undefined') && Array.isArray(BOOK_DETAIL_ENABLED) && BOOK_DETAIL_ENABLED.includes(bookKey);
-}
 function openBookDetail(bookKey) {
-  if (!isBookDetailEnabled(bookKey)) return;
   track('book_detail_open', { book: bookKey });
   renderBookDetail(bookKey);
   openOverlay('book-detail-overlay');
@@ -2981,9 +2972,9 @@ function renderGuide(data) {
   const hardHtml = hardList.length
     ? `<div class="guide-hard-lbl">讀的時候可能卡住的地方</div>${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}`
     : '';
-  // 書卷背景入口：只有 BOOK_DETAIL_ENABLED 內的書卷才顯示（否則點了沒東西開）
+  // 書卷背景入口（全卷恆開，BOOK_DETAIL_ENABLED 已退役）
   const guideBook = bookOfChapter(data.chapter);   // 2026-08-31 D4：統一走 core.js 反查
-  const bookLinkHtml = (guideBook && isBookDetailEnabled(guideBook.key))
+  const bookLinkHtml = guideBook
     ? `<div class="guide-book-link" onclick="openBookDetail('${guideBook.key}')">📚 這章讀起來吃力？先認識《${guideBook.name}》 →</div>`
     : '';
 
@@ -4209,8 +4200,7 @@ function updateFbCount() {
 async function submitFeedback() {
   if (!feedbackState.mood) { showToast('請先選今天的感覺'); return; }
   if (!feedbackState.identity) { showToast('請選擇身份'); return; }
-  // FEATURE_FEEDBACK_V2=false 時 wantReply 區塊不存在，跳過驗證
-  if (FEATURE_FEEDBACK_V2 && !feedbackState.wantReply) { showToast('請選是否希望收到回覆'); return; }
+  if (!feedbackState.wantReply) { showToast('請選是否希望收到回覆'); return; }
   if (!feedbackState.category) { showToast('請選擇分類'); return; }
 
   // Guest wanting named comment → prompt to login
@@ -4232,8 +4222,7 @@ async function submitFeedback() {
     // v2 多輪對話：玩家是否希望團隊回覆（匿名強制 false）
     // 對話追蹤欄位（status / lastMessageAt / unreadByPlayer / unreadByAdmin / messageCount）
     // 採 lazy-init：admin 後台回覆或玩家追訊息時才寫；讀取時用 ?? 預設值容錯
-    // FEATURE_FEEDBACK_V2=false 時永遠寫 false，flag 開啟後依玩家勾選
-    wantReply: FEATURE_FEEDBACK_V2 && feedbackState.wantReply === 'yes',
+    wantReply: feedbackState.wantReply === 'yes',
   };
 
   try {
@@ -4417,8 +4406,6 @@ function showDiaryDetail(key) {
 let myMessagesData = [];
 
 async function openMyMessages() {
-  // FEATURE_FEEDBACK_V2=false 時防護：拒絕從 console / 殘留路徑進入
-  if (!FEATURE_FEEDBACK_V2) return;
   if (!currentUser) {
     showToast('登入後可查看自己的留言');
     return;
@@ -4748,8 +4735,6 @@ function setUnreadDots(visible) {
 }
 
 async function checkUnreadFeedback({ toast = false } = {}) {
-  // Flag 關閉時直接退場，不查 Firestore
-  if (!FEATURE_FEEDBACK_V2) return;
   if (!currentUser) {
     setUnreadDots(false);
     return;
@@ -4780,7 +4765,7 @@ async function checkUnreadFeedback({ toast = false } = {}) {
 // 包一層：關閉「我的留言」列表 overlay 後 refresh 頂層紅點
 function closeMyMessagesList() {
   closeOverlay('my-msgs-overlay');
-  if (FEATURE_FEEDBACK_V2 && currentUser) {
+  if (currentUser) {
     checkUnreadFeedback({ toast: false });
   }
 }
@@ -4842,15 +4827,8 @@ function switchPage(name) {
 // renderCalGrid 用 SCHEDULE，cold load 時 SCHEDULE 還沒 ready 就會 race。
 // DOMContentLoaded 在所有 defer scripts 執行完才 fire，保證 SCHEDULE 已定義。
 
-// 套用 feature flag：移除尚未啟用的 v2 入口元素（DOM 樹真實移除，等同條件渲染）
-function applyFeatureFlags() {
-  if (typeof FEATURE_FEEDBACK_V2 !== 'undefined' && !FEATURE_FEEDBACK_V2) {
-    document.querySelectorAll('[data-v2-only]').forEach(el => el.remove());
-  }
-}
 
 document.addEventListener('DOMContentLoaded', () => {
-  applyFeatureFlags();
   // 默想編輯計時：refl-text 首次 focus 或 input 記起點（取第一個、起點 null 才記）。
   // 純後台分析、玩家畫面零變化（design-principles 紅線4：不回灌任何「你想了 X 分鐘」顯示）。
   const _reflEl = document.getElementById('refl-text');
@@ -5077,7 +5055,7 @@ document.querySelectorAll('textarea, input[type="text"], input[type="password"]'
   <button onclick="openTutorial('menu'); closeMoreMenu()">❓ 遊戲說明</button>
   <button onclick="openOverlay('reset-overlay'); closeMoreMenu()">🔄 重置進度</button>
   <button onclick="openFeedback(); closeMoreMenu()">🏜️ 曠野呼聲</button>
-  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" data-v2-only="myMsgs" style="display:none;">📨 我的留言<span class="unread-dot" id="my-msgs-menu-dot" style="display:none;margin-left:8px;vertical-align:middle;"></span></button>
+  <button onclick="openMyMessages(); closeMoreMenu()" id="more-menu-my-msgs" style="display:none;">📨 我的留言<span class="unread-dot" id="my-msgs-menu-dot" style="display:none;margin-left:8px;vertical-align:middle;"></span></button>
   <button onclick="openFontSizePicker(); closeMoreMenu()">🔤 字體大小</button>
   <button onclick="toggleCommitAsk(); closeMoreMenu()" id="more-menu-commit">⏰ 明天約定：問我</button>
   <button onclick="switchPage('changelog'); closeMoreMenu()">📢 更新公告</button>
