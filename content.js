@@ -1,6 +1,6 @@
 // ══ 靈修冒險 content.js ══════════════════════════════════
 // 版本號：每次更新內容或機制時修改
-const GAME_VERSION = '2026.08.31';
+const GAME_VERSION = '2026.09.01';
 
 // ── Feature flags ──────────────────────────────────────────
 // FEATURE_FEEDBACK_V2 已退役（2026-09-01 D8，James 拍板）：2026-05-24 起永久 true、
@@ -20,6 +20,7 @@ const GAME_VERSION = '2026.08.31';
 //   （closeNtFinale 後才彈 showVersionNotice），不再連環彈，故設 false 彈公告。
 // 2026-08-29 PR ②（焦點模式＋完成短畫面＋出席燈）＋難章幫助＋新約 24 卷背景：玩家可見，設 false 彈公告。
 // 2026-08-31 安全修正（LINE 登入 state 必驗、曠野呼聲規則綁 uid）：純後台修、玩家無感，設 true 不彈公告。
+// 2026-09-01 全專案檢視整備（5 個 bug 修＋安全加固＋app.js 重構）：修復/後台類、無新功能新內容，設 true 不彈公告。
 const SUPPRESS_VERSION_POPUP = true;
 
 // ── AI 回應 fallback 文案（單一正本）────────────────────────
@@ -28,7 +29,7 @@ const SUPPRESS_VERSION_POPUP = true;
 // 不一致即中止部署（issue #7）。
 const AI_FALLBACK_TEXT = '謝謝你願意把心裡的話帶到神面前。祂看見了。';
 
-// 2026.08.31 為純後台版（SUPPRESS_VERSION_POPUP=true），notes 維持 08.30 批；
+// 2026.08.31／2026.09.01 為純後台版（SUPPRESS_VERSION_POPUP=true），notes 維持 08.30 批；
 // 下次彈公告的進版必須重寫本陣列。
 const VERSION_NOTES = [
   '❓ 遊戲說明頁更新：補上焦點模式、🔥出席燈、書卷與成就分頁、稱號、自我約定與難章提示，成就入口改指向「📚 書卷與成就」分頁（「更多」選單可隨時查看）'
