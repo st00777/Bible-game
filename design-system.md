@@ -49,7 +49,7 @@
 | `--sky-deep` | `#B8D9F0` | 邊框／淺強調／頭像背景 |
 | `--green` | `#7BC67E` | 正向次要色 |
 | `--green-dark` | `#4CAF50` | 主要 CTA 按鈕、完成狀態、勾選 |
-| `--sand` | `#F5E6C8` | 經文卡片底（暖色） |
+| `--sand` | `#F5E6C8` | ~~經文卡片底（暖色）~~ ⚠️ **2026-09-02 訂正**：文件寫的用途與實際不符，見 §14.1(A)——真正拿來當經文卡片底的是完全不同、未 token 化的硬編碼漸層 |
 | `--sand-dark` | `#E8D0A0` | 經文卡片邊框、暖色強調 |
 | `--warm` | `#FF8A65` | 提醒、未完成、連續天數熱度 |
 | `--purple` | `#9C7BB5` | 靈修主題、AI 回應、品牌主強調色 |
@@ -57,6 +57,8 @@
 | `--text-soft` | `#7A6050` | 次要文字、說明文字 |
 | `--card` | `#FFFDF8` | 卡片底（米白） |
 | `--shadow` | `rgba(61,43,31,0.12)` | 通用陰影（暖棕色低透明，非冷灰） |
+
+> **2026-09-02 訂正**：`--sand` 實際只在 `bible-game-v2.html:45`（`.equip-frame`/`.equip-item` 裝備框漸層終點）與 `:640`（`.bd-char` 書卷詳情人物卡背景）出現，兩者都不是「經文卡片」。真正的金句卡／經文背景（`.verse-card`、`.fb-verse-box`、`.ach-unlock-verse`、`.day-info-bar`、`.tut-tip`、`.thread-origin` 共 7 處）用的是硬編碼漸層 `linear-gradient(135deg,#FFF8E7,#FFF3D4)`，完全沒有走 `--sand` token。收斂建議見 §14.1。
 
 ### 3.2 衍生色與漸層
 
@@ -131,11 +133,15 @@ font-family: 'Noto Serif TC', serif;           /* 經文（verse-text、verse-bo
 | 次要文字 | 12-13px | `tut-step-desc`、`sheet-sub` |
 | 微標籤 / 進度 | 9-11px | `equip-name`、`ach-desc`、`log-tag` |
 
+> **2026-09-02 訂正**：以上僅為代表範例，不是完整清單。實際硬編碼 `font-size` 涵蓋 25 種離散 px 值，其中 11px（32 次）／13px（30 次）／12px（23 次）／14px（19 次）是實際上的主力字級，文件未點名；完整盤點與收斂建議見 §14.2(B)(D)。另外有一批 22/24/18px 等 `font-size` 其實是用來撐 emoji／icon 尺寸（如 `.tut-icon`、`.ul-icon`、`.equip-emoji`），不是文字排版階層，不屬本表範疇——見 §14.2(C)。
+
 **動態字級**（隨 `--fs-body` 縮放，照顧長輩）：
 - 卡片內容：`var(--fs-body)`
 - 略小說明：`calc(var(--fs-body) - 2px)`
 - 更小說明：`calc(var(--fs-body) - 3px)`
 - 最小數字：`calc(var(--fs-body) - 6px)`
+
+> **2026-09-02 訂正**：實際 `calc(var(--fs-body) ± Npx)` 偏移量共有 10 種（-1 到 -8px 各值、+1px、+3px），不只上列 4 階。完整清單、玩家端 fontSize 設定機制確認、與收斂建議見 §14.2。
 
 ### 4.3 行高與字距
 
@@ -702,7 +708,84 @@ transform: translateY(-2px) ~ translateY(-3px);
 
 ---
 
+## 14. 2026-08-28 設計系統盤點（2026-09-02 回寫）
+
+> **緣起**：ADR 0003「後續事項」列的設計系統盤點，原訂 2026-08-28 執行，因等 PR ③（書卷詳情頁分頁／稱號）上線而延後；PR ③ 已於 2026-08-30 上正式站，本節補做回寫。**盤點對象**：`bible-game-v2.html` 的 `<style>` 區塊（現況 line 31-667，共 637 行；2026-09-01 主邏輯抽至 `app.js` 後 CSS 未動，位置見 14.3）。本節只列盤點與收斂建議，**未實際修改任何 CSS**。
+
+### 14.1 色彩 token 收斂建議
+
+**(A) 死 token／文件用途與實際不符**
+
+- `--sand`（`#F5E6C8`）：§3.1 原寫「經文卡片底（暖色）」，但全檔只有 2 處 `var(--sand)`：`bible-game-v2.html:45`（`.equip-frame,.equip-item` 裝備框漸層終點）、`:640`（`.bd-char` 書卷詳情人物卡背景）——兩者都跟「經文」無關。真正的經文卡底色是另一組完全沒 token 化的硬編碼漸層（見下方 B）。**建議**：二選一收斂——① 把 `--sand` 改指向真正的經文卡漸層，讓文件與 token 對上；② 把 `--sand` 改名為反映真實用途的名字（如 `--parchment-frame`），經文卡另外開新 token。不要讓一個名字扛兩種語意。
+
+**(B) 硬編碼重複、該收斂成 token**
+
+| 硬編碼值 | 出現次數／位置 | 實際語意 | 建議 token |
+|---|---|---|---|
+| `linear-gradient(135deg,#FFF8E7,#FFF3D4)` | 7 處：`.fb-verse-box`(149) `.day-info-bar`(243) `.verse-card`(276) `.choice-btn.previewing`(334) `.tut-tip`(396) `.ach-unlock-verse`(537) `.thread-origin`(578) | 經文／金句卡片底（§3.3 沙黃語意的真正落地） | `--sand-grad-1:#FFF8E7; --sand-grad-2:#FFF3D4`（或直接把 `--sand`／`--sand-dark` 改指向這組值，見 14.1(A)） |
+| `linear-gradient(135deg,#E8F5E9,#F1F8E9)` | 9 處：`.fb-opt.sel`(140) `.fs-pick-btn.sel`(154) `.cal-day.cal-done`(220) `.step-num-badge.s2`(287) `.read-done-row`(319) `.choice-btn.selected`(336) `.equip-item.equipped`(439) `.diary-detail-choice`(556) `.thread-bubble-admin`(588)，另有 `#F0FAF0,#E8F5E9`（`.merged-day-card.done`231、`.ach-card.unlocked`489）等 2 處近似變體 | 完成／選中狀態底 | `--green-grad-1:#E8F5E9; --green-grad-2:#F1F8E9` |
+| `linear-gradient(135deg,#F3E8FF,#EDE0FF)` | 6 處：`.unlock-hint`(189) `.cal-day.cal-today`(219) `.step-num-badge.s1`(286) `.ai-resp`(350) `.gender-btn.sel`(411) `.diary-detail-ai`(557)，另 `.tag-imp` 單色 `#EDE0FF`(428)、`.auth-btn.logged-in` 用 `#E8F4FD,#EDE0FF` 混一組(476) | 靈修主題／AI／今日狀態底 | `--purple-grad-1:#F3E8FF; --purple-grad-2:#EDE0FF` |
+
+**(C) 金色系未統一（3-4 組近似值並存，同一語意「稀有／完走」）**
+
+- `#FFD54F,#FFA726`（`.bonus-badge:345`，頂部裝備稀有度 conic-gradient）
+- `#FFD54F,#FFB300`（`.book-spine.lit:607` 書卷完走）
+- `#FFF8E7,#FFE082`（`.equip-frame-gold`／`.ach-card.gold.unlocked:64` 金級容器）
+- `#FFF8E1,#FFECB3`（`.r-title:175` 領獎畫面稀有標題）
+- **建議**：收斂為 `--gold-1`／`--gold-2` 兩色 + 文字色 `#5D4037`，書卷完走、bonus-badge、`r-title` 統一取用；`equip-frame-gold` 若要保留較淺變體，明確標注為「金色第二層次」而非另開一組獨立色碼。
+
+**(D) 疑似語意違規（列不確定，建議下次動對應元件時一併檢視，不必馬上動）**
+
+- `.verse-lbl-text`（`bible-game-v2.html:278`，即 §4.2 表格自己舉的範例）：`color:var(--warm)`。§3.3 warm＝「未完成／提醒／熱度」，但這是金句卡（經文）的標籤文字，語意上更貼近沙黃（經文）或紫（品牌），用 warm 不算典型誤用（可能只是視覺強調色），但確實跟自家色彩語意表對不上。
+- `.refl-q`（`:346`）背景硬編碼單色 `#FFF8E7`（經文色系）＋左框 `var(--warm)`：默想提問框借經文色底、卻用提醒色當強調框，兩種語意疊在一起。
+
+**(E) 檢查後確認沒有違反 ADR 0001「出席驅動」的用色**
+
+- `.mood-chip`（曠野呼聲心情選項）五種心情視覺完全一致（白底＋`--sand-dark`邊框＋hover `--purple`），沒有依心情差異上色——**符合「絕不用視覺評心情」**。
+- `.cal-day.cal-partial`（合併日部分完成）用淺綠變體與 `.cal-day.cal-done` 區分，仍在「完成度」語意內，不是心情或默想品質判斷。
+
+### 14.2 字級雙軌盤點
+
+**(A) 玩家 fontSize 設定機制（先確認，收斂方案不得破壞）**
+
+- 設定頁選 `sm`/`md`/`lg` → `setFontSize()`（`app.js:2588`）呼叫 `applyFontSize()`（`app.js:2580`），把 class `fs-sm`/`fs-md`/`fs-lg` 換到 `<html>` 上，對應 `:root`／`.fs-sm`／`.fs-lg` 覆寫 `--fs-body`（16/14/19px，`bible-game-v2.html:36-38`）；同時寫 `localStorage.fontSize`，登入玩家再同步 Firestore `users/{uid}.fontSize`（`app.js:2591-2593`）。載入時 `app.js:2602-2606` 立即套用已存值。
+- **只有寫成 `font-size:var(--fs-body)` 或 `calc(var(--fs-body) ± Npx)` 的元素才會跟著這個設定縮放**；寫死 px 的元素完全不受影響，這是刻意的（§4.2「固定字級層級」）。
+- **收斂鐵律**：任何收斂都不能把現有「動態」元素改回硬編碼 px，也不能反過來讓文件明訂「固定字級」的元件（`setup-title`、`sheet-title` 等）改成動態——那是需求變更，屬**涵越功能，需先決定**，不是本次盤點範圍。
+
+**(B) 文件 vs 實際差距**
+
+- §4.2「動態字級」表只列 4 階（`--fs-body` / -2px / -3px / -6px），實際 `calc(var(--fs-body) ± Npx)` 有 10 種偏移量：`-1px`(3) `-2px`(8) `-3px`(5) `-4px`(7) `-5px`(2) `-6px`(1) `-7px`(2) `-8px`(1) `+1px`(1) `+3px`(1)；連同 `var(--fs-body)` 直接使用（16 處），動態字級共 47 處。
+- 硬編碼 `font-size:Npx` 共 164 處，涵蓋 25 種離散值，前四名：**11px（32次）／13px（30次）／12px（23次）／14px（19次）**——這四階才是實際上的主力文字字級，§4.2「固定字級層級」表沒點名，只舉了 24/22/18/11/14-15/12-13/9-11px 幾個代表例。動態:硬編碼比例約 1:3.5，硬編碼仍是多數。
+
+**(C) 隱藏的第三軌：emoji／icon 尺寸誤用 `font-size` 屬性**
+
+- 一批 `font-size:18-24px` 宣告實際是拿來撐 emoji 圖示大小，不是文字排版階層：`.tut-icon`(360→現況見下方換算)、`.ul-icon`、`.reward-av .r-hat`、`.ward-prev .wp-hat`、`.spine-badge`、`.equip-emoji`、`.ach-card.hidden .ach-emoji` 等。這批跟 §4.2 講的「字級」不是同一件事，也跟 §9 emoji 資產清單脫節（§9 完全沒提尺寸）。目前混在同一個 `font-size` 統計池裡分析會失真——本節 (B) 的硬編碼計數已包含這批，實際「純文字」硬編碼字級數字會更少。
+- **建議**：拆成兩條獨立軸線——① 文字字級（服務排版與 fontSize 設定，走 `--fs-body` 動態或固定 px）；② emoji／icon 尺寸（不該跟著 fontSize 設定縮放——emoji 是圖示不是內文，長者調大字級的直覺是文字變大，不是圖示膨脹）。建議在 §9 新增一小節，訂一組獨立 icon 尺寸 token（如 `--icon-sm:18px / --icon-md:22px / --icon-lg:32px+`），與 `--fs-body` 脫鉤。
+
+**(D) 建議收斂方案（單軌，供 CC 施工時參考，本次不動 CSS）**
+
+- 文字字級收斂為 5 常規階＋1 特殊展示級：
+  - 11px（最大宗）維持獨立「輔助標籤」階
+  - 12-13px 併為「次要文字」一階（兩值現況都很常用，可明訂同屬一個視覺階，不必二選一）
+  - 14-15px 為「內文／按鈕」階
+  - 18-19px（含 `.fs-lg` 檔位 19px）為「Sheet 主標」階
+  - 22-26px 為「主標題／解鎖名稱」階
+  - 極端值（7-10px 微標籤；28-64px 成就大 emoji／儀式數字等展示級）保留為「特殊展示級」，不硬塞五階，避免削足適履
+- 動態 `calc` 偏移量收斂為 3 階：`-2px`／`-4px`／`-6px`，鄰近的 `-1/-3/-5/-7/-8px` 就近合併；`+1px`／`+3px` 因各只出現 1 次，建議個案確認用途後決定去留，不預設收斂方向。
+
+### 14.3 附錄位置訂正
+
+原「附錄：CSS 主檔位置」寫「line 17-421（405 行）」已過時：2026-09-01 `app.js` 抽離主邏輯後 CSS 未動，但實際 `<style>` 區塊現況為 `bible-game-v2.html` line 31-667（637 行），已於下方附錄訂正。
+
+### 14.4 三原則檢核（本次盤點範圍內）
+
+- **出席驅動 ✅**：查無以心情／默想品質／字數做視覺差異的 CSS（見 14.1(E)）。
+- **雙層節奏**：本次為 token／字級收斂盤點，不涉及每日微變／里程碑大變身機制，不適用（不打分）。
+- **累計不歸零**：本次未觸及 streak／achievement 中斷邏輯，不適用（不打分）。
+
+---
+
 ## 附錄：CSS 主檔位置
 
-完整 CSS 在 `bible-game-v2.html` 的 `<style>` 區塊（line 17-421，405 行）。
+完整 CSS 在 `bible-game-v2.html` 的 `<style>` 區塊（line 31-667，637 行；**2026-09-02 訂正**：原寫 line 17-421／405 行已過時，2026-09-01 主邏輯抽至 `app.js` 後 CSS 區塊位置未同步更新）。
 建議閱讀順序：`:root` 變數 → 主流程卡片（avatar / verse / scenario / refl / complete）→ overlay / modal → 動畫 keyframes。
