@@ -43,7 +43,7 @@
 ## 後續事項
 
 - [x] `roles/*.md` 改寫為 `.claude/agents/` subagent 定義（pm-critic／art-director／data-analyst／content-editor／code-reviewer），另開 PR。——2026-08-28 完成；Dispatch 模板歸檔 `docs/history/content-batch-dispatch-template-2026-08.md`，對照表見 `roles/README.md`。
-- [ ] `design-system.md` 回寫 2026-08-28 設計系統盤點（token 收斂建議、字級雙軌修正），併入視覺成長主菜參考；等 PR ③ 前後處理。（PR ③ 已上線，此項到期待做）
+- [x] `design-system.md` 回寫 2026-08-28 設計系統盤點（token 收斂建議、字級雙軌修正），併入視覺成長主菜參考；等 PR ③ 前後處理。——2026-09-02 完成，見 `design-system.md` §14（4 類 token 問題、3 類字級問題；只出建議清單未動 CSS，施工順序待拍板）。
 - [x] memory 檔建立「James 的顧慮與判斷」條目。——已存在：`james-judgment-notes.md`。
 
 ## 回頭看的時點

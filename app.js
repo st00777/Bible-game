@@ -615,6 +615,7 @@ const LOCAL_STATS_KEY = 'local_stats';
 
 // 本 app 擁有的 localStorage key 單一登錄表（D17）：新增 key 時加在這裡，
 // doReset('all') 讀這張表整清——別再回去 doReset 裡手加（issue #75 A4 的教訓）。
+// 'avatar_state' 已無讀取端（遷移碼 2026-09-02 D16 移除），仍留在表內是為了清掉老玩家瀏覽器裡的殘留。
 const LS_KEYS = ['bible_state','avatar_state','tut_done','ach_unlocked','local_stats',
   'has_submitted_feedback','last_seen_version','line_state','login_choice_made',
   'nt_finale_seen','profile_nudge_last_shown','profile_nudge_last_skip',
@@ -1092,24 +1093,6 @@ function migrateRewardClaimed() {
 
 let state = loadState();
 if (!state.rewardClaimed) state.rewardClaimed = {};  // 既有 localStorage 無此欄時補上，確保讀取安全
-
-// Migrate old avatar_state if exists
-const oldState = localStorage.getItem('avatar_state');
-if (oldState && !state.setup) {
-  try {
-    const old = JSON.parse(oldState);
-    if (old.name && old.name !== '旅途中的信徒') state.name = old.name;
-    state.level = old.level || 1;
-    state.xp = old.xp || 10;
-    state.streak = old.streak || 0;
-    state.hat = old.hat || '';
-    state.body = old.body || '🧑';
-    state.item = old.item || '';
-    if (Array.isArray(old.items)) state.items = old.items.filter(i => typeof i === 'object');
-    if (old.lastDone) state.completed['migrated'] = old.lastDone;
-    saveState();
-  } catch(e) {}
-}
 
 // ══ UTILS ══════════════════════════════════════════════════
 
