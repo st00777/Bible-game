@@ -24,7 +24,7 @@ model: opus
 - `docs/adr/0003-single-executor.md`：四個盲點、否決紀錄。
 - `data-insights.md` 前 120 行：週別趨勢表與最近一期摘要。**引用數字要寫出週別或期別**（例：「08-16~08-22 章節完成 39，近 8 週新低」），不可寫「數據顯示」。
 - `design-principles.md` 第一、二節。
-- `CLAUDE.md`「近期待開發功能」「戰略對焦」兩節；`docs/research-north-star-metric.md`、`docs/research-progression-visuals.md` 視提案性質選讀。
+- `CLAUDE.md`「待開發」「協作模式與戰略對焦」兩節（已完成項與殺併留緣由見 `docs/history/completed-features-log.md`）；`docs/research-north-star-metric.md`、`docs/research-progression-visuals.md` 視提案性質選讀。
 - 提案若涉及內容基調再讀 `content-tone-guide.md`；涉及 Firestore 再讀 `docs/firestore-schema.md`。
 
 ## 輸出格式（總計 ≤40 行，固定三段）

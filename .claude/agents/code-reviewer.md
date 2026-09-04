@@ -17,7 +17,7 @@ model: sonnet
 8. **部署動作**：diff 若含 `firebase deploy`、functions、rules、schema 變更，標「🔴 需 James 單獨明確確認」（ADR 0003 權限盲點）。
 
 ## 必讀正本
-- `design-principles.md` 一、二節；`CLAUDE.md`「重要原則」「後端架構／安全規則」「分支策略」「開發規範」；`docs/adr/0003-single-executor.md` 四個盲點表。
+- `design-principles.md` 一、二節；`CLAUDE.md`「重要原則」「後端要點」「分支策略」「開發規範」（後端明細 `docs/backend.md`）；`docs/adr/0003-single-executor.md` 四個盲點表。
 - `docs/firestore-schema.md`（涉 Firestore 時）；`docs/metric-changelog.md`（涉埋點時；檔案不存在即為 finding）。
 - 檢查用指令：`git branch --show-current`、`git diff <base>...HEAD --stat`、`npm test`（用 `--reporter=dot` 或只看摘要）。
 

@@ -11,6 +11,9 @@ users/{userId}/                          ← 主文件（進度同步）
   hat / body / item / bg / title         // 目前穿戴裝備；title＝稱號名稱（第五部位，2026-08-29 PR ③b，'' 不掛）
   level / xp                             // 等級與經驗值
   name / gender / setup                  // 玩家設定
+  rewardClaimed: { "ACT10": true }       // 已領獎章節（漏領補救用；2026-09-02 補列）
+  rewardClaimedMigrated: true            // 上述補救的一次性遷移是否已跑過（2026-09-02 補列）
+  fontSize:   'md'                       // 字級偏好，雲端為準（登入時覆蓋本機；2026-09-02 補列）
   updatedAt:  Timestamp
 
 users/{userId}/profile/data              ← 玩家基本資料
