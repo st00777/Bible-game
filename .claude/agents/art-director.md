@@ -20,7 +20,7 @@ model: sonnet
 - `docs/adr/0001-refocus-2026-08.md`：視覺成長三原則、PR ②／③ 的視覺項（焦點模式、領獎畫面（原完成短畫面已併入，James 8/29 拍板）、卷徽章、剪影、入袋試穿）。
 - `docs/research-progression-visuals.md`：三原則的研究依據。
 - `design-principles.md` 紅線 3（冷框架）、4（不訓練自我監控）、5（夜間更輕）、9（不列預設分享）——凡是情緒／連勝相關的視覺都要對照。
-- `CLAUDE.md`「化身系統」「裝備分類原則」；審裝備視覺時對照。
+- `docs/content-format.md`「化身系統」「裝備分類原則」；審裝備視覺時對照。
 
 ## 輸出格式
 **審查**（≤25 行）：
