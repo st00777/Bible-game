@@ -20,6 +20,7 @@
 - `npm run logs [天數]` ── aiReflection 呼叫量、AI 真實回應比、錯誤類型分布（預設過去 1 天）
 - `npm run line-logs [天數]` ── lineLogin 成功率、HTTP 失敗分布、錯誤類型、失敗時段（預設過去 1 天）
 - `npm run funnel [週數]` ── B1 事件流漏斗（人／人×章兩種口徑）、掉人最多章節、閱讀勳章來源 bible_com vs already（口徑漂移守門）、各段停留中位數（elapsedSec，2026-08-28 起）、終點儀式 finale_view/close
+- `npm run ga4:rt` ── GA4 即時事件（近 30 分鐘正式站事件清單＋核心流程命中數；測玩第 16 步用，同 SA 金鑰）
 - `npm run ga4` ── GA4 深度指標：活躍規模 MAU(30天)/WAU(7天)/DAU(昨天)、9 核心事件觸發人數、週 cohort 留存（對齊 data-insights 口徑）
 
 前三支用 Firebase CLI refresh token 直接打 Cloud REST API；`npm run ga4` 改用 service account 金鑰（`ga4-key.json`，屬性檢視者權限）+ 純 Node crypto 簽 JWT 換 token 打 GA4 Data API。四支都不需額外安裝 SDK。
@@ -38,6 +39,7 @@
 | `scripts/verify-b1-events.js` | B1 事件流落地驗證（列 uid events + 9 事件覆蓋） |
 | `scripts/funnel.js` | B1 漏斗：週別選章→看題→確認→送默想→完成、掉人章節、閱讀來源、停留、儀式曝光（npm run funnel） |
 | `scripts/ga4-insights.js` | GA4 深度指標（npm run ga4，用 SA 金鑰打 Data API） |
+| `scripts/ga4-realtime.js` | GA4 即時事件（npm run ga4:rt，測玩第 16 步驗事件有進） |
 | `scripts/validate-content.js` | Node 端內容自檢（錯誤 exit 1） |
 | `scripts/sync-shared.js` | 共用檔正本→三個部署單元複本（--check 只比對） |
 
