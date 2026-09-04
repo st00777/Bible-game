@@ -31,7 +31,7 @@ description: 在 Bible-game 改 Firestore schema / 安全規則 / 玩家資料�
 開始審查前讀以下檔案了解現況：
 
 1. `~/Desktop/Bible-game/firestore.rules` — 當前安全規則
-2. `~/Desktop/Bible-game/CLAUDE.md` 的「Firestore 資料結構」區塊 — 完整 schema
+2. `docs/firestore-schema.md`（完整 schema）與 `docs/backend.md`「Firestore 資料結構」「安全規則」
 3. `~/Desktop/Bible-game/bible-game-v2.html` — 找 `db.collection('users')` / `submitFeedback` / `saveChapterRecord` 等寫入點
 
 ---
@@ -118,7 +118,7 @@ description: 在 Bible-game 改 Firestore schema / 安全規則 / 玩家資料�
 #### D2. 新增 collection
 - [ ] `firestore.rules` 必須加對應的 `match /xxx` 規則（**新 collection 沒寫規則 = 預設拒絕，玩家會收到 permission-denied**）
 - [ ] 寫入路徑跟讀取路徑都明確
-- [ ] CLAUDE.md 的 Firestore 資料結構區塊同步更新
+- [ ] `docs/firestore-schema.md` 與 `docs/backend.md` 的 Firestore 資料結構區塊同步更新
 
 #### D3. 修改既有欄位
 - [ ] 不破壞舊資料的讀取（type 不變、key 不改名）
