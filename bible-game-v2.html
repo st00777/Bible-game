@@ -336,7 +336,7 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .choice-btn.selected{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);box-shadow:0 4px 14px rgba(76,175,80,.25);}
 .choice-btn.selected .ch-letter{background:var(--green-dark);color:white;}
 .ch-letter{width:25px;height:25px;border-radius:50%;background:var(--sky-deep);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;}
-.choice-feedback{margin-top:12px;padding:13px 15px;background:#F0FAF0;border-radius:11px;font-size:var(--fs-body);line-height:1.8;border-left:3px solid var(--green-dark);display:none;animation:popIn .4s ease;}
+.choice-feedback{scroll-margin-top:24px;margin-top:12px;padding:13px 15px;background:#F0FAF0;border-radius:11px;font-size:var(--fs-body);line-height:1.8;border-left:3px solid var(--green-dark);display:none;animation:popIn .4s ease;}
 
 /* Reflection */
 .refl-card{background:var(--card);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 4px 20px var(--shadow);opacity:0;animation:popIn .5s ease forwards .5s;}
@@ -485,6 +485,7 @@ body.cal-open .cal-entry .ce-arrow{transform:rotate(180deg);}
 body.focus-mode .avatar-card,body.focus-mode .unlock-hint,body.focus-mode #cal-card,body.focus-mode .cal-entry,body.focus-mode .day-info-bar,body.focus-mode .nav-tabs{display:none!important;}
 .focus-bar{display:none;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:9px 12px;margin-bottom:14px;box-shadow:0 2px 10px var(--shadow);font-size:13px;font-weight:700;}
 body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky;top:8px;z-index:20;}   /* sticky：捲下去仍看得到「← 返回」（8/29 終驗備註） */
+body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋自動捲動時避開 sticky 返回列（約 62px 高＋留白；9/5 James 真機回報） */
 .focus-bar button{background:var(--sky);border:2px solid var(--sky-deep);border-radius:12px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;min-height:36px;}
 .focus-bar .fb-ch{color:var(--purple);}
 .rw-attend{margin-bottom:8px;}
@@ -1213,6 +1214,12 @@ body.focus-mode .focus-bar{display:flex;animation:popIn .4s ease;position:sticky
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.09.05 · 情境題回饋捲動修正</div>
+      <div class="log-date">2026年9月</div>
+      <div class="log-item"><span class="log-tag tag-fix">修正</span><span>情境題點兩下確認後，畫面改停在你選項的回應文字（原本會捲到默想卡、把回應推出畫面，得再往上滑才讀得到）；焦點模式下也不會被「← 返回」列遮住</span></div>
     </div>
 
     <div class="log-entry">

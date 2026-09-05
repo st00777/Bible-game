@@ -42,7 +42,7 @@ description: 靈修冒險固定測玩清單。用 Chrome（手機視窗）對 de
 | 13 | 曠野呼聲 | 開得起表單，不送出 |
 | 14 | 字級 | 切大／小字級，版面不破 |
 | 15 | 儀式（8/28–9/06 期間） | `?nt=preview` 開得起、關得掉 |
-| 16 | 網路 | `read_network_requests` 看到 `google-analytics.com/g/collect` 有發（本機環境可能回 503，正式站再確認）、`aireflection…run.app` 回 200 |
+| 16 | 網路 | `gtag/js` 回 200、`aireflection…run.app` 回 200；GA4 事件不靠瀏覽器工具（sendBeacon 抓不到，#94），測完由主對話跑 `npm run ga4:rt` 看近 30 分鐘正式站有 app_open／chapter_select／read_chapter／choice_confirm／complete_devotional 進來（dev 預覽站不送 GA4，此步只對正式站有效） |
 | 17 | 重新整理 | 進度保留（localStorage） |
 
 ## 回報格式（≤25 行）
