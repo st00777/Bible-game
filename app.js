@@ -976,6 +976,7 @@ function renderBookDetail(bookKey) {
         html += `<div class="bd-period ${unlocked ? '' : 'locked'}">${avatar}<span class="bd-period-title">${esc(p.title)}</span>${tag}`;
         if (unlocked) {
           if (filled(p.desc)) html += `<div>${esc(p.desc)}</div>`;
+          if (filled(p.ref)) html += `<div class="bd-period-ref">${esc(p.ref)}</div>`;  // 出處小字（2026-09-05）：只在解鎖後隨敘述一起顯示
         } else {
           html += '<div>走到這卷的進度即可解鎖這段認識。</div>';
         }
