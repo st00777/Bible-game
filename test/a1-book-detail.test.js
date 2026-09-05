@@ -92,3 +92,15 @@ test('翻頁動畫 CSS：限 #book-detail-overlay、≤450ms、有 prefers-reduc
   assert.ok(m && Number('0.' + m[1]) <= 0.45, '翻頁動畫超過 450ms');
   assert.match(html, /@media \(prefers-reduced-motion:reduce\)\{\s*#book-detail-overlay \.sheet\{transform:none/);
 });
+
+test('人物出處 ref：解鎖後渲染成 bd-period-ref 小字，未解鎖不輸出', () => {
+  const chars = {
+    noah: { name: '挪亞', periods: { flood: { book: 'GEN', title: '洪水', desc: 'd', ref: '創 6:8-9', unlock: 'GEN1' } } },
+    abe: { name: '亞伯拉罕', periods: { call: { book: 'GEN', title: '蒙召', desc: 'd', ref: '創 12:1', unlock: 'GEN2' } } },
+  };
+  const r = run({ BOOKS: [GEN], CHARACTERS: chars, completed: { GEN1: true } });
+  vm.runInContext("renderBookDetail('GEN')", r.ctx);
+  const out = r.document.els['book-detail-body'].innerHTML;
+  assert.match(out, /<div class="bd-period-ref">創 6:8-9<\/div>/);
+  assert.ok(!out.includes('創 12:1'), '未解鎖時期不該露出出處');
+});
