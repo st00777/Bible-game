@@ -8647,6 +8647,21 @@ function validateContent() {
     });
   });
 
+  // 9) 人物冊（2026-09-05）：每個時期的 book 要是 BOOKS 的 key、unlock 要是該書卷 entries 內的章節 key，
+  //    否則人物卡永遠「未解鎖」、玩家看不出為什麼。desc 內若出現「//」代表出處註解被寫進字串、會原樣顯示給玩家（warn）。
+  const chars = (typeof CHARACTERS !== 'undefined' && CHARACTERS) ? CHARACTERS : {};
+  const bookKeys = new Set(BOOKS.map(b => b.key));
+  Object.keys(chars).forEach(cid => {
+    const periods = (chars[cid] && chars[cid].periods) || {};
+    Object.keys(periods).forEach(pid => {
+      const p = periods[pid] || {};
+      const tag = `CHARACTERS：${cid}.${pid}`;
+      if (!bookKeys.has(p.book)) errors.push(`${tag} book「${p.book}」不是 BOOKS 的 key`);
+      if (!entrySet.has(String(p.unlock))) errors.push(`${tag} unlock「${p.unlock}」不在任何書卷 entries 內`);
+      if (String(p.desc || '').includes('//')) warns.push(`${tag} desc 含「//」出處註解，會顯示給玩家；請移到字串外`);
+    });
+  });
+
   if (errors.length) {
     console.error(`🚨 內容自檢：${errors.length} 條結構錯誤（新章節上線前必修）`);
     errors.forEach(m => console.error('  ✗ ' + m));

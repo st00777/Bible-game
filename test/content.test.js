@@ -22,7 +22,7 @@ function validatorSource() {
 // 用假資料跑驗證器：tables 是要覆蓋的五張表
 function runWith(tables) {
   const ctx = vm.createContext({ console: { log() {}, warn() {}, error() {} } });
-  const base = { SCHEDULE: {}, BIBLE_LINKS: {}, BOOK_INTRO: {}, CHAPTERS: [], BOOKS: [], ...tables };
+  const base = { SCHEDULE: {}, BIBLE_LINKS: {}, BOOK_INTRO: {}, CHAPTERS: [], BOOKS: [], CHARACTERS: {}, ...tables };
   for (const k of Object.keys(base)) ctx[k] = base[k];
   vm.runInContext(validatorSource(), ctx);
   return vm.runInContext('validateContent()', ctx);
@@ -111,3 +111,25 @@ test('totalChapters 與 entries 數不符 → warn', () => {
 });
 
 // BOOK_DETAIL_ENABLED 已退役（2026-09-01 D8）——相關檢查與測試移除。
+
+// 人物冊檢查 9)（2026-09-05）
+const okChar = { name: '亞當', periods: { beginning: { book: 'GEN', title: 't', desc: 'd', unlock: 'GEN1' } } };
+test('人物冊時期 book／unlock 合法 → 無錯', () => {
+  const r = runWith({ ...healthy, CHARACTERS: { adam: okChar } });
+  assert.ok(!r.errors.some(m => m.startsWith('CHARACTERS')));
+});
+test('人物冊 unlock 不在任何書卷 entries → error', () => {
+  const bad = { name: 'x', periods: { p: { book: 'GEN', title: 't', desc: 'd', unlock: 'GEN99' } } };
+  const r = runWith({ ...healthy, CHARACTERS: { x: bad } });
+  assert.ok(r.errors.some(m => m.includes('unlock「GEN99」')));
+});
+test('人物冊 book 不是 BOOKS key → error', () => {
+  const bad = { name: 'x', periods: { p: { book: 'ZZZ', title: 't', desc: 'd', unlock: 'GEN1' } } };
+  const r = runWith({ ...healthy, CHARACTERS: { x: bad } });
+  assert.ok(r.errors.some(m => m.includes('book「ZZZ」')));
+});
+test('人物冊 desc 含 // 出處 → warn', () => {
+  const bad = { name: 'x', periods: { p: { book: 'ROM', title: 't', desc: 'd // 創 1:1', unlock: 'GEN1' } } };
+  const r = runWith({ ...healthy, CHARACTERS: { x: bad } });
+  assert.ok(r.warns.some(m => m.includes('desc 含「//」')));
+});
