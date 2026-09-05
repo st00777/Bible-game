@@ -1913,8 +1913,10 @@ function selectChoice(btn, choice) {
     document.getElementById('complete-btn').disabled = false;
   }
 
+  // 2026-09-05：捲動目標改為回饋文字本身（原本捲默想卡會把剛出現的回饋推出畫面上緣）。
+  // 回饋靠近視窗上緣、默想卡露出下方一角當「還有下一步」的暗示；上方安全間距由 CSS scroll-margin-top 提供。
   setTimeout(() => {
-    document.querySelector('.refl-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+    fb.scrollIntoView({behavior:'smooth',block:'start'});
   }, 600);
 }
 
