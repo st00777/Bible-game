@@ -91,3 +91,6 @@ token.json
 
 # 敏感文件不進 repo（2026-08-23 PM 拍板）：玩家行為描述在小社群等同指名，檔案留本機、由 npm 腳本與人工維護
 data-insights.md
+
+# 和合本逐節比對腳本（scripts/verify-cuv.js）的 bible-api.com 章節快取，本機用、不入庫
+.cache/
