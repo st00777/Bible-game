@@ -55,7 +55,7 @@ description: 為 Bible-game（靈修冒險）生成新章節的完整靈修內�
 請以【生成專員】身份，按照以下步驟生成內容：
 
 #### 步驟 1｜確認和合本原文
-先確認本章節的和合本內容，特別記下適合引用的金句。可透過 Bible.com 查詢原文（遊戲 `BIBLE_LINKS` 裡有每章連結）。
+先確認本章節的和合本內容，特別記下適合引用的金句。原文用 `node scripts/verify-scripture.js --dump GEN 25` 抓正本 CUNP1 純文字（不要用 Bible.com 或其他來源）。
 
 #### 步驟 2｜撰寫 guide 導讀
 - `readTime`：預估閱讀完整章節的分鐘數（3-6）
@@ -110,13 +110,24 @@ description: 為 Bible-game（靈修冒險）生成新章節的完整靈修內�
 - [ ] `guide` 是否有 `intro` / `outline` / `focus`
 - [ ] `baseItem` 和 `bonusItem` 是否有 `emoji` / `name` / `desc` / `slot`
 
-#### B. 和合本核對（**上網驗證**）
-- [ ] 透過 Bible.com 或 BIBLE_LINKS 查詢原文，逐字比對以下欄位：
-- [ ] `verse` 是否為真實和合本原文（用字、標點是否正確）
-- [ ] `baseItem.desc` 是否為真實和合本原文
-- [ ] `bonusItem.desc` 是否為真實和合本原文
+#### B. 和合本核對（**腳本自動比對，不再手工對照**）
+物件貼進 `content.js` 後，跑兩支腳本（都只讀 content.js，不進遊戲 runtime）：
+
+```
+npm run verify:scripture GEN25 GEN26        # 正本 CUNP1 逐字護欄（硬性，失敗不得進 dev）
+npm run verify:cuv -- GEN 25-26             # 逐節四類報告（一致／標點差異／疑似版本差異／文字差異）
+```
+
+- [ ] `verify:scripture` 全部通過（`verse` / `baseItem.desc` / `bonusItem.desc` 三處都回對 CUNP1）
+- [ ] `verify:cuv` 文字差異＝0（exit 0）。四類判讀：
+  - ✔ 一致：不用看
+  - ⚠ 標點差異：文字對、只有標點不同，單獨列出不算錯；引號層級（『』/「」）與節選頭尾標點不比
+  - ❓ 疑似版本差異：舊和合本對不上、但正本 CUNP1 一致（麼→嗎、作→做、那裡→哪裡、流便→呂便這類新標點改字），不改
+  - ✖ 文字差異：兩個來源都對不上、或 `verseRef` 標的節與引文實際落點不符 → 回生成專員改稿，**腳本不會自動改 content.js**
+- [ ] 比對前腳本已套正規化（裏→裡、着→著）；代名詞「他」照原文，不改成「祂」
 - [ ] **截斷經文等同引用錯誤**，整節太長要換節而非截半
 - [ ] 兩個裝備不能拆同一節經文
+- 抓回的章節快取在 `.cache/`（已 gitignore），同一章不重打 API；`--refresh` 重抓、`--quiet` 只列非一致項
 
 #### C. 情境題品質
 - [ ] `q` 是否連結玩家真實生命，而非純知識測驗
@@ -187,8 +198,9 @@ description: 為 Bible-game（靈修冒險）生成新章節的完整靈修內�
 **完成後的輸出位置**：
 1. 把生成的 JavaScript 物件貼到 `content.js` 的 `CHAPTERS` 陣列內
 2. 在 `SCHEDULE` 加排程日期 → 章節 key 對應
-3. 部署到 dev preview 讓使用者驗證
-4. 沒問題後 commit + push
+3. 跑 `npm test`、`npm run verify:scripture <keys>`、`npm run verify:cuv -- <BOOK> <from>-<to>` 三道都過
+4. 部署到 dev preview 讓使用者驗證
+5. 沒問題後 commit + push
 
 **設計原則提醒**（從 LEARNING.md / memory）：
 - 玩家輸入文字（默想、回饋）是核心資產，預設要存 Firestore
