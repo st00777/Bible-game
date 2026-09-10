@@ -8142,6 +8142,7 @@ const CHAPTERS = [
   },
   {
     chapter:'GEN32', sceneEmoji:'🌙', readTime:5,
+    type:'node', node:{title:'雅博渡口', text:'從十二章亞伯拉罕離開本地，到雅各在雅博渡口被改名以色列，應許走到了第三代。創世記五十章，你已經走過三十二章了。'},
     guide:{
       intro:'雅各離開舅舅拉班二十年後，帶著兩個妻子、十一個兒子和大批牲畜往迦南走，卻在半路上先收到一個消息：哥哥以掃正帶著四百人迎面而來。二十年前，雅各是騙走以掃長子名分與父親祝福才連夜逃亡的那個人，如今再也躲不掉，只能往前走去見他。他把家人牲畜分成兩隊求自保，連夜送出大批禮物想解以掃的恨，最後獨自留在雅博渡口過夜，遇見一個人與他摔跤直到天亮。',
       outline:[
@@ -9376,6 +9377,27 @@ function validateContent() {
       if (!bookKeys.has(p.book)) errors.push(`${tag} book「${p.book}」不是 BOOKS 的 key`);
       if (!entrySet.has(String(p.unlock))) errors.push(`${tag} unlock「${p.unlock}」不在任何書卷 entries 內`);
       if (String(p.desc || '').includes('//')) warns.push(`${tag} desc 含「//」出處註解，會顯示給玩家；請移到字串外`);
+    });
+  });
+
+  // 10) 章節類型（2026-09-11 內容輪換）：type 只能是 'node'／'review'；
+  //     節點章要有 node.title＋node.text（領獎畫面顯示）；回顧章 reviewOf 至少 2 章且每章都在 CHAPTERS；
+  //     選項的 ref（指回某章）也要查得到，否則玩家看到的是空 emoji。
+  const CHAPTER_TYPES = ['node', 'review'];
+  CHAPTERS.forEach(c => {
+    const k = String(c.chapter);
+    if (c.type === undefined) return;
+    if (!CHAPTER_TYPES.includes(c.type)) { errors.push(`CHAPTERS：${k} type「${c.type}」不合法（只能 node／review）`); return; }
+    if (c.type === 'node') {
+      if (!c.node || !String(c.node.title || '').trim() || !String(c.node.text || '').trim()) errors.push(`CHAPTERS：${k} 節點章缺 node.title／node.text`);
+    }
+    if (c.type === 'review') {
+      const list = Array.isArray(c.reviewOf) ? c.reviewOf : [];
+      if (list.length < 2) errors.push(`CHAPTERS：${k} 回顧章 reviewOf 至少要列 2 章`);
+      list.forEach(r => { if (!chapterSet.has(String(r))) errors.push(`CHAPTERS：${k} reviewOf 的 ${r} 在 CHAPTERS 找不到`); });
+    }
+    (c.choices || []).forEach(o => {
+      if (o && o.ref !== undefined && !chapterSet.has(String(o.ref))) errors.push(`CHAPTERS：${k} 選項 ${o.k} 的 ref「${o.ref}」在 CHAPTERS 找不到`);
     });
   });
 

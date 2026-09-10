@@ -133,3 +133,24 @@ test('人物冊 desc 含 // 出處 → warn', () => {
   const r = runWith({ ...healthy, CHARACTERS: { x: bad } });
   assert.ok(r.warns.some(m => m.includes('desc 含「//」')));
 });
+
+// 檢查 10（2026-09-11）：章節類型 node／review 的形狀契約
+test('檢查 10：type 不合法、節點章缺 node、回顧章 reviewOf 太少或指到不存在的章、選項 ref 查不到', () => {
+  const base = { SCHEDULE: {}, BIBLE_LINKS: { A1: 'u', A2: 'u', A3: 'u' }, BOOK_INTRO: { A: okIntro },
+    BOOKS: [{ key: 'A', name: 'A', entries: ['A1', 'A2', 'A3'], totalChapters: 3 }] };
+  const ok = runWith({ ...base, CHAPTERS: [
+    { ...fullChapter('A1'), type: 'node', node: { title: 't', text: 'x' } },
+    { ...fullChapter('A2') },
+    { ...fullChapter('A3'), type: 'review', reviewOf: ['A1', 'A2'], choices: [{ k: 'A', text: 'a', ref: 'A1' }, { k: 'B', text: 'b', ref: 'A2' }, { k: 'C', text: 'c' }, { k: 'D', text: 'd' }] },
+  ] });
+  assert.equal(ok.errors.length, 0, ok.errors.join("；"));
+  const bad = runWith({ ...base, CHAPTERS: [
+    { ...fullChapter('A1'), type: 'bonus' },
+    { ...fullChapter('A2'), type: 'node', node: { title: 't' } },
+    { ...fullChapter('A3'), type: 'review', reviewOf: ['A1', 'ZZ'], choices: [{ k: 'A', text: 'a', ref: 'NOPE' }, { k: 'B', text: 'b' }, { k: 'C', text: 'c' }, { k: 'D', text: 'd' }] },
+  ] });
+  assert.ok(bad.errors.some(m => m.includes('A1 type「bonus」')));
+  assert.ok(bad.errors.some(m => m.includes('A2 節點章缺 node')));
+  assert.ok(bad.errors.some(m => m.includes('A3 reviewOf 的 ZZ')));
+  assert.ok(bad.errors.some(m => m.includes('A3 選項 A 的 ref「NOPE」')));
+});

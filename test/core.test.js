@@ -13,8 +13,8 @@ globalThis.BOOKS = [
   { key: 'COR1', name: '哥林多前書', shortName: '林前', prefix: 'COR1_', entries: ['COR1_1', 'COR1_2'], totalChapters: 3, merged: { COR1_1: 2 } },
 ];
 globalThis.CHAPTERS = [
-  { chapter: 1, verse: 'v1', baseItem: { emoji: '🧥', name: 'a', slot: 'body' }, bonusItem: { default: { emoji: '🌿', name: 'n' }, m: { emoji: '⚔️', name: 'm' } } },
-  { chapter: 2 },
+  { chapter: 1, sceneEmoji: '✉️', verse: 'v1', baseItem: { emoji: '🧥', name: 'a', slot: 'body' }, bonusItem: { default: { emoji: '🌿', name: 'n' }, m: { emoji: '⚔️', name: 'm' } } },
+  { chapter: 2, sceneEmoji: '🔥' },
   { chapter: 'ROM1' }, { chapter: 'ROM2' }, { chapter: 'COR1_1' },
 ];
 globalThis.SCHEDULE = {
@@ -196,6 +196,19 @@ test('equippedVerses：只回身上四件的 desc、去重、不含名稱', () =
 
 test('escapeHtmlMyMsg', () => {
   assert.equal(core.escapeHtmlMyMsg(`<a href="x">&'</a>`), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
+});
+
+test('章節類型：chapterType 缺欄／怪值當一般章；reviewChapters 查表帶 done、略過查不到的；choiceEmoji 只在 ref 查得到時回 emoji', () => {
+  assert.equal(core.chapterType({}), 'normal');
+  assert.equal(core.chapterType({ type: 'bonus' }), 'normal');
+  assert.equal(core.chapterType({ type: 'node' }), 'node');
+  assert.equal(core.chapterType({ type: 'review' }), 'review');
+  const list = core.reviewChapters({ type: 'review', reviewOf: [1, 2, 'NOPE'] }, { ACT1: true });
+  assert.deepEqual(list.map(r => [r.key, r.emoji, r.label, r.done]), [[1, '✉️', '徒1', true], [2, '🔥', '徒2', false]]);
+  assert.deepEqual(core.reviewChapters({}, {}), []);
+  assert.equal(core.choiceEmoji({ k: 'A', text: 'a', ref: 2 }), '🔥');
+  assert.equal(core.choiceEmoji({ k: 'A', text: 'a', ref: 'ROM1' }), '');   // 有章但沒 sceneEmoji
+  assert.equal(core.choiceEmoji({ k: 'A', text: 'a' }), '');
 });
 
 test('app.js 不再自己定義已搬走的函式，HTML 仍載入 core.js（2026-09-01 D2：主邏輯移居 app.js）', () => {

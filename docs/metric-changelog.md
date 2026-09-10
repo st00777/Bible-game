@@ -16,3 +16,4 @@
 | 2026-08-30 | GA4 `sessionSource`；`read_chapter`／`tutorial_open` 的 `source` 參數 | gtag 那份把 `source` 改名 `event_source`（撞 GA4 保留字，曾污染流量來源）；Firestore 欄位不變 | GA4 端 08-30 前 source 值不可用；Firestore／funnel 不受影響 |
 | 2026-08-31 | `chapter_select.order`（合併日） | 修口徑 bug：原以 `String(c)` 比對 completed，使徒行傳數字 key 永遠 miss，合併日補讀 `order` 恆為 1；改走 `chapterKey` 正規化 | 08-31 前使徒行傳合併日的 `order` 不可信（其他書卷不受影響） |
 | 2026-09-01 | `tutorial_open`（source=first） | D22 開機彈窗改隊列制：終點儀式窗（至 9/06）內新玩家改為「儀式先、教學後」，且儀式卡住 60 秒才放棄時教學延後觸發 | 9/01-9/06 間 first 的觸發時點稍晚；9/07 起與舊口徑無差 |
+| 2026-09-11 | `reward_view.ctype` | 章節類型上線：節點章／回顧章的 `reward_view` 多帶 `ctype`（`node`／`review`），一般章不帶 | 節點章效果看「當日完成人數 vs 前後三日平均」（現有 `complete_devotional` 即可）；`ctype` 只用來分組，9/27 GEN32 起才有 |
