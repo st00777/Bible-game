@@ -177,6 +177,16 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .r-title-name{font-size:20px;font-weight:900;color:#5D4037;margin:4px 0;}
 .r-title-desc{font-size:11px;color:var(--text-soft);font-style:italic;}
 .r-title-sub{font-size:11px;color:var(--purple);margin-top:6px;}
+/* 節點章里程標記（2026-09-11）：只是一句回望，不是獎勵 */
+.r-node{margin:12px 0;padding:11px 12px;border-radius:14px;background:linear-gradient(135deg,#E8F4FD,#EBF5E8);border:2px solid var(--sky-deep);text-align:center;animation:popIn .5s ease;}
+.r-node-lbl{font-size:12px;font-weight:900;color:var(--green-dark);letter-spacing:.05em;}
+.r-node-text{font-size:12px;color:var(--text-soft);margin-top:4px;line-height:1.6;}
+/* 回顧章：場景上方列出這週走過的章 */
+.review-strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.review-chip{font-size:11px;font-weight:700;color:var(--text-soft);background:white;border:1.5px solid var(--sky-deep);border-radius:20px;padding:3px 9px 3px 6px;display:inline-flex;align-items:center;gap:4px;}
+.review-chip.done{color:var(--green-dark);border-color:var(--green);}
+.review-chip-emoji{font-size:14px;}
+.ch-ref-emoji{margin-right:4px;}
 .overlay.stack-top{z-index:101;}
 .wp-title{text-align:center;font-size:13px;font-weight:700;color:var(--purple);margin:-10px 0 12px;}
 .xp-bg{background:var(--sky-deep);border-radius:8px;height:7px;overflow:hidden;}
@@ -992,6 +1002,7 @@ body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋�
       <span class="r-item" id="r-item"></span>
     </div>
     <div id="item-reveal"></div>
+    <div class="r-node" id="r-node" style="display:none;"></div>
     <div class="r-title" id="r-title" style="display:none;"></div>
     <div class="rw-book" id="rw-book" style="display:none;"></div>
     <div class="share-box"><div id="share-text"></div></div>
@@ -1163,8 +1174,9 @@ body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋�
     </div>
 
     <!-- Scenario -->
-    <div class="sec-lbl">🎭 今日情境</div>
+    <div class="sec-lbl" id="scenario-lbl">🎭 今日情境</div>
     <div class="scenario-card">
+      <div class="review-strip" id="review-strip" hidden></div>
       <div class="scene-box">
         <span class="scene-emoji" id="scene-emoji"></span>
         <span id="scene-text"></span>

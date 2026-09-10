@@ -1831,6 +1831,15 @@ function selectChapter(ch) {
   document.getElementById('scene-emoji').textContent = data.sceneEmoji;
   document.getElementById('scene-text').textContent = data.scene;
   document.getElementById('scenario-q').textContent = data.q;
+  // 2026-09-11 章節類型：回顧章把標題換成「本週回顧」，並在場景上方列出這週走過的幾章（✅＝已完成）
+  const ctype = chapterType(data);
+  document.getElementById('scenario-lbl').textContent = ctype === 'review' ? '🔁 本週回顧' : '🎭 今日情境';
+  const strip = document.getElementById('review-strip');
+  const reviewList = ctype === 'review' ? reviewChapters(data, state.completed) : [];
+  strip.hidden = !reviewList.length;
+  strip.innerHTML = reviewList.map(r =>
+    `<span class="review-chip ${r.done ? 'done' : ''}" title="${r.label}"><span class="review-chip-emoji">${r.emoji}</span>${r.label}${r.done ? ' ✅' : ''}</span>`
+  ).join('');
   // B1: question_view — 玩家看到情境題（selectChapter 一次性 render，等同 chapter_select 後立即看到題）
   track('question_view', _elapsed({ chapter: ch }));
 
@@ -1838,7 +1847,7 @@ function selectChapter(ch) {
   const container = document.getElementById('choices-container');
   container.innerHTML = data.choices.map(c =>
     `<button class="choice-btn" id="choice-${c.k}" onclick="selectChoice(this,'${c.k}')">
-      <span class="ch-letter">${c.k}</span><span>${c.text}</span>
+      <span class="ch-letter">${c.k}</span><span>${choiceEmoji(c) ? `<span class="ch-ref-emoji">${choiceEmoji(c)}</span>` : ''}${c.text}</span>
     </button>`
   ).join('');
 
@@ -2176,7 +2185,13 @@ function showReward(item, bonus, hasBonus, newTitles) {
   newTitles = newTitles || [];
   // B1（2026-08-30）：完成短畫面曝光；稱號解鎖各記一筆（PR ③b）
   _rewardOpenAt = Date.now(); _focusRewarded = true;
-  track('reward_view', { chapter: selectedChapter, hasBonus: !!bonus, newTitles: newTitles.length });
+  const _rwData = getChapter(selectedChapter); const _rwType = chapterType(_rwData);
+  track('reward_view', { chapter: selectedChapter, hasBonus: !!bonus, newTitles: newTitles.length, ...(_rwType !== 'normal' ? { ctype: _rwType } : {}) });
+  // 2026-09-11 節點章：領獎畫面多一個里程標記（純資訊回饋，不加獎勵、不加數值；design-principles 獎勵一條）
+  const nodeEl = document.getElementById('r-node');
+  const nodeInfo = _rwType === 'node' && _rwData.node ? _rwData.node : null;
+  nodeEl.style.display = nodeInfo ? '' : 'none';
+  nodeEl.innerHTML = nodeInfo ? `<div class="r-node-lbl">📍 ${nodeInfo.title || '走到這裡了'}</div><div class="r-node-text">${nodeInfo.text || ''}</div>` : '';
   newTitles.forEach(t => track('title_unlocked', { chapter: selectedChapter, title: t.name, booksDone: t.books != null ? t.books : undefined }));
   // 預覽：不再自動換裝（PR ③b），小人先照目前裝扮畫，再把新裝備疊上去當「試穿預覽」
   const prev = { hat: state.hat, body: state.body, hand: state.item, bg: state.bg };
