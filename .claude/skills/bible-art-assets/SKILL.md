@@ -73,3 +73,16 @@ cwebp -q 90 -alpha_q 90 in.png -o out.webp
 - 切法：按格等分、每格內縮 10px、白鍵 fuzz 6%、trim；`cut2/parts.json` 記格位與連通區塊數。18 格零碎片（對比第一張自由排版 30 件有 7 件帶碎片）。
 - 坑：寫「填滿格子 70%」小零件（手、眼、嘴）會被放大 2–3 倍；要寫「all parts at the same scale, small parts stay small」。要「單段手臂」它會給整隻手臂拆三截，可直接用。
 - 一張只放一類（身體／斗篷／配件），零件才夠大。
+
+## 七、Rive 素材提示詞必含清單（2026-09-10 整理，正本；三處片段合併：p2-prompt、rive-rigging ecosystem 第 3 節、本檔五之二）
+提示詞固定三段 `[STYLE]`／`[CONTENT]`／`[NEGATIVE]`，STYLE 逐字沿用不改，只寫 CONTENT。CONTENT 必含下列八項，缺一項就會多跑一輪：
+1. **同一人**：「the SAME character from the reference images」＋外觀三要素（髮／衣／靴）；每次都附風格錨＋上一張方格圖。
+2. **視角與朝向**：front-facing／three-quarter side view facing LEFT；全部零件同一視角。動作設計上要面向哪邊就寫死。
+3. **姿勢是 A-pose 或「彎肘畫死」**：可綁骨的直臂零件用 A-pose 拆段；路 D 不能彎的關節整隻畫死。**不會動的肢體直接烤進相鄰大件**（坐姿手臂烤進下身圖），不要獨立成件——獨立手臂疊在披風／衣服上會像破洞（James 2026-09-10）。被外袍蓋住的上臂留在上身格。
+4. **拆件清單逐格點名**：每格一件、寫格號；上身格要註明 WITHOUT arms／head，避免它多畫。
+5. **方格排版句**：invisible uniform GRID of equal cells, N columns × M rows；exactly ONE part per cell；gap ≥ a hand's width；no part extends into a neighbouring cell。
+6. **比例句**：大件填 70%，但「ALL parts at the same relative scale, small parts stay small」。
+7. **關節端膠囊**：every joint end drawn as a rounded, slightly over-extended capsule end（重疊處不露縫）。
+8. **純白底＋六不**：#FFFFFF；no ground line／shadow／colour swatches／labels／grid lines／reference figure。
+NEGATIVE 固定加：overlapping parts, parts touching, front view（側面表時）, full figure（零件表時）。
+進 Rive 的檔一律 PNG 去背、裁到實際邊界、零件人高 500–700 px；命名用最終語意名（契約在 rive-rigging SKILL.md 第 2 節）。

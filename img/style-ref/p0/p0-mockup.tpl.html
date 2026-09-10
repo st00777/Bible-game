@@ -1,0 +1,301 @@
+<title>小旅人示意頁</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700&display=swap">
+<style>
+:root{
+  --ground:#EDE3D3; --ground-2:#E3D6C2;
+  --card:#FFFDF8; --card-2:#FBF4E6;
+  --text:#3D2B1F; --text-soft:#7A6050; --line:rgba(61,43,31,.12);
+  --purple:#9C7BB5; --purple-deep:#7B5F94; --sand:#F5E6C8; --sand-dark:#E8D0A0;
+  --green:#7BC67E; --green-dark:#4CAF50; --gold:#F2C46A;
+  --shadow:rgba(61,43,31,.18);
+  --night-veil:rgba(38,26,48,0);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#1E1713; --ground-2:#2A211B; --card:#2C2429; --card-2:#352C31;
+    --text:#F1E8DA; --text-soft:#C4B2A0; --line:rgba(241,232,218,.14); --shadow:rgba(0,0,0,.45);
+    --sand:#3E3330; --sand-dark:#5A4A3E;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1E1713; --ground-2:#2A211B; --card:#2C2429; --card-2:#352C31;
+  --text:#F1E8DA; --text-soft:#C4B2A0; --line:rgba(241,232,218,.14); --shadow:rgba(0,0,0,.45);
+  --sand:#3E3330; --sand-dark:#5A4A3E;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--text);font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{width:100%;max-width:420px;margin:0 auto;display:block;padding:16px 14px calc(40px + env(safe-area-inset-bottom,0px))}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 2px 12px}
+header h1{font-family:'Noto Serif TC',serif;font-weight:700;font-size:20px;margin:0;letter-spacing:.02em}
+header .tag{font-size:11px;letter-spacing:.12em;color:var(--text-soft);text-transform:uppercase}
+
+.tabs{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--ground-2);padding:5px;border-radius:16px;margin-bottom:12px}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--text-soft);font:inherit;font-weight:700;font-size:13px;padding:9px 0;border-radius:12px;cursor:pointer;transition:background .2s,color .2s}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--text);box-shadow:0 2px 8px var(--shadow)}
+.tabs button:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+
+.phone{position:relative;width:100%;background:var(--card);border-radius:24px;box-shadow:0 12px 40px var(--shadow);overflow:hidden;border:1px solid var(--line)}
+.phone::after{content:"";position:absolute;inset:0;background:var(--night-veil);pointer-events:none;transition:background .5s;border-radius:24px;z-index:5}
+.phone.night{--night-veil:rgba(38,26,48,.42)}
+.screen{display:none}
+.screen.on{display:block}
+
+/* 舞台：放插畫的區域 */
+.stage{position:relative;overflow:hidden;background:#EAE0C8;container-type:inline-size;width:100%}
+.stage img.bg{position:absolute;display:block;max-width:none;user-select:none;pointer-events:none;transition:filter .5s}
+.night .stage img.bg{filter:brightness(.62) saturate(.8) hue-rotate(-12deg)}
+.sprite{position:absolute;display:block;max-width:none;pointer-events:none;user-select:none;filter:drop-shadow(0 6px 10px rgba(61,43,31,.22))}
+
+/* A 開場 */
+#s-open .stage{aspect-ratio:4/3}
+#s-open .bg{width:220%;left:-14%;top:-42%}
+#s-open .trav{height:33cqw;left:30%;bottom:7cqw}
+#s-open .fox{height:14cqw;left:49%;bottom:7cqw}
+#s-open .fire{position:absolute;left:29%;bottom:8cqw;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,rgba(242,196,106,.9),rgba(242,196,106,0) 70%);animation:flicker 1.6s ease-in-out infinite alternate}
+@keyframes flicker{from{transform:scale(.9);opacity:.75}to{transform:scale(1.15);opacity:1}}
+.night #s-open .fire{animation-duration:2.6s}
+
+.panel{padding:16px 18px 18px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--text-soft);margin:0 0 4px}
+.panel h2{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin:0 0 6px;text-wrap:balance}
+.panel p{margin:0 0 12px;color:var(--text-soft)}
+.btn{display:block;width:100%;padding:13px 16px;border-radius:14px;border:0;font:inherit;font-weight:700;font-size:15px;cursor:pointer;background:var(--purple);color:#fff;box-shadow:0 4px 14px rgba(156,123,181,.35)}
+.btn.ghost{background:transparent;color:var(--purple);border:2px solid var(--purple);box-shadow:none;margin-top:8px}
+.btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+
+/* B 讀經 */
+#s-read .stage{aspect-ratio:16/7.5}
+#s-read .bg{width:130%;left:-15%;top:-4%}
+#s-read .trav{height:34cqw;right:9%;bottom:-3cqw}
+#s-read .fox{height:12cqw;right:1%;bottom:-1cqw}
+.verse{margin:-26px 14px 0;position:relative;z-index:2;background:var(--card-2);border:1px solid var(--line);border-radius:18px;padding:18px 18px 14px;box-shadow:0 6px 20px var(--shadow)}
+.verse .txt{font-family:'Noto Serif TC',serif;font-size:19px;line-height:1.85;margin:0;font-weight:700}
+.verse .ref{text-align:right;color:var(--text-soft);font-size:13px;margin:8px 0 0}
+.equip{display:flex;align-items:center;gap:12px;margin:14px 14px 0;padding:10px 12px;border-radius:14px;background:var(--sand);border:1px solid var(--line)}
+.equip img{height:44px;width:auto}
+.equip b{display:block;font-size:14px}
+.equip small{color:var(--text-soft);font-size:12px}
+
+/* C 默想 */
+#s-write .stage{aspect-ratio:4/3;background:linear-gradient(180deg,#E9DFC9,#DCCFB5)}
+#s-write .bg{width:170%;left:-30%;top:-28%;filter:blur(1.2px) saturate(.85)}
+.night #s-write .bg{filter:blur(1.2px) brightness(.62) saturate(.7) hue-rotate(-12deg)}
+#s-write .trav{height:43cqw;left:50%;transform:translateX(-50%);bottom:3cqw}
+#s-write .fox{height:15cqw;left:63%;bottom:3cqw}
+textarea{width:100%;min-height:96px;resize:none;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;line-height:1.7;background:var(--card-2);color:var(--text)}
+textarea:focus-visible{outline:2px solid var(--purple)}
+.quiet{font-size:12px;color:var(--text-soft);margin:8px 2px 12px}
+
+/* D 完成 */
+#s-done .stage{aspect-ratio:916/496}
+#s-done .bg{width:100%;left:0;top:0}
+#s-done svg{position:absolute;inset:0;width:100%;height:100%}
+#s-done .trav{height:14.6cqw;left:44%;bottom:20cqw;transition:left 1.6s cubic-bezier(.4,.1,.3,1)}
+#s-done .fox{height:6.5cqw;left:41%;bottom:20cqw;transition:left 1.6s cubic-bezier(.4,.1,.3,1)}
+#s-done.walked .trav{left:49%}
+#s-done.walked .fox{left:47%}
+#s-done .steps{stroke:#5A4632;stroke-width:3;stroke-linecap:round;stroke-dasharray:2 10;fill:none;opacity:.7;stroke-dashoffset:0}
+#s-done .draw{stroke-dasharray:190;stroke-dashoffset:190;transition:stroke-dashoffset 1.6s ease}
+#s-done.walked .draw{stroke-dashoffset:0}
+.done-banner{margin:14px 14px 0;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,var(--sand),var(--sand-dark));border:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.done-banner .check{width:34px;height:34px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:900;flex:none}
+.done-banner b{display:block}
+.done-banner small{color:var(--text-soft)}
+.suit{margin:12px 14px 0;padding:12px 14px;border-radius:14px;background:var(--card-2);border:1px solid var(--line)}
+.suit .row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--text-soft)}
+.suit .row b{color:var(--text);font-size:14px}
+.dots{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:8px}
+.dots i{height:8px;border-radius:4px;background:var(--line)}
+.dots i.lit{background:var(--gold)}
+
+/* 說明與控制 */
+.caption{margin:14px 4px 0;font-size:13px;color:var(--text-soft)}
+.caption b{color:var(--text)}
+.controls{margin-top:18px;display:grid;gap:12px}
+.ward{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.ward .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ward .hd b{font-size:14px}
+.ward .hd span{font-size:12px;color:var(--text-soft)}
+.cloaks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cloaks button{appearance:none;border:2px solid transparent;background:var(--card-2);border-radius:14px;padding:8px 6px 6px;cursor:pointer;display:grid;justify-items:center;gap:4px;font:inherit;color:var(--text-soft);font-size:12px;transition:border-color .2s}
+.cloaks button img{height:84px;width:auto}
+.cloaks button[aria-pressed="true"]{border-color:var(--purple);color:var(--text)}
+.cloaks button:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+.toggle{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.toggle b{font-size:14px}
+.toggle small{display:block;color:var(--text-soft);font-size:12px}
+.switch{width:46px;height:26px;border-radius:13px;background:var(--line);border:0;position:relative;cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 4px var(--shadow);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--purple)}
+.switch[aria-checked="true"]::after{left:23px}
+.switch:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+
+.notes{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.notes h3{font-size:13px;letter-spacing:.1em;color:var(--text-soft);margin:0 0 8px;font-weight:700}
+.notes ul{margin:0;padding-left:18px;color:var(--text-soft);font-size:13px}
+.notes li{margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){
+  #s-open .fire{animation:none}
+  #s-done .trav,#s-done .fox,#s-done .draw{transition:none}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>小旅人示意頁</h1>
+    <span class="tag">P0 · 2026-09-06</span>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="四個畫面">
+    <button role="tab" aria-selected="true" data-t="open">開場</button>
+    <button role="tab" aria-selected="false" data-t="read">讀經</button>
+    <button role="tab" aria-selected="false" data-t="write">默想</button>
+    <button role="tab" aria-selected="false" data-t="done">完成</button>
+  </div>
+
+  <div class="phone" id="phone">
+
+    <section class="screen on" id="s-open" role="tabpanel">
+      <div class="stage">
+        <img class="bg" data-img="map" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+        <span class="fire"></span>
+        <img class="sprite trav trav-front" data-img="trav-front" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人站在營火旁">
+        <img class="sprite fox" data-img="fox" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="旅伴狐狸">
+      </div>
+      <div class="panel">
+        <p class="eyebrow">9 月 6 日 · 創世記 9-10 章</p>
+        <h2>牠已經在營火旁等你</h2>
+        <p>不急。今天的路不長，走到第 9 章就有一個記號。</p>
+        <button class="btn" type="button">開始今天的旅程</button>
+      </div>
+    </section>
+
+    <section class="screen" id="s-read" role="tabpanel">
+      <div class="stage">
+        <img class="bg" data-img="map" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+        <img class="sprite trav" data-img="trav-34" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人站在一旁">
+        <img class="sprite fox" data-img="fox" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+      </div>
+      <div class="verse">
+        <p class="txt">「我把虹放在雲彩中，這就可作我與地立約的記號了。」</p>
+        <p class="ref">—— 創世記 9:13</p>
+      </div>
+      <div class="equip">
+        <img data-img="item-lamp" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="陶土油燈">
+        <div><b>今日隨身：陶土油燈</b><small>讀經時牠坐在旁邊，安靜不動。</small></div>
+      </div>
+      <div class="panel">
+        <button class="btn" type="button">我讀完了，進入情境題</button>
+      </div>
+    </section>
+
+    <section class="screen" id="s-write" role="tabpanel">
+      <div class="stage">
+        <img class="bg" data-img="map" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+        <img class="sprite trav" data-img="trav-back" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人背對著你，望向遠方">
+        <img class="sprite fox" data-img="fox" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+      </div>
+      <div class="panel">
+        <p class="eyebrow">默想 · 記號</p>
+        <h2>寫給自己的話</h2>
+        <textarea placeholder="今天讀第 13 節的時候，我想對祂說的第一句話是……" aria-label="默想"></textarea>
+        <p class="quiet">寫的時候牠背對你，望向遠方。不看，也不評。</p>
+        <button class="btn" type="button">存起來</button>
+        <button class="btn ghost" type="button">今天先不寫</button>
+      </div>
+    </section>
+
+    <section class="screen" id="s-done" role="tabpanel">
+      <div class="stage">
+        <img class="bg" data-img="map" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+        <svg viewBox="0 0 916 496" aria-hidden="true">
+          <path class="steps draw" d="M352 322 C 390 312, 430 306, 486 302"/>
+        </svg>
+        <img class="sprite fox" data-img="fox" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+        <img class="sprite trav trav-front" data-img="trav-front" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人走到下一個營地">
+      </div>
+      <div class="done-banner">
+        <span class="check">✓</span>
+        <div><b>今天的路，走完了。</b><small>腳印留在第 9 章。明天從這裡繼續。</small></div>
+      </div>
+      <div class="suit">
+        <div class="row"><b>創世記旅裝</b><span>已點亮 9 / 12 格</span></div>
+        <div class="dots"><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i class="lit"></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="equip" style="margin-top:12px">
+        <img data-img="item-lamp" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">
+        <div><b>收進行囊：陶土油燈</b><small>「我把虹放在雲彩中」</small></div>
+      </div>
+      <div class="panel"><button class="btn" type="button">回到營地</button></div>
+    </section>
+
+  </div>
+
+  <p class="caption" id="cap"></p>
+
+  <div class="controls">
+    <div class="ward">
+      <div class="hd"><b>衣櫃 · 外袍</b><span>換一件，開場與完成畫面跟著換</span></div>
+      <div class="cloaks">
+        <button type="button" data-c="oat" aria-pressed="false"><img data-img="cloak-oat" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">素樸羊毛</button>
+        <button type="button" data-c="purple" aria-pressed="true"><img data-img="cloak-purple" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">薰衣草紫</button>
+        <button type="button" data-c="blue" aria-pressed="false"><img data-img="cloak-blue" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">淺藍滾邊</button>
+      </div>
+    </div>
+    <div class="toggle">
+      <div><b>夜間</b><small>22:00 後整頁壓暗、營火變慢，角色表情不變</small></div>
+      <button class="switch" type="button" role="switch" aria-checked="false" aria-label="夜間模式"></button>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>這頁在示範什麼</h3>
+    <ul>
+      <li>四個畫面對應每日流程：開場、讀經、默想、完成。角色出現的時刻與姿態是提案的重點。</li>
+      <li>圖片是今天用 Gemini 生的頁面截圖，解析度只夠示意；正式資產要重生原尺寸。</li>
+      <li>「創世記旅裝 9 / 12」與「陶土油燈」是示意用的假數字與假名稱，機制尚未定案。</li>
+      <li>沒有接任何遊戲程式或玩家資料。這是靜態頁。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+var IMG=@@IMGMAP@@;
+document.querySelectorAll('img[data-img]').forEach(function(i){i.src=IMG[i.getAttribute('data-img')];});
+(function(){
+  var caps={
+    open:'<b>開場</b>：角色站在第一個營地旁，抬頭等你。這是「分身在等你」的感覺，不催促、不倒數。',
+    read:'<b>讀經</b>：金句卡是主角，角色退到旁邊。隨身裝備第一次以圖片出現。',
+    write:'<b>默想</b>：角色背對你，望向遠方。畫面用姿態說「我不看你寫什麼」。',
+    done:'<b>完成</b>：腳印從第 8 章走到第 9 章，路永遠留著。只呈現「有沒有走」，不評品質。'
+  };
+  var cloaks={oat:IMG['cloak-oat'],purple:IMG['trav-front'],blue:IMG['cloak-blue']};
+  var tabs=document.querySelectorAll('.tabs [role=tab]');
+  var cap=document.getElementById('cap');
+  function show(t){
+    tabs.forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.t===t));});
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id==='s-'+t);});
+    cap.innerHTML=caps[t];
+    var d=document.getElementById('s-done');
+    if(t==='done'){d.classList.remove('walked');requestAnimationFrame(function(){setTimeout(function(){d.classList.add('walked');},150);});}
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.t);});});
+  show('open');
+
+  var saved=null;try{saved=localStorage.getItem('p0cloak');}catch(e){}
+  function wear(c){
+    document.querySelectorAll('.trav-front').forEach(function(i){i.src=cloaks[c];});
+    document.querySelectorAll('.cloaks button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.c===c));});
+    try{localStorage.setItem('p0cloak',c);}catch(e){}
+  }
+  document.querySelectorAll('.cloaks button').forEach(function(b){b.addEventListener('click',function(){wear(b.dataset.c);});});
+  if(saved&&cloaks[saved])wear(saved);
+
+  var sw=document.querySelector('.switch');
+  sw.addEventListener('click',function(){
+    var on=sw.getAttribute('aria-checked')!=='true';
+    sw.setAttribute('aria-checked',String(on));
+    document.getElementById('phone').classList.toggle('night',on);
+  });
+})();
+</script>

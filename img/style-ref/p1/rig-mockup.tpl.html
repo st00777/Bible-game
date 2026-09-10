@@ -1,0 +1,238 @@
+<title>小旅人骨架驗證</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&display=swap">
+<style>
+:root{
+  --ground:#EDE3D3; --ground-2:#E2D5C0; --card:#FBF6EC; --card-2:#F5ECDA;
+  --text:#3B2C20; --text-soft:#7A6350; --line:rgba(59,44,32,.13);
+  --purple:#8E82AE; --purple-deep:#6F6489; --gold:#F2C46A; --bone:#C0392B;
+  --shadow:rgba(59,44,32,.18); --stage:#EAE0C8; --stage-2:#DCCFB5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#1B1620; --ground-2:#27202E; --card:#2B2431; --card-2:#352C3A;
+    --text:#F0E6DA; --text-soft:#C2B0A3; --line:rgba(240,230,218,.14); --shadow:rgba(0,0,0,.5);
+    --stage:#3A3040; --stage-2:#2E2634;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1B1620; --ground-2:#27202E; --card:#2B2431; --card-2:#352C3A;
+  --text:#F0E6DA; --text-soft:#C2B0A3; --line:rgba(240,230,218,.14); --shadow:rgba(0,0,0,.5);
+  --stage:#3A3040; --stage-2:#2E2634;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--text);font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:420px;margin:0 auto;padding:16px 14px calc(40px + env(safe-area-inset-bottom,0px))}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 2px 12px}
+header h1{font-family:'Noto Serif TC',serif;font-weight:700;font-size:20px;margin:0;letter-spacing:.02em}
+header .tag{font-size:11px;letter-spacing:.12em;color:var(--text-soft)}
+.phone{background:var(--card);border-radius:24px;box-shadow:0 12px 40px var(--shadow);overflow:hidden;border:1px solid var(--line)}
+.stage{position:relative;background:linear-gradient(180deg,var(--stage),var(--stage-2));aspect-ratio:4/3}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel{padding:14px 18px 16px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--text-soft);margin:0 0 4px}
+.panel h2{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin:0 0 6px;text-wrap:balance}
+.panel p{margin:0;color:var(--text-soft);font-size:14px}
+.poses{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 14px 14px}
+.poses button{appearance:none;border:2px solid transparent;background:var(--card-2);color:var(--text-soft);font:inherit;font-weight:700;font-size:13px;padding:10px 0;border-radius:12px;cursor:pointer}
+.poses button[aria-pressed="true"]{border-color:var(--purple);color:var(--text);background:var(--card)}
+.poses button:focus-visible,.chips button:focus-visible,.switch:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+.controls{margin-top:14px;display:grid;gap:12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.box .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.box .hd b{font-size:14px}
+.box .hd span{font-size:12px;color:var(--text-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{appearance:none;font:inherit;font-size:13px;font-weight:500;color:var(--text-soft);background:var(--card-2);border:2px solid transparent;border-radius:999px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chips button img{height:22px;width:auto}
+.chips button[aria-pressed="true"]{border-color:var(--purple);color:var(--text)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.toggle b{font-size:14px}
+.toggle small{display:block;color:var(--text-soft);font-size:12px}
+.switch{width:46px;height:26px;border-radius:13px;background:var(--line);border:0;position:relative;cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 4px var(--shadow);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--purple)}
+.switch[aria-checked="true"]::after{left:23px}
+.notes{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.notes h3{font-size:13px;letter-spacing:.1em;color:var(--text-soft);margin:0 0 8px;font-weight:700}
+.notes ul{margin:0;padding-left:18px;color:var(--text-soft);font-size:13px}
+.notes li{margin-bottom:4px}
+.skel{display:none}
+.show-bones .skel{display:block}
+.skel line{stroke:var(--bone);stroke-width:4;stroke-linecap:round;opacity:.85}
+.skel circle{fill:#fff;stroke:var(--bone);stroke-width:3}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>小旅人骨架驗證</h1>
+    <span class="tag">RIG · 2026-09-06</span>
+  </header>
+
+  <div class="phone" id="phone">
+    <div class="stage">
+      <svg viewBox="0 0 640 900" aria-label="小旅人骨架動畫" role="img">
+        <defs>
+          <radialGradient id="lampglow"><stop offset="0" stop-color="#F2C46A" stop-opacity=".55"/><stop offset=".6" stop-color="#F2C46A" stop-opacity="0"/></radialGradient>
+        </defs>
+        <ellipse cx="320" cy="868" rx="150" ry="14" fill="rgba(59,44,32,.14)"/>
+        <g id="parts"></g>
+        <g id="skel" class="skel"></g>
+      </svg>
+    </div>
+    <div class="panel">
+      <p class="eyebrow">骨架＋換圖</p>
+      <h2 id="ptitle">站著，等你</h2>
+      <p id="pdesc">身體切成七塊，各自掛在關節上。姿勢是關節角度，不是新的圖。</p>
+    </div>
+    <div class="poses" role="group" aria-label="姿勢">
+      <button type="button" data-pose="idle" aria-pressed="true">站立</button>
+      <button type="button" data-pose="lamp" aria-pressed="false">舉燈</button>
+      <button type="button" data-pose="bow" aria-pressed="false">低頭</button>
+      <button type="button" data-pose="walk" aria-pressed="false">走路</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="box">
+      <div class="hd"><b>外袍</b><span>上下兩片，各跟一根骨頭</span></div>
+      <div class="chips" data-slot="cloak">
+        <button type="button" data-v="" aria-pressed="false">不穿</button>
+        <button type="button" data-v="oat" aria-pressed="false"><img data-img="cloakU-oat" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">素樸羊毛</button>
+        <button type="button" data-v="purple" aria-pressed="true"><img data-img="cloakU-purple" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">薰衣草紫</button>
+        <button type="button" data-v="blue" aria-pressed="false"><img data-img="cloakU-blue" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">淺藍滾邊</button>
+      </div>
+    </div>
+    <div class="box">
+      <div class="hd"><b>頭飾</b><span>跟著頭轉</span></div>
+      <div class="chips" data-slot="head">
+        <button type="button" data-v="" aria-pressed="true">不戴</button>
+        <button type="button" data-v="hat" aria-pressed="false"><img data-img="hat" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">草帽</button>
+        <button type="button" data-v="wreath" aria-pressed="false"><img data-img="wreath" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">葉冠</button>
+      </div>
+    </div>
+    <div class="box">
+      <div class="hd"><b>手持</b><span>掛在右手，只有油燈會亮</span></div>
+      <div class="chips" data-slot="hand">
+        <button type="button" data-v="" aria-pressed="false">空手</button>
+        <button type="button" data-v="lamp" aria-pressed="true"><img data-img="item-lamp" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">陶土油燈</button>
+        <button type="button" data-v="crook" aria-pressed="false"><img data-img="item-crook" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">牧杖</button>
+      </div>
+    </div>
+    <div class="toggle">
+      <div><b>顯示骨架</b><small>紅線是骨頭，白點是關節。這就是 Rive 編輯器裡要綁的東西</small></div>
+      <button class="switch" type="button" role="switch" aria-checked="false" aria-label="顯示骨架" data-act="bones"></button>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>這頁在驗證什麼</h3>
+    <ul>
+      <li>一個角色只畫一次，切成頭、上身、左右手臂、裙擺、左右靴子七塊；外袍切成上下兩片。所有姿勢都是轉關節，沒有再生任何一張新圖。</li>
+      <li>換外袍只換兩張圖，所有姿勢自動跟著換。這回答了「換裝是不是每個姿勢都要重生」：不用，只有「正面／背面」這種視角不同才要另畫。</li>
+      <li>正面圖做不到「坐下」，坐姿屬於另一個視角，之後要另切一組背面零件。</li>
+      <li>零件是 Gemini 預覽版，正式素材改用 ChatGPT 重生後，同一套骨架直接換圖。</li>
+      <li>沒有用 Rive，是自製的 SVG 骨架，目的是先驗證做法與觀感。搬進 Rive 編輯器時，零件與關節位置照這裡的設定。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+var IMG=@@IMGMAP@@;
+document.querySelectorAll('img[data-img]').forEach(function(i){i.src=IMG[i.getAttribute('data-img')];});
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  /* 骨架：座標相對父骨頭。hips 是根，在畫面 (320,440) */
+  var B={
+    hips:{p:null,x:320,y:440}, torso:{p:'hips',x:0,y:0}, neck:{p:'torso',x:0,y:-280},
+    shL:{p:'torso',x:-128,y:-262}, shR:{p:'torso',x:61,y:-262}, waist:{p:'hips',x:0,y:-30},
+    legL:{p:'hips',x:-93,y:283}, legR:{p:'hips',x:53,y:283}, handR:{p:'shR',x:0,y:330}
+  };
+  var ang={}, pos={}; Object.keys(B).forEach(function(k){ang[k]=0;});
+  /* 零件：掛哪根骨、相對位移、尺寸。順序＝畫的順序（後畫在上） */
+  var P=[
+    {id:'bootL',b:'legL',x:-66,y:0,w:133,h:142},
+    {id:'bootR',b:'legR',x:-75,y:0,w:151,h:139},
+    {id:'skirt',b:'waist',x:-159,y:0,w:318,h:343},
+    {id:'cloakL',b:'waist',x:-164,y:-6,w:328,h:429,slot:'cloakL'},
+    {id:'armL',b:'shL',x:-55,y:-10,w:110,h:347},
+    {id:'armR',b:'shR',x:-59,y:-10,w:119,h:346},
+    {id:'torso',b:'torso',x:-92,y:-290,w:185,h:300},
+    {id:'cloakU',b:'torso',x:-176,y:-284,w:353,h:262,slot:'cloakU'},
+    {id:'head',b:'neck',x:-92,y:-164,w:184,h:206},
+    {id:'headwear',b:'neck',x:0,y:0,w:0,h:0,slot:'head'},
+    {id:'glow',b:'handR',x:0,y:0,w:0,h:0,slot:'glow'},
+    {id:'item',b:'handR',x:0,y:0,w:0,h:0,slot:'hand'}
+  ];
+  var parts=document.getElementById('parts'), nodes={};
+  P.forEach(function(d){
+    var g=document.createElementNS(NS,'g'); g.setAttribute('data-part',d.id);
+    if(d.slot==='glow'){var c=document.createElementNS(NS,'circle');c.setAttribute('r','120');c.setAttribute('cx','0');c.setAttribute('cy','60');c.setAttribute('fill','url(#lampglow)');g.appendChild(c);}
+    else{var im=document.createElementNS(NS,'image');im.setAttribute('x',d.x);im.setAttribute('y',d.y);im.setAttribute('width',d.w);im.setAttribute('height',d.h);if(!d.slot)im.setAttribute('href',IMG[d.id]);g.appendChild(im);}
+    if(d.id==='head'){[62,122].forEach(function(ex){var e=document.createElementNS(NS,'ellipse');e.setAttribute('cx',d.x+ex);e.setAttribute('cy',d.y+100);e.setAttribute('rx','9');e.setAttribute('ry','8');e.setAttribute('fill','#EBC3AA');e.setAttribute('class','lid');e.setAttribute('transform','scale(1 0)');e.setAttribute('transform-origin',(d.x+ex)+' '+(d.y+92));g.appendChild(e);});}
+    parts.appendChild(g); nodes[d.id]=g;
+  });
+  /* 骨架線 */
+  var skel=document.getElementById('skel'), skelEls=[];
+  Object.keys(B).forEach(function(k){if(!B[k].p)return;var l=document.createElementNS(NS,'line');skel.appendChild(l);skelEls.push({k:k,el:l});});
+  var joints={};Object.keys(B).forEach(function(k){var c=document.createElementNS(NS,'circle');c.setAttribute('r','7');skel.appendChild(c);joints[k]=c;});
+
+  function chain(k){ // 從根到 k 的 transform 字串
+    var s=''; var stack=[]; while(k){stack.unshift(k);k=B[k].p;}
+    stack.forEach(function(n){var b=B[n];var off=pos[n]||{x:0,y:0};s+='translate('+(b.x+off.x)+' '+(b.y+off.y)+') rotate('+ang[n].toFixed(2)+') ';if(n==='torso')s+='scale(1 '+breath.toFixed(4)+') ';});
+    return s;
+  }
+  function world(k){var m=document.querySelector('svg').createSVGMatrix();var stack=[];while(k){stack.unshift(k);k=B[k].p;}stack.forEach(function(n){var b=B[n];var off=pos[n]||{x:0,y:0};m=m.translate(b.x+off.x,b.y+off.y).rotate(ang[n]);if(n==='torso')m=m.scaleNonUniform(1,breath);});return {x:m.e,y:m.f};}
+
+  /* 姿勢：目標角度 */
+  var POSES={
+    idle:{t:'站著，等你',d:'身體切成七塊，各自掛在關節上。姿勢是關節角度，不是新的圖。',a:{}},
+    lamp:{t:'把燈舉高',d:'只轉右肩一個關節，油燈跟著手走，光也跟著走。',a:{shR:-118,neck:4,torso:2}},
+    bow:{t:'低頭一會兒',d:'頭往下、雙手往內收。同一套零件，沒有新圖。',a:{neck:9,shL:-14,shR:14,torso:3}},
+    walk:{t:'往下一個營地走',d:'靴子、手臂、裙擺各自擺動，這是循環動畫。',a:{}}
+  };
+  var cur='idle', target={}, breath=1, t0=performance.now(), blinkAt=2.6;
+  function setPose(p){cur=p;target=POSES[p].a;document.getElementById('ptitle').textContent=POSES[p].t;document.getElementById('pdesc').textContent=POSES[p].d;
+    document.querySelectorAll('.poses button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.pose===p));});}
+  document.querySelectorAll('.poses button').forEach(function(b){b.addEventListener('click',function(){setPose(b.dataset.pose);});});
+
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function frame(now){
+    var t=(now-t0)/1000;
+    breath=reduce?1:1+0.012*Math.sin(t*2*Math.PI/3.6);
+    var goal={}; Object.keys(B).forEach(function(k){goal[k]=target[k]||0;});
+    pos={};
+    if(cur==='walk'&&!reduce){var w=Math.sin(t*2*Math.PI/1.1);goal.legL=16*w;goal.legR=-16*w;goal.shL=-18*w;goal.shR=18*w;goal.waist=2.5*w;goal.torso=1.5*w;goal.neck=-1.5*w;pos.hips={x:0,y:-5*Math.abs(w)};}
+    if(!reduce&&cur!=='walk'){goal.neck+=1.2*Math.sin(t*2*Math.PI/5.3);}
+    Object.keys(B).forEach(function(k){ang[k]+= (goal[k]-ang[k])*(cur==='walk'?0.35:0.12);});
+    P.forEach(function(d){nodes[d.id].setAttribute('transform',chain(d.b));});
+    /* 眨眼 */
+    var bl=0; if(!reduce){var ph=(t%4.6); if(ph>blinkAt&&ph<blinkAt+0.18){bl=1-Math.abs((ph-blinkAt)/0.09-1);} }
+    document.querySelectorAll('.lid').forEach(function(e){e.setAttribute('transform','scale(1 '+bl.toFixed(3)+')');});
+    if(document.getElementById('phone').classList.contains('show-bones')){
+      skelEls.forEach(function(s){var a=world(B[s.k].p),b=world(s.k);s.el.setAttribute('x1',a.x);s.el.setAttribute('y1',a.y);s.el.setAttribute('x2',b.x);s.el.setAttribute('y2',b.y);});
+      Object.keys(joints).forEach(function(k){var w=world(k);joints[k].setAttribute('cx',w.x);joints[k].setAttribute('cy',w.y);});
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* 換裝 */
+  var outfit={cloak:'purple',head:'',hand:'lamp'};
+  try{var s=JSON.parse(localStorage.getItem('rigoutfit'));if(s&&'cloak' in s)outfit=s;}catch(e){}
+  var HEADWEAR={hat:{img:'hat',x:-140,y:-218,w:280,h:124},wreath:{img:'wreath',x:-95,y:-176,w:190,h:108}};
+  var HAND={lamp:{img:'item-lamp',x:-46,y:-4,w:92,h:129},crook:{img:'item-crook',x:-95,y:-250,w:200,h:250}};
+  function apply(){
+    ['cloakU','cloakL'].forEach(function(id){var im=nodes[id].querySelector('image');if(outfit.cloak){im.setAttribute('href',IMG[id+'-'+outfit.cloak]);if(id==='cloakU'){var W=outfit.cloak==='blue'?356:353,H=outfit.cloak==='blue'?268:(outfit.cloak==='oat'?256:258);im.setAttribute('width',W);im.setAttribute('height',H);im.setAttribute('x',-W/2);im.setAttribute('y',416-440-H);}nodes[id].removeAttribute('display');}else nodes[id].setAttribute('display','none');});
+    var hw=HEADWEAR[outfit.head],im=nodes.headwear.querySelector('image');if(hw){im.setAttribute('href',IMG[hw.img]);im.setAttribute('x',hw.x);im.setAttribute('y',hw.y);im.setAttribute('width',hw.w);im.setAttribute('height',hw.h);nodes.headwear.removeAttribute('display');}else nodes.headwear.setAttribute('display','none');
+    var hd=HAND[outfit.hand],hi=nodes.item.querySelector('image');if(hd){hi.setAttribute('href',IMG[hd.img]);hi.setAttribute('x',hd.x);hi.setAttribute('y',hd.y);hi.setAttribute('width',hd.w);hi.setAttribute('height',hd.h);nodes.item.removeAttribute('display');}else nodes.item.setAttribute('display','none');
+    if(outfit.hand==='lamp')nodes.glow.removeAttribute('display');else nodes.glow.setAttribute('display','none');
+    document.querySelectorAll('[data-slot]').forEach(function(g){var k=g.dataset.slot;g.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===(outfit[k]||'')));});});
+    try{localStorage.setItem('rigoutfit',JSON.stringify(outfit));}catch(e){}
+  }
+  document.querySelectorAll('[data-slot]').forEach(function(g){g.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){outfit[g.dataset.slot]=b.dataset.v;apply();});});});
+  apply();
+  var sw=document.querySelector('[data-act=bones]');
+  sw.addEventListener('click',function(){var on=sw.getAttribute('aria-checked')!=='true';sw.setAttribute('aria-checked',String(on));document.getElementById('phone').classList.toggle('show-bones',on);});
+  setPose('idle');
+  requestAnimationFrame(frame);
+})();
+</script>

@@ -1,0 +1,359 @@
+<title>營火旁的小旅人</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&display=swap">
+<style>
+:root{
+  --ground:#EDE3D3; --ground-2:#E2D5C0;
+  --card:#FBF6EC; --card-2:#F5ECDA;
+  --text:#3B2C20; --text-soft:#7A6350; --line:rgba(59,44,32,.13);
+  --purple:#8E82AE; --purple-deep:#6F6489; --gold:#F2C46A; --sage:#8FA877;
+  --shadow:rgba(59,44,32,.18);
+  --stage:#EAE0C8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#1B1620; --ground-2:#27202E; --card:#2B2431; --card-2:#352C3A;
+    --text:#F0E6DA; --text-soft:#C2B0A3; --line:rgba(240,230,218,.14); --shadow:rgba(0,0,0,.5);
+    --stage:#3A3040;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1B1620; --ground-2:#27202E; --card:#2B2431; --card-2:#352C3A;
+  --text:#F0E6DA; --text-soft:#C2B0A3; --line:rgba(240,230,218,.14); --shadow:rgba(0,0,0,.5);
+  --stage:#3A3040;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--text);font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:420px;margin:0 auto;padding:16px 14px calc(40px + env(safe-area-inset-bottom,0px))}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 2px 12px}
+header h1{font-family:'Noto Serif TC',serif;font-weight:700;font-size:20px;margin:0;letter-spacing:.02em}
+header .tag{font-size:11px;letter-spacing:.12em;color:var(--text-soft)}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--ground-2);padding:5px;border-radius:16px;margin-bottom:12px}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--text-soft);font:inherit;font-weight:700;font-size:13px;padding:9px 0;border-radius:12px;cursor:pointer;transition:background .2s,color .2s}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--text);box-shadow:0 2px 8px var(--shadow)}
+.tabs button:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+
+.phone{position:relative;background:var(--card);border-radius:24px;box-shadow:0 12px 40px var(--shadow);overflow:hidden;border:1px solid var(--line)}
+.screen{display:none}
+.screen.on{display:block}
+.stage{position:relative;overflow:hidden;background:var(--stage);container-type:inline-size;width:100%}
+.stage img{display:block;max-width:none;user-select:none;pointer-events:none}
+
+/* ── A 營火默想 ── */
+#s-fire .stage{aspect-ratio:1200/656}
+#s-fire .bg{position:absolute;inset:0;width:100%;height:100%;transition:filter .8s}
+#s-fire.deep .bg{filter:brightness(.72) saturate(.85)}
+#s-fire .sit{position:absolute;left:31%;bottom:5cqw;height:40cqw;filter:drop-shadow(0 4px 8px rgba(40,30,50,.25))}
+#s-fire .fox{position:absolute;left:64%;bottom:5.5cqw;height:13cqw;transform-origin:50% 100%}
+.glow{position:absolute;left:25.8%;top:83%;width:34cqw;height:34cqw;margin:-17cqw 0 0 -17cqw;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(242,196,106,.55) 0%,rgba(242,196,106,.22) 32%,rgba(242,196,106,0) 68%);
+  mix-blend-mode:screen;transform-origin:50% 50%}
+.warm{position:absolute;left:31%;bottom:5cqw;height:40cqw;aspect-ratio:639/856;pointer-events:none;
+  background:radial-gradient(ellipse at 10% 60%,rgba(242,196,106,.30),rgba(242,196,106,0) 60%);mix-blend-mode:soft-light}
+.spark{position:absolute;left:25.8%;top:80%;width:.6cqw;height:.6cqw;border-radius:50%;background:var(--gold);opacity:0;pointer-events:none}
+.star{position:absolute;width:.5cqw;height:.5cqw;border-radius:50%;background:#FFF6DC;opacity:.55;pointer-events:none}
+.anim .glow{animation:glow 2.4s ease-in-out infinite alternate}
+.anim .sit{animation:sway 6s ease-in-out infinite alternate}
+.anim .fox{animation:bob 3.4s ease-in-out infinite}
+.anim .spark{animation:spark 2.8s ease-out infinite}
+.anim.deep .star{animation:twinkle 3.2s ease-in-out infinite alternate}
+@keyframes glow{from{transform:scale(.92);opacity:.8}to{transform:scale(1.08);opacity:1}}
+@keyframes sway{from{transform:translateY(0)}to{transform:translateY(-.5cqw)}}
+@keyframes bob{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-.6cqw) scaleY(1.015)}}
+@keyframes spark{0%{opacity:0;transform:translate(0,0)}12%{opacity:.9}100%{opacity:0;transform:translate(var(--dx),-14cqw)}}
+@keyframes twinkle{from{opacity:.25}to{opacity:.9}}
+
+.panel{padding:16px 18px 18px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--text-soft);margin:0 0 4px}
+.panel h2{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin:0 0 6px;text-wrap:balance}
+.panel p{margin:0 0 12px;color:var(--text-soft)}
+textarea{width:100%;min-height:92px;resize:none;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;line-height:1.7;background:var(--card-2);color:var(--text)}
+textarea:focus-visible{outline:2px solid var(--purple)}
+.quiet{font-size:12px;color:var(--text-soft);margin:8px 2px 12px}
+.btn{display:block;width:100%;padding:13px 16px;border-radius:14px;border:0;font:inherit;font-weight:700;font-size:15px;cursor:pointer;background:var(--purple);color:#fff;box-shadow:0 4px 14px rgba(142,130,174,.35)}
+.btn.ghost{background:transparent;color:var(--purple-deep);border:2px solid var(--purple);box-shadow:none;margin-top:8px}
+.btn:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+
+/* ── 紙娃娃 ── */
+.doll-stage{aspect-ratio:4/3;background:linear-gradient(180deg,var(--stage),var(--ground-2))}
+.doll{position:absolute;left:50%;bottom:0;transform:translateX(-50%);height:70cqw;aspect-ratio:460/768;container-type:inline-size}
+.doll .layer{position:absolute;inset:0;width:100%;height:100%;transition:transform .45s cubic-bezier(.3,.8,.3,1),opacity .3s}
+.doll .layer[hidden]{display:none}
+.lid{position:absolute;width:3.2cqw;height:3.4cqw;border-radius:50%;background:#EBC3AA;transform:scaleY(0);transform-origin:50% 0;left:44.2%;top:16.6%}
+.lid.r{left:52.6%}
+.hand{position:absolute;width:auto;transition:transform .45s cubic-bezier(.3,.8,.3,1)}
+.hand.lamp{left:64%;top:54%;height:14.5%}
+.hand.crook{left:60%;top:24%;height:42%}
+.lampglow{position:absolute;left:72.5%;top:61%;width:26cqw;height:26cqw;margin:-13cqw 0 0 -13cqw;border-radius:50%;background:radial-gradient(circle,rgba(242,196,106,.5),rgba(242,196,106,0) 65%);mix-blend-mode:screen;pointer-events:none}
+.doll .layer.z-base{z-index:1}.doll .lid{z-index:2}.doll .layer.z-cloak{z-index:3}.doll .layer.z-head{z-index:4}.doll .hand{z-index:5}.doll .lampglow{z-index:0}
+/* 拆開看 */
+.exploded .doll .layer.z-base{transform:translateX(-46%) scale(.62);transform-origin:50% 100%}
+.exploded .doll .lid{opacity:0}
+.exploded .doll .layer.z-cloak{transform:translateX(0) scale(.62);transform-origin:50% 100%}
+.exploded .doll .layer.z-head{transform:translateX(46%) scale(.62);transform-origin:50% 100%}
+.exploded .doll .hand,.exploded .doll .lampglow{transform:translateX(70%) scale(.62);transform-origin:50% 100%;opacity:.85}
+.explabels{position:absolute;left:0;right:0;bottom:6px;display:flex;justify-content:space-around;font-size:11px;letter-spacing:.1em;color:var(--text-soft);opacity:0;transition:opacity .3s;pointer-events:none}
+.exploded .explabels{opacity:1}
+/* 待機動畫 */
+.idle .doll.m-breathe .z-base{animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 100%}
+.idle .doll.m-breathe .z-head{animation:headbob 3.6s ease-in-out infinite}
+.idle .doll.m-cloak .z-cloak{animation:breathe 3.6s ease-in-out infinite,cloak 5.2s ease-in-out infinite alternate;transform-origin:50% 100%}
+.idle .doll.m-blink .lid{animation:blink 4.6s infinite}
+.idle .doll.m-blink .lid.r{animation-delay:.02s}
+.idle .doll.m-hand .hand{animation:headbob 3.6s ease-in-out infinite}
+.idle .doll.m-hand .lampglow{animation:glow 1.8s ease-in-out infinite alternate}
+.idle .doll.m-hand .hand.crook{animation:crook 5.2s ease-in-out infinite alternate;transform-origin:50% 90%}
+.idle .fox-idle{position:absolute;left:6%;bottom:0;height:26cqw}
+.idle .doll.m-fox ~ .fox-idle{animation:bob 3.4s ease-in-out infinite;transform-origin:50% 100%}
+.idle.slow .doll *,.idle.slow .fox-idle{animation-duration:calc(var(--d,3.6s) * 1.8)}
+@keyframes breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.012)}}
+@keyframes headbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-.9cqw)}}
+@keyframes cloak{from{rotate:-.35deg}to{rotate:.35deg}}
+@keyframes crook{from{rotate:-.6deg}to{rotate:.6deg}}
+@keyframes blink{0%,92%,100%{transform:scaleY(0)}94%,97%{transform:scaleY(1)}}
+
+/* 控制區 */
+.caption{margin:14px 4px 0;font-size:13px;color:var(--text-soft)}
+.caption b{color:var(--text)}
+.controls{margin-top:18px;display:grid;gap:12px}
+.ctl{display:none}
+.ctl.on{display:grid;gap:12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.box .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.box .hd b{font-size:14px}
+.box .hd span{font-size:12px;color:var(--text-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{appearance:none;font:inherit;font-size:13px;font-weight:500;color:var(--text-soft);background:var(--card-2);border:2px solid transparent;border-radius:999px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chips button img{height:22px;width:auto}
+.chips button[aria-pressed="true"]{border-color:var(--purple);color:var(--text)}
+.chips button:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.toggle b{font-size:14px}
+.toggle small{display:block;color:var(--text-soft);font-size:12px}
+.switch{width:46px;height:26px;border-radius:13px;background:var(--line);border:0;position:relative;cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 4px var(--shadow);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--purple)}
+.switch[aria-checked="true"]::after{left:23px}
+.switch:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.checks label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.checks input{width:18px;height:18px;accent-color:var(--purple)}
+
+.notes{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.notes h3{font-size:13px;letter-spacing:.1em;color:var(--text-soft);margin:0 0 8px;font-weight:700}
+.notes ul{margin:0;padding-left:18px;color:var(--text-soft);font-size:13px}
+.notes li{margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){
+  .anim .glow,.anim .sit,.anim .fox,.anim .spark,.anim.deep .star,.idle .doll *,.idle .fox-idle{animation:none !important}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>營火旁的小旅人</h1>
+    <span class="tag">P1 · 2026-09-06</span>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="三個示範">
+    <button role="tab" aria-selected="true" data-t="fire">營火默想</button>
+    <button role="tab" aria-selected="false" data-t="doll">衣櫃分層</button>
+    <button role="tab" aria-selected="false" data-t="idle">待機動畫</button>
+  </div>
+
+  <div class="phone">
+
+    <section class="screen on anim" id="s-fire" role="tabpanel">
+      <div class="stage">
+        <img class="bg" data-img="scene-campfire" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="黃昏的營地，石圈裡有一堆小小的營火">
+        <i class="star" style="left:7%;top:6%"></i><i class="star" style="left:27%;top:11%;animation-delay:.8s"></i><i class="star" style="left:61%;top:5%;animation-delay:1.6s"></i><i class="star" style="left:78%;top:9%;animation-delay:.4s"></i><i class="star" style="left:92%;top:4%;animation-delay:2.2s"></i>
+        <span class="glow"></span>
+        <i class="spark" style="--dx:.8cqw;animation-delay:0s"></i><i class="spark" style="--dx:-1.2cqw;animation-delay:.7s"></i><i class="spark" style="--dx:1.8cqw;animation-delay:1.3s"></i><i class="spark" style="--dx:-.4cqw;animation-delay:2s"></i>
+        <img class="sit" data-img="trav-sit-back" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人坐在木頭上，背對你，望著營火">
+        <span class="warm"></span>
+        <img class="fox" data-img="fox" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="旅伴狐狸坐在旁邊">
+      </div>
+      <div class="panel">
+        <p class="eyebrow">默想 · 創世記 9 章</p>
+        <h2>寫給自己的話</h2>
+        <textarea placeholder="今天讀第 13 節的時候，我想對祂說的第一句話是……" aria-label="默想"></textarea>
+        <p class="quiet">牠坐在火邊，背對你。火光在動，牠不動。</p>
+        <button class="btn" type="button">存起來</button>
+        <button class="btn ghost" type="button">今天先不寫</button>
+      </div>
+    </section>
+
+    <section class="screen" id="s-doll" role="tabpanel">
+      <div class="stage doll-stage" id="doll-stage">
+        <div class="doll" data-doll>
+          <img class="layer z-base" data-img="base" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人，只穿內袍">
+          <i class="lid l"></i><i class="lid r"></i>
+          <img class="layer z-cloak" data-slot="cloak" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="外袍">
+          <img class="layer z-head" data-slot="head" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="頭飾">
+          <span class="lampglow" data-slot="lampglow" hidden></span>
+          <img class="hand" data-slot="hand" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="手持">
+        </div>
+        <div class="explabels"><span>身體</span><span>外袍</span><span>頭飾</span><span>手持</span></div>
+      </div>
+      <div class="panel">
+        <p class="eyebrow">衣櫃</p>
+        <h2>四層疊出一個人</h2>
+        <p>身體是底，外袍、頭飾、手持各自一張圖，換哪一件就只換那一層。</p>
+      </div>
+    </section>
+
+    <section class="screen idle" id="s-idle" role="tabpanel">
+      <div class="stage doll-stage">
+        <div class="doll m-breathe m-cloak m-blink m-hand m-fox" data-doll>
+          <img class="layer z-base" data-img="base" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="小旅人">
+          <i class="lid l"></i><i class="lid r"></i>
+          <img class="layer z-cloak" data-slot="cloak" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="外袍">
+          <img class="layer z-head" data-slot="head" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="頭飾">
+          <span class="lampglow" data-slot="lampglow" hidden></span>
+          <img class="hand" data-slot="hand" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="手持">
+        </div>
+        <img class="fox-idle" data-img="fox" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="旅伴狐狸">
+      </div>
+      <div class="panel">
+        <p class="eyebrow">待機</p>
+        <h2>牠在等你，但沒有催你</h2>
+        <p>呼吸、眨眼、斗篷微晃，都是 CSS 動畫，沒有另外做圖。</p>
+      </div>
+    </section>
+
+  </div>
+
+  <p class="caption" id="cap"></p>
+
+  <div class="controls">
+    <div class="ctl on" data-c="fire">
+      <div class="toggle">
+        <div><b>夜深了</b><small>22:00 後天更暗、星星開始閃，火光節奏不變</small></div>
+        <button class="switch" type="button" role="switch" aria-checked="false" aria-label="夜深模式" data-act="deep"></button>
+      </div>
+      <div class="toggle">
+        <div><b>火光與火星</b><small>關掉就看得出靜態底圖長什麼樣</small></div>
+        <button class="switch" type="button" role="switch" aria-checked="true" aria-label="火光動畫" data-act="fireanim"></button>
+      </div>
+    </div>
+
+    <div class="ctl" data-c="doll">
+      <div class="box">
+        <div class="hd"><b>外袍</b><span>連帽放下，臉才看得到</span></div>
+        <div class="chips" data-slot-ctl="cloak">
+          <button type="button" data-v="" aria-pressed="false">不穿</button>
+          <button type="button" data-v="cloakdown-oat" aria-pressed="false"><img data-img="cloakdown-oat" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">素樸羊毛</button>
+          <button type="button" data-v="cloakdown-purple" aria-pressed="true"><img data-img="cloakdown-purple" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">薰衣草紫</button>
+          <button type="button" data-v="cloakdown-blue" aria-pressed="false"><img data-img="cloakdown-blue" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">淺藍滾邊</button>
+        </div>
+      </div>
+      <div class="box">
+        <div class="hd"><b>頭飾</b></div>
+        <div class="chips" data-slot-ctl="head">
+          <button type="button" data-v="" aria-pressed="false">不戴</button>
+          <button type="button" data-v="hat-straw" aria-pressed="true"><img data-img="hat-straw" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">草帽</button>
+          <button type="button" data-v="head-wreath" aria-pressed="false"><img data-img="head-wreath" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">葉冠</button>
+          <button type="button" data-v="hood" aria-pressed="false">把帽兜戴上</button>
+        </div>
+      </div>
+      <div class="box">
+        <div class="hd"><b>手持</b><span>沿用 P0 的裝備圖</span></div>
+        <div class="chips" data-slot-ctl="hand">
+          <button type="button" data-v="" aria-pressed="false">空手</button>
+          <button type="button" data-v="item-lamp" aria-pressed="true"><img data-img="item-lamp" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">陶土油燈</button>
+          <button type="button" data-v="item-crook" aria-pressed="false"><img data-img="item-crook" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">牧杖</button>
+        </div>
+      </div>
+      <div class="toggle">
+        <div><b>拆開看</b><small>把四層攤開，確認每一層真的是獨立的圖</small></div>
+        <button class="switch" type="button" role="switch" aria-checked="false" aria-label="拆開看分層" data-act="explode"></button>
+      </div>
+    </div>
+
+    <div class="ctl" data-c="idle">
+      <div class="box">
+        <div class="hd"><b>逐項開關</b><span>一次關一個，看少了哪個最明顯</span></div>
+        <div class="checks">
+          <label><input type="checkbox" data-m="breathe" checked>呼吸</label>
+          <label><input type="checkbox" data-m="blink" checked>眨眼</label>
+          <label><input type="checkbox" data-m="cloak" checked>斗篷微晃</label>
+          <label><input type="checkbox" data-m="hand" checked>油燈亮度</label>
+          <label><input type="checkbox" data-m="fox" checked>旅伴</label>
+        </div>
+      </div>
+      <div class="toggle">
+        <div><b>放慢</b><small>夜間或長時間停留時用，節奏約 1.8 倍慢</small></div>
+        <button class="switch" type="button" role="switch" aria-checked="false" aria-label="放慢動畫" data-act="slow"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>這頁在示範什麼</h3>
+    <ul>
+      <li><b>營火默想</b>：底圖是今天新生的「空營地」，小旅人坐姿背影是另一張獨立的圖疊上去的，火光、火星、星星都是 CSS。</li>
+      <li><b>衣櫃分層</b>：身體、三件外袍、兩種頭飾各是獨立去背圖，靠同一張定裝圖生成後再對齊，所以能任意組合。坐姿背影還沒有分層，衣櫃換裝目前不會影響營火畫面。</li>
+      <li><b>待機動畫</b>：呼吸、眨眼、斗篷、油燈都是對分層圖做的 CSS 動畫；眨眼是用膚色蓋眼睛，位置手動對過。</li>
+      <li>頭飾與放下的帽兜位置是我手動微調的，正式資產要在定裝圖上標錨點再生。</li>
+      <li>沒有接任何遊戲程式或玩家資料。這是靜態頁。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+var IMG=@@IMGMAP@@;
+document.querySelectorAll('img[data-img]').forEach(function(i){i.src=IMG[i.getAttribute('data-img')];});
+(function(){
+  var caps={
+    fire:'<b>營火默想</b>：寫的時候牠坐在火邊，背對你。火光會動，牠不會回頭看你寫什麼。',
+    doll:'<b>衣櫃分層</b>：底下那一張身體永遠不變，外袍、頭飾、手持各換各的。打開「拆開看」可以驗證。',
+    idle:'<b>待機動畫</b>：開場畫面沒人操作時，牠應該像活著。這裡逐項開關，看哪幾個值得留。'
+  };
+  var tabs=document.querySelectorAll('.tabs [role=tab]');
+  var cap=document.getElementById('cap');
+  function show(t){
+    tabs.forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.t===t));});
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id==='s-'+t);});
+    document.querySelectorAll('.ctl').forEach(function(c){c.classList.toggle('on',c.dataset.c===t);});
+    cap.innerHTML=caps[t];
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.t);});});
+  show('fire');
+
+  /* 衣櫃狀態：兩個 doll 同步 */
+  var outfit={cloak:'cloakdown-purple',head:'hat-straw',hand:'item-lamp'};
+  try{var s=JSON.parse(localStorage.getItem('p1outfit'));if(s&&s.cloak!==undefined)outfit=s;}catch(e){}
+  var hoodMap={'cloakdown-oat':'cloak-oat','cloakdown-purple':'cloak-purple','cloakdown-blue':'cloak-blue'};
+  function apply(){
+    document.querySelectorAll('[data-doll]').forEach(function(d){
+      var cloakImg=outfit.cloak, hood=outfit.head==='hood';
+      if(hood&&cloakImg)cloakImg=hoodMap[cloakImg]||cloakImg;
+      var c=d.querySelector('[data-slot=cloak]');c.hidden=!cloakImg;if(cloakImg)c.src=IMG[cloakImg];
+      var h=d.querySelector('[data-slot=head]');var headImg=(hood||!outfit.head)?'':outfit.head;h.hidden=!headImg;if(headImg)h.src=IMG[headImg];
+      var hd=d.querySelector('[data-slot=hand]');hd.hidden=!outfit.hand;hd.className='hand '+(outfit.hand==='item-lamp'?'lamp':outfit.hand==='item-crook'?'crook':'');if(outfit.hand)hd.src=IMG[outfit.hand];
+      d.querySelector('[data-slot=lampglow]').hidden=outfit.hand!=='item-lamp';
+      d.querySelectorAll('.lid').forEach(function(l){l.hidden=hood;});
+    });
+    document.querySelectorAll('[data-slot-ctl]').forEach(function(g){
+      var k=g.dataset.slotCtl;
+      g.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===(outfit[k]||'')));});
+    });
+    try{localStorage.setItem('p1outfit',JSON.stringify(outfit));}catch(e){}
+  }
+  document.querySelectorAll('[data-slot-ctl]').forEach(function(g){
+    g.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){outfit[g.dataset.slotCtl]=b.dataset.v;apply();});});
+  });
+  apply();
+
+  /* 開關 */
+  function sw(btn,fn){btn.addEventListener('click',function(){var on=btn.getAttribute('aria-checked')!=='true';btn.setAttribute('aria-checked',String(on));fn(on);});}
+  var fire=document.getElementById('s-fire');
+  sw(document.querySelector('[data-act=deep]'),function(on){fire.classList.toggle('deep',on);});
+  sw(document.querySelector('[data-act=fireanim]'),function(on){fire.classList.toggle('anim',on);});
+  sw(document.querySelector('[data-act=explode]'),function(on){document.getElementById('doll-stage').classList.toggle('exploded',on);});
+  var idle=document.getElementById('s-idle');
+  sw(document.querySelector('[data-act=slow]'),function(on){idle.classList.toggle('slow',on);});
+  document.querySelectorAll('.checks input').forEach(function(c){
+    c.addEventListener('change',function(){idle.querySelector('[data-doll]').classList.toggle('m-'+c.dataset.m,c.checked);});
+  });
+})();
+</script>
