@@ -58,7 +58,8 @@
 
 ## 七之二、待辦
 - [x] 「不指定」性別：活躍 25 人 m8／f9／n8 三分天下（9/9 數據），決定皮膚自選、與性別欄位脫鉤（ADR 0006 決策 3）。
-- [ ] 路 D 試做坐姿與收卷；做不到再由 James 註冊 Rive、訂 Cadet。
+- [x] 路 D 試做坐姿：機械面通過（呼吸＋眨眼＋runtime，`img/style-ref/p3/rive/`），但拆件與手臂擺位靠 CC 盲調行不通（James 2026-09-10 看試做後裁定）。
+- **動畫段改由 James 親自進 Rive 編輯器處理（James 2026-09-10 決定）**：James 有空時註冊 Rive、訂 Cadet 再續；CC 暫停路 D，不再自行產骨架。CC 保留的職責＝素材產線（提示詞、去背、切件、改色）、rive-rigging 知識庫與契約維護、`.riv` 進 app.js 的 runtime 整合與測玩。續做時從 `rive-rigging` SKILL.md 第 2 節契約＋第 3 節 SOP 開始。
 - [ ] 備援 PNG＋檔案預算；老玩家過場設計；emoji 小人位置盤點；真機清單加項。
 - [x] art-director 審查（2026-09-08）：七條修正已回寫本文件與契約節；三原則全過。
 - [x] 定案已寫進 rive-rigging SKILL.md 第 2 節契約（2026-09-08）（新增小羊 artboard、坐姿 artboard、`cloakStyle` Enum、`tryOnTrigger`、`scrollTrigger`）。

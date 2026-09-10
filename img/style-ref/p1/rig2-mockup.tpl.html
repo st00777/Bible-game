@@ -1,0 +1,234 @@
+<title>小旅人骨架驗證</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&display=swap">
+<style>
+:root{
+  --ground:#EDE3D3; --ground-2:#E2D5C0; --card:#FBF6EC; --card-2:#F5ECDA;
+  --text:#3B2C20; --text-soft:#7A6350; --line:rgba(59,44,32,.13);
+  --purple:#8E82AE; --purple-deep:#6F6489; --gold:#F2C46A; --bone:#C0392B;
+  --shadow:rgba(59,44,32,.18); --stage:#EAE0C8; --stage-2:#DCCFB5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#1B1620; --ground-2:#27202E; --card:#2B2431; --card-2:#352C3A;
+    --text:#F0E6DA; --text-soft:#C2B0A3; --line:rgba(240,230,218,.14); --shadow:rgba(0,0,0,.5);
+    --stage:#3A3040; --stage-2:#2E2634;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1B1620; --ground-2:#27202E; --card:#2B2431; --card-2:#352C3A;
+  --text:#F0E6DA; --text-soft:#C2B0A3; --line:rgba(240,230,218,.14); --shadow:rgba(0,0,0,.5);
+  --stage:#3A3040; --stage-2:#2E2634;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--text);font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:420px;margin:0 auto;padding:16px 14px calc(40px + env(safe-area-inset-bottom,0px))}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 2px 12px}
+header h1{font-family:'Noto Serif TC',serif;font-weight:700;font-size:20px;margin:0;letter-spacing:.02em}
+header .tag{font-size:11px;letter-spacing:.12em;color:var(--text-soft)}
+.phone{background:var(--card);border-radius:24px;box-shadow:0 12px 40px var(--shadow);overflow:hidden;border:1px solid var(--line)}
+.stage{position:relative;background:linear-gradient(180deg,var(--stage),var(--stage-2));aspect-ratio:4/3}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.panel{padding:14px 18px 16px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--text-soft);margin:0 0 4px}
+.panel h2{font-family:'Noto Serif TC',serif;font-size:19px;font-weight:700;margin:0 0 6px;text-wrap:balance}
+.panel p{margin:0;color:var(--text-soft);font-size:14px}
+.poses{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 14px 14px}
+.poses button{appearance:none;border:2px solid transparent;background:var(--card-2);color:var(--text-soft);font:inherit;font-weight:700;font-size:13px;padding:10px 0;border-radius:12px;cursor:pointer}
+.poses button[aria-pressed="true"]{border-color:var(--purple);color:var(--text);background:var(--card)}
+.poses button:focus-visible,.chips button:focus-visible,.switch:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+.controls{margin-top:14px;display:grid;gap:12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.box .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.box .hd b{font-size:14px}
+.box .hd span{font-size:12px;color:var(--text-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{appearance:none;font:inherit;font-size:13px;font-weight:500;color:var(--text-soft);background:var(--card-2);border:2px solid transparent;border-radius:999px;padding:6px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chips button img{height:22px;width:auto}
+.chips button[aria-pressed="true"]{border-color:var(--purple);color:var(--text)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.toggle b{font-size:14px}
+.toggle small{display:block;color:var(--text-soft);font-size:12px}
+.switch{width:46px;height:26px;border-radius:13px;background:var(--line);border:0;position:relative;cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 4px var(--shadow);transition:left .2s}
+.switch[aria-checked="true"]{background:var(--purple)}
+.switch[aria-checked="true"]::after{left:23px}
+.notes{margin-top:22px;border-top:1px solid var(--line);padding-top:14px}
+.notes h3{font-size:13px;letter-spacing:.1em;color:var(--text-soft);margin:0 0 8px;font-weight:700}
+.notes ul{margin:0;padding-left:18px;color:var(--text-soft);font-size:13px}
+.notes li{margin-bottom:4px}
+.skel{display:none}
+.show-bones .skel{display:block}
+.skel line{stroke:var(--bone);stroke-width:3;stroke-linecap:round;opacity:.85}
+.skel circle{fill:#fff;stroke:var(--bone);stroke-width:2.5}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>小旅人骨架驗證</h1>
+    <span class="tag">RIG v2 · 2026-09-06</span>
+  </header>
+
+  <div class="phone" id="phone">
+    <div class="stage">
+      <svg viewBox="0 0 460 768" aria-label="小旅人骨架動畫" role="img">
+        <defs>
+          <radialGradient id="lampglow"><stop offset="0" stop-color="#F2C46A" stop-opacity=".55"/><stop offset=".6" stop-color="#F2C46A" stop-opacity="0"/></radialGradient>
+        </defs>
+        <ellipse cx="230" cy="740" rx="105" ry="10" fill="rgba(59,44,32,.14)"/>
+        <g id="parts"></g>
+        <g id="skel" class="skel"></g>
+      </svg>
+    </div>
+    <div class="panel">
+      <p class="eyebrow">骨架＋換圖 · 從母圖切件</p>
+      <h2 id="ptitle">站著，等你</h2>
+      <p id="pdesc">九塊零件全部從同一張定裝圖切下來，關節是量出來的。</p>
+    </div>
+    <div class="poses" role="group" aria-label="姿勢">
+      <button type="button" data-pose="idle" aria-pressed="true">站立</button>
+      <button type="button" data-pose="lift" aria-pressed="false">舉起</button>
+      <button type="button" data-pose="bow" aria-pressed="false">低頭</button>
+      <button type="button" data-pose="walk" aria-pressed="false">走路</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="box">
+      <div class="hd"><b>外袍</b><span>帽兜後片、上片、下片三層</span></div>
+      <div class="chips" data-slot="cloak">
+        <button type="button" data-v="" aria-pressed="false">不穿</button>
+        <button type="button" data-v="oat" aria-pressed="false"><img data-img="cloakU-oat" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">素樸羊毛</button>
+        <button type="button" data-v="purple" aria-pressed="true"><img data-img="cloakU-purple" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">薰衣草紫</button>
+        <button type="button" data-v="blue" aria-pressed="false"><img data-img="cloakU-blue" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">淺藍滾邊</button>
+      </div>
+    </div>
+    <div class="box">
+      <div class="hd"><b>頭飾</b><span>跟著頭轉</span></div>
+      <div class="chips" data-slot="head">
+        <button type="button" data-v="" aria-pressed="true">不戴</button>
+        <button type="button" data-v="hat" aria-pressed="false"><img data-img="hat" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">草帽</button>
+        <button type="button" data-v="wreath" aria-pressed="false"><img data-img="wreath" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">葉冠</button>
+      </div>
+    </div>
+    <div class="box">
+      <div class="hd"><b>手持</b><span>每件各有握點、角度、會不會亮</span></div>
+      <div class="chips" data-slot="hand">
+        <button type="button" data-v="" aria-pressed="false">空手</button>
+        <button type="button" data-v="lamp" aria-pressed="true"><img data-img="item-lamp" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">陶土油燈</button>
+        <button type="button" data-v="crook" aria-pressed="false"><img data-img="item-crook" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="">牧杖</button>
+      </div>
+    </div>
+    <div class="toggle">
+      <div><b>顯示骨架</b><small>紅線是骨頭，白點是關節，含手肘。搬進 Rive 就是綁這些</small></div>
+      <button class="switch" type="button" role="switch" aria-checked="false" aria-label="顯示骨架" data-act="bones"></button>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>這版改了什麼</h3>
+    <ul>
+      <li>零件不再各自生圖，改從同一張定裝圖用多邊形切下來，切完疊回去跟母圖比對，差異不到千分之三。頭、身、袖的比例因此一致。</li>
+      <li>手臂分上臂、前臂兩節，多了手肘。舉起是肩轉一點、肘彎一點。</li>
+      <li>外袍也從對齊好的整件外袍切成帽兜後片、上片、下片，畫序改成：靴→裙→外袍下→上身→上臂→前臂→外袍上→帽兜後片→頭。手抬起來時前臂會改畫在外袍前面。</li>
+      <li>手持物各有自己的握點、角度與發光設定；文案依物品帶入。</li>
+      <li>零件仍是 Gemini 預覽版；正式素材改用 ChatGPT 重生一張定裝圖，同一組多邊形直接再切一次。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+var IMG=@@IMGMAP@@;
+var PARTS=@@PARTS@@;
+document.querySelectorAll('img[data-img]').forEach(function(i){i.src=IMG[i.getAttribute('data-img')];});
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  /* 關節：母圖座標（靜止姿勢的世界座標），parent 決定連動 */
+  var J={
+    hips:{p:null,X:230,Y:340}, torso:{p:'hips',X:230,Y:340}, neck:{p:'torso',X:230,Y:205},
+    shL:{p:'torso',X:172,Y:222}, elL:{p:'shL',X:142,Y:320}, handL:{p:'elL',X:125,Y:470},
+    shR:{p:'torso',X:288,Y:222}, elR:{p:'shR',X:318,Y:320}, handR:{p:'elR',X:335,Y:470},
+    waist:{p:'hips',X:230,Y:330}, legL:{p:'hips',X:188,Y:650}, legR:{p:'hips',X:272,Y:650}
+  };
+  Object.keys(J).forEach(function(k){var j=J[k],p=j.p?J[j.p]:{X:0,Y:0};j.x=j.X-p.X;j.y=j.Y-p.Y;});
+  var ang={},pos={};Object.keys(J).forEach(function(k){ang[k]=0;});
+  /* 零件：掛哪個關節；影像位移＝母圖 bbox 左上 − 關節世界座標（自動算） */
+  var ORDER=[
+    {id:'bootL',j:'legL'},{id:'bootR',j:'legR'},{id:'skirt',j:'waist'},{id:'cloakL',j:'waist',slot:'cloak'},
+    {id:'torso',j:'torso'},{id:'uarmL',j:'shL'},{id:'uarmR',j:'shR'},{id:'farmL',j:'elL',lift:true},{id:'farmR',j:'elR',lift:true},
+    {id:'cloakU',j:'torso',slot:'cloak'},{id:'hoodback',j:'neck',slot:'cloak'},{id:'head',j:'neck'},{id:'headwear',j:'neck',slot:'head'},
+    {id:'glow',j:'handR',slot:'glow'},{id:'item',j:'handR',slot:'hand'}
+  ];
+  var parts=document.getElementById('parts'),N={};
+  function setImg(g,name,x,y,w,h){var im=g.querySelector('image');im.setAttribute('href',IMG[name]);im.setAttribute('x',x);im.setAttribute('y',y);im.setAttribute('width',w);im.setAttribute('height',h);}
+  ORDER.forEach(function(d){
+    var g=document.createElementNS(NS,'g');g.setAttribute('data-part',d.id);
+    if(d.slot==='glow'){var c=document.createElementNS(NS,'circle');c.setAttribute('r','80');c.setAttribute('cx','0');c.setAttribute('cy','40');c.setAttribute('fill','url(#lampglow)');g.appendChild(c);}
+    else{g.appendChild(document.createElementNS(NS,'image'));}
+    if(!d.slot){var m=PARTS[d.id],j=J[d.j];setImg(g,d.id,m.x-j.X,m.y-j.Y,m.w,m.h);}
+    if(d.id==='head'){var m2=PARTS.head,j2=J.neck;[[214,161],[273,161]].forEach(function(e){var el=document.createElementNS(NS,'ellipse');el.setAttribute('cx',e[0]-j2.X);el.setAttribute('cy',e[1]-j2.Y);el.setAttribute('rx','7');el.setAttribute('ry','6');el.setAttribute('fill','#EBC3AA');el.setAttribute('class','lid');el.setAttribute('transform-origin',(e[0]-j2.X)+' '+(e[1]-6-j2.Y));g.appendChild(el);});}
+    parts.appendChild(g);N[d.id]=g;
+  });
+  /* 骨架線 */
+  var skel=document.getElementById('skel'),lines=[],dots={};
+  Object.keys(J).forEach(function(k){if(J[k].p){var l=document.createElementNS(NS,'line');skel.appendChild(l);lines.push({k:k,el:l});}});
+  Object.keys(J).forEach(function(k){var c=document.createElementNS(NS,'circle');c.setAttribute('r','5');skel.appendChild(c);dots[k]=c;});
+  function chain(k){var s='',st=[];while(k){st.unshift(k);k=J[k].p;}st.forEach(function(n){var j=J[n],o=pos[n]||{x:0,y:0};s+='translate('+(j.x+o.x)+' '+(j.y+o.y)+') rotate('+ang[n].toFixed(2)+') ';if(n==='torso')s+='scale(1 '+breath.toFixed(4)+') ';});return s;}
+  var svg=document.querySelector('svg');
+  function world(k){var m=svg.createSVGMatrix(),st=[];while(k){st.unshift(k);k=J[k].p;}st.forEach(function(n){var j=J[n],o=pos[n]||{x:0,y:0};m=m.translate(j.x+o.x,j.y+o.y).rotate(ang[n]);if(n==='torso')m=m.scaleNonUniform(1,breath);});return {x:m.e,y:m.f};}
+
+  /* 手持物資料：握點在物件圖上的位置（比例）、握持角度、大小、會不會亮、走路擺不擺 */
+  var ITEMS={
+    lamp:{img:'item-lamp',h:88,grip:[0.5,0.05],rot:0,upright:true,glow:true,name:'油燈'},
+    crook:{img:'item-crook',h:250,grip:[0.5,0.6],rot:0,upright:true,glow:false,name:'牧杖'}
+  };
+  var HEADWEAR={hat:{img:'hat',w:190,x:135,y:26},wreath:{img:'wreath',w:130,x:165,y:52}};
+  var POSES={
+    idle:{t:'站著，等你',d:'九塊零件全部從同一張定裝圖切下來，關節是量出來的。',a:{}},
+    lift:{t:'舉起來',d:'右肩轉 55 度、手肘彎 45 度，前臂從外袍前面伸出來。',a:{shR:-55,elR:-50,neck:3,torso:2}},
+    bow:{t:'低頭一會兒',d:'頭往下、雙手往內收。同一套零件，沒有新圖。',a:{neck:8,shL:-10,elL:-18,shR:10,elR:18,torso:3}},
+    walk:{t:'往下一個營地走',d:'靴子、手臂、裙擺各自擺動，這是循環動畫。',a:{}}
+  };
+  var cur='idle',target={},breath=1,t0=performance.now();
+  var outfit={cloak:'purple',head:'',hand:'lamp'};
+  try{var s=JSON.parse(localStorage.getItem('rig2outfit'));if(s&&'cloak' in s)outfit=s;}catch(e){}
+  function setPose(p){cur=p;target=POSES[p].a;var it=ITEMS[outfit.hand];document.getElementById('ptitle').textContent=(p==='lift'&&it)?('把'+it.name+'舉起來'):POSES[p].t;document.getElementById('pdesc').textContent=POSES[p].d;
+    document.querySelectorAll('.poses button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.pose===p));});}
+  document.querySelectorAll('.poses button').forEach(function(b){b.addEventListener('click',function(){setPose(b.dataset.pose);});});
+
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches,liftedR=false;
+  function frame(now){
+    var t=(now-t0)/1000;
+    breath=reduce?1:1+0.012*Math.sin(t*2*Math.PI/3.6);
+    var goal={};Object.keys(J).forEach(function(k){goal[k]=target[k]||0;});pos={};
+    if(cur==='walk'&&!reduce){var w=Math.sin(t*2*Math.PI/1.1);goal.legL=14*w;goal.legR=-14*w;goal.shL=-16*w;goal.shR=16*w;goal.elL=-6-6*w;goal.elR=-6+6*w;goal.waist=2.5*w;goal.torso=1.5*w;goal.neck=-1.5*w;pos.hips={x:0,y:-4*Math.abs(w)};}
+    if(!reduce&&cur!=='walk'){goal.neck+=1.2*Math.sin(t*2*Math.PI/5.3);}
+    Object.keys(J).forEach(function(k){ang[k]+=(goal[k]-ang[k])*(cur==='walk'?0.35:0.12);});
+    ORDER.forEach(function(d){var tr=chain(d.j);if(d.slot==='hand'||d.slot==='glow'){var it=ITEMS[outfit.hand];if(it&&it.upright){var sum=0,k='handR';while(k){sum+=ang[k];k=J[k].p;}tr+='rotate('+(-sum).toFixed(2)+') ';}}N[d.id].setAttribute('transform',tr);});
+    /* 手抬起來就把前臂與手持物改畫到外袍前面 */
+    var raised=(Math.abs(ang.shR)+Math.abs(ang.elR))>22;
+    if(raised!==liftedR){liftedR=raised;if(raised){parts.insertBefore(N.farmR,N.head);parts.appendChild(N.glow);parts.appendChild(N.item);}else{parts.insertBefore(N.farmR,N.cloakU);parts.insertBefore(N.glow,N.cloakU);parts.insertBefore(N.item,N.cloakU);}}
+    var bl=0;if(!reduce){var ph=t%4.6;if(ph>2.6&&ph<2.78)bl=1-Math.abs((ph-2.6)/0.09-1);}
+    document.querySelectorAll('.lid').forEach(function(e){e.setAttribute('transform','scale(1 '+bl.toFixed(3)+')');});
+    if(document.getElementById('phone').classList.contains('show-bones')){
+      lines.forEach(function(s){var a=world(J[s.k].p),b=world(s.k);s.el.setAttribute('x1',a.x);s.el.setAttribute('y1',a.y);s.el.setAttribute('x2',b.x);s.el.setAttribute('y2',b.y);});
+      Object.keys(dots).forEach(function(k){var w=world(k);dots[k].setAttribute('cx',w.x);dots[k].setAttribute('cy',w.y);});
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function apply(){
+    ['cloakL','cloakU','hoodback'].forEach(function(id){var g=N[id];if(outfit.cloak){var m=PARTS[id+'-'+outfit.cloak],j=J[ORDER.find(function(d){return d.id===id;}).j];setImg(g,id+'-'+outfit.cloak,m.x-j.X,m.y-j.Y,m.w,m.h);g.removeAttribute('display');}else g.setAttribute('display','none');});
+    var hw=HEADWEAR[outfit.head];if(hw){var ar=(function(){return null;})();var im=N.headwear.querySelector('image');im.setAttribute('href',IMG[hw.img]);im.setAttribute('width',hw.w);im.removeAttribute('height');im.setAttribute('x',hw.x-J.neck.X);im.setAttribute('y',hw.y-J.neck.Y);N.headwear.removeAttribute('display');}else N.headwear.setAttribute('display','none');
+    var it=ITEMS[outfit.hand];if(it){var g=N.item,im2=g.querySelector('image');var w=it.h*(it.img==='item-lamp'?341/478:0.4383);im2.setAttribute('href',IMG[it.img]);im2.setAttribute('width',w);im2.setAttribute('height',it.h);im2.setAttribute('x',-w*it.grip[0]);im2.setAttribute('y',-it.h*it.grip[1]);im2.setAttribute('transform','rotate('+it.rot+')');g.removeAttribute('display');}else N.item.setAttribute('display','none');
+    if(it&&it.glow)N.glow.removeAttribute('display');else N.glow.setAttribute('display','none');
+    document.querySelectorAll('[data-slot]').forEach(function(g){var k=g.dataset.slot;g.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===(outfit[k]||'')));});});
+    try{localStorage.setItem('rig2outfit',JSON.stringify(outfit));}catch(e){}
+    setPose(cur);
+  }
+  document.querySelectorAll('[data-slot]').forEach(function(g){g.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){outfit[g.dataset.slot]=b.dataset.v;apply();});});});
+  var sw=document.querySelector('[data-act=bones]');
+  sw.addEventListener('click',function(){var on=sw.getAttribute('aria-checked')!=='true';sw.setAttribute('aria-checked',String(on));document.getElementById('phone').classList.toggle('show-bones',on);});
+  apply();
+  requestAnimationFrame(frame);
+})();
+</script>

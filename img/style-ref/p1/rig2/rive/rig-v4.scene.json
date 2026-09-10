@@ -1,0 +1,848 @@
+{
+ "artboard": {
+  "name": "Traveler",
+  "width": 460,
+  "height": 768
+ },
+ "backgroundColor": "#00000000",
+ "groups": [
+  {
+   "id": "root",
+   "x": 230,
+   "y": 340
+  },
+  {
+   "id": "soloU",
+   "x": 135,
+   "y": -8.266365894244634e-15,
+   "parent": "bone_torso",
+   "solo": true,
+   "active": "cloakU_purple"
+  },
+  {
+   "id": "soloL",
+   "x": 0,
+   "y": 0,
+   "parent": "root",
+   "solo": true,
+   "active": "cloakL_purple"
+  },
+  {
+   "id": "cloakU_purple",
+   "x": 0,
+   "y": 0,
+   "parent": "soloU"
+  },
+  {
+   "id": "cloakL_purple",
+   "x": 0,
+   "y": 0,
+   "parent": "soloL"
+  },
+  {
+   "id": "cloakU_oat",
+   "x": 0,
+   "y": 0,
+   "parent": "soloU"
+  },
+  {
+   "id": "cloakL_oat",
+   "x": 0,
+   "y": 0,
+   "parent": "soloL"
+  },
+  {
+   "id": "cloakU_blue",
+   "x": 0,
+   "y": 0,
+   "parent": "soloU"
+  },
+  {
+   "id": "cloakL_blue",
+   "x": 0,
+   "y": 0,
+   "parent": "soloL"
+  },
+  {
+   "id": "cloakU_none",
+   "x": 0,
+   "y": 0,
+   "parent": "soloU"
+  },
+  {
+   "id": "cloakL_none",
+   "x": 0,
+   "y": 0,
+   "parent": "soloL"
+  },
+  {
+   "id": "armSolo",
+   "x": 0,
+   "y": 0,
+   "parent": "root",
+   "solo": true,
+   "active": "armBack"
+  },
+  {
+   "id": "armBack",
+   "x": 0,
+   "y": 0,
+   "parent": "armSolo"
+  },
+  {
+   "id": "armFront",
+   "x": 0,
+   "y": 0,
+   "parent": "armSolo"
+  }
+ ],
+ "bones": [
+  {
+   "id": "bone_torso",
+   "parent": "root",
+   "x": 0,
+   "y": 0,
+   "rotation": -90,
+   "length": 135
+  },
+  {
+   "id": "bone_neck",
+   "parent": "bone_torso",
+   "rotation": 0,
+   "length": 60
+  },
+  {
+   "id": "bone_clav_L",
+   "parent": "bone_torso",
+   "rotation": 253.66395711028153,
+   "length": 60.4400529450463
+  },
+  {
+   "id": "bone_uarm_L",
+   "parent": "bone_clav_L",
+   "rotation": -56.64343149876166,
+   "length": 102.48902380255167
+  },
+  {
+   "id": "bone_farm_L",
+   "parent": "bone_uarm_L",
+   "rotation": -10.55459351258034,
+   "length": 150.96025967121278
+  },
+  {
+   "id": "bone_uarm_R",
+   "parent": "root",
+   "x": 58,
+   "y": -118,
+   "rotation": 72.97947438848014,
+   "length": 102.48902380255167
+  },
+  {
+   "id": "bone_farm_R",
+   "parent": "bone_uarm_R",
+   "rotation": 10.554593512580325,
+   "length": 150.96025967121278
+  }
+ ],
+ "images": [
+  {
+   "id": "img_bootL",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/bootL.png",
+   "x": -41.5,
+   "y": 342,
+   "rotation": 0,
+   "parent": "root",
+   "z": 10
+  },
+  {
+   "id": "img_bootR",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/bootR.png",
+   "x": 44.5,
+   "y": 342,
+   "rotation": 0,
+   "parent": "root",
+   "z": 11
+  },
+  {
+   "id": "img_skirt",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/skirt.png",
+   "x": 0.5,
+   "y": 149.5,
+   "rotation": 0,
+   "parent": "root",
+   "z": 20
+  },
+  {
+   "id": "img_cloakL_purple",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/cloakL-purple.png",
+   "x": 0.5,
+   "y": 182.5,
+   "rotation": 0,
+   "parent": "cloakL_purple",
+   "z": 30
+  },
+  {
+   "id": "img_cloakL_oat",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/cloakL-oat.png",
+   "x": 0.5,
+   "y": 182.5,
+   "rotation": 0,
+   "parent": "cloakL_oat",
+   "z": 30
+  },
+  {
+   "id": "img_cloakL_blue",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/cloakL-blue.png",
+   "x": -0.5,
+   "y": 186,
+   "rotation": 0,
+   "parent": "cloakL_blue",
+   "z": 30
+  },
+  {
+   "id": "img_torso",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/torso.png",
+   "x": 59.5,
+   "y": 0.49999999999999634,
+   "rotation": 90,
+   "parent": "bone_torso",
+   "z": 40
+  },
+  {
+   "id": "img_uarmL",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/uarmL.png",
+   "x": 56.757297359048266,
+   "y": 0.9269285282980153,
+   "rotation": -107.02052561151987,
+   "parent": "bone_uarm_L",
+   "z": 50
+  },
+  {
+   "id": "img_farmL",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/farmL.png",
+   "x": 79.10691215031916,
+   "y": -7.959048312561419,
+   "rotation": -96.46593209893953,
+   "parent": "bone_farm_L",
+   "z": 60
+  },
+  {
+   "id": "img_armR_armBack",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/armR.png",
+   "x": 86.5,
+   "y": 3.5,
+   "parent": "armBack",
+   "z": 61,
+   "mesh": {
+    "columns": 4,
+    "rows": 14,
+    "bones": [
+     "bone_uarm_R",
+     "bone_farm_R"
+    ]
+   }
+  },
+  {
+   "id": "img_armR_armFront",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/armR.png",
+   "x": 86.5,
+   "y": 3.5,
+   "parent": "armFront",
+   "z": 85,
+   "mesh": {
+    "columns": 4,
+    "rows": 14,
+    "bones": [
+     "bone_uarm_R",
+     "bone_farm_R"
+    ]
+   }
+  },
+  {
+   "id": "img_cloakU_purple",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/cloakU-purple.png",
+   "x": -107.5,
+   "y": 7.000000000000006,
+   "rotation": 90,
+   "parent": "cloakU_purple",
+   "z": 70
+  },
+  {
+   "id": "img_hoodback_purple",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/hoodback-purple.png",
+   "x": -11.5,
+   "y": 2.000000000000001,
+   "rotation": 90,
+   "parent": "cloakU_purple",
+   "z": 80
+  },
+  {
+   "id": "img_cloakU_oat",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/cloakU-oat.png",
+   "x": -107.5,
+   "y": 7.500000000000006,
+   "rotation": 90,
+   "parent": "cloakU_oat",
+   "z": 70
+  },
+  {
+   "id": "img_hoodback_oat",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/hoodback-oat.png",
+   "x": -11.5,
+   "y": 2.000000000000001,
+   "rotation": 90,
+   "parent": "cloakU_oat",
+   "z": 80
+  },
+  {
+   "id": "img_cloakU_blue",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/cloakU-blue.png",
+   "x": -107.5,
+   "y": 11.000000000000007,
+   "rotation": 90,
+   "parent": "cloakU_blue",
+   "z": 70
+  },
+  {
+   "id": "img_hoodback_blue",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/hoodback-blue.png",
+   "x": -12,
+   "y": 2.000000000000001,
+   "rotation": 90,
+   "parent": "cloakU_blue",
+   "z": 80
+  },
+  {
+   "id": "img_head",
+   "pngPath": "/private/tmp/claude-501/-Users-aitest-bible-work-Bible-game/9e741e36-d5a6-48b9-93d7-94ef9d4d89d8/scratchpad/rive/parts2/q/head.png",
+   "x": 67.5,
+   "y": -4.133182947122317e-15,
+   "rotation": 90,
+   "parent": "bone_neck",
+   "z": 90
+  }
+ ],
+ "animations": [
+  {
+   "name": "Idle",
+   "fps": 60,
+   "duration": 240,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "root",
+     "property": "y",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 340
+      },
+      {
+       "frame": 120,
+       "value": 337,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 340,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "bone_torso",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -90
+      },
+      {
+       "frame": 120,
+       "value": -91.2,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": -90,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "bone_neck",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 0
+      },
+      {
+       "frame": 60,
+       "value": 1.5,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 180,
+       "value": -1.5,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 0,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "bone_uarm_L",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -56.64343149876166
+      },
+      {
+       "frame": 120,
+       "value": -54.64343149876166,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": -56.64343149876166,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "bone_uarm_R",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 72.97947438848014
+      },
+      {
+       "frame": 120,
+       "value": 70.97947438848014,
+       "easing": "ease-in-out"
+      },
+      {
+       "frame": 240,
+       "value": 72.97947438848014,
+       "easing": "ease-in-out"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Lift",
+   "fps": 60,
+   "duration": 100,
+   "loop": "oneShot",
+   "tracks": [
+    {
+     "target": "bone_uarm_R",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 72.97947438848014
+      },
+      {
+       "frame": 22,
+       "value": -55.02052561151986,
+       "easing": "ease-out-back"
+      },
+      {
+       "frame": 70,
+       "value": -55.02052561151986,
+       "easing": "hold"
+      },
+      {
+       "frame": 100,
+       "value": 72.97947438848014,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "bone_farm_R",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": 10.554593512580325
+      },
+      {
+       "frame": 22,
+       "value": -27.445406487419675,
+       "easing": "ease-out"
+      },
+      {
+       "frame": 70,
+       "value": -27.445406487419675,
+       "easing": "hold"
+      },
+      {
+       "frame": 100,
+       "value": 10.554593512580325,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "bone_torso",
+     "property": "rotation",
+     "keyframes": [
+      {
+       "frame": 0,
+       "value": -90
+      },
+      {
+       "frame": 22,
+       "value": -87,
+       "easing": "ease-out"
+      },
+      {
+       "frame": 70,
+       "value": -87,
+       "easing": "hold"
+      },
+      {
+       "frame": 100,
+       "value": -90,
+       "easing": "ease-in-out"
+      }
+     ]
+    },
+    {
+     "target": "armSolo",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "armBack",
+       "easing": "hold"
+      },
+      {
+       "frame": 8,
+       "ref": "armFront",
+       "easing": "hold"
+      },
+      {
+       "frame": 92,
+       "ref": "armBack",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "CloakPurple",
+   "fps": 60,
+   "duration": 2,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "soloU",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakU_purple",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "soloL",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakL_purple",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "CloakOat",
+   "fps": 60,
+   "duration": 2,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "soloU",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakU_oat",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "soloL",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakL_oat",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "CloakBlue",
+   "fps": 60,
+   "duration": 2,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "soloU",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakU_blue",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "soloL",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakL_blue",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "CloakNone",
+   "fps": 60,
+   "duration": 2,
+   "loop": "loop",
+   "tracks": [
+    {
+     "target": "soloU",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakU_none",
+       "easing": "hold"
+      }
+     ]
+    },
+    {
+     "target": "soloL",
+     "property": "soloActive",
+     "keyframes": [
+      {
+       "frame": 0,
+       "ref": "cloakL_none",
+       "easing": "hold"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "stateMachine": {
+  "name": "SM",
+  "inputs": [
+   {
+    "name": "lift",
+    "type": "trigger"
+   },
+   {
+    "name": "cloak",
+    "type": "number",
+    "initial": 0
+   }
+  ],
+  "layers": [
+   {
+    "name": "Body",
+    "states": [
+     {
+      "name": "Idle",
+      "animation": "Idle"
+     },
+     {
+      "name": "Lift",
+      "animation": "Lift"
+     }
+    ],
+    "transitions": [
+     {
+      "from": "entry",
+      "to": "Idle"
+     },
+     {
+      "from": "Idle",
+      "to": "Lift",
+      "condition": {
+       "input": "lift"
+      },
+      "durationMs": 120
+     },
+     {
+      "from": "Lift",
+      "to": "Idle",
+      "exitTimeMs": 1600,
+      "durationMs": 200
+     }
+    ]
+   },
+   {
+    "name": "Cloak",
+    "states": [
+     {
+      "name": "P",
+      "animation": "CloakPurple"
+     },
+     {
+      "name": "O",
+      "animation": "CloakOat"
+     },
+     {
+      "name": "B",
+      "animation": "CloakBlue"
+     },
+     {
+      "name": "N",
+      "animation": "CloakNone"
+     }
+    ],
+    "transitions": [
+     {
+      "from": "entry",
+      "to": "P"
+     },
+     {
+      "from": "P",
+      "to": "O",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 1
+      }
+     },
+     {
+      "from": "P",
+      "to": "B",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 2
+      }
+     },
+     {
+      "from": "O",
+      "to": "P",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 0
+      }
+     },
+     {
+      "from": "O",
+      "to": "B",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 2
+      }
+     },
+     {
+      "from": "B",
+      "to": "P",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 0
+      }
+     },
+     {
+      "from": "B",
+      "to": "O",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 1
+      }
+     },
+     {
+      "from": "P",
+      "to": "N",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 3
+      }
+     },
+     {
+      "from": "O",
+      "to": "N",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 3
+      }
+     },
+     {
+      "from": "B",
+      "to": "N",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 3
+      }
+     },
+     {
+      "from": "N",
+      "to": "P",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 0
+      }
+     },
+     {
+      "from": "N",
+      "to": "O",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 1
+      }
+     },
+     {
+      "from": "N",
+      "to": "B",
+      "condition": {
+       "input": "cloak",
+       "op": "==",
+       "value": 2
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

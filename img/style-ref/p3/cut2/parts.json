@@ -1,0 +1,4 @@
+{"source":"originals/p3-2-sit-cape.png via work/p3-2-rembg.png (rembg isnet-general-use; dark bg salvaged)",
+ "cells":"4x2, bbox by connected-components",
+ "parts":{"sit_head":"190x265+100+131","sit_hair":"294x261+419+122","sit_torso_cape":"293x345+79+469","sit_arm_near":"244x281+447+493","sit_lower":"352x432+735+487","sit_cape_back":"267x472+1193+451"},
+ "lost":["eyes_open","eyes_closed"],"note":"eyes drawn on head; blink via skin lid piece"}
