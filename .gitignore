@@ -94,3 +94,10 @@ data-insights.md
 
 # 和合本逐節比對腳本（scripts/verify-cuv.js）的 bible-api.com 章節快取，本機用、不入庫
 .cache/
+
+# 設計稿中間產物（可由 originals 重生）與部署複本
+img/style-ref/**/work/
+img/style-ref/**/shots*/
+img/style-ref/**/out*/
+img/style-ref/**/tools.json
+public/img/style-ref/

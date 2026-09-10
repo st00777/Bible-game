@@ -1,0 +1,71 @@
+<title>小旅人坐姿試驗</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+:root{--paper:#F7F1E4;--paper-2:#EFE6D3;--ink:#3B3128;--ink-2:#8A7862;--line:#DCCFB6;--cloak:#7A72A8;--cloak-ink:#4E4878;--oat:#D9C9A3;--dusk:#8B9BC4;--ok:#5E8B5A;--font-d:"Noto Serif TC",serif;--font-b:"Noto Sans TC",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#221E1B;--paper-2:#2C2723;--ink:#EEE6D8;--ink-2:#B3A48D;--line:#4A4038;--cloak:#9A93C4;--cloak-ink:#D6D1F0;--ok:#8EBA88}}
+:root[data-theme="dark"]{--paper:#221E1B;--paper-2:#2C2723;--ink:#EEE6D8;--ink-2:#B3A48D;--line:#4A4038;--cloak:#9A93C4;--cloak-ink:#D6D1F0;--ok:#8EBA88}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-b);font-size:15px;line-height:1.6}
+main{max-width:480px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--font-d);font-weight:600;font-size:24px;margin:0;text-wrap:balance}
+.sub{margin:0;color:var(--ink-2);font-size:13px}
+.stage{background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:8px;display:flex;justify-content:center}
+canvas{width:100%;max-width:300px;aspect-ratio:700/1050;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:500;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:10px 14px;cursor:pointer;min-height:44px}
+button:focus-visible{outline:2px solid var(--cloak);outline-offset:2px}
+button.big{flex:1 1 100%;background:var(--cloak);color:#fff;border-color:var(--cloak)}
+button[aria-pressed="true"]{border-color:var(--cloak);color:var(--cloak-ink);box-shadow:inset 0 0 0 1px var(--cloak)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.15)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{border-top:2px solid var(--line);padding-top:6px}
+.stat b{display:block;font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;color:var(--ink-2);letter-spacing:.04em}
+ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px}
+li b{font-weight:500}
+.note{font-size:13px;color:var(--ink-2);margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<main>
+  <h1>小旅人坐姿試驗</h1>
+  <p class="sub">路 D 試做 · rive-mcp 產出 · 官方 runtime 播放 · 2026-09-10</p>
+  <div class="stage"><canvas id="c" width="700" height="1050"></canvas></div>
+  <div class="row">
+    <button class="big" id="blink">眨眼</button>
+    <button id="auto" aria-pressed="true">自動眨眼（每 2–6 秒）</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="fps">—</b><span>每秒幀數（連續 1 秒）</span></div>
+    <div class="stat"><b>143 KB</b><span>.riv 檔案大小（含 6 張圖）</span></div>
+  </div>
+  <ol>
+    <li><b>呼吸</b>：靜靜看 10 秒，上身與頭應有看得出但不誇張的起伏；腰帶與裙子接縫不露白。</li>
+    <li><b>眨眼</b>：按「眨眼」或等自動眨眼，眼皮位置要蓋住眼睛、閉合自然。</li>
+    <li><b>幀率</b>：上面數字維持 30 以上。</li>
+  </ol>
+  <p class="note">這是坐姿可行性驗證，不是定裝：素材是從深底圖救回的試做版（頭縮 72%、手臂暫藏披風下、眼睛用膚色眼皮片蓋）。三條都過，正式素材重生後照同一套骨架換圖即可。</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js"></script>
+<script>
+(function(){
+  var b64="__B64__";
+  var bin=Uint8Array.from(atob(b64),function(ch){return ch.charCodeAt(0)});
+  var canvas=document.getElementById('c');
+  var inputs=null;
+  var r=new rive.Rive({buffer:bin.buffer,canvas:canvas,stateMachine:'SM',autoplay:true,enableRiveAssetCDN:false,
+    layout:new rive.Layout({fit:rive.Fit.Contain}),
+    onLoad:function(){ r.resizeDrawingSurfaceToCanvas(); inputs=r.stateMachineInputs('SM'); },
+    onLoadError:function(e){ document.getElementById('fps').textContent='載入失敗'; console.log('rive load error',e); }
+  });
+  function input(name){ return inputs? inputs.filter(function(i){return i.name===name})[0] : null; }
+  document.getElementById('blink').addEventListener('click',function(){ var i=input('blink'); if(i) i.fire(); });
+  var auto=true, autoBtn=document.getElementById('auto');
+  autoBtn.addEventListener('click',function(){ auto=!auto; autoBtn.setAttribute('aria-pressed', auto?'true':'false'); });
+  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (function schedule(){ setTimeout(function(){ if(auto && !reduce){ var i=input('blink'); if(i) i.fire(); } schedule(); }, 2000+Math.random()*4000); })();
+  var n=0,t0=performance.now(),el=document.getElementById('fps');
+  function tick(){ n++; var t=performance.now(); if(t-t0>=1000){ el.textContent=Math.round(n*1000/(t-t0)); n=0; t0=t; } requestAnimationFrame(tick); }
+  requestAnimationFrame(tick);
+  window.addEventListener('resize',function(){ r.resizeDrawingSurfaceToCanvas(); });
+  window.addEventListener('pagehide',function(){ r.cleanup(); });
+})();
+</script>

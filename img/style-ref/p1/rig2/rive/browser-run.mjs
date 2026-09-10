@@ -1,0 +1,24 @@
+// 用法：node browser-run.mjs <riv> <outDir> <cloak>
+import { chromium } from "/Users/aitest/bible-work/tools/rive-mcp/node_modules/playwright-core/index.mjs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const [riv, outDir, cloak = "0"] = process.argv.slice(2);
+mkdirSync(outDir, { recursive: true });
+const b64 = readFileSync(riv).toString("base64");
+const html = readFileSync("browser-test.html", "utf8").replace(/^const b64=.*$/m, `const b64="${b64}";`);
+writeFileSync(`${outDir}/page.html`, html);
+const browser = await chromium.launch({ headless: true, channel: "chrome" });
+const page = await browser.newPage({ viewport: { width: 460, height: 768 } });
+page.on("pageerror", (e) => console.log("[pageerror]", e.message));
+await page.goto(pathToFileURL(process.cwd() + `/${outDir}/page.html`).href);
+await page.waitForFunction(() => window.__ready === true, null, { timeout: 30000 });
+await page.evaluate((c) => window.setNum("cloak", c), Number(cloak));
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${outDir}/rest.png` });
+await page.evaluate(() => window.fire("lift"));
+await page.waitForTimeout(450);
+await page.screenshot({ path: `${outDir}/lift.png` });
+await page.waitForTimeout(1300);
+await page.screenshot({ path: `${outDir}/after.png` });
+await browser.close();
+console.log("done", outDir);

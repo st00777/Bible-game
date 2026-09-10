@@ -114,3 +114,4 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 - **產物**：`img/style-ref/p1/rig2/rive/`（產生器、.riv、量化零件、手機測試頁模板、README）；手機驗證頁 Artifact `https://claude.ai/code/artifact/45b55b79-6f2f-4b2e-94d7-3604f8aa97fb`。
 - **下一步判準**：James 手機三條（≥30 fps、舉手不穿模、換袍不重綁）過了，再決定：正式版留在路 D（接受無 Data Binding、權重不可手修），或訂 Cadet 進編輯器重做（檔案不互通，要重綁）。
 - **2026-09-07 晚 實測坑（James 手機看到手臂細成一條）**：不是素材，是 rive-mcp 的自動權重（距離最近兩骨、4 次方衰減）在手肘相對彎 38° 時整段袖子塌成緞帶；同一張圖只綁一骨、或剛體掛骨、或手肘只彎 6° 都正常。**結論：rive-mcp 的雙骨網格只能做「近乎直臂」的動作，任何真正彎關節的動作都要手修權重＝要 Rive 編輯器。** 現行手機驗證頁已改用 v4D（高舉、手肘不彎）。
+- **2026-09-10 路 D 坐姿試做通過（`img/style-ref/p3/rive/`）**：六件剛體零件＋膚色眼皮片，呼吸（骨頭 y／rotation 微位移）＋眨眼（image opacity 軌）在官方 runtime 真 Chrome 全通，158 KB。坑：狀態機 trigger 過渡 `durationMs: 0` 不會觸發，最少給 50；image 支援 `opacity`／`scaleX`／`scaleY` 軌。結論：**坐姿不需彎肘（手臂整隻畫死）→ 路 D 可做**；收卷待驗（直臂旋轉＋零件替換）。
