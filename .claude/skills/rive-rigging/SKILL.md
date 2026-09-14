@@ -97,8 +97,10 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 
 ## 7. 未查到、第一天進編輯器要實測
 
-- Cadet 有無 revision history；免費版是否完全不能發佈（非浮水印）。
-- 編輯器能否直接匯入 WebP；圖片壓縮面板實際選項。
+- ✅ 2026-09-12 實測：免費版 Publish 選單（To .riv／Library／Embed URL／Marketplace）四項全標 Upgrade，**完全不能發佈**。Cadet revision history 仍未查。
+- ✅ 2026-09-12 實測：把圖拖進畫布會自動生一個以第一張檔名命名、尺寸＝該圖的小畫板，所有圖都掛在它下面；要先改尺寸再排位。Position 以畫板左上為原點、圖片 Origin 預設 50% 即中心。
+- ⚠️ Chrome 自動化：屬性欄位要「點欄位 → cmd+a → 打字 → Enter」，triple-click 不會全選；焦點不在欄位時數字鍵＝設透明度、Enter＝進 Mesh 編輯、字母＝切工具，每件之間按 Escape 並截圖確認 Image 名稱再輸入；階層清單選取後會微捲動，固定座標點列會偏。
+- 編輯器能否直接匯入 WebP；圖片壓縮面板實際選項（James 未回報）。
 - Number 屬性右鍵 Data Bind 到 State Speed 的實際操作。
 - Transition Duration／Exit Time 官方沒給建議值，用 0.15–0.3 s 起手再調。
 - Draw Rule 是否能被 Data Binding 直接綁（目前只知 Hold key）。
