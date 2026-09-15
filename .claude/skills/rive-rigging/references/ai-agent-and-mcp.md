@@ -82,6 +82,31 @@ Do not touch any other node.
 
 註：animation-statemachine.md 第 5 節已結論「本專案不需要 Scripting」，隨機眨眼用狀態機 trigger＋網頁 JS 計時器即可；上面範本只是格式示範，用不用另議。
 
+## 2a. 2026-09-15 實測（James 免費版、網頁編輯器、Build 模式、中文提示）
+
+**結論：Build 模式真的能動設計與動畫，中文可用；但回報不可信，每步都要親眼驗。**
+
+- **模式**：面板左下角 Ask／Build 切換。Ask 只回答；**Build 才會動檔案**（官方註記「Design, animate, and code. Uses capacity faster.」）。免費版可用 Build。
+- **附件機制**：在舞台或階層選取的物件會自動變成對話附件（chip），Agent 以它為上下文；下提示前先選好目標物件。
+- **能力已驗證**：在指定畫板建新動畫（含長度）、對群組 Position Y 打三個關鍵影格並設值、查詢物件屬性。全程中文提示、中文回覆（中途會混簡體，開頭加「台灣用語」）。
+- **踩坑 1：秒與格混淆**。提示寫「第 2 秒、第 4 秒」，它打在第 2 格、第 4 格（時間軸 60 fps）。**一律用格數**，或「第 2 秒（第 120 格）」。第二輪給格數就對了。
+- **踩坑 2：模式類設定說做了沒做**。兩輪都要求「播放模式改 Loop」，兩輪都回報「已改為 Loop」，實際仍是單次播放。**Loop／插值這種一鍵設定自己點，不要問它**；它的文字回報要當假設不當結果。
+- **踩坑 3：對話會壞**。第二輪送出後跳 `Streaming error: The number of toolResult blocks at messages.N.content exceeds the number of toolUse blocks of previous turn. (Status: 400)`，是 Rive 服務端對話紀錄錯亂。**解法＝New Chat 重開，把背景重述進提示**（新對話沒有記憶）。
+- **踩坑 4：人為誤判**。檔案裡同時有空的 Timeline 1（1 秒、預設）與 Idle（4 秒），James 一直看 Timeline 1 以為「角色沒動、循環只有 0.5 秒」。**建新動畫後把預設 Timeline 1 刪掉或改名**；驗收時先看下方時間軸分頁名稱與尺規末端秒數。
+- **幅度要看得見**：3 px 在 92% 縮放下肉眼看不到；驗證用幅度先給 −40，之後再調回。
+- **提示樣板（已驗證可用）**：
+
+```
+請一律用繁體中文、台灣用語回答。
+在 Artboard 1 建立一個新動畫，名字叫 Idle，長度 4 秒（240 格，時間軸每秒 60 格）。
+- 群組 traveler-positioned 的 Position Y：第 0 格 = 0、第 120 格 = -40、第 240 格 = 0。
+- 不要動 Timeline 1、State Machine 1、任何圖片、群組位置或其他畫板。
+做完告訴我每個關鍵影格所在的格數與值。
+```
+（循環與插值自己在時間軸點。）
+
+- **檔案現況（2026-09-15 晚）**：`Untitled (1)`，Artboard 1 為 460×768、群組 `traveler-positioned` 內 12 件燕麥色零件已定位、ViewModel1、State Machine 1（Entry→Timeline 1）；尚無骨頭。`uarmL` 畫板＝匯入時自動生的 18 件雜堆（含紫／藍外袍片），可刪。Idle 測試動畫已被誤刪，不影響。
+
 ## 3. 官方 MCP：讓 Claude Code 直接操作編輯器
 
 - **前提**：Rive **桌面版**（Early Access，Mac／Windows）安裝並開著，且 James 本人登入；網頁版 editor.rive.app 不提供。
