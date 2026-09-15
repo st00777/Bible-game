@@ -121,6 +121,6 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 
 ## 9. Rive 官方 AI 三入口（2026-09-15 查證，未實測，明細 `references/ai-agent-and-mcp.md`）
 
-- **內建 Agent 面板**：左側欄打開、白話英文下指令；免費版可用。格式規則＝先手工做好設計再叫它寫腳本、一次一步、條列需求給數字、既有物件叫名字（camelCase）、要調的值做 input、明講不要動什麼、修 bug 貼最小片段不整段重寫、產出必自審。
+- **內建 Agent 面板**：左側欄打開；**要切 Build 模式才動檔案**（Ask 只回答）；免費版可用；中文可用。**2026-09-15 實測通過**（建動畫＋打關鍵影格），但秒／格會混、Loop 說改沒改、對話會 400 壞掉要 New Chat；明細見 references 第 2a 節。格式規則＝先手工做好設計再叫它寫腳本、一次一步、條列需求給數字、既有物件叫名字（camelCase）、要調的值做 input、明講不要動什麼、修 bug 貼最小片段不整段重寫、產出必自審。
 - **官方 Rive MCP**：桌面版編輯器開著時 `claude mcp add --transport http rive http://127.0.0.1:9791/mcp`，Claude Code 可直接建畫板、改階層、打 keyframe、做狀態機、View Model、腳本。**與第 8 節社群 rive-mcp 不同**：在真編輯器裡操作、產物可續編，可能解掉雙骨權重不能手修的限制；發佈 .riv 仍要 Cadet。是否重啟路 D 由 James 拍板（2026-09-10 決定 CC 暫停路 D 仍有效）。
 - **Rive CLI**：RML 文字寫專案＋`--verify`／`--screenshot` 自驗，適合向量 UI，點陣角色骨架仍要編輯器。
