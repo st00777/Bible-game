@@ -86,3 +86,10 @@ cwebp -q 90 -alpha_q 90 in.png -o out.webp
 8. **純白底＋六不**：#FFFFFF；no ground line／shadow／colour swatches／labels／grid lines／reference figure。
 NEGATIVE 固定加：overlapping parts, parts touching, front view（側面表時）, full figure（零件表時）。
 進 Rive 的檔一律 PNG 去背、裁到實際邊界、零件人高 500–700 px；命名用最終語意名（契約在 rive-rigging SKILL.md 第 2 節）。
+
+## 八、ChatGPT Images 2.5 提示詞法（2026-09-16 建立，正本 `references/chatgpt-image-prompting.md`）
+- 官方八原則濃縮：先講成品是什麼、細節寫成看得見的條件、動作寫具體、**修改與保留分開寫**、多張參考圖各給角色、**一次只改一件事**。
+- 兩條公式：從零生圖用「主體／場景與構圖／風格／文字／限制」分段；修圖用「只修改／保留／不要」三段。
+- 角色一致性：同一對話續生＋每張都**重述臉／髮／衣／比例**，只寫「同一個人」不夠（官方繪本範例與 p4 觀察一致）。
+- 去背可直接要求透明背景，但棋盤格≠透明，下載後驗 alpha 才算。
+- 寫任何素材提示詞前先讀該檔第 4 節（已對到 p4 的 STYLE 段與 B 法）。
