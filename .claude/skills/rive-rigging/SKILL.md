@@ -7,7 +7,7 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 
 > 這是「先學到資深程度再動手」的成果（James 2026-09-06 要求）。四份深度筆記在 `references/`，本檔是索引＋本專案的契約與 SOP。**任何 Rive 問題先查這裡，不重新上網。** 標「未查到」的項目見第 7 節，進編輯器第一天實測補上。
 
-## 0. 四份筆記怎麼分工
+## 0. 五份筆記怎麼分工
 
 | 檔案 | 讀它解決什麼 |
 |---|---|
@@ -15,6 +15,7 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 | `references/editor-rigging.md` | 匯入零件、Bone 工具、Parent vs Mesh+Weights、IK／Translation 等約束、Solo 換裝、Draw Rule 畫序、踩坑、從空白到舉手的 22 步 SOP |
 | `references/animation-statemachine.md` | 待機（呼吸／眨眼／斗篷）、姿勢過渡數值、Layers 分工、Data Binding、Events、Luau 要不要用、State Machine 建置 SOP 與驗收清單 |
 | `references/web-runtime.md` | 套件選擇、載入方式、inputs 與 Data Binding 兩套 API、換裝兩種寫法、效能、Artifact CSP 限制、除錯工具、可直接貼的完整 HTML 範例 |
+| `references/ai-agent-and-mcp.md` | 編輯器內建 AI Agent 怎麼下指令（格式規則＋原句範例）、官方 Rive MCP 讓 Claude Code 直接操作桌面編輯器、Rive CLI；三條路能動什麼、費用、未實測項 |
 
 ## 1. 決策級結論（已查證）
 
@@ -97,12 +98,14 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 
 ## 7. 未查到、第一天進編輯器要實測
 
-- Cadet 有無 revision history；免費版是否完全不能發佈（非浮水印）。
-- 編輯器能否直接匯入 WebP；圖片壓縮面板實際選項。
+- ✅ 2026-09-12 實測：免費版 Publish 選單（To .riv／Library／Embed URL／Marketplace）四項全標 Upgrade，**完全不能發佈**。Cadet revision history 仍未查。
+- ✅ 2026-09-12 實測：把圖拖進畫布會自動生一個以第一張檔名命名、尺寸＝該圖的小畫板，所有圖都掛在它下面；要先改尺寸再排位。Position 以畫板左上為原點、圖片 Origin 預設 50% 即中心。
+- ⚠️ Chrome 自動化：屬性欄位要「點欄位 → cmd+a → 打字 → Enter」，triple-click 不會全選；焦點不在欄位時數字鍵＝設透明度、Enter＝進 Mesh 編輯、字母＝切工具，每件之間按 Escape 並截圖確認 Image 名稱再輸入；階層清單選取後會微捲動，固定座標點列會偏。
+- 編輯器能否直接匯入 WebP；圖片壓縮面板實際選項（James 未回報）。
 - Number 屬性右鍵 Data Bind 到 State Speed 的實際操作。
 - Transition Duration／Exit Time 官方沒給建議值，用 0.15–0.3 s 起手再調。
 - Draw Rule 是否能被 Data Binding 直接綁（目前只知 Hold key）。
-- Luau Scripting 在 Cadet 是否可用（本專案不需要）。
+- ✅ 2026-09-15 查證：內建 AI Agent 免費版就能用（額度每小時回充），Luau 腳本本身的方案門檻仍未實測；詳見 `references/ai-agent-and-mcp.md`。
 - Pivot 抖動、mesh 邊緣鋸齒的官方說法；community 討論串需用瀏覽器開才讀得到內文。
 - `canvas-lite` 有無內嵌 WASM 單檔版。
 
@@ -115,3 +118,9 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 - **下一步判準**：James 手機三條（≥30 fps、舉手不穿模、換袍不重綁）過了，再決定：正式版留在路 D（接受無 Data Binding、權重不可手修），或訂 Cadet 進編輯器重做（檔案不互通，要重綁）。
 - **2026-09-07 晚 實測坑（James 手機看到手臂細成一條）**：不是素材，是 rive-mcp 的自動權重（距離最近兩骨、4 次方衰減）在手肘相對彎 38° 時整段袖子塌成緞帶；同一張圖只綁一骨、或剛體掛骨、或手肘只彎 6° 都正常。**結論：rive-mcp 的雙骨網格只能做「近乎直臂」的動作，任何真正彎關節的動作都要手修權重＝要 Rive 編輯器。** 現行手機驗證頁已改用 v4D（高舉、手肘不彎）。
 - **2026-09-10 路 D 坐姿試做通過（`img/style-ref/p3/rive/`）**：六件剛體零件＋膚色眼皮片，呼吸（骨頭 y／rotation 微位移）＋眨眼（image opacity 軌）在官方 runtime 真 Chrome 全通，158 KB。坑：狀態機 trigger 過渡 `durationMs: 0` 不會觸發，最少給 50；image 支援 `opacity`／`scaleX`／`scaleY` 軌。結論：**坐姿不需彎肘（手臂整隻畫死）→ 路 D 可做**；收卷待驗（直臂旋轉＋零件替換）。
+
+## 9. Rive 官方 AI 三入口（2026-09-15 查證，未實測，明細 `references/ai-agent-and-mcp.md`）
+
+- **內建 Agent 面板**：左側欄打開；**要切 Build 模式才動檔案**（Ask 只回答）；免費版可用；中文可用。**2026-09-15 實測通過**（建動畫＋打關鍵影格），但秒／格會混、Loop 說改沒改、對話會 400 壞掉要 New Chat；明細見 references 第 2a 節。格式規則＝先手工做好設計再叫它寫腳本、一次一步、條列需求給數字、既有物件叫名字（camelCase）、要調的值做 input、明講不要動什麼、修 bug 貼最小片段不整段重寫、產出必自審。
+- **官方 Rive MCP**：桌面版編輯器開著時 `claude mcp add --transport http rive http://127.0.0.1:9791/mcp`，Claude Code 可直接建畫板、改階層、打 keyframe、做狀態機、View Model、腳本。**與第 8 節社群 rive-mcp 不同**：在真編輯器裡操作、產物可續編，可能解掉雙骨權重不能手修的限制；發佈 .riv 仍要 Cadet。是否重啟路 D 由 James 拍板（2026-09-10 決定 CC 暫停路 D 仍有效）。
+- **Rive CLI**：RML 文字寫專案＋`--verify`／`--screenshot` 自驗，適合向量 UI，點陣角色骨架仍要編輯器。
