@@ -850,7 +850,7 @@ function renderLibraryPage() {
         <div class="book-spine-emoji">${book.emoji}</div>
         <div class="book-spine-name">${book.name}</div>
         <div class="book-spine-pct">${prog.complete ? '完走' : (prog.done > 0 ? `${prog.done}/${prog.total}（${pct}%）` : '🔒')}</div>
-        ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="width:${pct}%"></div></div>` : ''}
+        ${!prog.complete ? `<div class="book-spine-bar"><div class="book-spine-bar-fill" style="transform:translateX(-${100 - pct}%)"></div></div>` : ''}
       </div>`;
     }
     html += '</div>';
@@ -1301,8 +1301,8 @@ function renderRewardAttendance() {
   const el = document.getElementById('rw-book');
   if (!p) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `📖 ${book.name} 收集 ${p.done}/${p.total}<div class="rw-bar"><i id="rw-bar-fill" style="width:${Math.round(Math.max(0, p.done - 1) / p.total * 100)}%"></i></div>`;
-  setTimeout(() => { const f = document.getElementById('rw-bar-fill'); if (f) f.style.width = `${Math.round(p.done / p.total * 100)}%`; }, 900);
+  el.innerHTML = `📖 ${book.name} 收集 ${p.done}/${p.total}<div class="rw-bar"><i id="rw-bar-fill" style="transform:translateX(-${100 - Math.round(Math.max(0, p.done - 1) / p.total * 100)}%)"></i></div>`;
+  setTimeout(() => { const f = document.getElementById('rw-bar-fill'); if (f) f.style.transform = `translateX(-${100 - Math.round(p.done / p.total * 100)}%)`; }, 900);
   renderAttendance();
 }
 
@@ -1333,7 +1333,7 @@ function renderAvatar() {
   document.getElementById('av-level').textContent = `Lv.${state.level}`;   // PR ③b：等級只留數字，稱號改綁完走卷數、掛在名字旁
   document.getElementById('streak-num').textContent = devotionDays();   // 2026-08-27：🔥 改顯示累積靈修天數（中斷不歸零）
   const pct = Math.min((state.xp/100)*100,100);
-  document.getElementById('xp-fill').style.width = pct+'%';
+  document.getElementById('xp-fill').style.transform = `translateX(-${100 - pct}%)`; // 進度條動 transform 不動 width（GPU 友善）
   document.getElementById('xp-lbl').textContent = `${state.xp} / 100 XP`;
 
   // Wardrobe unlock
@@ -1831,6 +1831,15 @@ function selectChapter(ch) {
   document.getElementById('scene-emoji').textContent = data.sceneEmoji;
   document.getElementById('scene-text').textContent = data.scene;
   document.getElementById('scenario-q').textContent = data.q;
+  // 2026-09-11 章節類型：回顧章把標題換成「本週回顧」，並在場景上方列出這週走過的幾章（✅＝已完成）
+  const ctype = chapterType(data);
+  document.getElementById('scenario-lbl').textContent = ctype === 'review' ? '🔁 本週回顧' : '🎭 今日情境';
+  const strip = document.getElementById('review-strip');
+  const reviewList = ctype === 'review' ? reviewChapters(data, state.completed) : [];
+  strip.hidden = !reviewList.length;
+  strip.innerHTML = reviewList.map(r =>
+    `<span class="review-chip ${r.done ? 'done' : ''}" title="${r.label}"><span class="review-chip-emoji">${r.emoji}</span>${r.label}${r.done ? ' ✅' : ''}</span>`
+  ).join('');
   // B1: question_view — 玩家看到情境題（selectChapter 一次性 render，等同 chapter_select 後立即看到題）
   track('question_view', _elapsed({ chapter: ch }));
 
@@ -1838,7 +1847,7 @@ function selectChapter(ch) {
   const container = document.getElementById('choices-container');
   container.innerHTML = data.choices.map(c =>
     `<button class="choice-btn" id="choice-${c.k}" onclick="selectChoice(this,'${c.k}')">
-      <span class="ch-letter">${c.k}</span><span>${c.text}</span>
+      <span class="ch-letter">${c.k}</span><span>${choiceEmoji(c) ? `<span class="ch-ref-emoji">${choiceEmoji(c)}</span>` : ''}${c.text}</span>
     </button>`
   ).join('');
 
@@ -2176,7 +2185,13 @@ function showReward(item, bonus, hasBonus, newTitles) {
   newTitles = newTitles || [];
   // B1（2026-08-30）：完成短畫面曝光；稱號解鎖各記一筆（PR ③b）
   _rewardOpenAt = Date.now(); _focusRewarded = true;
-  track('reward_view', { chapter: selectedChapter, hasBonus: !!bonus, newTitles: newTitles.length });
+  const _rwData = getChapter(selectedChapter); const _rwType = chapterType(_rwData);
+  track('reward_view', { chapter: selectedChapter, hasBonus: !!bonus, newTitles: newTitles.length, ...(_rwType !== 'normal' ? { ctype: _rwType } : {}) });
+  // 2026-09-11 節點章：領獎畫面多一個里程標記（純資訊回饋，不加獎勵、不加數值；design-principles 獎勵一條）
+  const nodeEl = document.getElementById('r-node');
+  const nodeInfo = _rwType === 'node' && _rwData.node ? _rwData.node : null;
+  nodeEl.style.display = nodeInfo ? '' : 'none';
+  nodeEl.innerHTML = nodeInfo ? `<div class="r-node-lbl">📍 ${nodeInfo.title || '走到這裡了'}</div><div class="r-node-text">${nodeInfo.text || ''}</div>` : '';
   newTitles.forEach(t => track('title_unlocked', { chapter: selectedChapter, title: t.name, booksDone: t.books != null ? t.books : undefined }));
   // 預覽：不再自動換裝（PR ③b），小人先照目前裝扮畫，再把新裝備疊上去當「試穿預覽」
   const prev = { hat: state.hat, body: state.body, hand: state.item, bg: state.bg };
@@ -3274,8 +3289,10 @@ function showConfirm(icon, title, msg, okLabel, cancelLabel) {
 function showToast(msg) {
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#4CAF50;color:white;padding:10px 22px;border-radius:20px;font-size:14px;font-weight:700;z-index:999;box-shadow:0 4px 14px rgba(76,175,80,.4);animation:popIn .3s ease;white-space:nowrap;';
+  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#4CAF50;color:white;padding:10px 22px;border-radius:20px;font-size:14px;font-weight:700;z-index:999;box-shadow:0 4px 14px rgba(76,175,80,.4);animation:popIn .3s var(--ease-out);transition:opacity .2s ease,transform .2s ease;white-space:nowrap;';
   document.body.appendChild(t);
+  // 退場淡出 200ms 再移除，避免瞬間消失
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(8px)';},1800);
   setTimeout(()=>t.remove(),2000);
 }
 

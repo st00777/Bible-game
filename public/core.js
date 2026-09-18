@@ -263,6 +263,30 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // ── 章節類型（2026-09-11 內容輪換：docs/research-content-variety.md 建議 2、3）──
+  // type 欄位選填：'node'＝節點章（領獎畫面多一個里程標記）、'review'＝回顧章（情境題改成「本週哪一幕最貼近你」）。
+  // 缺欄或不認得的值一律當一般章，舊內容零感知。
+  const CHAPTER_TYPES = ['node', 'review'];
+  function chapterType(data) {
+    const t = data && data.type;
+    return CHAPTER_TYPES.includes(t) ? t : 'normal';
+  }
+  // 回顧章列出的那幾章：reviewOf 是章節 key 陣列，這裡查表換成 { key, emoji, label }；查不到的 key 略過。
+  // completed 傳進來只為了標「已完成」，不改任何 state。
+  function reviewChapters(data, completed) {
+    const keys = data && Array.isArray(data.reviewOf) ? data.reviewOf : [];
+    return keys.map(k => {
+      const ch = getChapter(k);
+      if (!ch) return null;
+      return { key: ch.chapter, emoji: ch.sceneEmoji || '📖', label: chapterLabel(ch.chapter), done: isChapterDoneIn(ch.chapter, completed || {}) };
+    }).filter(Boolean);
+  }
+  // 選項若帶 ref（指回某一章），回該章的場景 emoji，讓回顧章的四格看得出各指哪一幕；沒有 ref 回空字串。
+  function choiceEmoji(choice) {
+    const ch = choice && choice.ref ? getChapter(choice.ref) : null;
+    return ch && ch.sceneEmoji ? ch.sceneEmoji : '';
+  }
+
   return {
     chapterKey, getChapter, resetChapterIndex,
     dateStr, calDateStr, calWeekOfMonth, calWeeksInMonth, timeOfDay, formatThreadTime,
@@ -272,5 +296,6 @@
     isChapterDoneIn, bookProgress, pickDefaultChapterFrom, todayChapterFor,
     TITLE_LADDER, titlesForBooks, titlesUnlockedBetween, nextTitle, resolveItem, applyXp, computeCompletion, escapeHtmlMyMsg,
     totalDevotionDays, bestStreak, equippedVerses,
+    chapterType, reviewChapters, choiceEmoji,
   };
 });
