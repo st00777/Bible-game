@@ -379,6 +379,8 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .modal{background:var(--card);border-radius:24px;padding:28px 22px calc(28px + env(safe-area-inset-bottom, 0px));max-width:380px;width:100%;text-align:center;transform:scale(.85) translateY(20px);transition:transform .4s cubic-bezier(.34,1.56,.64,1);will-change:transform;box-shadow:0 20px 60px rgba(61,43,31,.3);max-height:90vh;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
 .overlay.show .modal{transform:scale(1) translateY(0);}
 .sheet,.modal{overscroll-behavior:contain;}
+/* 2026-09-19：彈窗開著時鎖住底下頁面（iOS 不吃 overflow:hidden，要整頁釘住；top 由 app.js 依當時捲動位置設定） */
+body.scroll-locked{position:fixed;left:0;right:0;width:100%;overflow:hidden;}
 /* 日常彈窗（確認／設定／登入提示／版本）直接到位不回彈；成就解鎖、領裝備、新約完走保留回彈曲線做出層次（James 2026-09-18） */
 #confirm-overlay .modal,#reset-overlay .modal,#feedback-login-prompt .modal,#diary-detail-overlay .modal,#fontsize-overlay .modal,#ward-overlay .modal,#version-overlay .modal,#profile-nudge-overlay .modal{transition:transform .3s var(--ease-out);}
 .sheet-handle{width:40px;height:4px;background:var(--sky-deep);border-radius:2px;margin:0 auto 18px;}
