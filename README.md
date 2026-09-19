@@ -6,6 +6,8 @@
 - 對象：大光教會成人查經班，跟著教會 2026 年讀經進度（元旦起讀新約，8/29 起接創世記）
 - 定位：不取代靈修，而是輔助靈修。建議先讀完當天經文再來玩
 
+![遊戲畫面：左為今日靈修主畫面，右為情境題](img/readme/screens.webp)
+
 ---
 
 ## 玩家會經歷什麼
@@ -67,6 +69,19 @@ docs/                後端、內容格式、讀經進度、Firestore schema、A
 - **AI 回應**：Gemini 2.5 Flash，經 Cloud Function 代理。玩家提交默想時先寫進 Firestore 再呼叫 AI，AI 失敗不會弄丟默想
 - **追蹤**：GA4
 
+## 本機執行
+
+沒有建置步驟，任何靜態伺服器都能跑（直接雙擊開 HTML 會被瀏覽器擋掉 Firebase 登入，要走 http）：
+
+```bash
+git clone https://github.com/st00777/Bible-game.git
+cd Bible-game
+npm install
+python3 -m http.server 8080
+```
+
+開 <http://localhost:8080/bible-game-v2.html>。訪客模式不需要任何金鑰就能完整走一遍主流程；Google／LINE 登入與 AI 回應連的是線上 Firebase 專案，Firebase 相關設定見 `docs/backend.md`。
+
 ## 開發流程
 
 - `main` 是正式版，`dev` 是測試版。所有工作走「分支 → PR → dev」，驗過再用 PR 進 `main`
@@ -88,6 +103,12 @@ bash deploy.sh channel dev    # 部署 dev 預覽
 - `docs/adr/`：重大決策紀錄（戰略對焦、內容產線、單一執行者、獎勵雙軌）
 - `docs/backend.md`、`docs/firestore-schema.md`、`docs/content-format.md`、`docs/reading-schedule-2026.md`
 - `LEARNING.md`：踩坑紀錄
+
+## 問題回報
+
+- 玩家：遊戲內「⋯」選單的**曠野呼聲**留言，管理員會在後台回覆
+- 開發者與協作者：開 [GitHub Issue](https://github.com/st00777/Bible-game/issues)，標籤用法見 `docs/agents/triage-labels.md`
+- 這份 README 與整個 repo 不含任何密碼、金鑰或服務帳戶檔；Secret 一律放 Secret Manager
 
 ## 團隊
 
