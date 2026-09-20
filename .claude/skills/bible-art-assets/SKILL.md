@@ -86,3 +86,16 @@ cwebp -q 90 -alpha_q 90 in.png -o out.webp
 8. **純白底＋六不**：#FFFFFF；no ground line／shadow／colour swatches／labels／grid lines／reference figure。
 NEGATIVE 固定加：overlapping parts, parts touching, front view（側面表時）, full figure（零件表時）。
 進 Rive 的檔一律 PNG 去背、裁到實際邊界、零件人高 500–700 px；命名用最終語意名（契約在 rive-rigging SKILL.md 第 2 節）。
+
+## 八、ChatGPT Images 2.5 提示詞法（2026-09-16 建立，正本 `references/chatgpt-image-prompting.md`）
+- 官方八原則濃縮：先講成品是什麼、細節寫成看得見的條件、動作寫具體、**修改與保留分開寫**、多張參考圖各給角色、**一次只改一件事**。
+- 兩條公式：從零生圖用「主體／場景與構圖／風格／文字／限制」分段；修圖用「只修改／保留／不要」三段。
+- 角色一致性：同一對話續生＋每張都**重述臉／髮／衣／比例**，只寫「同一個人」不夠（官方繪本範例與 p4 觀察一致）。
+- 去背可直接要求透明背景，但棋盤格≠透明，下載後驗 alpha 才算。
+- 寫任何素材提示詞前先讀該檔第 4 節（已對到 p4 的 STYLE 段與 B 法）。
+
+## 九、點陣轉向量（2026-09-17 實測）
+- `vtracer` Python 套件在 James 的 Mac 上一律 segfault（exit 139，連 40×40 測試圖也死），不要再裝。
+- 可用的是 `potrace`（已 brew 安裝）＋分色：`python3 .claude/skills/bible-art-assets/scripts/colortrace.py in.png out.svg 48`（magick 量化 N 色→每色遮罩→potrace→合併成一個 SVG）。48 色約八成像，但臉髮斑駁、路徑數千、檔案不比 PNG 小，且不是零件；只適合示意，不適合進 Rive 綁骨。
+- ImageMagick 內建 SVG 渲染器不支援 gradient（會畫成黑色），手寫 SVG 光暈用半透明圓疊代替。
+- 三種畫風比較圖與結論在 `docs/art/2026-09-16-style-previews/README.md`。
