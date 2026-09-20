@@ -753,7 +753,7 @@ function renderAchievementCard(a, isReview) {
   // 步驟 3：內聯 openOverlay 的兩件事（加 .show + 鎖 body 滾動），避免透過 helper 引入額外副作用
   // 此刻 modal 已在正確置中位置，動畫從 scale(.85) translateY(20px) 平滑跑到 scale(1) translateY(0)
   overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  lockBodyScroll();
 }
 
 function showNextAchievement() {
@@ -1244,7 +1244,8 @@ function toggleCalendar(force) {
   document.getElementById('cal-card').classList.toggle('collapsed', !_calOpen);
   document.body.classList.toggle('cal-open', _calOpen);
   renderCalEntry();
-  if (_calOpen) setTimeout(() => document.getElementById('cal-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  // 2026-09-19：等瀏覽器把展開後的日曆排好版（兩個 rAF）再捲，取代原本猜的 60ms
+  if (_calOpen) requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById('cal-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' })));
 }
 function renderCalEntry() {
   const main = document.getElementById('cal-entry-main'), sub = document.getElementById('cal-entry-sub');
@@ -1451,8 +1452,9 @@ function renderGuide(data) {
   // 不預設「這章很難」的立場，只給幫助；同一原則的另一半是下方導向書卷背景的入口。
   const hardList = Array.isArray(data.guide.hard) ? data.guide.hard.filter(h => h && String(h).trim()) : [];
   // 美術審查（2026-08-29）：hard 併進 focus 同一個紫框容器，不另開白盒（避免白—紫—白三明治）
+  // 導讀分層（2026-09-21 James 拍板）：hard 改為收合列，預設不展開；focus 升到大綱之前當唯一重點框
   const hardHtml = hardList.length
-    ? `<div class="guide-hard-lbl">讀的時候可能卡住的地方</div>${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}`
+    ? `<details class="guide-fold"><summary>讀的時候可能卡住的地方<span class="guide-fold-n">${hardList.length}</span></summary><div class="guide-fold-body">${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}</div></details>`
     : '';
   // 書卷背景入口（全卷恆開，BOOK_DETAIL_ENABLED 已退役）
   const guideBook = bookOfChapter(data.chapter);   // 2026-08-31 D4：統一走 core.js 反查
@@ -1461,17 +1463,16 @@ function renderGuide(data) {
     : '';
 
   // Build guide inner
+  // 段落大綱收合，預設不展開；含 ✦ 的段落（今日聚焦段）淡橘底標出
   const outline = data.guide.outline.map(o =>
-    `<div class="guide-ol-row"><span class="guide-ol-nodes">${o.nodes}</span><span>${o.text}</span></div>`
+    `<div class="guide-ol-row${String(o.text).includes('✦') ? ' guide-ol-hi' : ''}"><span class="guide-ol-nodes">${o.nodes}</span><span>${o.text}</span></div>`
   ).join('');
 
   document.getElementById('guide-inner').innerHTML = `
     <div class="guide-intro-text">${data.guide.intro}</div>
-    <div class="guide-outline-box">
-      <div class="guide-outline-lbl">本章重點</div>
-      ${outline}
-    </div>
-    <div class="guide-focus-box">💡 ${data.guide.focus}${hardHtml}</div>
+    <div class="guide-focus-box"><div class="guide-focus-lbl">今天看這裡</div>${data.guide.focus}</div>
+    <details class="guide-fold"><summary>本章段落大綱<span class="guide-fold-n">${data.guide.outline.length}</span></summary><div class="guide-fold-body">${outline}</div></details>
+    ${hardHtml}
     ${bookLinkHtml}`;
 
   // Auto open step 1
@@ -1925,9 +1926,8 @@ function selectChoice(btn, choice) {
 
   // 2026-09-05：捲動目標改為回饋文字本身（原本捲默想卡會把剛出現的回饋推出畫面上緣）。
   // 回饋靠近視窗上緣、默想卡露出下方一角當「還有下一步」的暗示；上方安全間距由 CSS scroll-margin-top 提供。
-  setTimeout(() => {
-    fb.scrollIntoView({behavior:'smooth',block:'start'});
-  }, 600);
+  // 2026-09-19：改等 popIn 動畫結束（animationend）再捲，不再猜 600ms；動畫被關掉時 800ms 兜底
+  afterAnimation(fb, () => fb.scrollIntoView({behavior:'smooth',block:'start'}), 800);
 }
 
 // ══ REFLECTION ══════════════════════════════════════════
@@ -2547,9 +2547,33 @@ function doReset(type) {
 
 // ══ OVERLAY HELPERS ══════════════════════════════════════
 
+// 2026-09-19：body 捲動鎖改用 position:fixed（iOS Safari 不理會 body overflow:hidden，彈窗開著時手指仍能推動底下主畫面）。
+// 鎖時記下捲到哪、用 top:-Y 讓畫面停在原位；解鎖後 scrollTo 回原位，玩家看不出頁面動過。
+let _scrollLockY = null;
+function lockBodyScroll() {
+  if (_scrollLockY !== null) return;                        // 疊開多個彈窗只鎖一次，以第一次的位置為準
+  _scrollLockY = window.scrollY;
+  document.body.style.top = `-${_scrollLockY}px`;
+  document.body.classList.add('scroll-locked');
+}
+function unlockBodyScroll() {
+  if (_scrollLockY === null) return;
+  const y = _scrollLockY; _scrollLockY = null;
+  document.body.classList.remove('scroll-locked');
+  document.body.style.top = '';
+  window.scrollTo({ top: y, behavior: 'instant' });
+}
+// 等元素的 CSS 動畫真的跑完再做事（取代猜秒數的 setTimeout）；動畫沒觸發時由 fallbackMs 兜底，兩者只執行一次
+function afterAnimation(el, fn, fallbackMs) {
+  let done = false;
+  const run = () => { if (done) return; done = true; el.removeEventListener('animationend', run); fn(); };
+  el.addEventListener('animationend', run, { once: true });
+  setTimeout(run, fallbackMs);
+}
+
 function openOverlay(id) {
   document.getElementById(id).classList.add('show');
-  document.body.style.overflow = 'hidden';
+  lockBodyScroll();
 }
 function closeOverlay(id) {
   const el = document.getElementById(id);
@@ -2557,7 +2581,7 @@ function closeOverlay(id) {
   el.classList.remove('stack-top');
   // month-picker 用自己的 CSS class（非 .overlay），解鎖檢查一併涵蓋（D10）
   if (!document.querySelector('.overlay.show, .month-picker-overlay.show')) {
-    document.body.style.overflow = '';
+    unlockBodyScroll();
   }
 }
 
