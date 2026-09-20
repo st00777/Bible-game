@@ -1452,8 +1452,9 @@ function renderGuide(data) {
   // 不預設「這章很難」的立場，只給幫助；同一原則的另一半是下方導向書卷背景的入口。
   const hardList = Array.isArray(data.guide.hard) ? data.guide.hard.filter(h => h && String(h).trim()) : [];
   // 美術審查（2026-08-29）：hard 併進 focus 同一個紫框容器，不另開白盒（避免白—紫—白三明治）
+  // 導讀分層（2026-09-21 James 拍板）：hard 改為收合列，預設不展開；focus 升到大綱之前當唯一重點框
   const hardHtml = hardList.length
-    ? `<div class="guide-hard-lbl">讀的時候可能卡住的地方</div>${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}`
+    ? `<details class="guide-fold"><summary>讀的時候可能卡住的地方<span class="guide-fold-n">${hardList.length}</span></summary><div class="guide-fold-body">${hardList.map(h => `<div class="guide-hard-row">${h}</div>`).join('')}</div></details>`
     : '';
   // 書卷背景入口（全卷恆開，BOOK_DETAIL_ENABLED 已退役）
   const guideBook = bookOfChapter(data.chapter);   // 2026-08-31 D4：統一走 core.js 反查
@@ -1462,17 +1463,16 @@ function renderGuide(data) {
     : '';
 
   // Build guide inner
+  // 段落大綱收合，預設不展開；含 ✦ 的段落（今日聚焦段）淡橘底標出
   const outline = data.guide.outline.map(o =>
-    `<div class="guide-ol-row"><span class="guide-ol-nodes">${o.nodes}</span><span>${o.text}</span></div>`
+    `<div class="guide-ol-row${String(o.text).includes('✦') ? ' guide-ol-hi' : ''}"><span class="guide-ol-nodes">${o.nodes}</span><span>${o.text}</span></div>`
   ).join('');
 
   document.getElementById('guide-inner').innerHTML = `
     <div class="guide-intro-text">${data.guide.intro}</div>
-    <div class="guide-outline-box">
-      <div class="guide-outline-lbl">本章重點</div>
-      ${outline}
-    </div>
-    <div class="guide-focus-box">💡 ${data.guide.focus}${hardHtml}</div>
+    <div class="guide-focus-box"><div class="guide-focus-lbl">今天看這裡</div>${data.guide.focus}</div>
+    <details class="guide-fold"><summary>本章段落大綱<span class="guide-fold-n">${data.guide.outline.length}</span></summary><div class="guide-fold-body">${outline}</div></details>
+    ${hardHtml}
     ${bookLinkHtml}`;
 
   // Auto open step 1
