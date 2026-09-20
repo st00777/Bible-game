@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" width="600" height="900">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFE9A8" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 天空與遠山 -->
+  <rect width="600" height="900" fill="#DCEBF4"/>
+  <rect y="0" width="600" height="420" fill="#E6EFF5"/>
+  <circle cx="470" cy="330" r="46" fill="#FBE7B5"/>
+  <ellipse cx="150" cy="200" rx="90" ry="34" fill="#F6F1E6"/>
+  <ellipse cx="420" cy="150" rx="120" ry="40" fill="#F6F1E6"/>
+  <path d="M0 400 Q120 300 240 380 T480 360 T600 380 V520 H0Z" fill="#B9B4C8"/>
+  <path d="M0 470 Q150 380 300 450 T600 440 V600 H0Z" fill="#9FB58F"/>
+  <!-- 近景草坡 -->
+  <path d="M0 600 Q200 540 400 590 T600 580 V900 H0Z" fill="#B7C99A"/>
+  <path d="M0 720 Q180 680 320 730 T600 700 V900 H0Z" fill="#C9D6A5"/>
+  <!-- 小路 -->
+  <path d="M250 900 Q300 780 380 740 Q440 710 470 640" stroke="#E5D3AC" stroke-width="46" fill="none" stroke-linecap="round"/>
+  <!-- 樹 -->
+  <rect x="60" y="430" width="14" height="160" rx="7" fill="#8C6A4E"/>
+  <circle cx="67" cy="420" r="70" fill="#8FAE7A"/>
+  <circle cx="30" cy="450" r="48" fill="#8FAE7A"/>
+  <circle cx="110" cy="455" r="52" fill="#A3BF87"/>
+  <!-- 燈光暈 -->
+  <circle cx="232" cy="600" r="90" fill="#FFE9A8" opacity=".35"/><circle cx="232" cy="600" r="55" fill="#FFF3C4" opacity=".4"/>
+  <!-- 角色：外袍 -->
+  <path d="M300 385 C230 400 205 520 200 720 Q300 745 400 720 C395 520 370 400 300 385Z" fill="#A08CB8"/>
+  <path d="M300 385 C355 400 380 520 400 720 Q350 735 300 730Z" fill="#8F7BA6"/>
+  <!-- 內袍 -->
+  <path d="M262 470 Q300 455 338 470 L352 730 Q300 745 248 730Z" fill="#F1E6CF"/>
+  <path d="M300 460 L338 470 L352 730 Q326 738 300 738Z" fill="#E3D5B8"/>
+  <!-- 腰帶 -->
+  <rect x="256" y="560" width="88" height="12" rx="6" fill="#B0865A"/>
+  <!-- 靴子 -->
+  <rect x="262" y="725" width="34" height="40" rx="10" fill="#8C6A4E"/>
+  <rect x="304" y="725" width="34" height="40" rx="10" fill="#7B5B42"/>
+  <!-- 帽兜（放下） -->
+  <ellipse cx="300" cy="400" rx="58" ry="26" fill="#8F7BA6"/>
+  <!-- 手臂與油燈 -->
+  <path d="M232 470 Q212 530 224 585" stroke="#F1E6CF" stroke-width="22" fill="none" stroke-linecap="round"/>
+  <circle cx="226" cy="590" r="11" fill="#F3D9C0"/>
+  <rect x="214" y="600" width="26" height="8" rx="4" fill="#7B5B42"/>
+  <rect x="212" y="608" width="30" height="42" rx="8" fill="#F6D98A"/>
+  <ellipse cx="227" cy="630" rx="7" ry="11" fill="#FFF3C4"/>
+  <rect x="214" y="650" width="26" height="8" rx="4" fill="#7B5B42"/>
+  <!-- 頭與髮 -->
+  <circle cx="300" cy="350" r="50" fill="#F3D9C0"/>
+  <path d="M250 345 Q255 285 300 288 Q345 285 350 345 Q335 320 300 322 Q265 320 250 345Z" fill="#8C6A4E"/>
+  <path d="M255 350 Q240 400 262 440 Q250 390 268 360Z" fill="#8C6A4E"/>
+  <path d="M345 350 Q360 400 338 440 Q350 390 332 360Z" fill="#8C6A4E"/>
+  <!-- 臉 -->
+  <circle cx="283" cy="356" r="4.5" fill="#4A3628"/>
+  <circle cx="317" cy="356" r="4.5" fill="#4A3628"/>
+  <path d="M292 372 Q300 379 308 372" stroke="#4A3628" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <circle cx="274" cy="368" r="6" fill="#F4B9A8" opacity=".7"/>
+  <circle cx="326" cy="368" r="6" fill="#F4B9A8" opacity=".7"/>
+  <!-- 小羊 -->
+  <ellipse cx="440" cy="740" rx="52" ry="36" fill="#FBF7EE"/>
+  <circle cx="400" cy="722" r="24" fill="#FBF7EE"/>
+  <circle cx="392" cy="728" r="16" fill="#F3D9C0"/>
+  <ellipse cx="378" cy="712" rx="9" ry="5" fill="#F4B9A8" transform="rotate(-20 378 712)"/>
+  <circle cx="388" cy="726" r="2.5" fill="#4A3628"/>
+  <circle cx="398" cy="726" r="2.5" fill="#4A3628"/>
+  <rect x="410" y="760" width="10" height="26" rx="5" fill="#6E5A4A"/>
+  <rect x="430" y="764" width="10" height="24" rx="5" fill="#6E5A4A"/>
+  <rect x="455" y="762" width="10" height="24" rx="5" fill="#6E5A4A"/>
+  <rect x="472" y="758" width="10" height="26" rx="5" fill="#6E5A4A"/>
+  <!-- 前景花 -->
+  <circle cx="70" cy="820" r="6" fill="#FFF8E6"/><circle cx="70" cy="820" r="2.5" fill="#F2C879"/>
+  <circle cx="120" cy="860" r="6" fill="#FFF8E6"/><circle cx="120" cy="860" r="2.5" fill="#F2C879"/>
+  <circle cx="540" cy="840" r="6" fill="#FFF8E6"/><circle cx="540" cy="840" r="2.5" fill="#F2C879"/>
+</svg>
