@@ -38,7 +38,7 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 **零件（PNG，從母圖切，貼輪廓，關節處彼此重疊）**
 `img_head`、`img_torso`、`img_uarm_L/R`、`img_farm_L/R`（含手）、`img_skirt`、`img_boot_L/R`；外袍每色三片 `img_cloak_<色>_hoodback/upper/lower`（色：purple／oat／blue）；頭飾 `img_hat_straw`、`img_head_wreath`；手持 `img_item_lamp`、`img_item_crook`；眼皮 `img_lid_L/R`（膚色片，Scale Y 眨眼）。
 
-**骨架（root 在骨盆）**：`bone_hips` → `bone_torso` → `bone_neck`（頭）；`bone_torso` → `bone_uarm_L` → `bone_farm_L`（右側同）；`bone_hips` → `bone_waist`（裙、外袍下片）；`bone_hips` → `bone_leg_L/R`（靴）。關節座標（母圖 460×768）：neck (230,205)、肩 (172,222)/(288,222)、肘 (142,320)/(318,320)、手 (125,470)/(335,470)、waist (230,330)、hips (230,340)、腿 (188,650)/(272,650)——見 `img/style-ref/p1/rig2/parts.json` 與 `cut.py`。
+**骨架（root 在骨盆）**：`bone_hips` → `bone_torso` → `bone_neck`（頭）；`bone_torso` → `bone_uarm_L` → `bone_farm_L`（右側同）；`bone_hips` → `bone_waist`（裙、外袍下片）；`bone_hips` → `bone_leg_L/R`（靴）。關節座標（母圖 460×768）：neck (230,205)、肩 (172,222)/(288,222)、肘 (142,320)/(318,320)、手 (125,470)/(335,470)、waist (230,330)、hips (230,340)、腿 (188,650)/(272,650)——原 `img/style-ref/p1/rig2/parts.json` 與 `cut.py`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）。
 **綁法**：頭、靴、手持＝Parent 剛體；上臂、前臂、外袍上下片、裙＝Mesh＋Weights（關節頂點兩骨共享約 50/50，非關節 100%，肘部加密頂點）。
 **畫序（下→上）**：靴 → 裙 → 外袍下片 → 上身 → 上臂 → 前臂 → 外袍上片 → 帽兜後片 → 頭 → 眼皮 → 頭飾 → 手持。舉手 timeline 內用 Draw Rule Hold key 把前臂切到外袍上片之上。
 
@@ -112,13 +112,13 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 
 ## 8. 路 D：rive-mcp 不經編輯器產 .riv（2026-09-07 實測，James 同意後做）
 
-- **工具**：`~/bible-work/tools/rive-mcp`（GitHub ODU33104/rive-mcp，commit 36d55f9，從原始碼 build；授權免費含商用、產出自由、**禁改碼禁 fork**）。不註冊成 MCP（32 個工具定義太肥），用 `img/style-ref/p1/rig2/rive/rmcp.mjs` 走 JSON-RPC 直接呼叫。
+- **工具**：`~/bible-work/tools/rive-mcp`（GitHub ODU33104/rive-mcp，commit 36d55f9，從原始碼 build；授權免費含商用、產出自由、**禁改碼禁 fork**）。不註冊成 MCP（32 個工具定義太肥），用原 `img/style-ref/p1/rig2/rive/rmcp.mjs` 走 JSON-RPC 直接呼叫（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）。
 - **已驗證可用**：骨頭鏈（RootBone→Bone，child 從 parent 尖端起、無法偏移→用鎖骨段接肩膀）、圖片掛骨頭、網格自動權重綁兩骨（最近兩骨、4 次方衰減，**無法手修權重**）、Solo＋`soloActive` hold key 換袍與模擬 Draw Rule、多層狀態機（trigger／number）、官方 runtime 2.42 在 Chrome 播放 60 fps（CPU 降速 6× 仍 60）。
 - **限制**：無 Data Binding／View Model（只能狀態機 inputs，runtime 印 deprecation）；無 IK pole；**群組不能夾在兩段骨頭之間**（writer 先出全部骨頭再出掛在骨頭下的群組）；圖片只吃 PNG（先用 `magick -colors 255 PNG8:` 量化，858 KB→246 KB，視覺差 0.13%）；**rive-mcp 自己的預覽渲染器不畫 Skin**，網格綁骨要用 `browser-run.mjs` 在真 Chrome 看；.riv 不能匯回 Rive 編輯器。
-- **產物**：`img/style-ref/p1/rig2/rive/`（產生器、.riv、量化零件、手機測試頁模板、README）；手機驗證頁 Artifact `https://claude.ai/code/artifact/45b55b79-6f2f-4b2e-94d7-3604f8aa97fb`。
+- **產物**：原 `img/style-ref/p1/rig2/rive/`（產生器、.riv、量化零件、手機測試頁模板、README）（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）；手機驗證頁 Artifact `https://claude.ai/code/artifact/45b55b79-6f2f-4b2e-94d7-3604f8aa97fb`。
 - **下一步判準**：James 手機三條（≥30 fps、舉手不穿模、換袍不重綁）過了，再決定：正式版留在路 D（接受無 Data Binding、權重不可手修），或訂 Cadet 進編輯器重做（檔案不互通，要重綁）。
 - **2026-09-07 晚 實測坑（James 手機看到手臂細成一條）**：不是素材，是 rive-mcp 的自動權重（距離最近兩骨、4 次方衰減）在手肘相對彎 38° 時整段袖子塌成緞帶；同一張圖只綁一骨、或剛體掛骨、或手肘只彎 6° 都正常。**結論：rive-mcp 的雙骨網格只能做「近乎直臂」的動作，任何真正彎關節的動作都要手修權重＝要 Rive 編輯器。** 現行手機驗證頁已改用 v4D（高舉、手肘不彎）。
-- **2026-09-10 路 D 坐姿試做通過（`img/style-ref/p3/rive/`）**：六件剛體零件＋膚色眼皮片，呼吸（骨頭 y／rotation 微位移）＋眨眼（image opacity 軌）在官方 runtime 真 Chrome 全通，158 KB。坑：狀態機 trigger 過渡 `durationMs: 0` 不會觸發，最少給 50；image 支援 `opacity`／`scaleX`／`scaleY` 軌。結論：**坐姿不需彎肘（手臂整隻畫死）→ 路 D 可做**；收卷待驗（直臂旋轉＋零件替換）。
+- **2026-09-10 路 D 坐姿試做通過（原 `img/style-ref/p3/rive/`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回））**：六件剛體零件＋膚色眼皮片，呼吸（骨頭 y／rotation 微位移）＋眨眼（image opacity 軌）在官方 runtime 真 Chrome 全通，158 KB。坑：狀態機 trigger 過渡 `durationMs: 0` 不會觸發，最少給 50；image 支援 `opacity`／`scaleX`／`scaleY` 軌。結論：**坐姿不需彎肘（手臂整隻畫死）→ 路 D 可做**；收卷待驗（直臂旋轉＋零件替換）。
 
 ## 9. Rive 官方 AI 三入口（2026-09-15 查證，未實測，明細 `references/ai-agent-and-mcp.md`）
 
