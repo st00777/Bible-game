@@ -143,7 +143,53 @@ Artboard (500×500, 底色 #d6f3f6)
 
 ## 3. Joystick example
 
-未讀。需 James 在桌面版開檔後用 MCP 讀。待補：Blend State（1D／2D）怎麼設、視線跟隨怎麼綁、對待機「偶爾看鏡頭」的可用性。
+- 檔案：`https://editor.rive.app/file/joystick-example/2602821`（Remix 副本，fileId 2602821）。
+- 內容：全向量的橘頭巾角色，頭轉左右上下、眼珠跟著看、定時眨眼。**沒有 PNG、沒有 View Model、沒有 Data Bind、狀態機沒有 input／listener**。
+- 規模：1 個畫板 500×500；6 條線性動畫；1 個狀態機 `State Machine 1`、1 層 `Animation`，只有 Entry → `Animation` 一條無條件轉場。
+- 這檔教的是一件事：**用 Joystick 物件把「臉的多個零件」收成兩個軸，之後只 key 搖桿不 key 零件。**
+
+### 3.1 三個 Joystick 物件（掛在畫板根層）
+
+| Joystick | x 軸驅動 | y 軸驅動 | 畫布位置 | 備註 |
+|---|---|---|---|---|
+| `Head` | `Head_H` | `Head_V` | (126.7, 392.6) | 頭轉向 |
+| `Look` | `Eyes_H` | `Eyes_V` | (236.3, 392.6) | 眼珠 |
+| `Blink` | `Blink` | （無） | (360.5, 392.6) | 單軸，預設 x＝−100（睜眼） |
+
+- Joystick 的值域固定 **−100…100**；x_id／y_id 各指一條 1 秒（60 幀）oneShot 動畫，**搖桿在 −100 就是那條動畫第 0 幀、100 就是最後一幀**，中間線性取樣。
+- 三個都是 width／height 100、origin 50/50、`handlesourceid` 無（沒接外部把手）、`joystickorder` 0／1／2（面板顯示順序）。
+- 屬性 key：x 299、y 300、x_id 301、y_id 302、posx／posy 303／304、width／height 305／306、originx／y 307／308、joystickflags 312、handlesourceid 313、joystickorder 314。
+
+### 3.2 被驅動的五條 1 秒動畫各 key 了什麼
+
+| 動畫 | key 的物件 | 幀 0 → 幀 60 |
+|---|---|---|
+| `Head_H` | `face` Node | x −19.4 → 20.2；**sx 90.8% → 100%（幀 28）→ 90.8%** |
+| `Head_V` | `face` Node | y 41.8 → 65.3 |
+| `Eyes_H` | `Ctrl_pupil_left`／`right` Node | x −8.45 → 5.36 |
+| `Eyes_V` | 同上 | y −8.29 → 8.09 |
+| `Blink`（8 幀＝0.13 s、loop） | 四根眼皮 RootBone、`Close_eyes` Node | 上下眼皮 y 從張開值 → 4.25（幀 5 相遇）；`Close_eyes` opacity 0 → 100（hold，幀 5 才出現） |
+
+- **假 3D 轉頭＝整個 `face` Node 左右平移 ±20 ＋ 轉到邊緣時橫向壓到 91%**。五官全在 `face` 底下，一個 Node 帶走。
+- **視差**：`Ctrl_hair` 有 TranslationConstraint 指向 `face`、strength **−100%**（頭髮反向移，看起來留在後腦）；`Ears` 同樣指向 `face`、strength **−30%**。都是 copy x＋y、factor 1、local space。這就是「臉往左、頭髮耳朵往右一點」的立體感來源。
+- **眨眼＝兩套眼**：`Open_eyes`（眼白橢圓被 `Eyelibs` 4 點路徑裁切，路徑 Skin 綁上／下眼皮兩根 RootBone；瞳孔在 `Ctrl_pupil_*` Node 下）＋ `Close_eyes`（閉眼弧線描邊，平常 opacity 0）。眨眼時眼皮骨往中間合、閉眼線 hold 跳出來。**8 幀走完，不做慢速閉眼。**
+- 眼睛的 ClippingShape 用法同第 1 節：裁切源是可被骨頭變形的路徑，不是固定矩形。
+
+### 3.3 主時間軸 `Animation`（10 秒、600 幀、loop）只 key 搖桿
+
+- key 的物件只有三個 Joystick 的 x／y，加上兩根手臂 RootBone 在幀 0 各一個 r（擺姿勢用）。
+- `Head`：x 0 →(幀 81) −100 → 保持到 260 →(290) 100 → 保持到 416 →(463) 0；y 在 −36…36 之間慢慢飄。全部 cubic。
+- `Look`：跟 `Head` 走差不多的路線但**時間點錯開幾幀**（幀 54 才到 −100、159 又微回到 −93、180 再微調）。眼珠比頭慢半拍、還會小抖，這是「活的」關鍵。
+- `Blink`：x −100 →(12 幀) 100 →(14 幀) −100，10 秒內出現 5 次（幀 37、269、315、404、534），間隔 0.5–4 秒不等；y 在眨眼頂點也推到 100。**眨眼節奏不等距，偶爾連兩下（269 與 315）。**
+- 狀態機沒有輸入，只是讓這條 10 秒 loop 一直播。
+
+### 3.4 對本專案的結論
+
+1. **待機「偶爾看鏡頭／看左右」用 Joystick 做**：先把頭轉、眼珠、眨眼各做成一條 1 秒 oneShot 動畫，綁到 Joystick 的 x／y，之後每一版待機只 key 搖桿。換裝、換臉不用重打關鍵幀。
+2. 我們的頭是 PNG，五官若照第 1 節做成向量疊在 PNG 上，「`face` Node 平移 ±20＋sx 91%」的假 3D 轉頭可以直接套；PNG 頭本身不動。頭髮／帽子做 −100% 的 TranslationConstraint 就有視差。
+3. **眨眼 8 幀、不等距、偶爾連兩下**；閉眼線用 opacity hold 而不是淡入。
+4. 眼珠比頭慢幾幀＋微抖，比同步移動更像活的。
+5. 這檔沒示範 runtime 控制（沒 input、沒 Data Bind）。要讓網頁指標驅動搖桿，得另外接 Listener 或 View Model，本檔不能當範本；待第 2 節 Avatar Creator 看 Data Binding 怎麼接。
 
 ---
 
