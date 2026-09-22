@@ -187,6 +187,30 @@ Artboard (500×500, 底色 #d6f3f6)
 5. **顏色差異 key 顏色值**，不要為每個色做一套圖層；PNG 零件則做不到（要換圖），所以「色綁默想」的部位若要用這招得是向量。
 6. 待機幅度：頭頂 9 px、2 秒一個週期，比第 1 節更簡。
 
+### 2.6 官方教學影片（五支）補充：MCP 沒讀到的 Icon／Button 狀態機
+
+- 播放清單「Build an Avatar Creator with Rive and React」（Rive 官方頻道）：①intro 0:30 `pwljZMUq_7w`、②Creating the avatar 6:23 `lx7VpUV1DCM`、③Creating the icons 5:43 `L_Gmk4LLAn4`、④Creating the buttons 2:37 `HvwAZXBD-sE`、⑤React 實作 36:45 `Qr7Ng6fpqnk`。自動英文字幕已抓成純文字放 `transcripts/avatar-creator/`（yt-dlp，2026-09-23）。
+- 影片②講的跟 2.1–2.4 的 MCP 實讀一致，多兩個細節：主體外面有一圈白描邊 `Frame`＋一個 ClippingShape 把整隻角色裁在圓內；左右兩根身體骨各包在一個 Group 裡、**兩個 Group 旋轉值相反**，所以同一個約束來源移動時兩骨往相反方向走（這是「拉一個點、身體兩側對稱變形」的做法）。
+- 影片③ **Icon 畫板**（`BodyColorIcon` 等六個，MCP 只讀了階層沒讀狀態機）：
+  - 結構＝主 Group＋顯示「目前選到哪個」的形狀（顏色用 Ellipse 換色、體型用描邊人形 key 頂點、髮型／眼睛用 Solo）＋一個 `selection box`（hover 時亮起的框）。
+  - 輸入三個：`isIconActive`（Boolean）、`isHover`（Boolean，字幕作 is how it is）、`numBodyColor`（**跟主畫板同名**，選色後 icon 一起變）。
+  - 三層：Colors（Any State → 各色，條件 numBodyColor == n）；Hover（三態 no hover ⇄ hover ⇄ pressed：isHover true/false 切前兩態、isIconActive true/false 進出 pressed）；Bouncing（isIconActive true → 彈一下、false 回）。
+  - **Listener 三條**，目標都是 `selection box`：Pointer Down → fire `isIconActive`；Pointer Enter → `isHover` = true；Pointer Exit → `isHover` = false。這是本檔唯一示範 Listener 的地方，主畫板沒有。
+- 影片④ **Button 畫板**（`BodyColorButton` 等六個）：一個 shape 兩個 Fill 一個 Stroke，第二個 Fill 做 hover 亮度；輸入 `isIconActive`、`isBoxHover`、`numOption`。**開發者用同一個畫板重複渲染 N 顆按鈕，每顆初始化不同的 `numOption`**，所以按鈕不用一顆一個畫板。髮型類按鈕內用 Solo 切預覽。
+- 對本專案：衣櫃格子（每件裝備一顆）就用 Button 畫板的做法，一個畫板＋`numOption` 重複實例化；hover 在手機沒意義，只留 pressed 態。Listener 的 Pointer Down 可直接在 .riv 內處理點擊，不必每格綁 DOM 事件。
+
+### 2.7 影片⑤ React 實作摘要（Sonnet 子代理逐句讀字幕後整理，名稱已對回 MCP 實讀的拼法）
+
+- **匯出**：Share → Download → runtime 檔（.riv）→ 放 `public/` 或 CDN 用 URL 載。
+- **一個畫板複製多個實例**：六個 Icon 畫板各自一個 `useRive`（各自 canvas）；Option 按鈕更進一步：**同一個 Button 畫板重複實例化 N 顆，每顆初始化不同的 `numOption`**。專案端另有 `avatarConfig.json` 記每個部位有幾個選項，動態決定生成幾顆按鈕。
+- **命名慣例當 API**：畫板名去掉 `Icon`／`Button` 就是部位 key（`BodyColorIcon` → BodyColor），再組成 input 名 `numBodyColor`。設計端與工程端先講好命名，程式就不用硬編碼。
+- **主畫板接法**：`useRive({src, artboard, stateMachines, autoplay: true})`；全域選擇（部位 → 數字）一變，`useEffect` 逐一把各 `num*` input 設值，最後 `changes.fire()` 讓角色彈一下。
+- **Icon／Button 接法**：**關掉 .riv 內的 Listener，改由 React 的 onClick／onFocus／onBlur 手動設 `isIconActive`／`isHover`（Button 為 `isBoxHover`）**。影片理由是狀態要跟全域同步，Listener 只能改自己畫板。
+- **關鍵坑（影片 34:16 反例）**：`useStateMachineInput(rive, sm, name, 初始值)` 第四個參數不能省。多實例同畫板若不各給初始值，全部按鈕都顯示最後一次迭代的值、高亮每次重繪被重置。
+- **沒講的**：View Model／Data Binding 一個字都沒提（全片 legacy input）；Rive Event 沒用；npm 套件名只口說「react canvas runtime」。
+- **翻成純 JS（推斷，非影片明講）**：`new rive.Rive({src, canvas, artboard, stateMachines, autoplay:true, onLoad})`；`onLoad` 裡 `r.stateMachineInputs(sm)` 找到 input 後 `.value = n`／`.fire()`，並且**在 onLoad 就先寫一次初始值**（等同第四參數）；多顆按鈕＝多個 canvas 各自 `new Rive`，用陣列管；全域狀態自己寫一個物件＋更新函式當迷你 useEffect。既有寫法見 `web-runtime.md`。
+- **對本專案**：衣櫃格子照「一畫板多實例＋numOption 初始值」做；四部位各一個 `num*` input（或改 View Model number，見 2.5 第 2 點）；手機沒 hover，Button 只留 pressed；`changes` trigger 當穿上回饋。
+
 ---
 
 ## 3. Joystick example
