@@ -1,0 +1,25 @@
+# Creating the icons (5:43)
+https://www.youtube.com/watch?v=L_Gmk4LLAn4
+YouTube 自動英文字幕（yt-dlp 2026-09-23 抓取，已去重）
+
+[00:00:00] foreign you want to change is to show the element you have selected for this we need to set up the machine differently so let's see the file here I have all the icons I need for the Avatar Creator this is the icon for the Avatar color this is for the size for the eyes for the hair the face hair and the background so let's see the Avatar's color icon
+
+[00:00:37] here you can see all the elements I have the main group with all the elements this ellipses to show the selected color and this shape the solution box that I use when I hover in the icons all the icons work like this I mean group a group with elements and the selection box so now let's see the animations here I have one animation for each color of the body what I did here was change the color of
+
+[00:01:08] the ellipse then the however and hover animation here I work with the stroke and the selection box so when the icon is in hovering is only a gray Ellipsis and when it's hovering have this wire stroke and the selection box then the bound thing and opening animation I create this simple animation that happens every time I click on the icon and the last one is the preset animation
+
+[00:01:36] which is just the stroke color now let's use the machine for the inputs I use 3. this Boolean is icon active that I use to activate and deactivate the icon then I use the same input I use in the Avatar for the color of the body non-body color with this input the icons color change when I select a color and this Boolean is however to use when I hover in the icon for the layers I use three
+
+[00:02:09] one for the colors here I have all the colors animation with transition to any state and I use the input non-body color to switch between them this other for the however here I have three states now however hover I'm pressured to jump from hover to hover I use the input is how it is true and to go back is how it is false too young to press it I use the input is icon active is true and to go now
+
+[00:02:42] however is icon active is false and this is to activate the icon at any time and the last one is the bound thing here I use this icon active is true to yam to the bouncing animation is false to go back the last thing I have here is the listeners and I use this because this way I can interact with the icon press it with a use when I click on the icon
+
+[00:03:15] you can see I use the selection box as a Target and the option pointed down and this is listener trigger this input is icon active then hover exit and hover enter I use the same Target for these two listeners having enter use the option pointer enter that means when I hover in the icon and Trigger the input is how it is true however exit use the option pointer exit
+
+[00:03:47] when I leave the icon and through here is how it is false now let's play with the machine to see how all this works here you can see I can hover and they can change you can see how it works the however animation and if I click on the icon I activate the pressing animation and I can see the color selected and I can change the color using this
+
+[00:04:16] value and that's it the rest of the icons works in the same way they have the same inputs and the theme machine but have some difference for example the icon of the size here you can see I use the stroke for the character and in the animation of the size I animate the vertex to create a different size but the theme Machine Works in the same
+
+[00:04:44] way I can hover and press and here I can change the size the icon of the eyes hair and face hair have another difference because I change between different shapes and I use a solo object for example the hair icon here you can see I have this group character with a solo object and then the body in the cell object I have all the
+
+[00:05:15] different hair of diameter and I can change between them so for the animation what it did was use the solo object selecting one hair in each animation and that's it this is everything you need to know about these icons in the following video I will show you how the button Works to select the different elements
