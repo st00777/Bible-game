@@ -119,7 +119,11 @@ claude mcp add --transport http rive http://127.0.0.1:9791/mcp
 - **接 Cursor**：Settings → Tools & MCPs → Add Custom MCP，貼 `{"mcpServers":{"rive":{"url":"http://127.0.0.1:9791/mcp"}}}`。
 - **能動的範圍**（官方列表）：建檔／畫板（新增、改名、改尺寸、排列）；查階層、選物件、改屬性、改名、複製、排序、換父層、刪除；建 shape／path／layout／component instance／component list／asset 元素；改線性動畫、狀態機、states、transitions、conditions、keyframes、interpolation；建 View Model、屬性、instance、binding；管 Luau／WGSL 腳本、改原始碼、跑 diagnostics、重編譯、測試、搜碼、讀 console。
 - **對本專案的意義**：這條路跟 SKILL.md 第 8 節的社群 rive-mcp 不同。社群版不經編輯器、雙骨權重無法手修；官方 MCP 是在真編輯器裡操作，理論上權重、IK、Draw Rule、Data Binding 都拿得到，且產物就是編輯器檔案、可續編。**但發佈 .riv 仍要 Cadet**（第 7 節 9/12 實測）。
-- **未實測**：MCP 工具是否能編輯 mesh 權重（官方列表沒明寫 weights）；免費版是否能開 MCP；Chrome 自動化那套「點欄位 → cmd+a → 打字」的坑在 MCP 下應該不存在，待驗。
+- **2026-09-22／23 實測結果**（取代原「未實測」）：
+  - **免費版開不了 MCP**：James 9/22 實證，要 Cadet（已訂，月繳 US$17）。桌面版用 Rive Early Access（`/Applications/Rive Early Access.app`），MCP 端點 `http://127.0.0.1:9791/mcp`。
+  - **mesh 權重：有 `autoWeight`（blend／maxInfluences／smooth 可調）、沒有逐頂點手塗**。`mesh_rigging_tool` 四個指令＝generateMesh → bindBones → autoWeight → querySkin，說明明寫「Does NOT ... paint individual per-vertex weights」。多張重疊圖綁同一組骨要放同一個 autoWeight 呼叫一起解。
+  - MCP 只看得到編輯器已開的分頁，沒有「開檔」指令；首頁狀態所有讀取工具回 No file context。
+  - 40 個工具清單與讀檔順序、常用 property key、`queryKeyFrames` 爆量處理，見 `example-dissections.md` 第 4 節。
 - **與 2026-09-10 決定的關係**：James 當時決定動畫段自己進編輯器做、CC 暫停路 D。官方 MCP 讓 CC 可以在 James 登入的桌面編輯器裡直接動手，等於路 D 的硬限制有機會解掉。是否重啟由 James 拍板，未定案前本節只當知識。
 
 ## 4. Rive CLI（不進編輯器的第三條路）
