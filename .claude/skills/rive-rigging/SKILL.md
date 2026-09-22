@@ -16,7 +16,7 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 | `references/animation-statemachine.md` | 待機（呼吸／眨眼／斗篷）、姿勢過渡數值、Layers 分工、Data Binding、Events、Luau 要不要用、State Machine 建置 SOP 與驗收清單 |
 | `references/web-runtime.md` | 套件選擇、載入方式、inputs 與 Data Binding 兩套 API、換裝兩種寫法、效能、Artifact CSP 限制、除錯工具、可直接貼的完整 HTML 範例 |
 | `references/learning-resources-zh.md` | 中文學習資源（零基礎版）：漢化插件、rive101.com 簡中版、B 站搬運、官方文檔中譯站、繁中概念文、付費課評估、學習順序 |
-| `references/example-dissections.md` | Marketplace 高手範例用官方 MCP 實讀：Raster Graphics Example（PNG 剛體木偶＋向量臉＋待機幅度表）；Avatar Creator、Joystick 待讀；MCP 讀檔順序與踩坑 |
+| `references/example-dissections.md` | Marketplace 高手範例用官方 MCP 實讀（2026-09-23 三檔全拆）：Raster Graphics（PNG 剛體木偶＋向量臉＋待機幅度表）、Avatar Creator（Solo 換裝＋一層一輸入＋彈跳回饋＋一控制點帶全身）、Joystick（搖桿收軸、假 3D 轉頭、視差約束、眨眼節奏）；MCP 讀檔順序與踩坑 |
 | `references/ai-agent-and-mcp.md` | 編輯器內建 AI Agent 怎麼下指令（格式規則＋原句範例）、官方 Rive MCP 讓 Claude Code 直接操作桌面編輯器、Rive CLI；三條路能動什麼、費用、未實測項 |
 
 ## 1. 決策級結論（已查證）

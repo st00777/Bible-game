@@ -137,7 +137,55 @@ Artboard (500×500, 底色 #d6f3f6)
 
 ## 2. Avatar Creator
 
-未讀。需 James 在桌面版開檔後用 MCP 讀。網頁版預先看到的 inputs：`numBodySize`／`numBackground`／`numBodyFaceHair`／`numBodyHair`／`numBodyEyes`／`numBodyColor`（Number）＋ `changes`（Trigger）。待補：換裝是 Solo 還是 Nested Artboard、Data Binding 怎麼接、狀態機層怎麼分。
+- 檔案：`https://editor.rive.app/file/avatar-creator/2602816`（Remix 副本，fileId 2602816）。
+- 內容：一隻藍色史萊姆狀角色，可換 11 種頭髮、3 種臉毛、4 種眼睛、5 種身體色、4 種背景色、3 種體型；換完會彈一下。
+- 規模：**13 個畫板**（`Avatar` 主體＋6 個 `*Icon`＋6 個 `*Button`）；主畫板 500×500；33 條線性動畫；1 個狀態機 7 層；**沒有 View Model、沒有 Data Bind、沒有 Listener**。控制全靠 7 個舊式 State Machine Input（MCP 回傳明寫「Legacy… deprecated; prefer view-model property conditions」）。
+- 這檔教的是**換裝的骨幹**：Solo 切零件、每個選項一條「只有第 0 幀」的動畫、狀態機每層一個數字輸入。View Model 那套新做法它沒示範，要另找。
+
+### 2.1 輸入與狀態機：一層一個數字，一個選項一個 state
+
+| 層 | 輸入 | states | 轉場 |
+|---|---|---|---|
+| Avatar Color | `numBodyColor` | Body_Blue／Red／Yellow／Bark／purple | Any State → 各 state，條件 `numBodyColor == 0…4`，duration 0 |
+| Background Color | `numBackgroundColor` | BackgroundColor0–3 | 同上，`== 0…3` |
+| Hair | `numBodyHair` | Hair0–Hair10 | 同上，`== 0…10` |
+| Eyes | `numBodyEyes` | Eyes0–3 | 同上 |
+| Hair_face | `numBodyFaceHair` | Hair face0–2 | 同上 |
+| Sizes | `numBodySize` | Size0／Size1／Size_2 | 同上，但 **duration 200 ms、cubic (0.42, 0, 0.58, 1)** → 體型會滑過去 |
+| Changes | `changes`（Trigger） | Idle ⇄ Bouncing（兩個 Bouncing state） | Entry → Idle；Idle →(trigger) Bouncing；Bouncing →(exit time 100%) Idle；Bouncing ⇄ 另一個 Bouncing（trigger、200 ms）讓連點也能重播 |
+
+- 條件全部是 `equal`（opvalue 0）＋整數常數；每層只有 Any State 出發的轉場，沒有 state 之間互連。**要加第 12 種頭髮＝加一條動畫、加一個 state、加一條 Any→state 轉場。**
+- 沒有 Listener：按鈕不在這個畫板裡處理，是 runtime 從外面設 input（JS 讀按鈕再 `numBodyHair = n`）。六個 Button 畫板各自有一個同名 Solo 當預覽圖（如 `BodyHairButton` 裡的 Solo `Hair` 含 Hair0–10），**按鈕畫板的狀態機未讀**（animation_editor 只讀作用中畫板）。
+
+### 2.2 換零件＝Solo，動畫只 key `activeComponentId` 第 0 幀
+
+- `Avatar` Node 底下三個 Solo：`Hair`（11 個子物件 Hair0–10，各是一個 Node 或 Shape）、`Eyes`（Eyes1–4）、`Hair Face`（HairFace0–2）。
+- `Hair0` 動畫的全部內容：**一個關鍵幀**，物件＝Solo `Hair`、屬性 `activeComponentId`（key 296）、frame 0、值＝Hair0 的 id、interpolation hold。`Hair1`…`Hair10`、`Eyes0`…、`Hair face0`… 全部同一個模式。
+- 所以「換裝動畫」不是動畫，是**用 timeline 記錄一個屬性值**，狀態機切到哪個 state 就套哪個值。這是 Rive 的標準換裝寫法，跟 `editor-rigging.md` 第 5 節一致，現在有實檔佐證。
+- 換色同理：`Body_Blue` 這條 1 秒動畫只有 frame 0，key 了身體三個 Shape 的漸層 stop 顏色／位置（GradientStop color 38、position 39）與描邊 SolidColor（37），共 30 幾個值一次寫死；`BackgroundColor0` 只 key 背景 Fill 的 SolidColor。**顏色是 key 顏色值，不是換圖層。**
+
+### 2.3 體型＝拉一個控制點，骨頭用 TranslationConstraint 跟
+
+- `Head` Node 底下兩個控制點：`Ctrl_Size`（Size0／1／2 三條動畫各 key 它的 y＝0／−34.2／+32.5，frame 0 一鍵）、`Ctrl_Head`（Idle／Bouncing key 它的 y）。
+- `Ctrl_Head` 有 TranslationConstraint 指向 `Ctrl_Size`，strength 100%（跟著體型上下）。
+- 身體外形 `Base_Body` 路徑 3 個頂點綁 4 根 RootBone（`Root Bone` 在 Ctrl_Head 裡、`Left_Bone`／`Right_Bone` 在 Body_target 節點裡、`Bottom_Bone`），**一頂點一骨權重 1.0**（Bottom 綁兩點）。Left／Right 骨各有 TranslationConstraint 指向 `Ctrl_Head`，strength 100%。
+- 三個 Solo（Hair／Eyes／Hair Face）與 Hair0 裡的形狀也各有 TranslationConstraint 指向 `Ctrl_Head`。**結果：只動 Ctrl_Size 一個 y，頭頂、頭髮、眼睛、身體上緣全部跟著長高，身體底邊不動。**
+- Sizes 層轉場 200 ms cubic，所以體型是滑過去的；其他層 duration 0 是瞬切。
+
+### 2.4 Idle 與 Bouncing
+
+- `Idle` 2 秒 loop：`Ctrl_Head` y 0 → 9.4（幀 60）→ 0，cubic。**就一條軌、一個點上下 9 px。**
+- `Bouncing` 1 秒：`Ctrl_Head` y 0 → −26（幀 6）→ +19（15）→ −10（27）→ +6（39）→ −4（50）→ 0（60），cubic。標準的衰減彈跳，每次換裝 trigger 一下。
+- `NoBoincing`（原檔拼字）只有 frame 0 一鍵，是佔位動畫，狀態機沒用到。
+
+### 2.5 對本專案的結論
+
+1. **換裝骨幹照抄**：每個部位一個 Solo（帽子／衣服／手持／背景），每個選項一條「frame 0 一鍵 activeComponentId」的動畫，狀態機一層一個數字輸入、Any State → 各 state、條件 equal。
+2. **但輸入要改用 View Model 屬性**（MCP 已標 legacy）。Solo 與 per-option 動畫不變，只是條件從 input 改成 view-model number；runtime 寫法見 `web-runtime.md` Data Binding 節。**這檔不能當 Data Binding 範本**，需另找示範 View Model 的 Marketplace 檔。
+3. **換裝回饋**：換完 trigger 一個 1 秒衰減彈跳（−26 → +19 → −10 → +6 → −4），200 ms 內連點用第二個同動畫 state 重播。可直接當我們「領裝備／穿上」的回饋。
+4. **一個控制點帶全身**：Ctrl 節點＋TranslationConstraint 100%，零件跟著長高／偏移；比逐件 key 省很多。稱號／體型類的差異可以這樣做。
+5. **顏色差異 key 顏色值**，不要為每個色做一套圖層；PNG 零件則做不到（要換圖），所以「色綁默想」的部位若要用這招得是向量。
+6. 待機幅度：頭頂 9 px、2 秒一個週期，比第 1 節更簡。
 
 ---
 
@@ -195,7 +243,7 @@ Artboard (500×500, 底色 #d6f3f6)
 
 ## 4. MCP 讀檔踩坑（2026-09-23 實測）
 
-- **MCP 只看得到編輯器已開的分頁**：首頁狀態 `session_info` 回 `openTabs: []`，`list_artboards` 回 `No file context available`。要 James 在桌面版雙擊開檔，MCP 沒有開檔指令。
+- **MCP 只看得到編輯器已開的分頁，而且只讀「作用中」那一個**：首頁狀態 `session_info` 回 `openTabs: []`，`list_artboards` 回 `No file context available`。要 James 在桌面版雙擊開檔、切分頁，MCP 沒有開檔／切分頁指令。多畫板檔案中 `get_artboard_hierarchy` 可帶 artboardId 讀別的畫板，但 `animation_editor`／`viewmodel_editor` 只讀作用中畫板。
 - 讀檔順序：`session_info` → `list_artboards` → `get_artboard_hierarchy(depth 3)` → `query_objects(某節點, depth 6)` → `assets_tool listAssets` → `animation_editor listLinearAnimations／listStateMachines／queryStateMachine` → `viewmodel_editor listViewModels／listDataBinds` → `capture_artboard` 看圖。
 - **`queryKeyFrames` 一次回全部關鍵幀**，829 鍵就 17 萬字元，會被截成檔案。用 python 依 (objectId, propertyName) 分組摘要：鍵數、幀範圍、值域、插值型態。
 - `query_property_values` 要先 `query_property_keys` 拿整數 key；常用：x 13、y 14、r 15、sx 16、sy 17、opacity 18、childOrder 6、blendModeValue 23（enum index：14 screen、15 overlay）、Image originx／y 380／381、fit 974；動畫 fps 56、duration 57、loop 59（1＝loop）、workstart／workend 60／61；DrawTarget drawableid 119、placementvalue 120（0 before、1 after）；ClippingShape sourceid 92；Bone length 89。縮放與 opacity 回百分比、角度回度。
