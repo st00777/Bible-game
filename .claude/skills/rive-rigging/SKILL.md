@@ -18,6 +18,8 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 | `references/learning-resources-zh.md` | 中文學習資源（零基礎版）：漢化插件、rive101.com 簡中版、B 站搬運、官方文檔中譯站、繁中概念文、付費課評估、學習順序 |
 | `references/example-dissections.md` | Marketplace 高手範例用官方 MCP 實讀（2026-09-23 三檔全拆）：Raster Graphics（PNG 剛體木偶＋向量臉＋待機幅度表）、Avatar Creator（Solo 換裝＋一層一輸入＋彈跳回饋＋一控制點帶全身）、Joystick（搖桿收軸、假 3D 轉頭、視差約束、眨眼節奏）；MCP 讀檔順序與踩坑 |
 | `references/ai-agent-and-mcp.md` | 編輯器內建 AI Agent 怎麼下指令（格式規則＋原句範例）、官方 Rive MCP 讓 Claude Code 直接操作桌面編輯器、Rive CLI；三條路能動什麼、費用、未實測項 |
+| `references/mcp-build-playbook.md` | 官方 MCP 施工手冊（2026-09-26）：官方文件寫了什麼／45 個工具分類／建與改的實測規則（原點＝樞紐、群組 x/y 要補設、addPaths＋刪舊路徑改形、畫序＝建立順序）／自我檢查迴圈／給 CC 的指令範本 |
+| `references/recraft.md` | Recraft.ai 知識庫（2026-09-30 查證）：方案與 credits 費用、`_vector` 模型與 SVG 輸出、Studio 功能（Vector Editor／Custom Style／調色盤）、官方託管 MCP 與 REST 串接指令、提示詞格式與本專案範本、SVG→Rive 相容性與清理工具、現成 skill／GitHub 盤點、第一次實測 SOP、CC 掌握度自評 |
 
 ## 1. 決策級結論（已查證）
 
