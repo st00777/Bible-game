@@ -199,9 +199,32 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
   - `svgo`（npm）：`mergePaths`、清屬性、縮精度；**不做** stroke→fill。
   - `svg-outline-stroke`／`outline-stroke-cli`（npm）：stroke 轉填色外框，等同 Illustrator Outline Stroke。
   - `picosvg`（Python, googlefonts）：拆 `<g>`、把 clip-path／stroke 轉等效 path、算絕對座標；漸層只允許在 `<defs>`。
-- **Recraft SVG → Rive 的第一手案例：查無**（Reddit 無法直接抓、Medium／YouTube 沒命中）。我們會是第一個實測，結果要回寫這節。
+- **Recraft SVG → Rive 的第一手案例**：網路查無，我們自己的實測見 6.1。
 
 來源：https://rive.app/docs/editor/fundamentals/importing-assets ／ https://feedback.rive.app/676 ／ https://rive.app/changelog/svg-export
+
+### 6.1 第一次實測結果（2026-09-30，Free 帳號）
+
+**計費實測**：MCP 直連、Free 帳號可用。`generate_image` 向量 1 張 2 credits；`image_to_image` 1 張 2；`vectorize_image` 1 次 **1**。Free 起始 60。
+
+**生圖（文字→向量）**
+- §5.3 範本出圖「太卡通」：元兇是 `Storybook children's`、`no facial features`（空白臉像人偶）、`each limb clearly separated`（出木偶關節）、粗細一致外框＋平塗。
+- 改描述吉卜力特徵（不寫品牌名）後乾淨很多，但**向量模型會把眼睛簡化成豆豆眼**，文字很難救。
+
+**定裝方向改由 GPT 探索（省 credits）**：GPT 對比例太敏感，7.5 頭身太大人、5 頭身＋圓臉大眼太小；用「同一人三個年紀並排 A/B/C」一次挑出。**年紀感關鍵在臉型比例（臉長、眼睛大小），不在身高。**
+
+**GPT 圖轉 Recraft 向量三條路**
+| 路 | 結果 |
+|---|---|
+| ① `vectorize_image` 直接描 | 臉眼完全保留；893 路徑、51 漸層、79 色，太碎 |
+| ①' 先 posterize 壓 12/16/24 色再描 | James 否決（剪紙感） |
+| ② `image_to_image` | **`recraftv4_1_vector` 完全忽略原圖**（strength 0.45 出無關人物）；**`recraftv3_vector`＋`vector_illustration`、strength 0.3 可用**：650 路徑、乾淨有虹膜，但臉變成熟、細節走樣，James 不滿意 |
+
+**🔴 非正方形輸出的 SVG 會在 Rive 變形**：Recraft 輸出 `viewBox="0 0 2772 2772"`＋`preserveAspectRatio="none"`＋`width=776 height=2772`，瀏覽器擠回直長、**Rive 忽略 preserveAspectRatio → 橫向拉寬約 3.6 倍**。修法（每張非正方形圖下載後必做）：path 只有絕對 `M/L/C/z`，x 座標與漸層 `x1/x2` 乘 `寬/2772`、viewBox 改 `0 0 寬 高`、刪 `preserveAspectRatio`、c2pa `<metadata>`、全畫布底色 path。
+
+**匯入 Rive 後的結構（回答 §9「圖層樹對應」）**：每個 path → 一個 `Shape`（名 Custom Shape）＋`PointsPath`＋`Fill`，全部平鋪在一個以檔名命名的 `Node` 下；實色與**線性漸層都保留**。描圖版 892 Shape、30 色。髮絲間的背景會被描成近白色殘塊（白暈），要刪但別刪到眼睛反光。
+
+**結論**：整張畫描成向量＝「一張畫」不是「一組零件」——零件未分組、被遮部位不存在。只夠做**小動作**（呼吸、眨眼、頭擺、圍巾飄）；舉手／揮手／坐下要分件畫。
 
 ---
 
