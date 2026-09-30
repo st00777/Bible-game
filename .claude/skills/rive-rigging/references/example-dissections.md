@@ -263,6 +263,20 @@ Artboard (500×500, 底色 #d6f3f6)
 4. 眼珠比頭慢幾幀＋微抖，比同步移動更像活的。
 5. 這檔沒示範 runtime 控制（沒 input、沒 Data Bind）。要讓網頁指標驅動搖桿，得另外接 Listener 或 View Model，本檔不能當範本；待第 2 節 Avatar Creator 看 Data Binding 怎麼接。
 
+### 3.5 向量畫法配方（2026-09-26 實讀每個 shape 的 Fill／Stroke）
+
+畫板 500×500，頭寬約 115 px。這檔就是「clean 2D vector」該長的樣子，數字可直接換算到我們的畫板。
+
+- **大塊零件只有 Fill，沒有任何描邊**：Head（4 個 CubicMirrored 頂點的封閉路徑，不是橢圓）#9f6145、Body（8 個直線頂點的多邊形）#9f6145、Overalls（8 個直線頂點）#62d5c6、Bandana #ff5a0d、Hair（一個 Ellipse，縮放 120%×124%，Draw Rule 排到頭後）#2c1523、Background 圓 #772c5a、畫板底 #181029。**全檔沒有一條全域深色輪廓線。**
+- **細節＝同色系深一階的線或小形狀**，不是黑線：口袋線 stroke 2 px #4eadb0 疊在 #62d5c6 上；頭巾摺線 stroke 5.5 px #ff720d 疊在 #ff5a0d 上；眉毛 stroke 8 px、鼻子 fill、閉眼線 stroke 6 px、唇線 stroke 3 px 全用 #884a33 疊在膚色 #9f6145 上；扣子叉線 stroke 3 px #4b1818 疊在 #ff5a0d 上。規則：**線色＝底色同色相、明度降一階；粗細依部位 2–8 px（頭寬的 2–7%）。**
+- **描邊端點幾乎全是 round（cap 1）**，手臂與唇線 join 也 round；只有口袋線是 butt／miter。
+- **手臂＝一條 18 px 圓端描邊路徑**（頭寬 16%），路徑綁 RootBone→Bone 兩根骨，不是填充形狀；圓端就是手，沒畫手掌。
+- **裁切取代精修邊緣**：Bandana 用 ClippingShape 裁進 Head 路徑（頭巾自動貼頭皮）；牙齒 #ffefef 與舌頭 #a70f36 裁進 Mouth_inside #611243；眼白 Ellipse 裁進 Eyelibs 路徑（眼皮骨一動裁切跟著動）；整個 Character 裁進 Background 圓（人物從圓裡冒出）。
+- **耳朵＝兩個圓角 Rectangle**，耳環 Ellipse #ff9f00 各帶 Draw Rule 排序；Ears Node 有 TranslationConstraint 做視差（3.2）。
+- **頂點很少**：衣服 8 點直線、頭 4 點曲線、眉毛 3 點、閉眼線 2 點。圓潤感來自 round cap 與 Ellipse，不來自多頂點。
+- **對本專案（對照 9/26 第一版角色）**：我們每件零件都畫了 3 px #5A4636 全域輪廓＋單色填充，這正是「著色本／佔位圖」感的來源。改法：大塊去描邊只留 Fill；陰影與細節改成同色相深一階的第二個 shape 或細描邊（round cap）；手臂可考慮粗圓端描邊路徑；帽兜貼頭用 ClippingShape 而不是手工對邊。ChatGPT 提示詞要求的「暖深棕輪廓 #5A4636」與此配方衝突，要 James 選邊。
+
+
 ---
 
 ## 4. MCP 讀檔踩坑（2026-09-23 實測）

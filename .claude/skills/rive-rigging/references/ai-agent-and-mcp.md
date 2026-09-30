@@ -109,6 +109,8 @@ Do not touch any other node.
 
 ## 3. 官方 MCP：讓 Claude Code 直接操作編輯器
 
+> 建與改的實測規則、工具清單、自檢迴圈、指令範本已移到 `mcp-build-playbook.md`（2026-09-26）；本節只留前提與決策脈絡。
+
 - **前提**：Rive **桌面版**（Early Access，Mac／Windows）安裝並開著，且 James 本人登入；網頁版 editor.rive.app 不提供。
 - **接 Claude Code**（一行）：
 
