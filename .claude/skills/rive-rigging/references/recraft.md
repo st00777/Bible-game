@@ -11,7 +11,7 @@
 - **正確接法**：Recraft 產 SVG → **直接拖進 Rive 編輯器**（官方支援 SVG 匯入）→ CC 用 Rive MCP 讀階層、改名、分組、設樞紐、補被遮住的零件。不要把 SVG 原始碼餵給 CC 重建。
 - **省不掉的工**：AI 生的 SVG 是「看得到的部分」的平面圖，動畫要的被遮零件（袖子底下的上臂、頸巾後的脖子）圖裡沒有，拆件與補件仍要人做。Recraft 解「好看」，不解「能動」。
 - **最大價值在換裝系統**：Custom Style 鎖風格後批量生帽子／衣服／手持物，一致性由模型保證，這件事 CC 手算座標做不到。
-- **費用底線**：要 SVG 私有＋商用一定要付費；Basic US$12/月（1,000 credits）就夠試；API 另計，預付 US$1＝1,000 units，V4.1 Vector 一張 US$0.08。
+- **費用底線**：要 SVG 私有＋商用一定要付費；Basic US$12/月（1,000 credits）就夠試。**官方託管 MCP 扣的是訂閱 credits（與網頁同一池），Free 也能用（額度受限）**，不必另買 API units；只有直呼 REST API 才走預付 API units（US$1＝1,000 units，V4.1 Vector 一張 US$0.08）。（2026-09-30 官方 remote-server 文件查證，修正同日早版「API 另計」的籠統寫法）
 - **CC 能自己跑的部分**：官方託管 MCP（`https://mcp.recraft.ai/mcp`，OAuth）或 REST API 直呼，兩者都能拿到 SVG 網址再下載到本機。網頁介面挑圖、付費、拖 SVG 進 Rive 要 James。
 
 ---
@@ -71,7 +71,9 @@
 
 - 本機版 `recraft-ai/mcp-recraft-server` 已於 **2026-07-13 封存**，官方改推託管端點 `https://mcp.recraft.ai/mcp`，Streamable HTTP，**OAuth 瀏覽器授權，免 API key**。
 - Tools：`generate_image`、`create_style`、`vectorize_image`、`image_to_image`、`remove_background`、`replace_background`、`crisp_upscale`、`creative_upscale`、`get_user`。
-- **查無**：MCP 能否直接把 SVG 寫進本機路徑；目前只確認回傳 URL／檔案本體，CC 要自己接一步下載。
+- **計費（官方原句）**：「The MCP server consumes subscription credits from your Recraft plan — the same balance used by the Recraft Studio app.」Free 有少量 credits 可用，付費方案按月配額＋可加購。→ **CC 用 MCP 生圖不需要 API key、不需要買 API units**，James 只要有 Recraft 帳號（Free 即可試）。舊版 GitHub README 只寫「uses a different credits model」沒講清楚，以 docs 為準。
+- Claude Code **網頁版**要在網路設定放行 `img.recraft.ai` 才能下載生成圖；終端機版無此限制。
+- **查無**：MCP 能否直接把 SVG 寫進本機路徑；目前只確認回傳 URL／檔案本體，CC 要自己接一步下載。速率限制文件未寫。
 - ⚠️ 依全域 token 規範：接 MCP 會讓提示快取失效，**在新工作階段開頭接**，不要在做到一半時接；用完的階段用 `/mcp` 關掉。
 
 Claude Code 接法（OAuth 直連）：
@@ -128,7 +130,8 @@ curl -s https://external.api.recraft.ai/v1/users/me -H "Authorization: Bearer $R
 - 兩種合法結構：**內容優先**（核心概念 → 背景 → 主體構圖 → 外觀細節 → 次要主體 → 光線 → 鏡頭 → 氛圍）或**風格優先**（風格 → 場景／主體 → 細節）。Blog 給的固定模板：`A <image style> of <main content>. <detailed description>. <description of the background>. <detailed style description>.`
 - 無字數硬限制；3–6 字短提示會進「interpretive mode」由模型自己決定美感，長提示才有精確控制。
 - 負面提示：V3／Studio 有欄位；**V4 API 傳 negative_prompt 會 400**。寫法只放名詞（`text, gradient`），不要寫否定句（`no text` 反而會生出 text）。
-- 純色背景直接用文字描述顏色；hex 色票在 Studio 調色盤輸入，**prompt 內嵌 hex 的官方語法查無**（API 走 `controls.colors`）。
+- 純色背景直接用文字描述顏色；hex 色票在 Studio 調色盤輸入，**prompt 內嵌 hex 的官方語法查無**（API 走 `controls.colors`）。V4 官方指南全篇只用描述性色名（deep muted green、warm off-white），沒有任何 hex 範例；把 hex 寫進 prompt 是社群作法，效果要實測。
+- **向量／Logo 專用結構（V4 官方指南原句）**：Graphic type → Shape logic（geometry、symmetry、silhouette clarity）→ Color system（strict palette）→ Line discipline（consistent stroke、no texture）→ Layout structure → Constraints（no gradients、no shadows）。向量 prompt **不要**寫材質、紙紋、水彩、布料皺褶這類 raster 詞，那是 GPT Image 那套。
 - 角色一致性官方只列四招：詳細描述特徵、全程同一 style／custom style、把前一張當 image reference、把角色圖附進 prompt 改姿勢。**未提 seed。**
 
 ### 5.2 風格名稱
@@ -157,6 +160,28 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 - 色票用 API `controls.colors` 或 Studio 調色盤餵：`#E8DCBE`（袍）`#CFC2A0`（袍影）`#8E82AE`（紫）`#6F6489`（紫影）`#F1D6BC`（膚）`#A67C52`（皮革）`#7F5C3A`（皮革深）`#6E4A33`（髮）`#5A4636`（輪廓）`#F6EFE4`（底）。
 - T-pose／無五官／四肢分離這三項，**官方與社群都沒有 Recraft 專屬的實證技巧**，只能靠通用向量插畫慣例；第一輪實測就是在驗這個。
+
+### 5.4 分節式範本（小居 ChatGPT 2026-09-30 提案，**未實測**，與 5.3 二選一 A/B 測）
+
+依 §5.1 官方向量結構展開成標籤分節，把「這是動畫素材、關節處要分開」在生成階段就講清楚，而不是事後求 AI 拆件：
+
+```
+[ASSET TYPE] 2D vector character for Rive animation.
+[CHARACTER] Young adult traveller. Gentle calm expression. About 6 heads tall. Short soft brown hair.
+[SHAPE SYSTEM] Simple rounded geometric construction. Large clean shapes. Minimal anchor points. Clear silhouette. Animation-friendly joints.
+[CLOTHING] Cream tunic. Muted lavender outer garment. Brown leather belt. Simple boots.
+[COLOR SYSTEM] Lavender, cream, warm brown, leather brown.（hex 走調色盤／controls.colors，見 5.1）
+[LINE SYSTEM] Consistent warm brown outline. Uniform stroke width. Rounded joins.
+[SHADING] Maximum two color values per object. Flat vector shading.
+[ANIMATION CONSTRAINTS] Arms visually separated from torso. Hands clearly separated from sleeves. Hair separated from head. No overlapping decorative elements around joints.
+[LAYOUT] Full body. Front view. Centered. Neutral standing pose. Plain off-white background.
+[AVOID] gradients, texture, watercolor, complex shadows, tiny details, text.
+```
+
+- 「Front 3/4 view」小居原版寫四分之三側面；本專案拆件與換裝要正面，改 Front view。
+- 「No religious symbols」小居原版有這條；本專案是聖經遊戲，角色本體不放符號可以，但裝備／背景不適用，刪除。
+- `[AVOID]` 依 §5.1 只放名詞，不寫 `No ...` 否定句。
+- 是否配 V4 Styles（1–10 張參考圖鎖風格；官方建議一張高品質參考最穩）：Style 只控線條、色彩邏輯、質感、渲染風格，**不控主體與姿勢**（Style reference ≠ Character reference），顏色也不保證精準。角色定案後再用。
 
 來源：https://www.recraft.ai/docs/prompt-engineering-guide/prompting-with-recraft-v4 ／ https://www.recraft.ai/blog/how-to-craft-prompts-for-accurate-ai-generated-images ／ https://www.recraft.ai/docs/recraft-studio/image-generation/working-with-text-and-prompts/negative-prompts ／ https://www.recraft.ai/docs/best-practices/character-consistency
 
@@ -206,7 +231,7 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 3. James：Rive 檔開新畫板 `Character_R1`，把 SVG 拖進去，停在該分頁。
 4. CC：`get_artboard_hierarchy` 讀結構，回報：路徑數、有無漸層／mask、零件能否拆、被遮零件缺多少、預估拆件時間。把結果回寫本檔 §6。
 5. 可用 → 用定裝圖建 Custom Style → 用 §5.3 裝備範本批量生裝備 → 每件同流程。
-6. 若要 CC 自動生：新工作階段開頭 `claude mcp add --transport http recraft https://mcp.recraft.ai/mcp`，瀏覽器授權一次；生完的 SVG 網址 24 小時失效，CC 立刻 `curl -o` 存到 `art/recraft/`（目錄待建，先不進 git 直到選定）。
+6. CC 自動生（**Free 帳號就能接，不用買 API units**，見 §4.1）：新工作階段開頭 `claude mcp add --transport http recraft https://mcp.recraft.ai/mcp`，瀏覽器 OAuth 授權一次；生完的 SVG 網址 24 小時失效，CC 立刻 `curl -o` 存到 `art/recraft/`（目錄待建，先不進 git 直到選定）。⚠️ 接 MCP 會讓快取失效，只在新階段開頭做。步驟 2 可改由 CC 走 MCP 生，James 只負責看圖挑圖。
 
 ---
 
@@ -215,12 +240,13 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 - V4 具名 substyle（不存在，靠 Custom Style）；style／substyle 完整列舉要看 Swagger
 - 免費版每日額度（3／風格／日 vs 50／日 矛盾）
 - API 最低儲值、免費試用額度、輸出檔大小上限
-- MCP 能否直接寫本機檔
+- MCP 能否直接寫本機檔；MCP 速率限制
 - Vector Editor／Custom Style／Image Set 的方案門檻
 - 各方案匯出格式分級表
 - SVG 技術規格：路徑數、漸層、mask、文字
 - Rive 匯入後的圖層樹對應
-- prompt 內嵌 hex 的語法
+- prompt 內嵌 hex 的語法（官方 V4 指南只用色名，hex 進 prompt 純屬社群作法）
+- 5.3 vs 5.4 兩種 prompt 結構哪個拆件更乾淨（A/B）
 - T-pose／無五官／四肢分離的 Recraft 專屬技巧
 - Recraft SVG → Rive 第一手案例（我們自己做）
 
