@@ -13,7 +13,7 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 |---|---|
 | `references/ecosystem-and-pipeline.md` | 方案價格、匯出規則、退訂後檔案是否可用、素材解析度與格式、社群 CLI 深挖、Spine／Live2D 對比、給 James 的決策頁 |
 | `references/editor-rigging.md` | 匯入零件、Bone 工具、Parent vs Mesh+Weights、IK／Translation 等約束、Solo 換裝、Draw Rule 畫序、踩坑、從空白到舉手的 22 步 SOP |
-| `references/animation-statemachine.md` | 待機（呼吸／眨眼／斗篷）、姿勢過渡數值、Layers 分工、Data Binding、Events、Luau 要不要用、State Machine 建置 SOP 與驗收清單 |
+| `references/animation-statemachine.md` | 待機（呼吸／眨眼／斗篷）、姿勢過渡數值、Layers 分工、Data Binding、Events、Luau 要不要用、State Machine 建置 SOP 與驗收清單、動畫規格寫法四條（第 9 節） |
 | `references/web-runtime.md` | 套件選擇、載入方式、inputs 與 Data Binding 兩套 API、換裝兩種寫法、效能、Artifact CSP 限制、除錯工具、可直接貼的完整 HTML 範例 |
 | `references/learning-resources-zh.md` | 中文學習資源（零基礎版）：漢化插件、rive101.com 簡中版、B 站搬運、官方文檔中譯站、繁中概念文、付費課評估、學習順序 |
 | `references/example-dissections.md` | Marketplace 高手範例用官方 MCP 實讀（2026-09-23 三檔全拆）：Raster Graphics（PNG 剛體木偶＋向量臉＋待機幅度表）、Avatar Creator（Solo 換裝＋一層一輸入＋彈跳回饋＋一控制點帶全身）、Joystick（搖桿收軸、假 3D 轉頭、視差約束、眨眼節奏）；MCP 讀檔順序與踩坑 |
