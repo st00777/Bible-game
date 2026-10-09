@@ -243,11 +243,62 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 | 關節圓球外露、裙下有接頭球 | 提示詞寫了「接縫收圓頭」 | 接縫藏在衣服底下，不畫外露的球 |
 | 軀幹和上臂袖子重複 | 軀幹件也畫了袖子 | 袖子只畫在上臂件 |
 | 圍巾中間白塊 | 描圖把背景色當成色塊 | 切件後刪白塊（別刪到眼睛反光） |
-| 旋轉樞紐還在零件中心 | 尚未處理 | 下一步把樞紐移到關節 |
+| 旋轉樞紐還在零件中心 | 尚未處理 | 已在 r4 解決，做法見 §6.3 |
 
 **結論**：GPT 生零件表（在 ChatGPT 內做）→ Recraft 只轉向量（約 1 點）→ CC 切件 → Rive 組裝。Recraft 從「生圖工具」變成「轉向量工具」，點數用量大降。
 
 **點數實況**：2026-10-09 用 `get_user` 查為 **11 credits**，與 10/4 收工時相同——10/4 的理解是「Free 每日補 30 點、不累積」，但 5 天沒增加。可能是補點要登入網頁才領、或根本沒有每日補點，待 James 在網頁確認；**規劃時先當作沒有補點**。轉向量 1 次 1 點，剩 11 點夠轉約 10 次。
+
+### 6.3 r4 女版：零件表重生＋Rive 組裝實錄（2026-10-04 生、2026-10-09 組）
+
+**6.2 那輪的問題已在同天下午到深夜重生解決**（當時沒落檔，10/9 才補）。
+
+**素材鏈（全部在 repo 外，`art/` 由 .git/info/exclude 排除）**
+1. ChatGPT 生零件表：g5 → g6 → **g6b**（`art/gpt-ref/g6b-parts-f.png`）。附 g4 定裝圖保長相、接縫藏衣服下不畫外露球、袖子只畫在上臂件；`g6b-compare.png`＝定裝 vs 兩版組回對照。
+2. Recraft 只做 `vectorize_image` → `art/recraft/r4/g6b-vec.svg`（977 路徑）。
+3. CC 依連通區塊切 **11 件**到 `art/recraft/r4/parts/`：01_head、02_scarf_wrap、03_scarf_tail、04_torso、05_upperarm_L、06_forearm_L、07_upperarm_R、08_forearm_R、09_belt、10_leg_L、11_leg_R（另 00_full 整張）。比 r3 少 2 件：圍巾拆成圈＋尾、無外露關節球。
+
+**Rive 檔**：新檔「Bible-game｜r4 女版角色組裝測試」fileId **2641139**，Artboard 1 **800×1400**，由 James 拖 11 個 SVG 建立。舊檔 Untitled 2621239 現在是空的、r3 零件不見，原因未查（r3 SVG 仍在 `art/recraft/r3/parts`）。
+
+**🔴 CC 自己上傳 SVG 走不通**：`upload_asset` 在 Rive 沙盒讀不到本機路徑；改 curl 資料 URI 又被 auto mode 擋。**要 James 拖檔**，或 CC 切到一般權限模式再試。
+
+**匯入後的結構與組裝公式**
+- 每個 SVG 匯入成「外層 Node → 內層 Node → N 個 Shape」。內層 Node 自帶**零件在零件表上的中心座標**，所以組回人形**只改外層位置**。
+- 外層位置＝`(dx − 695, dy + 30)`，其中 (dx, dy) 是零件表上各件相對軀幹的位移（軀幹為 0,0）：
+
+| 零件 | dx | dy |
+|---|---|---|
+| leg_R | 174 | −34 |
+| leg_L | −198 | −34 |
+| torso | 0 | 0 |
+| belt | −600 | −100 |
+| upperarm／forearm R | 172 | −25 |
+| upperarm／forearm L | −172 | −25 |
+| head | 228 | 50 |
+| scarf_tail | −610 | 223 |
+| scarf_wrap | −265 | 162 |
+
+- 位移是**估算＋本機疊圖預覽**一次到位；`magick` subimage-search 樣板比對對這種零件表無效，別再試。
+- 畫序（後→前）：腿、軀幹、前臂、腰帶、上臂、頭、圍巾尾、圍巾圈。
+
+**樞紐移到關節**（外層 Node 原點改到畫板座標、內層 Node 反向補償，外觀不變）
+
+| 零件 | 關節 | 畫板座標 |
+|---|---|---|
+| 頭 | 頸 | 404, 371 |
+| 圍巾圈 | 頸 | 404, 407 |
+| 圍巾尾 | 頂端 | 335, 403 |
+| 軀幹 | 腰 | 404, 617 |
+| 腰帶 | — | 386, 603 |
+| 上臂 R／L | 肩 | 327, 445／493, 445 |
+| 前臂 R／L | 肘 | 290, 625／533, 625 |
+| 腿 R／L | 腿頂 | 323, 910／477, 910 |
+
+關節點是從縮圖估的，**尚未實際轉動驗證**。
+
+**清白塊**：頭部刪 8 個近白 Shape（#ffffff×2、#efeef0×6）。**🔴 Rive 匯入 SVG 後，Shape 子層順序與 SVG path 順序相反**（第 i 條 path＝倒數第 i 個 Shape）；刪之前用 `query_objects` depth 1 看 Fill 顏色驗證，別照 SVG 順序對號。
+
+**10/9 收工時未做**：① 零件間父子階層（前臂掛上臂、頭／圍巾／腰帶掛軀幹）；② James 轉關節驗樞紐；③ 頭頂右側一條淡亮線未清；④ 骨架。接續用 `mcp-build-playbook.md` §3 的 reparent 規則。
 
 ---
 
@@ -290,7 +341,7 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 - Vector Editor／Custom Style／Image Set 的方案門檻
 - 各方案匯出格式分級表
 - SVG 技術規格：路徑數、漸層、mask、文字
-- Rive 匯入後的圖層樹對應
+- ~~Rive 匯入後的圖層樹對應~~ 已實測，見 6.1（整張）與 6.3（分件：外層 Node → 內層 Node → Shape，順序與 path 相反）
 - prompt 內嵌 hex 的語法（官方 V4 指南只用色名，hex 進 prompt 純屬社群作法）
 - 5.3 vs 5.4 兩種 prompt 結構哪個拆件更乾淨（A/B）
 - T-pose／無五官／四肢分離的 Recraft 專屬技巧
