@@ -368,6 +368,21 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **第二階段候選**：頭髮辮子、裙襬 mesh；手肘 IK；肩膀轉大角度時軀幹無袖肩線會露出，可考慮把袖子頂端多畫一點或加 clip。
 
+### 6.6 第一支待機動畫 idle（2026-10-09 晚，全程 MCP）
+
+**成品**：檔 2641139 線性動畫 `idle`（id 0-6，由預設 Timeline 1 改名；fps 60、864 幀＝14.4 秒、loop），預設狀態機 Entry→idle 已自動接好，`simulateStateMachine` 200 幀確認進入 idle。14.4 秒＝呼吸 3.6 秒×4 與圍巾 4.8 秒×3 的最小公倍，所以頭尾無縫；眨眼時間點不等距塞在同一條軌。
+
+**眼皮（眨眼要先有眼皮）**：零件表的頭是整張臉，沒有眼皮可 key。做法＝在 head 內層 Node（0-4882）前端各建一個膚色橢圓 `eyelid_L`／`eyelid_R`（42×30，fill #f9d3ae＝從截圖取眼旁膚色），Shape 原點放在上睫毛線正下方（head 局部 (−31.5,−54.2)／(44.3,−54.2)），橢圓 Path 的 y 設 +15 讓它掛在原點下方，**key Shape 的 sy：0＝張眼、100＝閉眼**，眼皮就是從睫毛線往下蓋，閉到底時睫毛線留在上緣剛好變成閉眼弧線（截圖驗過，效果自然）。眼睛位置用 `capture_artboard longEdge 1536` 截圖量，再除 scaleFactor 1.0973 換算畫板座標、再換 head 局部座標（head 外 Node (404,371) 93%、內 Node (−5.6,−78.2)）。
+
+**三條軌的 key**（cubic 0.42/0/0.58/1 除非另註）：
+- 呼吸＝torso 骨（0-6976）**length** 195→199→195，每 216 幀一循環、吸氣頂點在第 96 幀（吸 1.6／吐 2.0）。拉骨長而不是搬 root，腳不會浮；頭肩與手臂整體上升 4 px，軀幹圖不動，頸縫被圍巾蓋住看不到。
+- 圍巾＝scarf1（0-6993）r −109.2→−106.2→−109.2 每 288 幀；scarf2（0-6994）r −0.5→(40 幀 −1.5)→(180 幀 +3.0)→−0.5，比 scarf1 慢半拍形成波。
+- 眨眼＝兩眼皮 sy：第 t 幀 0（linear）→t+4 100（hold）→t+5 100（cubic）→t+10 0（hold），t＝132、336、354（連兩下）、588、774；0 與 864 幀各補 hold 0。
+
+**MCP 動畫坑**：`modifyKeyFrames` 70 個 key 一次送沒問題；動畫 duration／loop 要用 `set_property_values` 寫 key 57／59（createLinearAnimations 的 duration 單位不明，沒用）；`createParametricShapes` 這次 **parentId 有生效**（2026-10-09 兩次實測一次忽略一次生效），建完一律 `find_objects parentId=目標` 驗一次。
+
+**待 James 審**：三格截圖（靜止／閉眼／吸氣頂）已傳；動態要在編輯器按播放看。幅度若太小可把 length 199 改 201、圍巾 ±3° 改 ±5°。
+
 ---
 
 ## 7. 現成 skill／MCP／GitHub 專案盤點（2026-09-30）

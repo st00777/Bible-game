@@ -38,7 +38,7 @@
 **座標與樞紐**
 - `createShapes` 的 x／y 是形狀原點＝旋轉樞紐，path 指令相對原點。**把原點放在關節**（肩、肘、腕）就不用再校 pivot。
 - `createParametricShapes` 的 x／y 是中心、樞紐在中心；要關節樞紐就用 freeform，或外包群組當樞紐。
-- `createParametricShapes` 的 `parentId` **實測被忽略**（2026-10-09），圖形會掉在畫板層；建完要 `reparent_objects` 搬進目標 Node 再重設 x／y。
+- `createParametricShapes` 的 `parentId` **時靈時不靈**（2026-10-09 兩次實測：高光一次被忽略掉在畫板層、眼皮一次生效）；建完一律 `find_objects name=… parentId=目標` 驗一次，沒進去就 `reparent_objects` 搬進目標 Node 再重設 x／y。
 - 群組樞紐做法：`group_editor` 建空群組（給 parentId）→ **x／y 參數實測沒生效，會掉在 (0,0)**，建完立刻 `set_property_values` 補 x(13)／y(14) → `reparent_objects` 把零件搬進去 → 零件 local x／y／r 歸零。
 - `reparent_objects` 兩種行為都遇過：9/26 保留 local 值、10/9 保留世界座標並自動換算 local（可能版本差異）。搬完一律 `query_property_values` 驗，再決定要不要重設。
 - `reparent_objects` 用 `position: "end"` 逐件搬進群組時，畫序會**整段反過來**（先搬的跑到最前面，頭髮會蓋住臉）；搬完在群組內照原順序再跑一次 `sendToFront` 鏈。
