@@ -380,6 +380,8 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **驗證法**：`querySkin includeVertexWeights` 批次落檔，python 把每個頂點換成畫板座標、算最近骨段，和實際最大權重比對（check-skins.py）；對不上的清單直接指出哪個頂點會飛。最後 braid1／braid2 各 +12° 截圖：辮子整條外擺、耳邊頭髮不動、臉乾淨。
 
+**回饋 5：脖子被圍巾蓋住、圍巾中央像有個洞。** 零件表的圍巾把「圍巾內側背面」畫成一條深色帶（scarf_wrap 裡 0-4798，#915130，位於開口處），整個零件又在頭前面，脖子完全看不到。修兩步：(1) 用同一套頂點撈法算 23 個圍巾形狀的範圍與顏色，找出那條深色帶，`reparent_objects` 搬到 neck 骨底下 position end（排在 01_head 後面，世界座標保留），改名 scarf_back_inner → 脖子前、圍巾背面後，和定裝圖一樣脖子兩側露深色；(2) 定裝圖下巴到圍巾上緣約 45 px、我們只有 11 px，把 02_scarf_wrap 在 neck 骨下的 x 48→26（骨頭朝上，x 就是世界上下）、scarf_back_inner x 71.6→49.6 一起下移 22 px，脖子露出來，襯衫 V 領口在圍巾下露一點與定裝圖相同。圍巾尾是 mesh 綁骨不隨節點動，下移後接點仍藏在圍巾結後面（截圖驗）。
+
 **idle 加兩軌**：braid1 r −129.2 ±3.5（288 幀一循環、頂點在第 60 幀，和圍巾錯開相位）；braid2 r −4.3，+4.5／−4.5、落後 40 幀。已匯出更新試播頁。
 
 ### 6.6 第一支待機動畫 idle（2026-10-09 晚，全程 MCP）
