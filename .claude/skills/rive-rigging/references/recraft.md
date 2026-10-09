@@ -368,24 +368,6 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **第二階段候選**：頭髮辮子、裙襬 mesh；手肘 IK；肩膀轉大角度時軀幹無袖肩線會露出，可考慮把袖子頂端多畫一點或加 clip。
 
-### 6.7 辮子 mesh（2026-10-09 深夜）：找形狀、權重坑、重綁法
-
-**James 畫骨**：選 `neck` → B 連點三下 → neck 底下多出 Bone 3/4/5（id 0-7441/7442/7443），`rename_objects` 改 braid_anchor／braid1／braid2。**MCP 讀不到新骨頭時，先確認 James 是在桌面 App 畫的**：他在瀏覽器畫、App 沒切回來時 find_objects 看不到。
-
-**辮子不是獨立零件，藏在 01_head 的 126 個 Custom Shape 裡**，找法全靠數據：`query_objects head depth 3` 落檔（18 萬字元）→ python 收 Shape→PointsPath→Vertex id（1434 個）→ 用 **MCP HTTP 端點**（`http://127.0.0.1:9791/mcp`，initialize 拿 session id 後 tools/call，回應是純 JSON 或 SSE 兩種都要處理）批次 `query_property_values` 頂點 x／y（key 24／25）與 Shape／Path 的 x／y／r／sx／sy → 頂點座標是各 Path 局部的，要先套 Path 再套 Shape 的位移旋轉縮放才得到 head 局部座標 → 畫板座標＝head 內層 Node 世界 (398.8,298.3)＋0.93×局部。辮子區＝head 局部 x<−40 且下緣 y>20 → 22 個小形狀＋1 個大形狀 0-5457（深棕 #7d4d2f、85 頂點、x −126..−10、y −86..195，是「頭側髮＋辮子」連在一起的底層）。`mcp.sh` 小工具（scratchpad）：`bash mcp.sh <tool> '<json>'` 直接打端點，大量查詢不進對話。
-
-**🔴 權重坑 1：自動權重不是純「最近骨段」**。23 條路徑綁三根骨後，大形狀靠臉那幾個頂點（在左眼旁 (382,252)）被算給 braid2，braid 一轉臉上就多一條深色細線。blend 0.15／smooth false／maxInfluences 2 全部一樣，判斷是演算法看「骨頭是否在形狀內部」：anchor 原本從脖尖橫走到辮根、整根在髮塊外面，頭側髮的頂點「看不到」anchor 就投給辮子骨。**修法＝改路徑讓 anchor 穿過髮塊**：anchor 從 neck 尖 (404,340) 走到耳上髮側 (345,275)（r −42.2、len 87.8），braid1 從那裡經辮根到辮中 (326,400)（r −129.2、len 126.4），braid2 到辮尾 (320,480)（r −4.3、len 80.2）。James 原本手畫的其實就是這個走法（anchor −49.2／72、braid1 −106.9／76），我第一次「校正」成橫走反而錯。
-
-**🔴 權重坑 2：綁完再改骨頭數值＝改變形，不是改綁定姿勢**。bind pose 在 bindBones 當下鎖定，之後 set 骨頭 r／length 整個網格跟著變形（靜止時臉被頭髮撕開）；再 autoWeight 也不會重綁；bindBones 再呼叫回「already bound」。**重綁唯一辦法＝`query_objects path depth 1` 找出每條路徑底下的 Skin 物件（type Skin），`delete_objects` 刪掉 → 路徑回到原始幾何 → 再 bindBones → autoWeight**。所以順序一定是：骨頭數值先定 → 再綁 → 再 autoWeight；要調骨頭就刪 Skin 重來。
-
-**驗證法**：`querySkin includeVertexWeights` 批次落檔，python 把每個頂點換成畫板座標、算最近骨段，和實際最大權重比對（check-skins.py）；對不上的清單直接指出哪個頂點會飛。最後 braid1／braid2 各 +12° 截圖：辮子整條外擺、耳邊頭髮不動、臉乾淨。
-
-**回饋 5：脖子被圍巾蓋住、圍巾中央像有個洞。** 零件表的圍巾把「圍巾內側背面」畫成一條深色帶（scarf_wrap 裡 0-4798，#915130，位於開口處），整個零件又在頭前面，脖子完全看不到。修兩步：(1) 用同一套頂點撈法算 23 個圍巾形狀的範圍與顏色，找出那條深色帶，`reparent_objects` 搬到 neck 骨底下 position end（排在 01_head 後面，世界座標保留），改名 scarf_back_inner → 脖子前、圍巾背面後，和定裝圖一樣脖子兩側露深色；(2) 定裝圖下巴到圍巾上緣約 45 px、我們只有 11 px，把 02_scarf_wrap 在 neck 骨下的 x 48→26（骨頭朝上，x 就是世界上下）、scarf_back_inner x 71.6→49.6 一起下移 22 px，脖子露出來，襯衫 V 領口在圍巾下露一點與定裝圖相同。圍巾尾是 mesh 綁骨不隨節點動，下移後接點仍藏在圍巾結後面（截圖驗）。
-
-**回饋 6：要「脖子伸進圍巾」的感覺。** 原理＝脖子前面有圍巾前折、後面有比前折高的圍巾背面，脖子夾在兩層之間。零件表沒有圍巾背面可用（0-4798 試過，其實只是前折上緣一條細摺線，拉高只剩一條線，已放回 scarf_wrap 原位 (−0.55,−49.97)）。做法：(1) 把頭裡的脖子形狀 0-6590（膚色，head 局部 x −22..37、y 21..86）`reparent` 到 neck 骨底下改名 neck_skin；(2) `createParametricShapes` 在 neck 骨下建橢圓 `scarf_collar_back`（fill #8a4a2c＝圍巾暗面），**骨頭朝上所以 width 是世界垂直、height 是世界水平**：width 44、height 124、local (65,−1) → 世界約 x 341..465、y 318..362，上緣貼在下巴下方 8 px；(3) 畫序（前→後）：02_scarf_wrap、neck_skin、scarf_collar_back、01_head，用 `reorder_objects sendToBack` 依序把 collar、head 送到最後（reparent position end 對已在該父層的物件不會移動，要用 reorder）。結果：脖子兩側露出深色圍巾背面、脖子從中間伸進去，圍巾中間 U 形前折在脖子前。**驗證技巧**：形狀看不到時先把它移到臉上（x 150）截圖確認有在畫、方向對，再移回去。 **James 看過裁定「沒有比較好」，已退回回饋 5 的狀態**：領圈刪除、neck_skin 放回 head 內層 Node（position end），圍巾下移 22 與摺線歸位保留。留下的教訓：零件表畫法本來就沒有「背面」這層，硬補一塊平的色塊會和手繪皺褶打架，要有這層得回零件表階段請 GPT 把圍巾分成前折／背面兩件。
-
-**idle 加兩軌**：braid1 r −129.2 ±3.5（288 幀一循環、頂點在第 60 幀，和圍巾錯開相位）；braid2 r −4.3，+4.5／−4.5、落後 40 幀。已匯出更新試播頁。
-
 ### 6.6 第一支待機動畫 idle（2026-10-09 晚，全程 MCP）
 
 **成品**：檔 2641139 線性動畫 `idle`（id 0-6，由預設 Timeline 1 改名；fps 60、864 幀＝14.4 秒、loop），預設狀態機 Entry→idle 已自動接好，`simulateStateMachine` 200 幀確認進入 idle。14.4 秒＝呼吸 3.6 秒×4 與圍巾 4.8 秒×3 的最小公倍，所以頭尾無縫；眨眼時間點不等距塞在同一條軌。
@@ -406,6 +388,24 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 **🔴 James 播放後第一個回饋：圍巾不跟身體起伏，像懸空**。原因＝02_scarf_wrap 掛在 torso 骨，骨頭根在腰、拉長的是尖端，所以掛在根部的零件（軀幹、腰帶、圍巾）都不動，只有掛在尖端子骨（neck、clav、scarf_anchor）的頭、手臂、圍巾尾會升。修法＝`reparent_objects` 把 02_scarf_wrap 搬到 neck 骨（position start，排在 01_head 前面保持畫序），世界座標自動保留，截圖驗過圍巾隨頭肩升。**通則：用骨長當呼吸時，所有「該跟著胸口升」的零件要掛在尖端那側的子骨，不能掛在被拉長的骨本身。**
 
 **匯出 .riv 走 MCP（2026-10-09 實證）**：`export_file format=riv` 直接寫目錄會被 macOS 沙盒擋（Operation not permitted），錯誤訊息附的 curl＋python 配方（對 `http://127.0.0.1:9791/mcp` 呼叫 export_file 帶 `inline_base64:true`，base64 直接落檔不進對話）可用，159 KB 一次成功。Cadet 訂閱下匯出無阻。試播頁＝`@rive-app/canvas-single@2.42.0`＋base64 `buffer`＋`stateMachines:"State Machine 1"`＋`enableRiveAssetCDN:false`，Artifact https://claude.ai/artifact/AiFd2dA6kf5BNddrNoh6fv（四種高度 140／220／320／480 切換＋fps）。Chrome 自動化分頁驗過會載入會動；自動化分頁 rAF 被降速，fps 數字要看手機實機。畫板底色已改透明（2026-10-09）：Artboard 直屬的 Fill（id 0-3，#ff282828）用 `path_editor setPaints` 改 `#00282828`；找它用 `find_objects type=fill parentId=畫板` 後過濾 parentId（回傳會含全部子孫 495 筆，要落檔再 python 篩）。試播頁舞台改暖色底看角色疊在遊戲底色上的樣子。
+
+### 6.7 辮子 mesh（2026-10-09 深夜）：找形狀、權重坑、重綁法
+
+**James 畫骨**：選 `neck` → B 連點三下 → neck 底下多出 Bone 3/4/5（id 0-7441/7442/7443），`rename_objects` 改 braid_anchor／braid1／braid2。**MCP 讀不到新骨頭時，先確認 James 是在桌面 App 畫的**：他在瀏覽器畫、App 沒切回來時 find_objects 看不到。
+
+**辮子不是獨立零件，藏在 01_head 的 126 個 Custom Shape 裡**，找法全靠數據：`query_objects head depth 3` 落檔（18 萬字元）→ python 收 Shape→PointsPath→Vertex id（1434 個）→ 用 **MCP HTTP 端點**（`http://127.0.0.1:9791/mcp`，initialize 拿 session id 後 tools/call，回應是純 JSON 或 SSE 兩種都要處理）批次 `query_property_values` 頂點 x／y（key 24／25）與 Shape／Path 的 x／y／r／sx／sy → 頂點座標是各 Path 局部的，要先套 Path 再套 Shape 的位移旋轉縮放才得到 head 局部座標 → 畫板座標＝head 內層 Node 世界 (398.8,298.3)＋0.93×局部。辮子區＝head 局部 x<−40 且下緣 y>20 → 22 個小形狀＋1 個大形狀 0-5457（深棕 #7d4d2f、85 頂點、x −126..−10、y −86..195，是「頭側髮＋辮子」連在一起的底層）。`mcp.sh` 小工具（scratchpad）：`bash mcp.sh <tool> '<json>'` 直接打端點，大量查詢不進對話。
+
+**🔴 權重坑 1：自動權重不是純「最近骨段」**。23 條路徑綁三根骨後，大形狀靠臉那幾個頂點（在左眼旁 (382,252)）被算給 braid2，braid 一轉臉上就多一條深色細線。blend 0.15／smooth false／maxInfluences 2 全部一樣，判斷是演算法看「骨頭是否在形狀內部」：anchor 原本從脖尖橫走到辮根、整根在髮塊外面，頭側髮的頂點「看不到」anchor 就投給辮子骨。**修法＝改路徑讓 anchor 穿過髮塊**：anchor 從 neck 尖 (404,340) 走到耳上髮側 (345,275)（r −42.2、len 87.8），braid1 從那裡經辮根到辮中 (326,400)（r −129.2、len 126.4），braid2 到辮尾 (320,480)（r −4.3、len 80.2）。James 原本手畫的其實就是這個走法（anchor −49.2／72、braid1 −106.9／76），我第一次「校正」成橫走反而錯。
+
+**🔴 權重坑 2：綁完再改骨頭數值＝改變形，不是改綁定姿勢**。bind pose 在 bindBones 當下鎖定，之後 set 骨頭 r／length 整個網格跟著變形（靜止時臉被頭髮撕開）；再 autoWeight 也不會重綁；bindBones 再呼叫回「already bound」。**重綁唯一辦法＝`query_objects path depth 1` 找出每條路徑底下的 Skin 物件（type Skin），`delete_objects` 刪掉 → 路徑回到原始幾何 → 再 bindBones → autoWeight**。所以順序一定是：骨頭數值先定 → 再綁 → 再 autoWeight；要調骨頭就刪 Skin 重來。
+
+**驗證法**：`querySkin includeVertexWeights` 批次落檔，python 把每個頂點換成畫板座標、算最近骨段，和實際最大權重比對（check-skins.py）；對不上的清單直接指出哪個頂點會飛。最後 braid1／braid2 各 +12° 截圖：辮子整條外擺、耳邊頭髮不動、臉乾淨。
+
+**回饋 5：脖子被圍巾蓋住、圍巾中央像有個洞。** 零件表的圍巾把「圍巾內側背面」畫成一條深色帶（scarf_wrap 裡 0-4798，#915130，位於開口處），整個零件又在頭前面，脖子完全看不到。修兩步：(1) 用同一套頂點撈法算 23 個圍巾形狀的範圍與顏色，找出那條深色帶，`reparent_objects` 搬到 neck 骨底下 position end（排在 01_head 後面，世界座標保留），改名 scarf_back_inner → 脖子前、圍巾背面後，和定裝圖一樣脖子兩側露深色；(2) 定裝圖下巴到圍巾上緣約 45 px、我們只有 11 px，把 02_scarf_wrap 在 neck 骨下的 x 48→26（骨頭朝上，x 就是世界上下）、scarf_back_inner x 71.6→49.6 一起下移 22 px，脖子露出來，襯衫 V 領口在圍巾下露一點與定裝圖相同。圍巾尾是 mesh 綁骨不隨節點動，下移後接點仍藏在圍巾結後面（截圖驗）。
+
+**回饋 6：要「脖子伸進圍巾」的感覺。** 原理＝脖子前面有圍巾前折、後面有比前折高的圍巾背面，脖子夾在兩層之間。零件表沒有圍巾背面可用（0-4798 試過，其實只是前折上緣一條細摺線，拉高只剩一條線，已放回 scarf_wrap 原位 (−0.55,−49.97)）。做法：(1) 把頭裡的脖子形狀 0-6590（膚色，head 局部 x −22..37、y 21..86）`reparent` 到 neck 骨底下改名 neck_skin；(2) `createParametricShapes` 在 neck 骨下建橢圓 `scarf_collar_back`（fill #8a4a2c＝圍巾暗面），**骨頭朝上所以 width 是世界垂直、height 是世界水平**：width 44、height 124、local (65,−1) → 世界約 x 341..465、y 318..362，上緣貼在下巴下方 8 px；(3) 畫序（前→後）：02_scarf_wrap、neck_skin、scarf_collar_back、01_head，用 `reorder_objects sendToBack` 依序把 collar、head 送到最後（reparent position end 對已在該父層的物件不會移動，要用 reorder）。結果：脖子兩側露出深色圍巾背面、脖子從中間伸進去，圍巾中間 U 形前折在脖子前。**驗證技巧**：形狀看不到時先把它移到臉上（x 150）截圖確認有在畫、方向對，再移回去。 **James 看過裁定「沒有比較好」，已退回回饋 5 的狀態**：領圈刪除、neck_skin 放回 head 內層 Node（position end），圍巾下移 22 與摺線歸位保留。留下的教訓：零件表畫法本來就沒有「背面」這層，硬補一塊平的色塊會和手繪皺褶打架，要有這層得回零件表階段請 GPT 把圍巾分成前折／背面兩件。
+
+**idle 加兩軌**：braid1 r −129.2 ±3.5（288 幀一循環、頂點在第 60 幀，和圍巾錯開相位）；braid2 r −4.3，+4.5／−4.5、落後 40 幀。已匯出更新試播頁。
 
 ---
 
