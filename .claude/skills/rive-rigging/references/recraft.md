@@ -442,6 +442,14 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **待 James 審**：幅度（65°）與停頓是否夠「儀式感」；深夜版（抬燈、較小幅度、放慢）等油燈零件到位再做。
 
+### 6.10 試穿小動作＋View Model 命名對齊契約（2026-10-09 深夜）
+
+**試穿（時刻表 #8）**：動畫 `tryOn` 72 幀＝1.2 秒。uarm_R −79.3→**−50**（0→24 幀，cubic 0.3/0/0.25/1）停到 48 幀再放下；farm_R 1.1→**−145**（24 幀）→**−128**（36 幀）→**−145**（48 幀）→1.1（72 幀），forearm 的來回 17° 就是「看手腕時轉一下」。**前臂方向規則**：farm_R 的 r 為正＝往外伸直（70 會變成手平舉向外），為負＝往身體內側彎；−110 手停在腰帶、−145 手到胸前圍巾旁。狀態機與 §6.9 同款：trigger `tryOnTrigger` → idle→tryOn（duration 6）→ idle（flags 12、exittime 100、duration 10）；`simulateStateMachine` 第 31 幀進、第 103 幀回。runtime 本機頁驗過。
+
+**命名對齊 SKILL.md 第 2 節契約**：View Model `ViewModel1`→`Avatar`→**`CharacterVM`**；trigger `celebrate`→**`liftTrigger`**；enum 屬性 `hat`→**`hatStyle`**（enum 型別名仍 `HatStyle`，值 none／hat_A／hat_B）；新增 **`tryOnTrigger`**。`rename_objects` 可直接改 View Model 與屬性的名字（id 不變、綁定不斷）。試播頁 JS 同步改成 `vmi.enum("hatStyle")`、`vmi.trigger("liftTrigger")`、`vmi.trigger("tryOnTrigger")`。
+
+**契約需修訂的地方（待 James 拍板）**：契約寫頭飾用 Image 屬性 `hatImage` 換圖，但零件表路線實證用 **Solo＋enum** 更順（不用 runtime decode 圖片、選項全內嵌）；建議契約改成 `hatStyle` enum 綁 `hat_solo`，手持同理 `heldItemStyle`。`lampTrigger`（深夜抬燈）等油燈零件。
+
 ---
 
 ## 7. 現成 skill／MCP／GitHub 專案盤點（2026-09-30）
