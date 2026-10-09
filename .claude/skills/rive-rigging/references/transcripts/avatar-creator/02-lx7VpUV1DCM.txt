@@ -1,0 +1,27 @@
+# Creating the avatar (6:23)
+https://www.youtube.com/watch?v=lx7VpUV1DCM
+YouTube 自動英文字幕（yt-dlp 2026-09-23 抓取，已去重）
+
+[00:00:00] foreign the idea is to be able to change different parts like the eyes hair or skin color for this we need to design all the elements we want to change and set a different machine to allow us to change all these elements to see how this works let's start with the character here you can see I have a main group with all the elements inside
+
+[00:00:31] then I have this Frame that is just this white stroke and under the stroke I have this clipping shape that I use to clip all the elements of the Avatar to make sure that everything is stayed inside then I have the Avatar group with all the elements I need for the character so here I have this control here that is the control I used to animate the character in the idle animations the control size that is the control I
+
+[00:01:04] used to change the size of the character and the way that this control works is because the hair control have a constraint to follow the size control so when I change the size of the character the control head is affected then I have these two bonds that I use for the deformation of the character when I move the hack Contour the way they work is because they have a transition constraint using as a Target the hair control and because they are
+
+[00:01:35] nested in these groups and the groups have opposite rotation values when I move the control the bonds move in opposite directions then I have some groups with the different elements I want to switch and for that I use a solo object for example here the hair face you can see I can select between three options nothing a beer or must touch same for the hair here I have more elements but words in the same way you
+
+[00:02:10] can see I can select any of them using this all objects same thing for the eyes and then I have this group with all the shapes I use for the body and the last one is the background that is just an ellipsis now let's see the animations so here I have the animation I need for the color of the skin where I key the color of the different shape of the body and the eyes then I have the idle animation that is a
+
+[00:02:42] loop where the contrary use for this is the control head then you can see all the animation of the hair I need one animation for each of them and you can see that I key the hairy wand in the solos same for the eyes and the hair face then I have these animations for the size where I use the size control the mounting animation that I use whenever
+
+[00:03:19] something is changed the no Bounty animation when nothing happens and the background where I keep the feel of the shape with the different colors now let's see the theme machine so here I have different things I have these inputs and these different layers for the inputs I use two types one trigger changes that I use to activate the bouncing animation
+
+[00:03:51] and the rest are numbered inputs that they use to switch between the different elements for example this is for the color of the body this is for the eyes hair face hair background and the size now let's see the layers the fertilizer is for the color of the body here you can see how the different
+
+[00:04:15] animation of the color with this transition to any state and the condition for each of this transition is that the input number body color need to be equal to zero one two three and four that means that when the input is zero the theme machine played the body blue animation or when the input is for the theme machine plays the body dark animations the same for the background you can see
+
+[00:04:51] half of the animation with the Transitions and the condition is number background color is equal to 0 1 2 and 3. 3. 3. saying for the hair where I have more animations the eyes the her face the size and the last one changes words in different way so here you can see I use different state
+
+[00:05:20] and what happened is that when the steam machine is turned the animation is starting either then to jump to bouncing the condition is the trigger so when this target is fire the theme machine play the button animation and to go back I use this option exiting 100 that means when the animation is finished when it's 100 that the machine go back to either and this other button animation is in case that the user Clicks in different
+
+[00:05:51] buttons quickly this way the same machine don't need to wait that animation returns to idle camjam from here because these two conditions are the same trigger and in case the definition is still here I have the exit time to go back and that's it this is everything about the avatar in the following video I will show you how the icons Works to select the different parts

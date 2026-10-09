@@ -6,8 +6,8 @@ description: 靈修冒險美術素材產線：用 Chrome 操作 Gemini 生圖（
 # 靈修冒險 · 美術素材產線（2026-09-06 建立）
 
 ## 前提
-- 風格錨：`img/style-ref/traveler-anchor-chatgpt.jpg`（水粉小旅人）。定裝三視圖：`img/style-ref/p0/originals/p0-1-modelsheet.jpg`。
-- 提示詞模板：`img/style-ref/p0-prompt-pack.md`（STYLE 段逐字沿用，只換 CONTENT）。
+- 風格錨：**2026-09-16 美術歸零，舊錨圖（水粉小旅人）與 p0–p4 素材已於 2026-09-21 刪除**；上一輪 STYLE 提示詞與三條否決的切件路線保留在 `references/lessons-p0-p4.md`。新錨圖等 James 選畫風後落 `img/art/anchor/`。
+- 提示詞寫法：`references/chatgpt-image-prompting.md`（舊 p0-prompt-pack 是 Gemini 版，已刪）。
 - 工具（James 2026-09-06 已裝）：`magick`（ImageMagick 7）、`~/.local/bin/rembg`（已 inject onnxruntime，模型 isnet-general-use 在 `~/.rembg/models/`）、`cwebp`。
 - Chrome 下載位置已改為 `~/bible-work/downloads`，Bash 讀得到。
 
@@ -25,7 +25,7 @@ description: 靈修冒險美術素材產線：用 Chrome 操作 Gemini 生圖（
 
 ## 二、取原圖
 - 在對話頁 hover 圖片 → 點右上「下載原尺寸圖片」（**座標點**，ref 點只會 hover）。落到 `~/bible-work/downloads/Gemini_Generated_Image_*.jpeg`，16:9 為 1376×768、3:4 為 896×1200。
-- 立刻改名搬到 `img/style-ref/<批次>/originals/`，命名 `<批>-<序>-<內容>.jpg`。
+- 立刻改名搬到 `img/art/<類別>/originals/`（anchor／char／sheep／bg／icon），命名 `<批>-<序>-<內容>.jpg`。
 - 備援：`computer.zoom` 圈圖＋`save_to_disk`（約 930px 寬，只夠示意）。
 
 ## 三、去背與切件
@@ -39,15 +39,15 @@ cwebp -q 90 -alpha_q 90 in.png -o out.webp
 - rembg 需要 `dangerouslyDisableSandbox`（模型下載與 onnxruntime）。
 - rembg 會把細瘦物件（葉冠、細環）整個當背景吃掉；這類改用白鍵 `magick x.jpg -fuzz 7% -transparent white`。
 - 去背後算 bbox 用 `-alpha extract -threshold 3% -format %@`，直接對 RGBA 用 `%@` 會被透明像素的殘色騙。
-- **分層對齊**（2026-09-06 建立）：同一張 sheet 切三等分，各自算 bbox 中心 x，貼到 460×768 透明畫布並把中心對到 x=230、y 不動；疊起來就是同一個人。帽兜放下的外袍要再下移 36px、草帽上移 25px、葉冠上移 45px（手動微調值，正式資產改在定裝圖標錨點）。範例在 `img/style-ref/p1/`（originals／work／cut／p1-mockup.tpl.html／build.mjs）。
-- 白底簡單物件可用白鍵去背（sharp 腳本在 `img/style-ref/p0/cut.mjs`），毛邊、狐狸尾巴用 rembg。
+- **分層對齊**（2026-09-06 建立）：同一張 sheet 切三等分，各自算 bbox 中心 x，貼到 460×768 透明畫布並把中心對到 x=230、y 不動；疊起來就是同一個人。帽兜放下的外袍要再下移 36px、草帽上移 25px、葉冠上移 45px（手動微調值，正式資產改在定裝圖標錨點）。範例原在 `img/style-ref/p1/`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）。
+- 白底簡單物件可用白鍵去背（sharp 白鍵腳本原在 `img/style-ref/p0/cut.mjs`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）），毛邊、狐狸尾巴用 rembg。
 - Gemini 右下角 ✦ 浮水印：構圖時右下留空，示意用直接 chop 右下 8%；正式資產重生。
 - 規格：切件透明 PNG → webp，單件 ≤ 60KB；封面 1600×900 webp ≤ 150KB；示意頁圖片 data URI **只嵌一次**（用 JS map 填 src），否則宿主端畫不完。
 
 ## 四、命名
 `trav-front / trav-34 / trav-back`、`cloak-<色>`、`hat-*`、`hand-*`、`companion-*`、`item-*`、`map-*`、`scene-*`。同一角色所有部位共用定裝姿勢與錨點。
 
-## 五之前、骨架零件（2026-09-06 建立；**v2 正本＝母圖切件，範例 `img/style-ref/p1/rig2/`**；v1 分開生零件的做法已作廢，比例會飄）
+## 五之前、骨架零件（2026-09-06 建立；**v2 正本＝母圖切件，範例原 `img/style-ref/p1/rig2/`**（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）；v1 分開生零件的做法已作廢，比例會飄）
 - **母圖切件（正本）**：以定裝正面全身去背圖（460×768）為母圖，`rig2/cut.py` 用「彼此重疊」的多邊形切九塊（頭、上身、上臂×2、前臂×2、裙、靴×2），畫序決定重疊區誰蓋誰；外袍用同畫布對齊好的整件外袍切帽兜後片／上片／下片。切完 `magick compare -metric AE -fuzz 2%` 疊回母圖比對，差異 <0.1% 才算過（v2 為 0.03%）。
 - 關節（母圖座標）：neck (230,205)、肩 (172,222)/(288,222)、肘 (142,320)/(318,320)、手 (125,470)/(335,470)、waist (230,330)、hips (230,340)、腿 (188,650)/(272,650)。零件位移＝bbox 左上−關節座標，由 `rig2/parts.json` 自動算，頁面不手填。
 - 畫序：靴→裙→外袍下→上身→上臂→前臂→外袍上→帽兜後片→頭→頭飾→手持；手抬起（肩＋肘角 >22°）時前臂與手持物改畫到外袍前面。
@@ -65,10 +65,10 @@ cwebp -q 90 -alpha_q 90 in.png -o out.webp
 - 待機動畫：呼吸 scaleY 1.012／3.6s、斗篷 rotate ±.35°／5.2s、眨眼用膚色橢圓蓋眼睛（座標從 base 圖量）、火光 radial-gradient + mix-blend screen。
 
 ## 六、交付
-- 切件放 `img/style-ref/<批次>/cut/`，原圖放 `originals/`，不進 `public/`、不 commit，等 James 拍板。
+- 切件放 `img/art/<類別>/cut/`，原圖放 `originals/`，不進 `public/`、不 commit，等 James 拍板。
 - 交付時 `SendUserFile` 傳圖，回報張數、尺寸、哪張需重生。
 
-## 五之二、分件 rig sheet 方格法（2026-09-08 建立，正本提示詞 `img/style-ref/p2/p2-prompt.md`）
+## 五之二、分件 rig sheet 方格法（2026-09-08 建立，正本提示詞原 `img/style-ref/p2/p2-prompt.md`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）；**2026-09-12 實拼證實木偶零件、已否決，見 `references/lessons-p0-p4.md` 第 2a 節**）
 - 提示詞關鍵句：「invisible uniform GRID of equal square cells, 6 columns x 3 rows; exactly ONE part per cell, centred, wide white margin; gap ≥ a hand's width; no part extends into a neighbouring cell」＋逐格點名零件。Gemini 會順手畫格線，反而好切。
 - 切法：按格等分、每格內縮 10px、白鍵 fuzz 6%、trim；`cut2/parts.json` 記格位與連通區塊數。18 格零碎片（對比第一張自由排版 30 件有 7 件帶碎片）。
 - 坑：寫「填滿格子 70%」小零件（手、眼、嘴）會被放大 2–3 倍；要寫「all parts at the same scale, small parts stay small」。要「單段手臂」它會給整隻手臂拆三截，可直接用。

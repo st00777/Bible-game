@@ -13,10 +13,13 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 |---|---|
 | `references/ecosystem-and-pipeline.md` | 方案價格、匯出規則、退訂後檔案是否可用、素材解析度與格式、社群 CLI 深挖、Spine／Live2D 對比、給 James 的決策頁 |
 | `references/editor-rigging.md` | 匯入零件、Bone 工具、Parent vs Mesh+Weights、IK／Translation 等約束、Solo 換裝、Draw Rule 畫序、踩坑、從空白到舉手的 22 步 SOP |
-| `references/animation-statemachine.md` | 待機（呼吸／眨眼／斗篷）、姿勢過渡數值、Layers 分工、Data Binding、Events、Luau 要不要用、State Machine 建置 SOP 與驗收清單 |
+| `references/animation-statemachine.md` | 待機（呼吸／眨眼／斗篷）、姿勢過渡數值、Layers 分工、Data Binding、Events、Luau 要不要用、State Machine 建置 SOP 與驗收清單、動畫規格寫法四條（第 9 節） |
 | `references/web-runtime.md` | 套件選擇、載入方式、inputs 與 Data Binding 兩套 API、換裝兩種寫法、效能、Artifact CSP 限制、除錯工具、可直接貼的完整 HTML 範例 |
 | `references/learning-resources-zh.md` | 中文學習資源（零基礎版）：漢化插件、rive101.com 簡中版、B 站搬運、官方文檔中譯站、繁中概念文、付費課評估、學習順序 |
+| `references/example-dissections.md` | Marketplace 高手範例用官方 MCP 實讀（2026-09-23 三檔全拆）：Raster Graphics（PNG 剛體木偶＋向量臉＋待機幅度表）、Avatar Creator（Solo 換裝＋一層一輸入＋彈跳回饋＋一控制點帶全身）、Joystick（搖桿收軸、假 3D 轉頭、視差約束、眨眼節奏）；MCP 讀檔順序與踩坑 |
 | `references/ai-agent-and-mcp.md` | 編輯器內建 AI Agent 怎麼下指令（格式規則＋原句範例）、官方 Rive MCP 讓 Claude Code 直接操作桌面編輯器、Rive CLI；三條路能動什麼、費用、未實測項 |
+| `references/mcp-build-playbook.md` | 官方 MCP 施工手冊（2026-09-26）：官方文件寫了什麼／45 個工具分類／建與改的實測規則（原點＝樞紐、群組 x/y 要補設、addPaths＋刪舊路徑改形、畫序＝建立順序）／自我檢查迴圈／給 CC 的指令範本 |
+| `references/recraft.md` | Recraft.ai 知識庫（2026-09-30 查證）：方案與 credits 費用、`_vector` 模型與 SVG 輸出、Studio 功能（Vector Editor／Custom Style／調色盤）、官方託管 MCP 與 REST 串接指令、提示詞格式與本專案範本、SVG→Rive 相容性與清理工具、現成 skill／GitHub 盤點、第一次實測 SOP、CC 掌握度自評；§6.2–6.3 零件表路線實錄（GPT 生零件表→Recraft 轉向量→CC 切件→Rive 組裝，含位移表、樞紐座標、Shape 反序坑） |
 
 ## 1. 決策級結論（已查證）
 
@@ -38,7 +41,7 @@ description: 靈修冒險角色進 Rive 的完整知識庫與 SOP：方案授權
 **零件（PNG，從母圖切，貼輪廓，關節處彼此重疊）**
 `img_head`、`img_torso`、`img_uarm_L/R`、`img_farm_L/R`（含手）、`img_skirt`、`img_boot_L/R`；外袍每色三片 `img_cloak_<色>_hoodback/upper/lower`（色：purple／oat／blue）；頭飾 `img_hat_straw`、`img_head_wreath`；手持 `img_item_lamp`、`img_item_crook`；眼皮 `img_lid_L/R`（膚色片，Scale Y 眨眼）。
 
-**骨架（root 在骨盆）**：`bone_hips` → `bone_torso` → `bone_neck`（頭）；`bone_torso` → `bone_uarm_L` → `bone_farm_L`（右側同）；`bone_hips` → `bone_waist`（裙、外袍下片）；`bone_hips` → `bone_leg_L/R`（靴）。關節座標（母圖 460×768）：neck (230,205)、肩 (172,222)/(288,222)、肘 (142,320)/(318,320)、手 (125,470)/(335,470)、waist (230,330)、hips (230,340)、腿 (188,650)/(272,650)——見 `img/style-ref/p1/rig2/parts.json` 與 `cut.py`。
+**骨架（root 在骨盆）**：`bone_hips` → `bone_torso` → `bone_neck`（頭）；`bone_torso` → `bone_uarm_L` → `bone_farm_L`（右側同）；`bone_hips` → `bone_waist`（裙、外袍下片）；`bone_hips` → `bone_leg_L/R`（靴）。關節座標（母圖 460×768）：neck (230,205)、肩 (172,222)/(288,222)、肘 (142,320)/(318,320)、手 (125,470)/(335,470)、waist (230,330)、hips (230,340)、腿 (188,650)/(272,650)——原 `img/style-ref/p1/rig2/parts.json` 與 `cut.py`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）。
 **綁法**：頭、靴、手持＝Parent 剛體；上臂、前臂、外袍上下片、裙＝Mesh＋Weights（關節頂點兩骨共享約 50/50，非關節 100%，肘部加密頂點）。
 **畫序（下→上）**：靴 → 裙 → 外袍下片 → 上身 → 上臂 → 前臂 → 外袍上片 → 帽兜後片 → 頭 → 眼皮 → 頭飾 → 手持。舉手 timeline 內用 Draw Rule Hold key 把前臂切到外袍上片之上。
 
@@ -112,16 +115,16 @@ jsdelivr：https://cdn.jsdelivr.net/npm/@rive-app/canvas-single@2.42.0/rive.js
 
 ## 8. 路 D：rive-mcp 不經編輯器產 .riv（2026-09-07 實測，James 同意後做）
 
-- **工具**：`~/bible-work/tools/rive-mcp`（GitHub ODU33104/rive-mcp，commit 36d55f9，從原始碼 build；授權免費含商用、產出自由、**禁改碼禁 fork**）。不註冊成 MCP（32 個工具定義太肥），用 `img/style-ref/p1/rig2/rive/rmcp.mjs` 走 JSON-RPC 直接呼叫。
+- **工具**：`~/bible-work/tools/rive-mcp`（GitHub ODU33104/rive-mcp，commit 36d55f9，從原始碼 build；授權免費含商用、產出自由、**禁改碼禁 fork**）。不註冊成 MCP（32 個工具定義太肥），用原 `img/style-ref/p1/rig2/rive/rmcp.mjs` 走 JSON-RPC 直接呼叫（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）。
 - **已驗證可用**：骨頭鏈（RootBone→Bone，child 從 parent 尖端起、無法偏移→用鎖骨段接肩膀）、圖片掛骨頭、網格自動權重綁兩骨（最近兩骨、4 次方衰減，**無法手修權重**）、Solo＋`soloActive` hold key 換袍與模擬 Draw Rule、多層狀態機（trigger／number）、官方 runtime 2.42 在 Chrome 播放 60 fps（CPU 降速 6× 仍 60）。
 - **限制**：無 Data Binding／View Model（只能狀態機 inputs，runtime 印 deprecation）；無 IK pole；**群組不能夾在兩段骨頭之間**（writer 先出全部骨頭再出掛在骨頭下的群組）；圖片只吃 PNG（先用 `magick -colors 255 PNG8:` 量化，858 KB→246 KB，視覺差 0.13%）；**rive-mcp 自己的預覽渲染器不畫 Skin**，網格綁骨要用 `browser-run.mjs` 在真 Chrome 看；.riv 不能匯回 Rive 編輯器。
-- **產物**：`img/style-ref/p1/rig2/rive/`（產生器、.riv、量化零件、手機測試頁模板、README）；手機驗證頁 Artifact `https://claude.ai/code/artifact/45b55b79-6f2f-4b2e-94d7-3604f8aa97fb`。
+- **產物**：原 `img/style-ref/p1/rig2/rive/`（產生器、.riv、量化零件、手機測試頁模板、README）（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回）；手機驗證頁 Artifact `https://claude.ai/code/artifact/45b55b79-6f2f-4b2e-94d7-3604f8aa97fb`。
 - **下一步判準**：James 手機三條（≥30 fps、舉手不穿模、換袍不重綁）過了，再決定：正式版留在路 D（接受無 Data Binding、權重不可手修），或訂 Cadet 進編輯器重做（檔案不互通，要重綁）。
 - **2026-09-07 晚 實測坑（James 手機看到手臂細成一條）**：不是素材，是 rive-mcp 的自動權重（距離最近兩骨、4 次方衰減）在手肘相對彎 38° 時整段袖子塌成緞帶；同一張圖只綁一骨、或剛體掛骨、或手肘只彎 6° 都正常。**結論：rive-mcp 的雙骨網格只能做「近乎直臂」的動作，任何真正彎關節的動作都要手修權重＝要 Rive 編輯器。** 現行手機驗證頁已改用 v4D（高舉、手肘不彎）。
-- **2026-09-10 路 D 坐姿試做通過（`img/style-ref/p3/rive/`）**：六件剛體零件＋膚色眼皮片，呼吸（骨頭 y／rotation 微位移）＋眨眼（image opacity 軌）在官方 runtime 真 Chrome 全通，158 KB。坑：狀態機 trigger 過渡 `durationMs: 0` 不會觸發，最少給 50；image 支援 `opacity`／`scaleX`／`scaleY` 軌。結論：**坐姿不需彎肘（手臂整隻畫死）→ 路 D 可做**；收卷待驗（直臂旋轉＋零件替換）。
+- **2026-09-10 路 D 坐姿試做通過（原 `img/style-ref/p3/rive/`（已於 2026-09-21 依 art-asset-plan 第六節刪除，git 歷史 559553d 之前可找回））**：六件剛體零件＋膚色眼皮片，呼吸（骨頭 y／rotation 微位移）＋眨眼（image opacity 軌）在官方 runtime 真 Chrome 全通，158 KB。坑：狀態機 trigger 過渡 `durationMs: 0` 不會觸發，最少給 50；image 支援 `opacity`／`scaleX`／`scaleY` 軌。結論：**坐姿不需彎肘（手臂整隻畫死）→ 路 D 可做**；收卷待驗（直臂旋轉＋零件替換）。
 
 ## 9. Rive 官方 AI 三入口（2026-09-15 查證，未實測，明細 `references/ai-agent-and-mcp.md`）
 
 - **內建 Agent 面板**：左側欄打開；**要切 Build 模式才動檔案**（Ask 只回答）；免費版可用；中文可用。**2026-09-15 實測通過**（建動畫＋打關鍵影格），但秒／格會混、Loop 說改沒改、對話會 400 壞掉要 New Chat；明細見 references 第 2a 節。格式規則＝先手工做好設計再叫它寫腳本、一次一步、條列需求給數字、既有物件叫名字（camelCase）、要調的值做 input、明講不要動什麼、修 bug 貼最小片段不整段重寫、產出必自審。
-- **官方 Rive MCP**：桌面版編輯器開著時 `claude mcp add --transport http rive http://127.0.0.1:9791/mcp`，Claude Code 可直接建畫板、改階層、打 keyframe、做狀態機、View Model、腳本。**與第 8 節社群 rive-mcp 不同**：在真編輯器裡操作、產物可續編，可能解掉雙骨權重不能手修的限制；發佈 .riv 仍要 Cadet。是否重啟路 D 由 James 拍板（2026-09-10 決定 CC 暫停路 D 仍有效）。
+- **官方 Rive MCP**：桌面版編輯器開著時 `claude mcp add --transport http rive http://127.0.0.1:9791/mcp`，Claude Code 可直接建畫板、改階層、打 keyframe、做狀態機、View Model、腳本。**與第 8 節社群 rive-mcp 不同**：在真編輯器裡操作、產物可續編，可能解掉雙骨權重不能手修的限制；發佈 .riv 仍要 Cadet。**2026-09-22 James 拍板路 D 重啟、CC 主做動畫**（James 2026-09-22 決定，ADR 待補）；9/22 實證免費版開不了 MCP、要 Cadet；MCP 權重只有 autoWeight 沒手塗；範例拆解在 `references/example-dissections.md`。
 - **Rive CLI**：RML 文字寫專案＋`--verify`／`--screenshot` 自驗，適合向量 UI，點陣角色骨架仍要編輯器。

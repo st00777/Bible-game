@@ -56,7 +56,7 @@
 - **為配 UI 把水粉調亮而失去質感**：錨圖用清晨光是換「時段」不是換「畫風」；紙紋、暖棕描邊、低飽和不動。
 - **ChatGPT 額度**：Plus 免費月 10/12 前取消；錨圖迭代可能吃掉一天額度，第一批分兩天。
 
-## 六、舊素材處置（拍板後執行）
+## 六、舊素材處置（James 2026-09-21 拍板，同日執行 ✅：目錄已刪、文字知識搬 `bible-art-assets/references/lessons-p0-p4.md`、七處路徑引用已改）
 - 刪 `img/style-ref/p0–p4`、三張 traveler-*.jpg/png、`p0-prompt-pack.md`（約 66 MB，git 歷史仍在，可隨時找回）。
 - 保留純文字知識：`p4/p4-prompt.md` 第 0 節（James 原始 STYLE 提示詞）與第 6–9 節（三條否決紀錄）搬到 `.claude/skills/bible-art-assets/references/lessons-p0-p4.md`，其餘不留。
 - 新素材落 `img/art/`（`anchor/`、`char/`、`sheep/`、`bg/`、`icon/`），`docs/animation-map.md`、`bible-art-assets` SKILL.md、`rive-rigging` SKILL.md、`art-director.md` 的 style-ref 路徑一併改。

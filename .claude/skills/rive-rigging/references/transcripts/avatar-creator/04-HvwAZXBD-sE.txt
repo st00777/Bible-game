@@ -1,0 +1,15 @@
+# Creating the buttons (2:37)
+https://www.youtube.com/watch?v=HvwAZXBD-sE
+YouTube 自動英文字幕（yt-dlp 2026-09-23 抓取，已去重）
+
+[00:00:06] With buttons, I can select between the different options of each part of the avatar. In this case, the developer can use the same at board for each option and initialize a different number input value when displaying each button. For this reason, the file works in a different way. This is the button I create. This is for the color of the body and this is for the size.
+
+[00:00:31] This is for the eyes, hair, face hair, and background. All these buttons work in the same way, have the same inputs and state machine. Let's see the color of the body. Here, you can see I only use a shape with two fields and one stroke. The second field is to use when I hover in the bottom. For the animations, I have one animation
+
+[00:00:57] for each color of the avatar. Then, hover and no hover. Here, I animate the second field and the stroke. So, when the cursor is no hovering the icon, the button is darker. And when the cursor is hovering the icon, the button is lighter. And the last one, the activate animation, where the bottom and the stroke are lighter. In the state machine, I use three
+
+[00:01:20] inputs. Is icon active to activate the icon, is box hover to use when I hover in the icon, and num option, which is the input the developer used to display each button. And the layers is similar to the icons. I have one layer for the colors and another layer for hover and activate the button. Now, when I play the state machine, I can hover,
+
+[00:01:49] activate, or deactivate and activate using the inputs, and I can change the color using the input num option. Now, the background bottom works in the same way. I can hover, activate, deactivate, and change the color. For the rest of the buttons, the only difference is that I use solos to switch between the different parts like I did
+
+[00:02:19] with the icons. But, the theme machine works in the same way using the same inputs. And that's it. This is all about this avatar creator. In the next video, Sag will show you how to implement them using React.

@@ -1,0 +1,5 @@
+# Building an Avatar Creator with Rive and React (intro, 0:30)
+https://www.youtube.com/watch?v=pwljZMUq_7w
+YouTube 自動英文字幕（yt-dlp 2026-09-23 抓取，已去重）
+
+[00:00:00] foreign allows you to create Rich interactive experiences like this Avatar Creator using the editor and the team machine and deploying across multiple platforms using the runtimes in the following videos we will see how the Avatar icons and buttons works and how to implement them using reacts
