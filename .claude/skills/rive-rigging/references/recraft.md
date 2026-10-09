@@ -454,6 +454,26 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 ---
 
+### 6.11 r5 裝備零件：帽子「戴在頭上生成」再摳出來（2026-10-09 深夜，已切件、尚未進 Rive）
+
+**為什麼不用獨立零件圖**：James 看了 GPT 生的獨立帽子＋油燈零件表（`art/gpt-ref/r5-equip-parts.png`）判「帽子下緣跟頭的交接處一定會很醜」——帽子單獨畫時帽口是平的，戴上去不會貼頭髮輪廓。改走：**把 r4 的頭渲染成底圖，請 GPT 在編輯模式下「幫這顆頭戴上帽子」，再用底圖相減把帽子摳出來**，帽口自然貼合頭髮。Recraft 的去背只能去背景，分不開帽子與頭，所以摳圖在本機用 ImageMagick 做（零點數）。
+
+**底圖**：ImageMagick 直接 render SVG 有黑塊雜訊，改用 headless Chrome：`--headless=new --force-device-scale-factor=4 --window-size=300,440 --screenshot=… file://…/art/recraft/r4/parts/01_head.svg`，再 `-fuzz 2% -trim +repage -bordercolor white -border 120` → `r5-head-base.png`（1240×1799；trim 框 1000×1559+28+34）。GPT 回來的兩張戴帽圖（`r5-head-hat-straw.png`／`r5-head-hat-beanie.png`，中文檔名已改英文）先 `-resize 1240x1799!` 對齊底圖再相減。
+
+**摳圖配方（兩頂帽子走不同路）**：
+- 草帽（與頭差異大）：`-compose difference -composite -channel RGB -separate -evaluate-sequence max`（取各通道差的最大值，比轉灰階穩）→ `-threshold 9% -morphology open disk:6` → `connected-components`（area-threshold 2000、keep-top 2、mean-color）→ `-morphology close disk:6 -morphology dilate disk:2` 當 alpha 遮罩。dilate 會把白底拉進來成白邊，再 AND 一張「非白」遮罩去掉。
+- 毛帽（紅色，與褐髮**灰階亮度幾乎相同**，相減法失敗；`-fuzz 22%` 選紅色又整張都選到）：改 HSL 色相窗 `-colorspace HSL -fx "(u.r>=0.012 && u.r<=0.052 && u.g>=0.35 && u.b>=0.28 && u.b<=0.72) ? 1 : 0"`，再 connected-components keep-top 2，**補洞**用 `\( +clone -negate -fill black -floodfill +0+0 white \) -compose lighten -composite`（從外角泛洪，沒被淹到的黑區就是內部洞），最後 close disk:5＋dilate disk:2。
+- 油燈：獨立零件圖右欄 `-crop 520x836+1380+0`，`-fuzz 6% -transparent white -trim`。
+- 每件都疊回 `r5-head-base.png` 做預覽（`r5-preview.png` 已給 James）。已知瑕疵：草帽帽簷下帶進幾小塊 GPT 重畫的頭髮，疊在原髮上看不出來，先不處理。
+
+**產出**（2 倍解析度 PNG，先不花 3 點轉向量，看實際效果再決定）：`art/recraft/r5/hat_straw.png` 542×282、`hat_beanie.png` 404×323、`lamp.png` 266×576；全尺寸版在 `art/gpt-ref/r5-hat-*.png`、`r5-lamp.png`。
+
+**座標換算（進 Rive 用）**：底圖 px → SVG 單位 `(732.42 + (bx−92)/4, 9.54 + (by−86)/4)`；SVG → head 內層 Node（0-4882）local ≈ SVG − (862, 222)；PNG 縮到 46.5% 時 Rive image scale ≈ 53.76%。算出帽子中心：草帽 (3.5, −118.5)、毛帽 (10.7, −141.5)，縮放 53.8%（hat_A／hat_B 本身 y＝28，放進去要再減）。
+
+**中斷點（James 2026-10-09 深夜喊停）**：MCP `upload_asset` 在這台機器失敗（沙盒），PNG 要 James 從 Finder **拖到畫布**；之後 CC 要做：`find_objects` 找新 Image 節點 → `reparent_objects` 進 hat_A（5-8328）／hat_B（5-8329）→ 設上面座標與縮放 → 刪佔位幾何帽（hat_A：5-8336／5-8340；hat_B：5-8344／5-8348／5-8352）→ `capture_artboard` 疊 `r5-head-hat-*.png` 對位 → 匯出 .riv 更新試播頁 → 油燈掛 farm_R（0-6988）做抬燈動畫（`lampTrigger`）。試播頁鈕的標籤要跟 enum 對齊：hat_A＝毛帽、hat_B＝草帽。
+
+---
+
 ## 7. 現成 skill／MCP／GitHub 專案盤點（2026-09-30）
 
 | 類別 | 名稱 | 狀態 | 判斷 |

@@ -50,6 +50,7 @@
 - **一次性動作鐵律**（2026-10-09，recraft.md §6.9）：`createLinearAnimations` duration 單位是秒，建完改 key 57（幀）／59（0 oneShot）；transition flags key 152：1 停用、4 enableExitTime、8 百分比；exit time 用 **flags 12＋exittime 100**，寫幀數不生效；trigger 條件只給 leftComparator 的 viewModelPropertyId；每次改完跑 `simulateStateMachine` 看幀號。
 
 - **runtime 驗一次性動作聽 StateChange，不靠截圖**（2026-10-09，recraft.md §6.10）：Chrome 自動化分頁 document.hidden 會讓 rAF 停、動作一格跳完，截圖看起來像「trigger 沒反應」。
+- **裝備要「戴在角色身上生成」再摳**（2026-10-09，recraft.md §6.11）：獨立畫的帽子帽口是平的、貼上去交接處會醜；把 r4 頭 render 成底圖請 GPT 戴帽，再用 ImageMagick 相減／HSL 色相窗摳出來（紅帽 vs 褐髮灰階相同，相減法失敗要走色相）。MCP `upload_asset` 在 macOS 沙盒下失敗，PNG 要 James 拖到畫布。
 
 **屬性**
 - `set_property_values` 的 key 必須是整數，先 `query_property_keys`。常用：x 13、y 14、r 15（度）、sx 16、sy 17（百分比）、opacity 18。
