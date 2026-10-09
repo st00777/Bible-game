@@ -331,7 +331,42 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **頭頂淡亮線（B3）**：是 SVG path 69／127 的 `#c9b5b0`（去背邊緣殘色），對應 shape 0-4911／0-5648 已刪。找法：在 SVG 用 python 列出目標區域所有 path 的顏色與範圍 → 換算到 Rive shape 索引（**倒序，且要扣掉之前已刪的數量**）→ `query_objects` depth 2 看 Fill 顏色核對才刪。
 
-**未做（B4）**：骨架。兩條路等 James：A 不加骨、只用 Node 階層做 FK 動畫（現況已可動）；B 加 Bone＋mesh 做圍巾／頭髮形變。
+**B4 骨架：James 選 B（加 Bone＋mesh），同晚完成第一階段（§6.5）。**
+
+### 6.5 骨架＋剛體掛骨＋圍巾尾 mesh（2026-10-09 晚）
+
+**🔴 官方 Rive MCP 沒有建骨頭的工具**（`mesh_rigging_tool` 只有 generateMesh／bindBones／autoWeight／querySkin；`component_editor` 是巢狀畫板）。做法＝James 在編輯器按 B 畫骨鏈（位置大概即可、不用命名），CC 再用 MCP 校數值、命名、掛零件、綁定。
+
+**James 畫法（可複用的口述指令）**：主鏈骨盆→腰→肩線中→下巴；選「肩線中」關節分支：左肩→肘→腕、右肩→肘→腕、圍巾頂→中→底；選「腰」關節（root 尖端）分支：髖→膝→踝 ×2。腿只能從腰部關節出發（root 尖端），腰→髖那一小段就當骨盆骨，結構正確。
+
+**骨頭屬性 key**：RootBone x 90、y 91（不是 13／14）；所有骨 length 89、rotation 15（相對父骨，root 相對世界，正＝順時針）。子骨從父骨尖端起、不能偏移，所以肩膀要用鎖骨段接。
+
+**最終 18 根（id／名稱／rotation／length；root 在 (404,707)）**
+
+| id | 名稱 | r | len | 尖端（畫板） |
+|---|---|---|---|---|
+| 0-6975 | root | −90 | 107 | 腰 404,600 |
+| 0-6976 | torso | 0 | 195 | 肩線 404,405 |
+| 0-6977 | neck | 0 | 65 | 下巴 404,340 |
+| 0-6986／0-6989 | clav_R／clav_L | −90／90 | 82 | 肩 322,405／486,405 |
+| 0-6987／0-6990 | uarm_R／uarm_L | −79.3／79.3 | 183.2 | 肘 288,585／520,585 |
+| 0-6988／0-6991 | farm_R／farm_L | 1.1／−1.1 | 209.5 | 腕 245,790／563,790 |
+| 0-6992 | scarf_anchor | −72.6 | 67 | 圍巾頂 340,385 |
+| 0-6993 | scarf1 | −109.2 | 95 | 343,480 |
+| 0-6994 | scarf2 | −0.5 | 100 | 347,580 |
+| 0-6995／0-6998 | pelvis_R／pelvis_L | −154／154 | 100 | 髖 360,690／448,690 |
+| 0-6996／0-6999 | thigh_R／thigh_L | −21.4／22.9 | 311／310.5 | 膝 335,1000／465,1000 |
+| 0-6997／0-7000 | shin_R／shin_L | −2.1／0.6 | 270 | 踝 323,1270／477,1270 |
+
+（_R＝畫面左邊那隻，跟零件命名一致。）
+
+**剛體掛骨**（`reparent_objects` position start，世界座標自動保留）：04_torso→torso、01_head→neck、02_scarf_wrap＋09_belt→torso、07_upperarm_R→uarm_R、08_forearm_R→farm_R（L 同）、11_leg_R→thigh_R、10_leg_L→thigh_L。圍巾尾 Node 留在 scarf_wrap 下（Skin 綁骨不看父層）。
+
+**🔴 掛骨後畫序改跟骨頭階層走**，手臂會跑到軀幹後面。修法＝在 torso 骨底下用 `reorder_objects sendToFront` 由後往前依序：04_torso、scarf_anchor、clav_R、clav_L、09_belt、neck、02_scarf_wrap。uarm 骨底下「上臂 Node 在前、farm 骨在後」前臂自然被上臂蓋住。root 底下 torso 骨在 pelvis 前面，腿在裙後。
+
+**圍巾尾 mesh**：22 個 Shape 各一條 PointsPath（id 由 `query_objects` depth 1 取），每條 `bindBones` 綁 [scarf_anchor, scarf1, scarf2]（綁定時自動加權），再一次 `autoWeight` 傳全部 22 個 targetIds 合算（blend 0.5、smooth）。測試 scarf1 +20°、scarf2 +25° 圍巾尾整體彎曲、無撕裂；uarm_R 轉 25° 整隻手臂含前臂跟著走。全部已歸零。
+
+**第二階段候選**：頭髮辮子、裙襬 mesh；手肘 IK；肩膀轉大角度時軀幹無袖肩線會露出，可考慮把袖子頂端多畫一點或加 clip。
 
 ---
 
