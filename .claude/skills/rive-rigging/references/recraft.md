@@ -387,7 +387,7 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **🔴 James 播放後第一個回饋：圍巾不跟身體起伏，像懸空**。原因＝02_scarf_wrap 掛在 torso 骨，骨頭根在腰、拉長的是尖端，所以掛在根部的零件（軀幹、腰帶、圍巾）都不動，只有掛在尖端子骨（neck、clav、scarf_anchor）的頭、手臂、圍巾尾會升。修法＝`reparent_objects` 把 02_scarf_wrap 搬到 neck 骨（position start，排在 01_head 前面保持畫序），世界座標自動保留，截圖驗過圍巾隨頭肩升。**通則：用骨長當呼吸時，所有「該跟著胸口升」的零件要掛在尖端那側的子骨，不能掛在被拉長的骨本身。**
 
-**匯出 .riv 走 MCP（2026-10-09 實證）**：`export_file format=riv` 直接寫目錄會被 macOS 沙盒擋（Operation not permitted），錯誤訊息附的 curl＋python 配方（對 `http://127.0.0.1:9791/mcp` 呼叫 export_file 帶 `inline_base64:true`，base64 直接落檔不進對話）可用，159 KB 一次成功。Cadet 訂閱下匯出無阻。試播頁＝`@rive-app/canvas-single@2.42.0`＋base64 `buffer`＋`stateMachines:"State Machine 1"`＋`enableRiveAssetCDN:false`，Artifact https://claude.ai/artifact/AiFd2dA6kf5BNddrNoh6fv（四種高度 140／220／320／480 切換＋fps）。Chrome 自動化分頁驗過會載入會動；自動化分頁 rAF 被降速，fps 數字要看手機實機。**待辦**：畫板底色是深灰，進遊戲前要把 Artboard 的 Fill 拿掉改透明。
+**匯出 .riv 走 MCP（2026-10-09 實證）**：`export_file format=riv` 直接寫目錄會被 macOS 沙盒擋（Operation not permitted），錯誤訊息附的 curl＋python 配方（對 `http://127.0.0.1:9791/mcp` 呼叫 export_file 帶 `inline_base64:true`，base64 直接落檔不進對話）可用，159 KB 一次成功。Cadet 訂閱下匯出無阻。試播頁＝`@rive-app/canvas-single@2.42.0`＋base64 `buffer`＋`stateMachines:"State Machine 1"`＋`enableRiveAssetCDN:false`，Artifact https://claude.ai/artifact/AiFd2dA6kf5BNddrNoh6fv（四種高度 140／220／320／480 切換＋fps）。Chrome 自動化分頁驗過會載入會動；自動化分頁 rAF 被降速，fps 數字要看手機實機。畫板底色已改透明（2026-10-09）：Artboard 直屬的 Fill（id 0-3，#ff282828）用 `path_editor setPaints` 改 `#00282828`；找它用 `find_objects type=fill parentId=畫板` 後過濾 parentId（回傳會含全部子孫 495 筆，要落檔再 python 篩）。試播頁舞台改暖色底看角色疊在遊戲底色上的樣子。
 
 ---
 
