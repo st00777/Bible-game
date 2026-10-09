@@ -383,6 +383,8 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **待 James 審**：三格截圖（靜止／閉眼／吸氣頂）已傳；動態要在編輯器按播放看。幅度若太小可把 length 199 改 201、圍巾 ±3° 改 ±5°。
 
+**🔴 James 播放後第一個回饋：圍巾不跟身體起伏，像懸空**。原因＝02_scarf_wrap 掛在 torso 骨，骨頭根在腰、拉長的是尖端，所以掛在根部的零件（軀幹、腰帶、圍巾）都不動，只有掛在尖端子骨（neck、clav、scarf_anchor）的頭、手臂、圍巾尾會升。修法＝`reparent_objects` 把 02_scarf_wrap 搬到 neck 骨（position start，排在 01_head 前面保持畫序），世界座標自動保留，截圖驗過圍巾隨頭肩升。**通則：用骨長當呼吸時，所有「該跟著胸口升」的零件要掛在尖端那側的子骨，不能掛在被拉長的骨本身。**
+
 ---
 
 ## 7. 現成 skill／MCP／GitHub 專案盤點（2026-09-30）
