@@ -425,6 +425,23 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **對遊戲的意義**：帽子／衣服／手持／背景四部位各一個 Solo＋一個 enum 屬性即可，JS 端一行改值，不用每件裝備一條動畫（example-dissections §2.2 的舊法可以不用）。待解：真實裝備零件要回零件表階段請 GPT 生「同比例、同視角、分件」的裝備圖，再走 Recraft 向量化→切件→掛進對應 Solo；一個 Solo 的 N 個選項全部內嵌，`.riv` 體積隨選項數線性長（目前 167 KB 含兩頂幾何帽）。
 
+### 6.9 舉手動畫＋trigger 狀態機（2026-10-09 深夜，全程 MCP，runtime 實證通過）
+
+**目的**：補時刻表 #5／#6（每日完成、解鎖成就）的「舉手」，並驗通「JS 觸發一次性動作、做完自動回待機」這條路，之後試穿、燈升、卷軸全走同一套。
+
+**動作**：角色右手（畫面左側、圍巾尾那側）直臂舉到頭頂斜上。只 key 兩根骨頭的 r：uarm_R（0-6987）−79.3→**65**、farm_R（0-6988）1.1→**18**（前臂微彎朝頭）。時序照 animation-map：第 0→27 幀舉（cubic 0.3/0/0.25/1，快起慢停）、27→51 停住（hold）、51→84 放下（cubic 0.42/0/0.58/1），84 幀＝1.4 秒。**角度判斷**：100 會讓手伸出畫板頂（1400 高），65 剛好在框內且讀得出「舉手」；方向規則同 §6.6（R 臂 r 變大＝往外往上）。測姿勢的做法＝直接 set 骨頭 r 截圖，看完**一定改回 −79.3／1.1**。
+
+**狀態機（單層 idle→raise→idle）**：
+- `createLinearAnimations` 的 duration 單位是**秒**（寫 84 會變 5040 幀），建完用 `set_property_values` 寫 key 57＝84、key 59＝0（oneShot）。
+- `createStates`（layerId 0-8，linearAnimationName raise）→ `createTransitions`（states[{id, transitions:[{to: 目標 state id}]}]）。
+- 觸發：View Model 加 trigger 屬性 `celebrate`（addProperties propertyType trigger）→ `createConditions` 只給 `leftComparator.viewModelPropertyId`，自動成為 triggerFired 條件。
+- 回程 transition 要 exit time，`set_property_values` 寫 **flags（key 152）位元：1＝停用、4＝enableExitTime、8＝exitTimeIsPercentage**；exittime（key 160）**以幀數寫 84 不被採用（6 幀就跳回）**，要寫 **flags 12＋exittime 100（百分比）**才在第 84 幀回 idle。duration（key 158）是混合幀數：進 raise 6 幀、回 idle 10 幀。
+- 驗證：`simulateStateMachine` inputs `[{frame:30, property:"celebrate"}]`，trace 要看到第 31 幀進 raise、第 115 幀回 idle。
+
+**runtime**：`vmi.trigger("celebrate").trigger()`，不經狀態機 input。試播頁加「舉手」鈕，Chrome 本機頁驗過 0.5 秒舉起、2.5 秒回待機，帽子跟著動。.riv 167 KB。**.rev 備份也走同一份 HTTP 配方**（format rev、embed_assets false，370 KB），存 `~/bible-work/rive-backups/2641139-r4-2026-10-09.rev`（repo 外）。
+
+**待 James 審**：幅度（65°）與停頓是否夠「儀式感」；深夜版（抬燈、較小幅度、放慢）等油燈零件到位再做。
+
 ---
 
 ## 7. 現成 skill／MCP／GitHub 專案盤點（2026-09-30）

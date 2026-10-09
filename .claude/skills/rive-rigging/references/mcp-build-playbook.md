@@ -47,6 +47,8 @@
 
 - **換裝 Solo 鐵律**（2026-10-09，recraft.md §6.8）：MCP 建不了 Solo，要 James 右鍵 Wrap in Solo；Solo 子物件順序必須＝enum 值順序（convertToNumber 給的是 index）；`capture_artboard` 不套 Data Binding，驗換裝一定匯 .riv 進 runtime；`group_editor` 的 x／y 是世界座標，掛在縮放過的父層下建完要把 local 歸零。
 
+- **一次性動作鐵律**（2026-10-09，recraft.md §6.9）：`createLinearAnimations` duration 單位是秒，建完改 key 57（幀）／59（0 oneShot）；transition flags key 152：1 停用、4 enableExitTime、8 百分比；exit time 用 **flags 12＋exittime 100**，寫幀數不生效；trigger 條件只給 leftComparator 的 viewModelPropertyId；每次改完跑 `simulateStateMachine` 看幀號。
+
 **屬性**
 - `set_property_values` 的 key 必須是整數，先 `query_property_keys`。常用：x 13、y 14、r 15（度）、sx 16、sy 17（百分比）、opacity 18。
 - 縮放用百分比（93＝93%），角度用度；正角度在螢幕上是順時針。
