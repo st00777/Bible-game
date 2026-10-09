@@ -294,11 +294,183 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 | 前臂 R／L | 肘 | 290, 625／533, 625 |
 | 腿 R／L | 腿頂 | 323, 910／477, 910 |
 
-關節點是從縮圖估的，**尚未實際轉動驗證**。
+關節點是從縮圖估的；**10/9 晚已轉動驗證並重設，最終值見 §6.4**（上表只留作第一版紀錄）。
 
 **清白塊**：頭部刪 8 個近白 Shape（#ffffff×2、#efeef0×6）。**🔴 Rive 匯入 SVG 後，Shape 子層順序與 SVG path 順序相反**（第 i 條 path＝倒數第 i 個 Shape）；刪之前用 `query_objects` depth 1 看 Fill 顏色驗證，別照 SVG 順序對號。
 
-**10/9 收工時未做**：① 零件間父子階層（前臂掛上臂、頭／圍巾／腰帶掛軀幹）；② James 轉關節驗樞紐；③ 頭頂右側一條淡亮線未清；④ 骨架。接續用 `mcp-build-playbook.md` §3 的 reparent 規則。
+**10/9 下午收工時未做**：①父子階層 ②轉關節驗樞紐 ③頭頂淡亮線 ④骨架。①②③已於同日晚完成（§6.4），只剩④。
+
+### 6.4 r4 比例校正＋父子階層＋眼睛高光（2026-10-09 晚）
+
+**起因**：James 看圖指出手臂長度、腰帶比例、站姿不對，眼睛高光不見。
+
+**量法（可複用）**：把定裝 `00_full.svg` 渲染成 PNG、縮到與畫板人物同高（本例 93%），半透明疊在 `capture_artboard` 的輸出上，再加 100 單位格線，直接讀每個部位差多少，一次改外層 Node 的 x／y／sx／sy／r。零件表各件是 GPT 分開畫的，**比例彼此不一致**（腰帶畫大、前臂畫長、頭畫大），組回時每件都要獨立縮放，不能只擺位置。
+
+**最終外層 Node 值（畫板座標，縮放 %，角度 °）**
+
+| 零件 | id | x, y | sx, sy | r | 備註 |
+|---|---|---|---|---|---|
+| 軀幹 04_torso | 0-34 | 404, 595 | 108 | 0 | 放大上移，肩線到 404、裙襬留在 ~955 |
+| 上臂 R／L | 0-31／0-33 | 322, 405／486, 405 | 108 | 0 | 連袖子跟軀幹同比例 |
+| 前臂 R／L | 0-30／0-32 | 286, 569／525, 569 | **85, 80** | 0 | 72% 時與上臂斷開，改上移 30 塞進上臂圓弧下、橫向放寬 |
+| 腰帶 09_belt | 0-29 | 384, 588 | **80, 65** | 0 | 非等比：扣環小包縮、帶身仍橫跨腰 |
+| 圍巾圈 02 | 0-36 | 403, 357 | 75 | 0 | 下巴下方，不蓋下巴 |
+| 圍巾尾 03 | 0-35 | 332, 352 | 77 | 0 | |
+| 頭 01_head | 0-37 | 404, 371 | 93 | 0 | 疊圖顯示偏大 8% |
+| 腿 R／L | 0-27／0-28 | 343, 910／457, 910 | 100 | **+3／−3** | 腿頂內收 15＋外轉 3°＝微八字站姿 |
+
+（以上是建階層前的畫板座標；建階層後 Rive 自動換算成相對父層的 local 值，外觀不變。）
+
+**接縫通則**：兩件接不上時，用「後層件上移塞進前層件」補，不要硬把兩件切齊；上臂圓弧蓋住前臂頂端就是自然手肘摺痕。
+
+**眼睛高光**：6.3 清近白塊時把兩個 `#ffffff` 一起刪了，那就是高光。補法＝`path_editor createParametricShapes` 兩個 ellipse 10×7 白色，掛在頭內層 Node `0-4882`，局部座標 (−34.5, −51.8)／(39.5, −51.8)（虹膜左上角，照定裝圖）。坑：**createParametricShapes 的 parentId 被忽略**，會掉在畫板層，要再 `reparent_objects`（position start）並重設 x／y。
+
+**父子階層（B1）**：torso(0-34) 子層前→後＝scarf_wrap(0-36，內含 scarf_tail 0-35)→head(0-37)→belt(0-29)→upperarm_L(0-33，內含 forearm_L 0-32)→upperarm_R(0-31，內含 forearm_R 0-30)→torso 內層 Node。腿 0-27／0-28 留畫板層。前臂放在上臂的 `end`（上臂圖形之後）才會被上臂蓋住。**這次 `reparent_objects` 保留世界座標、自動換算 local**（與 playbook 9/26 紀錄相反），搬完一律 query 驗。
+
+**轉動驗證（B2）**：上臂 20°、前臂 30°、頭 8°、腿 15° 各轉一次拍圖，樞紐皆合理，已歸零（腿回 ±3）。肩膀轉 20° 時軀幹的無袖肩線會露出一點，可接受。
+
+**頭頂淡亮線（B3）**：是 SVG path 69／127 的 `#c9b5b0`（去背邊緣殘色），對應 shape 0-4911／0-5648 已刪。找法：在 SVG 用 python 列出目標區域所有 path 的顏色與範圍 → 換算到 Rive shape 索引（**倒序，且要扣掉之前已刪的數量**）→ `query_objects` depth 2 看 Fill 顏色核對才刪。
+
+**B4 骨架：James 選 B（加 Bone＋mesh），同晚完成第一階段（§6.5）。**
+
+### 6.5 骨架＋剛體掛骨＋圍巾尾 mesh（2026-10-09 晚）
+
+**🔴 官方 Rive MCP 沒有建骨頭的工具**（`mesh_rigging_tool` 只有 generateMesh／bindBones／autoWeight／querySkin；`component_editor` 是巢狀畫板）。做法＝James 在編輯器按 B 畫骨鏈（位置大概即可、不用命名），CC 再用 MCP 校數值、命名、掛零件、綁定。
+
+**James 畫法（可複用的口述指令）**：主鏈骨盆→腰→肩線中→下巴；選「肩線中」關節分支：左肩→肘→腕、右肩→肘→腕、圍巾頂→中→底；選「腰」關節（root 尖端）分支：髖→膝→踝 ×2。腿只能從腰部關節出發（root 尖端），腰→髖那一小段就當骨盆骨，結構正確。
+
+**骨頭屬性 key**：RootBone x 90、y 91（不是 13／14）；所有骨 length 89、rotation 15（相對父骨，root 相對世界，正＝順時針）。子骨從父骨尖端起、不能偏移，所以肩膀要用鎖骨段接。
+
+**最終 18 根（id／名稱／rotation／length；root 在 (404,707)）**
+
+| id | 名稱 | r | len | 尖端（畫板） |
+|---|---|---|---|---|
+| 0-6975 | root | −90 | 107 | 腰 404,600 |
+| 0-6976 | torso | 0 | 195 | 肩線 404,405 |
+| 0-6977 | neck | 0 | 65 | 下巴 404,340 |
+| 0-6986／0-6989 | clav_R／clav_L | −90／90 | 82 | 肩 322,405／486,405 |
+| 0-6987／0-6990 | uarm_R／uarm_L | −79.3／79.3 | 183.2 | 肘 288,585／520,585 |
+| 0-6988／0-6991 | farm_R／farm_L | 1.1／−1.1 | 209.5 | 腕 245,790／563,790 |
+| 0-6992 | scarf_anchor | −72.6 | 67 | 圍巾頂 340,385 |
+| 0-6993 | scarf1 | −109.2 | 95 | 343,480 |
+| 0-6994 | scarf2 | −0.5 | 100 | 347,580 |
+| 0-6995／0-6998 | pelvis_R／pelvis_L | −154／154 | 100 | 髖 360,690／448,690 |
+| 0-6996／0-6999 | thigh_R／thigh_L | −21.4／22.9 | 311／310.5 | 膝 335,1000／465,1000 |
+| 0-6997／0-7000 | shin_R／shin_L | −2.1／0.6 | 270 | 踝 323,1270／477,1270 |
+
+（_R＝畫面左邊那隻，跟零件命名一致。）
+
+**剛體掛骨**（`reparent_objects` position start，世界座標自動保留）：04_torso→torso、01_head→neck、02_scarf_wrap＋09_belt→torso、07_upperarm_R→uarm_R、08_forearm_R→farm_R（L 同）、11_leg_R→thigh_R、10_leg_L→thigh_L。圍巾尾 Node 留在 scarf_wrap 下（Skin 綁骨不看父層）。
+
+**🔴 掛骨後畫序改跟骨頭階層走**，手臂會跑到軀幹後面。修法＝在 torso 骨底下用 `reorder_objects sendToFront` 由後往前依序：04_torso、scarf_anchor、clav_R、clav_L、09_belt、neck、02_scarf_wrap。uarm 骨底下「上臂 Node 在前、farm 骨在後」前臂自然被上臂蓋住。root 底下 torso 骨在 pelvis 前面，腿在裙後。
+
+**圍巾尾 mesh**：22 個 Shape 各一條 PointsPath（id 由 `query_objects` depth 1 取），每條 `bindBones` 綁 [scarf_anchor, scarf1, scarf2]（綁定時自動加權），再一次 `autoWeight` 傳全部 22 個 targetIds 合算（blend 0.5、smooth）。測試 scarf1 +20°、scarf2 +25° 圍巾尾整體彎曲、無撕裂；uarm_R 轉 25° 整隻手臂含前臂跟著走。全部已歸零。
+
+**第二階段候選**：頭髮辮子、裙襬 mesh；手肘 IK；肩膀轉大角度時軀幹無袖肩線會露出，可考慮把袖子頂端多畫一點或加 clip。
+
+### 6.6 第一支待機動畫 idle（2026-10-09 晚，全程 MCP）
+
+**成品**：檔 2641139 線性動畫 `idle`（id 0-6，由預設 Timeline 1 改名；fps 60、864 幀＝14.4 秒、loop），預設狀態機 Entry→idle 已自動接好，`simulateStateMachine` 200 幀確認進入 idle。14.4 秒＝呼吸 3.6 秒×4 與圍巾 4.8 秒×3 的最小公倍，所以頭尾無縫；眨眼時間點不等距塞在同一條軌。
+
+**眼皮（眨眼要先有眼皮）**：零件表的頭是整張臉，沒有眼皮可 key。做法＝在 head 內層 Node（0-4882）前端各建一個膚色橢圓 `eyelid_L`／`eyelid_R`（42×30，fill #f9d3ae＝從截圖取眼旁膚色），Shape 原點放在上睫毛線正下方（head 局部 (−31.5,−54.2)／(44.3,−54.2)），橢圓 Path 的 y 設 +15 讓它掛在原點下方，**key Shape 的 sy：0＝張眼、100＝閉眼**，眼皮就是從睫毛線往下蓋，閉到底時睫毛線留在上緣剛好變成閉眼弧線（截圖驗過，效果自然）。眼睛位置用 `capture_artboard longEdge 1536` 截圖量，再除 scaleFactor 1.0973 換算畫板座標、再換 head 局部座標（head 外 Node (404,371) 93%、內 Node (−5.6,−78.2)）。
+
+**三條軌的 key**（cubic 0.42/0/0.58/1 除非另註）：
+- 呼吸＝torso 骨（0-6976）**length** 195→205→195，每 216 幀一循環、吸氣頂點在第 96 幀（吸 1.6／吐 2.0）。拉骨長而不是搬 root，腳不會浮；頭肩與手臂整體上升 10 px，軀幹圖不動，頸縫被圍巾蓋住看不到。**James 手機試播回饋：+4 px 看不出來、圍巾與眨眼夠明顯** → 改 +10 並加上臂骨同步微開：uarm_R r −79.3→−77.3、uarm_L 79.3→77.3（同幀位，2° 手臂外張；方向驗證法＝兩邊各轉 3° 截圖看手離身體遠近）。幅度經驗：1400 高畫板上 4 px（0.3%）在手機 220 px 高時不可見，10 px 加手臂角度才看得到。**回饋 3：下半身圖層全不動、看起來分開** → 裙身也要呼吸：04_torso Node（0-34，掛在 torso 骨下、local r 90 把軸轉回世界向）key **x 5→12**（骨頭朝上，所以 Node 的 x 就是世界向上）＋ **sy 108→109.6**（中心樞紐：領口再上 3.5、裙襬下 5.5 與 x 抵銷≈不動，裙襬貼著腿）；09_belt（0-29）x 12→19 跟著腰上升。截圖驗過褲頭仍被裙襬蓋住。**通則：掛在被拉長骨頭根部的零件要另外 key 位移／縮放補上，不然胸口升、裙子不動就是分層感。**
+
+**回饋 4（與動畫無關）：兩腿貼太近。** 把 00_full.svg 縮到 93%（畫板尺）與截圖並排量，腿比定裝圖粗約 20%、膝蓋間沒縫。修法＝10_leg_L／11_leg_R Node **sx 100→82**（掛在 thigh 骨下、local r≈−90 軸已轉回世界向，sx 就是橫向），並各外移 5 px（骨頭朝下時 Node 的 y 是橫向：leg_R y −0.5→+5、leg_L y 2.75→−3，正負方向用截圖驗）。§6.4 數值表的腿那列以此為準。
+- 圍巾＝scarf1（0-6993）r −109.2→−106.2→−109.2 每 288 幀；scarf2（0-6994）r −0.5→(40 幀 −1.5)→(180 幀 +3.0)→−0.5，比 scarf1 慢半拍形成波。
+- 眨眼＝兩眼皮 sy：第 t 幀 0（linear）→t+4 100（hold）→t+5 100（cubic）→t+10 0（hold），t＝132、336、354（連兩下）、588、774；0 與 864 幀各補 hold 0。
+
+**MCP 動畫坑**：`modifyKeyFrames` 70 個 key 一次送沒問題；動畫 duration／loop 要用 `set_property_values` 寫 key 57／59（createLinearAnimations 的 duration 單位不明，沒用）；`createParametricShapes` 這次 **parentId 有生效**（2026-10-09 兩次實測一次忽略一次生效），建完一律 `find_objects parentId=目標` 驗一次。
+
+**待 James 審**：三格截圖（靜止／閉眼／吸氣頂）已傳；動態要在編輯器按播放看。幅度若太小可把 length 199 改 201、圍巾 ±3° 改 ±5°。
+
+**🔴 James 播放後第一個回饋：圍巾不跟身體起伏，像懸空**。原因＝02_scarf_wrap 掛在 torso 骨，骨頭根在腰、拉長的是尖端，所以掛在根部的零件（軀幹、腰帶、圍巾）都不動，只有掛在尖端子骨（neck、clav、scarf_anchor）的頭、手臂、圍巾尾會升。修法＝`reparent_objects` 把 02_scarf_wrap 搬到 neck 骨（position start，排在 01_head 前面保持畫序），世界座標自動保留，截圖驗過圍巾隨頭肩升。**通則：用骨長當呼吸時，所有「該跟著胸口升」的零件要掛在尖端那側的子骨，不能掛在被拉長的骨本身。**
+
+**匯出 .riv 走 MCP（2026-10-09 實證）**：`export_file format=riv` 直接寫目錄會被 macOS 沙盒擋（Operation not permitted），錯誤訊息附的 curl＋python 配方（對 `http://127.0.0.1:9791/mcp` 呼叫 export_file 帶 `inline_base64:true`，base64 直接落檔不進對話）可用，159 KB 一次成功。Cadet 訂閱下匯出無阻。試播頁＝`@rive-app/canvas-single@2.42.0`＋base64 `buffer`＋`stateMachines:"State Machine 1"`＋`enableRiveAssetCDN:false`，Artifact https://claude.ai/artifact/AiFd2dA6kf5BNddrNoh6fv（四種高度 140／220／320／480 切換＋fps）。Chrome 自動化分頁驗過會載入會動；自動化分頁 rAF 被降速，fps 數字要看手機實機。畫板底色已改透明（2026-10-09）：Artboard 直屬的 Fill（id 0-3，#ff282828）用 `path_editor setPaints` 改 `#00282828`；找它用 `find_objects type=fill parentId=畫板` 後過濾 parentId（回傳會含全部子孫 495 筆，要落檔再 python 篩）。試播頁舞台改暖色底看角色疊在遊戲底色上的樣子。
+
+### 6.7 辮子 mesh（2026-10-09 深夜）：找形狀、權重坑、重綁法
+
+**James 畫骨**：選 `neck` → B 連點三下 → neck 底下多出 Bone 3/4/5（id 0-7441/7442/7443），`rename_objects` 改 braid_anchor／braid1／braid2。**MCP 讀不到新骨頭時，先確認 James 是在桌面 App 畫的**：他在瀏覽器畫、App 沒切回來時 find_objects 看不到。
+
+**辮子不是獨立零件，藏在 01_head 的 126 個 Custom Shape 裡**，找法全靠數據：`query_objects head depth 3` 落檔（18 萬字元）→ python 收 Shape→PointsPath→Vertex id（1434 個）→ 用 **MCP HTTP 端點**（`http://127.0.0.1:9791/mcp`，initialize 拿 session id 後 tools/call，回應是純 JSON 或 SSE 兩種都要處理）批次 `query_property_values` 頂點 x／y（key 24／25）與 Shape／Path 的 x／y／r／sx／sy → 頂點座標是各 Path 局部的，要先套 Path 再套 Shape 的位移旋轉縮放才得到 head 局部座標 → 畫板座標＝head 內層 Node 世界 (398.8,298.3)＋0.93×局部。辮子區＝head 局部 x<−40 且下緣 y>20 → 22 個小形狀＋1 個大形狀 0-5457（深棕 #7d4d2f、85 頂點、x −126..−10、y −86..195，是「頭側髮＋辮子」連在一起的底層）。`mcp.sh` 小工具（scratchpad）：`bash mcp.sh <tool> '<json>'` 直接打端點，大量查詢不進對話。
+
+**🔴 權重坑 1：自動權重不是純「最近骨段」**。23 條路徑綁三根骨後，大形狀靠臉那幾個頂點（在左眼旁 (382,252)）被算給 braid2，braid 一轉臉上就多一條深色細線。blend 0.15／smooth false／maxInfluences 2 全部一樣，判斷是演算法看「骨頭是否在形狀內部」：anchor 原本從脖尖橫走到辮根、整根在髮塊外面，頭側髮的頂點「看不到」anchor 就投給辮子骨。**修法＝改路徑讓 anchor 穿過髮塊**：anchor 從 neck 尖 (404,340) 走到耳上髮側 (345,275)（r −42.2、len 87.8），braid1 從那裡經辮根到辮中 (326,400)（r −129.2、len 126.4），braid2 到辮尾 (320,480)（r −4.3、len 80.2）。James 原本手畫的其實就是這個走法（anchor −49.2／72、braid1 −106.9／76），我第一次「校正」成橫走反而錯。
+
+**🔴 權重坑 2：綁完再改骨頭數值＝改變形，不是改綁定姿勢**。bind pose 在 bindBones 當下鎖定，之後 set 骨頭 r／length 整個網格跟著變形（靜止時臉被頭髮撕開）；再 autoWeight 也不會重綁；bindBones 再呼叫回「already bound」。**重綁唯一辦法＝`query_objects path depth 1` 找出每條路徑底下的 Skin 物件（type Skin），`delete_objects` 刪掉 → 路徑回到原始幾何 → 再 bindBones → autoWeight**。所以順序一定是：骨頭數值先定 → 再綁 → 再 autoWeight；要調骨頭就刪 Skin 重來。
+
+**驗證法**：`querySkin includeVertexWeights` 批次落檔，python 把每個頂點換成畫板座標、算最近骨段，和實際最大權重比對（check-skins.py）；對不上的清單直接指出哪個頂點會飛。最後 braid1／braid2 各 +12° 截圖：辮子整條外擺、耳邊頭髮不動、臉乾淨。
+
+**回饋 5：脖子被圍巾蓋住、圍巾中央像有個洞。** 零件表的圍巾把「圍巾內側背面」畫成一條深色帶（scarf_wrap 裡 0-4798，#915130，位於開口處），整個零件又在頭前面，脖子完全看不到。修兩步：(1) 用同一套頂點撈法算 23 個圍巾形狀的範圍與顏色，找出那條深色帶，`reparent_objects` 搬到 neck 骨底下 position end（排在 01_head 後面，世界座標保留），改名 scarf_back_inner → 脖子前、圍巾背面後，和定裝圖一樣脖子兩側露深色；(2) 定裝圖下巴到圍巾上緣約 45 px、我們只有 11 px，把 02_scarf_wrap 在 neck 骨下的 x 48→26（骨頭朝上，x 就是世界上下）、scarf_back_inner x 71.6→49.6 一起下移 22 px，脖子露出來，襯衫 V 領口在圍巾下露一點與定裝圖相同。圍巾尾是 mesh 綁骨不隨節點動，下移後接點仍藏在圍巾結後面（截圖驗）。
+
+**回饋 6：要「脖子伸進圍巾」的感覺。** 原理＝脖子前面有圍巾前折、後面有比前折高的圍巾背面，脖子夾在兩層之間。零件表沒有圍巾背面可用（0-4798 試過，其實只是前折上緣一條細摺線，拉高只剩一條線，已放回 scarf_wrap 原位 (−0.55,−49.97)）。做法：(1) 把頭裡的脖子形狀 0-6590（膚色，head 局部 x −22..37、y 21..86）`reparent` 到 neck 骨底下改名 neck_skin；(2) `createParametricShapes` 在 neck 骨下建橢圓 `scarf_collar_back`（fill #8a4a2c＝圍巾暗面），**骨頭朝上所以 width 是世界垂直、height 是世界水平**：width 44、height 124、local (65,−1) → 世界約 x 341..465、y 318..362，上緣貼在下巴下方 8 px；(3) 畫序（前→後）：02_scarf_wrap、neck_skin、scarf_collar_back、01_head，用 `reorder_objects sendToBack` 依序把 collar、head 送到最後（reparent position end 對已在該父層的物件不會移動，要用 reorder）。結果：脖子兩側露出深色圍巾背面、脖子從中間伸進去，圍巾中間 U 形前折在脖子前。**驗證技巧**：形狀看不到時先把它移到臉上（x 150）截圖確認有在畫、方向對，再移回去。 **James 看過裁定「沒有比較好」，已退回回饋 5 的狀態**：領圈刪除、neck_skin 放回 head 內層 Node（position end），圍巾下移 22 與摺線歸位保留。留下的教訓：零件表畫法本來就沒有「背面」這層，硬補一塊平的色塊會和手繪皺褶打架，要有這層得回零件表階段請 GPT 把圍巾分成前折／背面兩件。
+
+**idle 加兩軌**：braid1 r −129.2 ±3.5（288 幀一循環、頂點在第 60 幀，和圍巾錯開相位）；braid2 r −4.3，+4.5／−4.5、落後 40 幀。已匯出更新試播頁。
+
+### 6.8 換裝路徑驗證：Solo＋enum Data Binding（2026-10-09 深夜，runtime 實證通過）
+
+**目的**：第一版範圍是「待機＋換裝」，待機已成立，這節驗「零件表角色能不能用官方推薦的 Solo＋View Model enum 換裝」。只驗機制，帽子是 `createParametricShapes` 畫的幾何佔位圖（毛帽＝橢圓＋圓角矩形、草帽＝寬橢圓帽簷＋橢圓冠＋緞帶）。
+
+**結構**（都在 head 內層 Node 0-4882 最前面，所以帽子跟頭走、畫在頭髮前）：`slot_hat`（Node，local 歸零）→ `hat_solo`（Solo 0-8360）→ 子物件 `none`（空 Node）／`hat_A`／`hat_B`（各一個 Node 裝形狀，y +28 讓帽子坐進頭髮）。資料面：enum `HatStyle`（none／hat_A／hat_B）→ View Model `Avatar`（原 ViewModel1 改名）加 enum 屬性 `hat` → 綁到畫板 → converter `convertToNumber`（HatToNumber）→ `databind` 到 Solo 的 `activeComponentId`（key 296）。
+
+**MCP 做得到／做不到**：
+- **MCP 沒有建 Solo 的指令**，`group_editor` 只建 Node，`set_property_values` 改不了型別。做法＝CC 先建 Node 與子物件，**James 在階層選三個子物件 → 右鍵 Wrap in Solo**（一步，10 秒），CC 再 `query_objects` 拿到 Solo id 接手。`select_objects` 選空 Node 會回「no stage representation」，幫 James 定位要選一個有形狀的子物件。
+- `group_editor` 的 x／y 預設 0 是**世界座標**，掛在 93% 的 head 下會算成 local (−428.8,−320.7)、scale 107.5，建完一律把 x／y／r／sx／sy 重設回 0／0／0／100／100。
+- enum、converter、View Model 屬性、實例、databind、bindViewModelToArtboard 全部 MCP 可做，一次成功。
+- **編輯器靜態截圖（capture_artboard）不套用 Data Binding**：實例值設 hat_A，Solo 仍顯示設計態的 none。要驗一定匯 .riv 進 runtime。
+
+**🔴 順序鐵律（實測踩到）**：enum 經 convertToNumber 變成 index，Solo 用 index 選子物件，**Solo 子物件順序必須和 enum 值順序一字不差**。第一次 Solo 內順序是 none／hat_B／hat_A（建立順序反過來），結果 hat_A 切到草帽。修法＝`reorder_objects` 把 hat_A `bringForward` 一格，`query_objects depth 1` 看 children 陣列順序＝enum 順序才匯出。
+
+**runtime 寫法**（試播頁，`@rive-app/canvas-single@2.42.0`）：`new rive.Rive({ …, autoBind: true, onLoad(){ const p = r.viewModelInstance.enum("hat"); p.value = "hat_A"; } })`，之後 `p.value = "hat_B"` 立刻切換，不用重載、不經狀態機輸入。三態都驗過（Chrome 自動化＋JS 直接改值截圖）。**Artifact 的 iframe 吃不到自動化點擊**（size 鈕也點不動），驗頁要 `python3 -m http.server` 開 localhost 版，JS 工具才進得去。
+
+**對遊戲的意義**：帽子／衣服／手持／背景四部位各一個 Solo＋一個 enum 屬性即可，JS 端一行改值，不用每件裝備一條動畫（example-dissections §2.2 的舊法可以不用）。待解：真實裝備零件要回零件表階段請 GPT 生「同比例、同視角、分件」的裝備圖，再走 Recraft 向量化→切件→掛進對應 Solo；一個 Solo 的 N 個選項全部內嵌，`.riv` 體積隨選項數線性長（目前 167 KB 含兩頂幾何帽）。
+
+### 6.9 舉手動畫＋trigger 狀態機（2026-10-09 深夜，全程 MCP，runtime 實證通過）
+
+**目的**：補時刻表 #5／#6（每日完成、解鎖成就）的「舉手」，並驗通「JS 觸發一次性動作、做完自動回待機」這條路，之後試穿、燈升、卷軸全走同一套。
+
+**動作**：角色右手（畫面左側、圍巾尾那側）直臂舉到頭頂斜上。只 key 兩根骨頭的 r：uarm_R（0-6987）−79.3→**65**、farm_R（0-6988）1.1→**18**（前臂微彎朝頭）。時序照 animation-map：第 0→27 幀舉（cubic 0.3/0/0.25/1，快起慢停）、27→51 停住（hold）、51→84 放下（cubic 0.42/0/0.58/1），84 幀＝1.4 秒。**角度判斷**：100 會讓手伸出畫板頂（1400 高），65 剛好在框內且讀得出「舉手」；方向規則同 §6.6（R 臂 r 變大＝往外往上）。測姿勢的做法＝直接 set 骨頭 r 截圖，看完**一定改回 −79.3／1.1**。
+
+**狀態機（單層 idle→raise→idle）**：
+- `createLinearAnimations` 的 duration 單位是**秒**（寫 84 會變 5040 幀），建完用 `set_property_values` 寫 key 57＝84、key 59＝0（oneShot）。
+- `createStates`（layerId 0-8，linearAnimationName raise）→ `createTransitions`（states[{id, transitions:[{to: 目標 state id}]}]）。
+- 觸發：View Model 加 trigger 屬性 `celebrate`（addProperties propertyType trigger）→ `createConditions` 只給 `leftComparator.viewModelPropertyId`，自動成為 triggerFired 條件。
+- 回程 transition 要 exit time，`set_property_values` 寫 **flags（key 152）位元：1＝停用、4＝enableExitTime、8＝exitTimeIsPercentage**；exittime（key 160）**以幀數寫 84 不被採用（6 幀就跳回）**，要寫 **flags 12＋exittime 100（百分比）**才在第 84 幀回 idle。duration（key 158）是混合幀數：進 raise 6 幀、回 idle 10 幀。
+- 驗證：`simulateStateMachine` inputs `[{frame:30, property:"celebrate"}]`，trace 要看到第 31 幀進 raise、第 115 幀回 idle。
+
+**runtime**：`vmi.trigger("celebrate").trigger()`，不經狀態機 input。試播頁加「舉手」鈕，Chrome 本機頁驗過 0.5 秒舉起、2.5 秒回待機，帽子跟著動。.riv 167 KB。**.rev 備份也走同一份 HTTP 配方**（format rev、embed_assets false，370 KB），存 `~/bible-work/rive-backups/2641139-r4-2026-10-09.rev`（repo 外）。
+
+**待 James 審**：幅度（65°）與停頓是否夠「儀式感」；深夜版（抬燈、較小幅度、放慢）等油燈零件到位再做。
+
+### 6.10 試穿小動作＋View Model 命名對齊契約（2026-10-09 深夜）
+
+**試穿（時刻表 #8）**：動畫 `tryOn` 72 幀＝1.2 秒。uarm_R −79.3→**−50**（0→24 幀，cubic 0.3/0/0.25/1）停到 48 幀再放下；farm_R 1.1→**−145**（24 幀）→**−128**（36 幀）→**−145**（48 幀）→1.1（72 幀），forearm 的來回 17° 就是「看手腕時轉一下」。**前臂方向規則**：farm_R 的 r 為正＝往外伸直（70 會變成手平舉向外），為負＝往身體內側彎；−110 手停在腰帶、−145 手到胸前圍巾旁。狀態機與 §6.9 同款：trigger `tryOnTrigger` → idle→tryOn（duration 6）→ idle（flags 12、exittime 100、duration 10）；`simulateStateMachine` 第 31 幀進、第 103 幀回。runtime 本機頁驗過。
+
+**命名對齊 SKILL.md 第 2 節契約**：View Model `ViewModel1`→`Avatar`→**`CharacterVM`**；trigger `celebrate`→**`liftTrigger`**；enum 屬性 `hat`→**`hatStyle`**（enum 型別名仍 `HatStyle`，值 none／hat_A／hat_B）；新增 **`tryOnTrigger`**。`rename_objects` 可直接改 View Model 與屬性的名字（id 不變、綁定不斷）。試播頁 JS 同步改成 `vmi.enum("hatStyle")`、`vmi.trigger("liftTrigger")`、`vmi.trigger("tryOnTrigger")`。
+
+**🔴 假警報實錄（省下次兩小時）**：本機頁測「第二次觸發沒反應」四次重現，差點改狀態機。真因＝Chrome 自動化分頁 `document.hidden === true`，rAF 被節流：trigger 設下去後沒有影格推進，等到下一次截圖讓分頁畫一格時，runtime 用一個很大的 delta 一次把 84 幀跑完（StateChange 紀錄 raise→idle 只隔 16 ms），截圖永遠只看到待機。**驗一次性動作的正確做法＝聽事件不看圖**：`r.on(rive.EventType.StateChange, e => log(e.data))`（或建構子 `onStateChange`），看 state 名字序列 raise→idle、tryOn→idle 有沒有出現；試播頁已內建顯示目前 state。exit time 一度改 98% 排查，已改回契約的 100%。
+
+**契約需修訂的地方（待 James 拍板）**：契約寫頭飾用 Image 屬性 `hatImage` 換圖，但零件表路線實證用 **Solo＋enum** 更順（不用 runtime decode 圖片、選項全內嵌）；建議契約改成 `hatStyle` enum 綁 `hat_solo`，手持同理 `heldItemStyle`。`lampTrigger`（深夜抬燈）等油燈零件。
+
+---
+
+### 6.11 r5 裝備零件：帽子「戴在頭上生成」再摳出來（2026-10-09 深夜，已切件、尚未進 Rive）
+
+**為什麼不用獨立零件圖**：James 看了 GPT 生的獨立帽子＋油燈零件表（`art/gpt-ref/r5-equip-parts.png`）判「帽子下緣跟頭的交接處一定會很醜」——帽子單獨畫時帽口是平的，戴上去不會貼頭髮輪廓。改走：**把 r4 的頭渲染成底圖，請 GPT 在編輯模式下「幫這顆頭戴上帽子」，再用底圖相減把帽子摳出來**，帽口自然貼合頭髮。Recraft 的去背只能去背景，分不開帽子與頭，所以摳圖在本機用 ImageMagick 做（零點數）。
+
+**底圖**：ImageMagick 直接 render SVG 有黑塊雜訊，改用 headless Chrome：`--headless=new --force-device-scale-factor=4 --window-size=300,440 --screenshot=… file://…/art/recraft/r4/parts/01_head.svg`，再 `-fuzz 2% -trim +repage -bordercolor white -border 120` → `r5-head-base.png`（1240×1799；trim 框 1000×1559+28+34）。GPT 回來的兩張戴帽圖（`r5-head-hat-straw.png`／`r5-head-hat-beanie.png`，中文檔名已改英文）先 `-resize 1240x1799!` 對齊底圖再相減。
+
+**摳圖配方（兩頂帽子走不同路）**：
+- 草帽（與頭差異大）：`-compose difference -composite -channel RGB -separate -evaluate-sequence max`（取各通道差的最大值，比轉灰階穩）→ `-threshold 9% -morphology open disk:6` → `connected-components`（area-threshold 2000、keep-top 2、mean-color）→ `-morphology close disk:6 -morphology dilate disk:2` 當 alpha 遮罩。dilate 會把白底拉進來成白邊，再 AND 一張「非白」遮罩去掉。
+- 毛帽（紅色，與褐髮**灰階亮度幾乎相同**，相減法失敗；`-fuzz 22%` 選紅色又整張都選到）：改 HSL 色相窗 `-colorspace HSL -fx "(u.r>=0.012 && u.r<=0.052 && u.g>=0.35 && u.b>=0.28 && u.b<=0.72) ? 1 : 0"`，再 connected-components keep-top 2，**補洞**用 `\( +clone -negate -fill black -floodfill +0+0 white \) -compose lighten -composite`（從外角泛洪，沒被淹到的黑區就是內部洞），最後 close disk:5＋dilate disk:2。
+- 油燈：獨立零件圖右欄 `-crop 520x836+1380+0`，`-fuzz 6% -transparent white -trim`。
+- 每件都疊回 `r5-head-base.png` 做預覽（`r5-preview.png` 已給 James）。已知瑕疵：草帽帽簷下帶進幾小塊 GPT 重畫的頭髮，疊在原髮上看不出來，先不處理。
+
+**產出**（2 倍解析度 PNG，先不花 3 點轉向量，看實際效果再決定）：`art/recraft/r5/hat_straw.png` 542×282、`hat_beanie.png` 404×323、`lamp.png` 266×576；全尺寸版在 `art/gpt-ref/r5-hat-*.png`、`r5-lamp.png`。
+
+**座標換算（進 Rive 用）**：底圖 px → SVG 單位 `(732.42 + (bx−92)/4, 9.54 + (by−86)/4)`；SVG → head 內層 Node（0-4882）local ≈ SVG − (862, 222)；PNG 縮到 46.5% 時 Rive image scale ≈ 53.76%。算出帽子中心：草帽 (3.5, −118.5)、毛帽 (10.7, −141.5)，縮放 53.8%（hat_A／hat_B 本身 y＝28，放進去要再減）。
+
+**中斷點（James 2026-10-09 深夜喊停）**：MCP `upload_asset` 在這台機器失敗（沙盒），PNG 要 James 從 Finder **拖到畫布**；之後 CC 要做：`find_objects` 找新 Image 節點 → `reparent_objects` 進 hat_A（5-8328）／hat_B（5-8329）→ 設上面座標與縮放 → 刪佔位幾何帽（hat_A：5-8336／5-8340；hat_B：5-8344／5-8348／5-8352）→ `capture_artboard` 疊 `r5-head-hat-*.png` 對位 → 匯出 .riv 更新試播頁 → 油燈掛 farm_R（0-6988）做抬燈動畫（`lampTrigger`）。試播頁鈕的標籤要跟 enum 對齊：hat_A＝毛帽、hat_B＝草帽。
 
 ---
 
