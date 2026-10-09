@@ -448,6 +448,8 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **命名對齊 SKILL.md 第 2 節契約**：View Model `ViewModel1`→`Avatar`→**`CharacterVM`**；trigger `celebrate`→**`liftTrigger`**；enum 屬性 `hat`→**`hatStyle`**（enum 型別名仍 `HatStyle`，值 none／hat_A／hat_B）；新增 **`tryOnTrigger`**。`rename_objects` 可直接改 View Model 與屬性的名字（id 不變、綁定不斷）。試播頁 JS 同步改成 `vmi.enum("hatStyle")`、`vmi.trigger("liftTrigger")`、`vmi.trigger("tryOnTrigger")`。
 
+**🔴 假警報實錄（省下次兩小時）**：本機頁測「第二次觸發沒反應」四次重現，差點改狀態機。真因＝Chrome 自動化分頁 `document.hidden === true`，rAF 被節流：trigger 設下去後沒有影格推進，等到下一次截圖讓分頁畫一格時，runtime 用一個很大的 delta 一次把 84 幀跑完（StateChange 紀錄 raise→idle 只隔 16 ms），截圖永遠只看到待機。**驗一次性動作的正確做法＝聽事件不看圖**：`r.on(rive.EventType.StateChange, e => log(e.data))`（或建構子 `onStateChange`），看 state 名字序列 raise→idle、tryOn→idle 有沒有出現；試播頁已內建顯示目前 state。exit time 一度改 98% 排查，已改回契約的 100%。
+
 **契約需修訂的地方（待 James 拍板）**：契約寫頭飾用 Image 屬性 `hatImage` 換圖，但零件表路線實證用 **Solo＋enum** 更順（不用 runtime decode 圖片、選項全內嵌）；建議契約改成 `hatStyle` enum 綁 `hat_solo`，手持同理 `heldItemStyle`。`lampTrigger`（深夜抬燈）等油燈零件。
 
 ---

@@ -49,6 +49,8 @@
 
 - **一次性動作鐵律**（2026-10-09，recraft.md §6.9）：`createLinearAnimations` duration 單位是秒，建完改 key 57（幀）／59（0 oneShot）；transition flags key 152：1 停用、4 enableExitTime、8 百分比；exit time 用 **flags 12＋exittime 100**，寫幀數不生效；trigger 條件只給 leftComparator 的 viewModelPropertyId；每次改完跑 `simulateStateMachine` 看幀號。
 
+- **runtime 驗一次性動作聽 StateChange，不靠截圖**（2026-10-09，recraft.md §6.10）：Chrome 自動化分頁 document.hidden 會讓 rAF 停、動作一格跳完，截圖看起來像「trigger 沒反應」。
+
 **屬性**
 - `set_property_values` 的 key 必須是整數，先 `query_property_keys`。常用：x 13、y 14、r 15（度）、sx 16、sy 17（百分比）、opacity 18。
 - 縮放用百分比（93＝93%），角度用度；正角度在螢幕上是順時針。
