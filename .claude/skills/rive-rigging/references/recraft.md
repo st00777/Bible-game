@@ -368,6 +368,20 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **第二階段候選**：頭髮辮子、裙襬 mesh；手肘 IK；肩膀轉大角度時軀幹無袖肩線會露出，可考慮把袖子頂端多畫一點或加 clip。
 
+### 6.7 辮子 mesh（2026-10-09 深夜）：找形狀、權重坑、重綁法
+
+**James 畫骨**：選 `neck` → B 連點三下 → neck 底下多出 Bone 3/4/5（id 0-7441/7442/7443），`rename_objects` 改 braid_anchor／braid1／braid2。**MCP 讀不到新骨頭時，先確認 James 是在桌面 App 畫的**：他在瀏覽器畫、App 沒切回來時 find_objects 看不到。
+
+**辮子不是獨立零件，藏在 01_head 的 126 個 Custom Shape 裡**，找法全靠數據：`query_objects head depth 3` 落檔（18 萬字元）→ python 收 Shape→PointsPath→Vertex id（1434 個）→ 用 **MCP HTTP 端點**（`http://127.0.0.1:9791/mcp`，initialize 拿 session id 後 tools/call，回應是純 JSON 或 SSE 兩種都要處理）批次 `query_property_values` 頂點 x／y（key 24／25）與 Shape／Path 的 x／y／r／sx／sy → 頂點座標是各 Path 局部的，要先套 Path 再套 Shape 的位移旋轉縮放才得到 head 局部座標 → 畫板座標＝head 內層 Node 世界 (398.8,298.3)＋0.93×局部。辮子區＝head 局部 x<−40 且下緣 y>20 → 22 個小形狀＋1 個大形狀 0-5457（深棕 #7d4d2f、85 頂點、x −126..−10、y −86..195，是「頭側髮＋辮子」連在一起的底層）。`mcp.sh` 小工具（scratchpad）：`bash mcp.sh <tool> '<json>'` 直接打端點，大量查詢不進對話。
+
+**🔴 權重坑 1：自動權重不是純「最近骨段」**。23 條路徑綁三根骨後，大形狀靠臉那幾個頂點（在左眼旁 (382,252)）被算給 braid2，braid 一轉臉上就多一條深色細線。blend 0.15／smooth false／maxInfluences 2 全部一樣，判斷是演算法看「骨頭是否在形狀內部」：anchor 原本從脖尖橫走到辮根、整根在髮塊外面，頭側髮的頂點「看不到」anchor 就投給辮子骨。**修法＝改路徑讓 anchor 穿過髮塊**：anchor 從 neck 尖 (404,340) 走到耳上髮側 (345,275)（r −42.2、len 87.8），braid1 從那裡經辮根到辮中 (326,400)（r −129.2、len 126.4），braid2 到辮尾 (320,480)（r −4.3、len 80.2）。James 原本手畫的其實就是這個走法（anchor −49.2／72、braid1 −106.9／76），我第一次「校正」成橫走反而錯。
+
+**🔴 權重坑 2：綁完再改骨頭數值＝改變形，不是改綁定姿勢**。bind pose 在 bindBones 當下鎖定，之後 set 骨頭 r／length 整個網格跟著變形（靜止時臉被頭髮撕開）；再 autoWeight 也不會重綁；bindBones 再呼叫回「already bound」。**重綁唯一辦法＝`query_objects path depth 1` 找出每條路徑底下的 Skin 物件（type Skin），`delete_objects` 刪掉 → 路徑回到原始幾何 → 再 bindBones → autoWeight**。所以順序一定是：骨頭數值先定 → 再綁 → 再 autoWeight；要調骨頭就刪 Skin 重來。
+
+**驗證法**：`querySkin includeVertexWeights` 批次落檔，python 把每個頂點換成畫板座標、算最近骨段，和實際最大權重比對（check-skins.py）；對不上的清單直接指出哪個頂點會飛。最後 braid1／braid2 各 +12° 截圖：辮子整條外擺、耳邊頭髮不動、臉乾淨。
+
+**idle 加兩軌**：braid1 r −129.2 ±3.5（288 幀一循環、頂點在第 60 幀，和圍巾錯開相位）；braid2 r −4.3，+4.5／−4.5、落後 40 幀。已匯出更新試播頁。
+
 ### 6.6 第一支待機動畫 idle（2026-10-09 晚，全程 MCP）
 
 **成品**：檔 2641139 線性動畫 `idle`（id 0-6，由預設 Timeline 1 改名；fps 60、864 幀＝14.4 秒、loop），預設狀態機 Entry→idle 已自動接好，`simulateStateMachine` 200 幀確認進入 idle。14.4 秒＝呼吸 3.6 秒×4 與圍巾 4.8 秒×3 的最小公倍，所以頭尾無縫；眨眼時間點不等距塞在同一條軌。
