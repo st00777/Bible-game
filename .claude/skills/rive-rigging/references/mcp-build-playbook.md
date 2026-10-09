@@ -33,6 +33,7 @@
 - 先 `session_info` 確認 `activeFileName` 是要施工的檔，不是範例檔；MCP 只動作用中分頁。新檔要 James 在桌面版 File → New 並停在該分頁。
 - 新檔預設 `Artboard 1` 500×500、背景 Fill `#282828`；用 `open_file_editor` renameArtboard／resizeArtboard，背景用 `path_editor setPaints` 對 Fill id 改色。
 - `capture_artboard` 的 `backgroundColor` 對有 Fill 的畫板無效，要改畫板 Fill。
+- **CC 無法自己把 SVG 送進 Rive**：`upload_asset` 在沙盒讀不到本機路徑，curl 資料 URI 被 auto mode 擋（2026-10-09 實測）。素材一律請 James 拖檔，CC 只做匯入後的組裝。
 
 **座標與樞紐**
 - `createShapes` 的 x／y 是形狀原點＝旋轉樞紐，path 指令相對原點。**把原點放在關節**（肩、肘、腕）就不用再校 pivot。
@@ -58,6 +59,8 @@
 - 建立順序＝畫序，後建在上；`get_artboard_hierarchy` 列表是前到後。
 - 一次 `reorder_objects` 多筆 `sendToFront` 依序執行可重排整段。
 - 藏接縫：上臂要蓋在前臂上 → 前臂放在肘群組、上臂 shape 排在該群組前面。
+- **匯入 SVG 後 Shape 子層順序與 SVG path 順序相反**（第 i 條 path＝倒數第 i 個 Shape）。要刪特定 path（例如近白殘塊）先 `query_objects` depth 1 看 Fill 顏色對號，別照 SVG 順序數（2026-10-09，recraft.md §6.3）。
+- 匯入的 SVG 結構＝外層 Node → 內層 Node（自帶原圖座標）→ Shape；組裝只改外層位置，移樞紐＝外層原點改到關節、內層反向補償。
 
 **平行呼叫**
 - 同一回合的多個工具呼叫順序不保證；有依賴的（建 → 拿 id → 搬 → 設值 → 拍圖）分回合。
