@@ -45,6 +45,8 @@
 - `reparent_objects` 用 `position: "end"` 逐件搬進群組時，畫序會**整段反過來**（先搬的跑到最前面，頭髮會蓋住臉）；搬完在群組內照原順序再跑一次 `sendToFront` 鏈。
 - `group_editor` 用 objectIds 包既有物件時，若含空 Node（無 stage item）整個呼叫失敗；改「建空群組＋reparent」。
 
+- **換裝 Solo 鐵律**（2026-10-09，recraft.md §6.8）：MCP 建不了 Solo，要 James 右鍵 Wrap in Solo；Solo 子物件順序必須＝enum 值順序（convertToNumber 給的是 index）；`capture_artboard` 不套 Data Binding，驗換裝一定匯 .riv 進 runtime；`group_editor` 的 x／y 是世界座標，掛在縮放過的父層下建完要把 local 歸零。
+
 **屬性**
 - `set_property_values` 的 key 必須是整數，先 `query_property_keys`。常用：x 13、y 14、r 15（度）、sx 16、sy 17（百分比）、opacity 18。
 - 縮放用百分比（93＝93%），角度用度；正角度在螢幕上是順時針。

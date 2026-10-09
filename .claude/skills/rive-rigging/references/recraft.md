@@ -407,6 +407,24 @@ A flat vector illustration of a single wide-brim straw hat, isolated game item i
 
 **idle 加兩軌**：braid1 r −129.2 ±3.5（288 幀一循環、頂點在第 60 幀，和圍巾錯開相位）；braid2 r −4.3，+4.5／−4.5、落後 40 幀。已匯出更新試播頁。
 
+### 6.8 換裝路徑驗證：Solo＋enum Data Binding（2026-10-09 深夜，runtime 實證通過）
+
+**目的**：第一版範圍是「待機＋換裝」，待機已成立，這節驗「零件表角色能不能用官方推薦的 Solo＋View Model enum 換裝」。只驗機制，帽子是 `createParametricShapes` 畫的幾何佔位圖（毛帽＝橢圓＋圓角矩形、草帽＝寬橢圓帽簷＋橢圓冠＋緞帶）。
+
+**結構**（都在 head 內層 Node 0-4882 最前面，所以帽子跟頭走、畫在頭髮前）：`slot_hat`（Node，local 歸零）→ `hat_solo`（Solo 0-8360）→ 子物件 `none`（空 Node）／`hat_A`／`hat_B`（各一個 Node 裝形狀，y +28 讓帽子坐進頭髮）。資料面：enum `HatStyle`（none／hat_A／hat_B）→ View Model `Avatar`（原 ViewModel1 改名）加 enum 屬性 `hat` → 綁到畫板 → converter `convertToNumber`（HatToNumber）→ `databind` 到 Solo 的 `activeComponentId`（key 296）。
+
+**MCP 做得到／做不到**：
+- **MCP 沒有建 Solo 的指令**，`group_editor` 只建 Node，`set_property_values` 改不了型別。做法＝CC 先建 Node 與子物件，**James 在階層選三個子物件 → 右鍵 Wrap in Solo**（一步，10 秒），CC 再 `query_objects` 拿到 Solo id 接手。`select_objects` 選空 Node 會回「no stage representation」，幫 James 定位要選一個有形狀的子物件。
+- `group_editor` 的 x／y 預設 0 是**世界座標**，掛在 93% 的 head 下會算成 local (−428.8,−320.7)、scale 107.5，建完一律把 x／y／r／sx／sy 重設回 0／0／0／100／100。
+- enum、converter、View Model 屬性、實例、databind、bindViewModelToArtboard 全部 MCP 可做，一次成功。
+- **編輯器靜態截圖（capture_artboard）不套用 Data Binding**：實例值設 hat_A，Solo 仍顯示設計態的 none。要驗一定匯 .riv 進 runtime。
+
+**🔴 順序鐵律（實測踩到）**：enum 經 convertToNumber 變成 index，Solo 用 index 選子物件，**Solo 子物件順序必須和 enum 值順序一字不差**。第一次 Solo 內順序是 none／hat_B／hat_A（建立順序反過來），結果 hat_A 切到草帽。修法＝`reorder_objects` 把 hat_A `bringForward` 一格，`query_objects depth 1` 看 children 陣列順序＝enum 順序才匯出。
+
+**runtime 寫法**（試播頁，`@rive-app/canvas-single@2.42.0`）：`new rive.Rive({ …, autoBind: true, onLoad(){ const p = r.viewModelInstance.enum("hat"); p.value = "hat_A"; } })`，之後 `p.value = "hat_B"` 立刻切換，不用重載、不經狀態機輸入。三態都驗過（Chrome 自動化＋JS 直接改值截圖）。**Artifact 的 iframe 吃不到自動化點擊**（size 鈕也點不動），驗頁要 `python3 -m http.server` 開 localhost 版，JS 工具才進得去。
+
+**對遊戲的意義**：帽子／衣服／手持／背景四部位各一個 Solo＋一個 enum 屬性即可，JS 端一行改值，不用每件裝備一條動畫（example-dissections §2.2 的舊法可以不用）。待解：真實裝備零件要回零件表階段請 GPT 生「同比例、同視角、分件」的裝備圖，再走 Recraft 向量化→切件→掛進對應 Solo；一個 Solo 的 N 個選項全部內嵌，`.riv` 體積隨選項數線性長（目前 167 KB 含兩頂幾何帽）。
+
 ---
 
 ## 7. 現成 skill／MCP／GitHub 專案盤點（2026-09-30）
