@@ -52,7 +52,7 @@
 ```
 users/{uid}                                   主文件：completed / streak / items / 裝備 / level / xp / name / gender / setup
 users/{uid}/profile/data                      登入資訊 + E1 分眾 5 欄位（ageGroup/churchKey/district/groupName/devotionHabit）
-users/{uid}/chapters/{chapterKey}             每章完成記錄（date/timeOfDay/choiceSelected/reflectionText/aiResponse/aiIsFallback/mood）
+users/{uid}/chapters/{chapterKey}             每章完成記錄（date/timeOfDay/choiceSelected/reflectionText/aiResponse/aiIsFallback/mood；互動章另有 interact{kind,result,hintUsed}，2026-10-11 試驗）
 users/{uid}/chapters/{chapterKey}/reflections/{ts}   默想歷史（每次寫默想新增一筆）
 users/{uid}/stats/data                        累計統計（totalDays/reflectionCount/readCount/…）
 users/{uid}/achievements/data                 成就 unlockedAt / progress
