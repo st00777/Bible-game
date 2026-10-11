@@ -299,3 +299,6 @@ Rive 於 **2025-10-20** 推出新訂價結構：編輯器對所有人保持免�
 - Rive 免費方案「匯出」是否真的是完全阻擋（而非允許匯出但打浮水印）：多份來源（部落格、rivemasterclass）都只說「免費方案不能發佈」，沒有出現「浮水印」字樣，判斷是完全阻擋，但沒有看到官方逐字寫「無浮水印機制」這種反向確認。
 - Spine Essential 版本是否包含基本换装（skins）功能，還是換裝也是 Professional 才有：WebFetch 摘要對此有一句模糊的「兩版都支援 skins」但未附逐字原文佐證，建議之後如果真的要買 Spine 時直接到官網逐字核對授權比較表。
 - `rive-rs-cli` 的 8 個 open GitHub issues 具體內容未逐一查閱（只確認了總數與倉庫活躍度），若要評估「Bone 旋轉何時會補上」，需要另外去 issue tracker 逐條確認有沒有相關的 feature request 或作者回覆時程。
+
+### 5.x 圖片轉 3D AI 工具（Meshy／Tripo／3D AI Studio／Rodin／TRELLIS.2／Hunyuan3D）— 2026-10-09 已調查
+完整報告在 `docs/research-image-to-3d-tools.md`。一句話：只有 Meshy、Tripo 能從圖走到綁骨＋動畫＋FBX 且 CC 可全自動（Meshy MCP／Tripo CLI）；六家都無「2D 日系插畫保留風格」官方證據；開源兩家無綁骨且本機（M2 8 GB）跑不動；3D 結果進不了 Rive，只能渲染序列圖、會失去換裝與 Data Binding。結論＝不取代 Rive，走路需求若出現先考慮另畫 3/4 側面零件族。
