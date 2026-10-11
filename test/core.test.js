@@ -224,3 +224,58 @@ test('app.js 不再自己定義已搬走的函式，HTML 仍載入 core.js（202
     assert.ok(new RegExp(`^function ${wrapper}\\s*\\(`, 'm').test(appjs), `app.js 缺薄包裝 ${wrapper}`);
   }
 });
+
+// ── 經文互動（2026-10-11 試驗）────────────────────────────────
+const ORDER_CH = { chapter: 'EXO14', interact: { kind: 'order', prompt: 'p', hint: 'h', doneText: 'd', skipText: 's',
+  items: [{ id: 'a', text: 'A', ref: '14:2' }, { id: 'b', text: 'B', ref: '14:7' }, { id: 'c', text: 'C', ref: '14:10' }, { id: 'd', text: 'D', ref: '14:13' }] } };
+const MATCH_CH = { chapter: 'EXO15', interact: { kind: 'match', prompt: 'p', hint: 'h', doneText: 'd', skipText: 's',
+  pairs: [{ l: 'L1', r: 'R1', ref: '15:1' }, { l: 'L2', r: 'R2', ref: '15:2' }, { l: 'L3', r: 'R3', ref: '15:3' }] } };
+
+test('interactKind：缺欄／不認得的 kind 回 none，order／match 原樣', () => {
+  assert.equal(core.interactKind(null), 'none');
+  assert.equal(core.interactKind({ chapter: 1 }), 'none');
+  assert.equal(core.interactKind({ interact: { kind: 'quiz' } }), 'none');
+  assert.equal(core.interactKind(ORDER_CH), 'order');
+  assert.equal(core.interactKind(MATCH_CH), 'match');
+});
+
+test('seededShuffle：同種子同結果、是原列表的排列、不等於原序、不改原陣列', () => {
+  const src = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const x = core.seededShuffle(src, 'EXO14');
+  const y = core.seededShuffle(src, 'EXO14');
+  assert.deepEqual(x, y);
+  assert.deepEqual([...x].sort(), src);
+  assert.notDeepEqual(x, src);
+  assert.deepEqual(src, ['a', 'b', 'c', 'd', 'e', 'f']);
+  // 兩個元素也保證不等於原序（洗到原序時旋轉一格）
+  for (const k of ['A', 'B', 'C', 'GEN1', 'EXO14', 'COR1_2']) assert.deepEqual(core.seededShuffle([1, 2], k), [2, 1]);
+  assert.deepEqual(core.seededShuffle([], 'k'), []);
+  assert.deepEqual(core.seededShuffle(['only'], 'k'), ['only']);
+});
+
+test('interactLayout：排序題亂序但 id 齊；配對題左右各自亂序、id 集合相同；一般章回 null', () => {
+  assert.equal(core.interactLayout({ chapter: 1 }), null);
+  const o = core.interactLayout(ORDER_CH);
+  assert.equal(o.kind, 'order');
+  assert.deepEqual(o.items.map(i => i.id).sort(), ['a', 'b', 'c', 'd']);
+  assert.notDeepEqual(o.items.map(i => i.id), ['a', 'b', 'c', 'd']);
+  const m = core.interactLayout(MATCH_CH);
+  assert.equal(m.kind, 'match');
+  assert.deepEqual(m.pairs.map(p => p.id), ['p0', 'p1', 'p2']);
+  assert.deepEqual(m.left.map(p => p.id).sort(), ['p0', 'p1', 'p2']);
+  assert.deepEqual(m.right.map(p => p.id).sort(), ['p0', 'p1', 'p2']);
+  assert.equal(m.left.find(p => p.id === 'p1').text, 'L2');
+  assert.equal(m.right.find(p => p.id === 'p1').text, 'R2');
+});
+
+test('interactSummary：依經文順序列出、每行附 ref；一般章回 null', () => {
+  assert.equal(core.interactSummary({ chapter: 1 }), null);
+  const o = core.interactSummary(ORDER_CH);
+  assert.equal(o.title, '📜 經文裡的一幕');
+  assert.deepEqual(o.lines, [{ text: 'A', ref: '14:2' }, { text: 'B', ref: '14:7' }, { text: 'C', ref: '14:10' }, { text: 'D', ref: '14:13' }]);
+  const m = core.interactSummary(MATCH_CH);
+  assert.equal(m.title, '🔗 經文裡的線索');
+  assert.equal(m.lines.length, 3);
+  assert.equal(m.lines[0].ref, '15:1');
+  assert.ok(m.lines[0].text.includes('L1') && m.lines[0].text.includes('R1'));
+});

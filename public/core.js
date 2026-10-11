@@ -287,6 +287,61 @@
     return ch && ch.sceneEmoji ? ch.sceneEmoji : '';
   }
 
+  // ── 經文互動（2026-10-11 試驗；規格 docs/spec-scripture-interaction-2026-10-11.md）──
+  // interact 是獨立欄位、不佔 type：'order'＝把幾幕按經文順序排、'match'＝線索配對。只取代情境題那一格，默想／獎勵不動。
+  // 缺欄或不認得的 kind 一律 'none'，舊內容零感知。
+  const INTERACT_KINDS = ['order', 'match'];
+  function interactKind(data) {
+    const k = data && data.interact && data.interact.kind;
+    return INTERACT_KINDS.includes(k) ? k : 'none';
+  }
+  // 固定亂序：同一章所有玩家看到同一個順序（章節 key 當種子），測玩時才對得上話。
+  // FNV-1a 把字串變成種子 → mulberry32 出亂數 → Fisher-Yates 洗牌；
+  // 洗完若跟原序一模一樣（排序題一開場就排好了）就整列旋轉一格。不改傳入的陣列。
+  function seededShuffle(list, key) {
+    const str = String(key);
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    let a = h >>> 0;
+    const rand = () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const out = list.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    if (out.length > 1 && out.every((v, i) => v === list[i])) out.push(out.shift());
+    return out;
+  }
+  // 畫面要的版面：排序題回亂序後的幕；配對題左右兩欄各自亂序（種子加後綴，兩欄不會是同一個排列）。
+  // pairs 沒有 id，這裡用索引補 p0、p1…，畫面點選與對照都靠它。
+  function interactLayout(data) {
+    const kind = interactKind(data);
+    if (kind === 'none') return null;
+    const it = data.interact;
+    if (kind === 'order') return { kind, items: seededShuffle(it.items || [], data.chapter) };
+    const pairs = (it.pairs || []).map((p, i) => ({ id: 'p' + i, l: p.l, r: p.r, ref: p.ref }));
+    return {
+      kind, pairs,
+      left: seededShuffle(pairs.map(p => ({ id: p.id, text: p.l })), String(data.chapter) + ':L'),
+      right: seededShuffle(pairs.map(p => ({ id: p.id, text: p.r })), String(data.chapter) + ':R'),
+    };
+  }
+  // 經文對照：玩家按下「這樣排／這樣連」後、已完成章重看、日記都用這一份。
+  // 依經文正確順序列出、每行附節數；只給事實，不打勾不打叉、不算幾個對。沒有 interact 回 null。
+  function interactSummary(data) {
+    const kind = interactKind(data);
+    if (kind === 'none') return null;
+    const it = data.interact;
+    if (kind === 'order') return { title: '📜 經文裡的一幕', lines: (it.items || []).map(x => ({ text: x.text, ref: x.ref })) };
+    return { title: '🔗 經文裡的線索', lines: (it.pairs || []).map(p => ({ text: `${p.l}　—　${p.r}`, ref: p.ref })) };
+  }
+
   return {
     chapterKey, getChapter, resetChapterIndex,
     dateStr, calDateStr, calWeekOfMonth, calWeeksInMonth, timeOfDay, formatThreadTime,
@@ -297,5 +352,6 @@
     TITLE_LADDER, titlesForBooks, titlesUnlockedBetween, nextTitle, resolveItem, applyXp, computeCompletion, escapeHtmlMyMsg,
     totalDevotionDays, bestStreak, equippedVerses,
     chapterType, reviewChapters, choiceEmoji,
+    interactKind, seededShuffle, interactLayout, interactSummary,
   };
 });

@@ -7,6 +7,9 @@ const { getAccessToken, FIRESTORE_BASE: FB, parseDoc: parse, fetchCollection: fe
 const WEEKS = Number(process.argv[2]) || 6;
 const STAGES = ['chapter_select', 'question_view', 'choice_confirm', 'submit_reflection', 'complete_devotional'];
 const STAGE_LABEL = { chapter_select: '選章', question_view: '看題', choice_confirm: '確認', submit_reflection: '送默想', complete_devotional: '完成' };
+// 2026-10-11 經文互動試驗：互動章沒有 choice_confirm，interact_done／interact_skip 視同「通過情境題步」讓漏斗不斷線；
+// 完成／跳過比例另列在「經文互動」區塊，否則大量跳過會看起來像採用成功（docs/metric-changelog.md 2026-10-11 條）。
+const isStage = (e, s) => e.type === s || (s === 'choice_confirm' && (e.type === 'interact_done' || e.type === 'interact_skip'));
 
 async function allUids(token) { return (await fetchAllUsers(token)).map(u => u.localId); }
 // 台北時間日期（事件 ts 是 UTC）
@@ -34,7 +37,7 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   console.log('| 週別 | ' + STAGES.map(s => STAGE_LABEL[s]).join(' | ') + ' | 選章→完成 |');
   console.log('|---|' + STAGES.map(() => '---').join('|') + '|---|');
   for (const wk of weeks) {
-    const c = STAGES.map(s => new Set(inWin.filter(e => e.wk === wk && e.type === s).map(e => e.uid)).size);
+    const c = STAGES.map(s => new Set(inWin.filter(e => e.wk === wk && isStage(e, s)).map(e => e.uid)).size);
     console.log(`| ${weekLabel(wk)} | ${c.join(' | ')} | ${pct(c[4], c[0])} |`);
   }
   // ── 2. 週別漏斗（人×章）：以 uid+chapter 去重，看每個「開了的章」走到哪 ──
@@ -42,10 +45,22 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   console.log('| 週別 | ' + STAGES.map(s => STAGE_LABEL[s]).join(' | ') + ' | 看題→確認 | 確認→送默想 | 確認→完成 |');
   console.log('|---|' + STAGES.map(() => '---').join('|') + '|---|---|---|');
   for (const wk of weeks) {
-    const c = STAGES.map(s => new Set(inWin.filter(e => e.wk === wk && e.type === s && e.chapter).map(e => e.uid + '|' + e.chapter)).size);
+    const c = STAGES.map(s => new Set(inWin.filter(e => e.wk === wk && isStage(e, s) && e.chapter).map(e => e.uid + '|' + e.chapter)).size);
     console.log(`| ${weekLabel(wk)} | ${c.join(' | ')} | ${pct(c[2], c[1])} | ${pct(c[3], c[2])} | ${pct(c[4], c[2])} |`);
   }
   console.log('※ 「看題→確認」低 = 看了情境題沒選（乏味／猶豫）；「確認→完成」低 = 選了卻沒領裝備（流程斷或關頁）。');
+  console.log('※ 「確認」含經文互動章的完成＋跳過（2026-10-11 起）；跳過比例見下方「經文互動」區塊，別把跳過當採用。');
+
+  // ── 2b. 經文互動（2026-10-11 試驗）：每章看到／完成／跳過／看提示，跳過比例過半＝停損訊號之一（規格第八節）──
+  const iaEv = inWin.filter(e => e.chapter && /^interact_(view|done|skip|hint)$/.test(e.type));
+  console.log(`\n## 經文互動（interact_*，人×章去重）\n`);
+  if (!iaEv.length) console.log('窗口內尚無互動章事件。');
+  else {
+    const byIa = {};
+    iaEv.forEach(e => { const b = byIa[e.chapter] = byIa[e.chapter] || { view: new Set(), done: new Set(), skip: new Set(), hint: new Set() }; b[e.type.slice(9)].add(e.uid); });
+    console.log('| 章節 | 看到 | 完成 | 跳過 | 看提示 | 跳過比例 |\n|---|---|---|---|---|---|');
+    Object.entries(byIa).sort().forEach(([ch, b]) => console.log(`| ${ch} | ${b.view.size} | ${b.done.size} | ${b.skip.size} | ${b.hint.size} | ${pct(b.skip.size, b.done.size + b.skip.size)} |`));
+  }
 
   // ── 3. 掉最多的章節（看題但沒完成，全窗口） ──
   const byCh = {};
@@ -99,7 +114,7 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   }
 
   // ── 5. 各段停留（elapsedSec 自 chapter_select 起算，僅新版事件有） ──
-  const el = {}; STAGES.slice(1).forEach(s => el[s] = inWin.filter(e => e.type === s && e.meta.elapsedSec != null).map(e => e.meta.elapsedSec));
+  const el = {}; STAGES.slice(1).forEach(s => el[s] = inWin.filter(e => isStage(e, s) && e.meta.elapsedSec != null).map(e => e.meta.elapsedSec));
   const has = Object.values(el).some(a => a.length);
   console.log(`\n## 各段停留中位數（自選章起算，秒；${has ? '' : '尚無資料——elapsedSec 埋點上線後才有'}）\n`);
   if (has) { console.log('| 階段 | 樣本 | 中位秒 |\n|---|---|---|'); STAGES.slice(1).forEach(s => console.log(`| ${STAGE_LABEL[s]} | ${el[s].length} | ${median(el[s]) ?? '—'} |`)); }

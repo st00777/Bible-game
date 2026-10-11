@@ -154,3 +154,39 @@ test('檢查 10：type 不合法、節點章缺 node、回顧章 reviewOf 太少
   assert.ok(bad.errors.some(m => m.includes('A3 reviewOf 的 ZZ')));
   assert.ok(bad.errors.some(m => m.includes('A3 選項 A 的 ref「NOPE」')));
 });
+
+// ── 檢查 11：經文互動（2026-10-11 試驗）────────────────────
+const orderInteract = () => ({ kind: 'order', prompt: 'p', hint: 'h', doneText: 'd', skipText: 's',
+  items: [{ id: 'a', text: 'A', ref: '1:2' }, { id: 'b', text: 'B', ref: '1:5-7' }, { id: 'c', text: 'C', ref: '1:9' }, { id: 'd', text: 'D', ref: '1:12' }] });
+const matchInteract = () => ({ kind: 'match', prompt: 'p', hint: 'h', doneText: 'd', skipText: 's',
+  pairs: [{ l: 'L1', r: 'R1', ref: '1:1' }, { l: 'L2', r: 'R2', ref: '1:3' }] });
+// 互動章可省略 q／choices／responses
+const interactChapter = (ch, interact) => { const c = fullChapter(ch); delete c.q; delete c.choices; delete c.responses; c.interact = interact; return c; };
+
+test('檢查 11：排序／配對互動章省略四格 → 零錯誤；有寫四格照常驗', () => {
+  const r = runWith({ ...healthy, CHAPTERS: [interactChapter(1, orderInteract()), { ...fullChapter('GEN1'), interact: matchInteract() }] });
+  assert.equal(r.errors.length, 0, r.errors.join('\n'));
+  const keep = { ...fullChapter('GEN1'), interact: matchInteract() };
+  keep.choices = keep.choices.slice(0, 3);
+  const r2 = runWith({ ...healthy, CHAPTERS: [fullChapter(1), keep] });
+  assert.ok(r2.errors.some(m => m.includes('choices 不是 4 格')));
+});
+
+test('檢查 11：kind 不合法／幕數不在 4-6／id 重複／ref 不是本章／缺 skipText／與回顧章並存 → error', () => {
+  const bad = orderInteract(); bad.kind = 'quiz';
+  assert.ok(runWith({ ...healthy, CHAPTERS: [interactChapter(1, bad), fullChapter('GEN1')] }).errors.some(m => m.includes('kind「quiz」不合法')));
+  const few = orderInteract(); few.items = few.items.slice(0, 3);
+  assert.ok(runWith({ ...healthy, CHAPTERS: [interactChapter(1, few), fullChapter('GEN1')] }).errors.some(m => m.includes('排序要 4-6 幕')));
+  const dup = orderInteract(); dup.items[1].id = 'a';
+  assert.ok(runWith({ ...healthy, CHAPTERS: [interactChapter(1, dup), fullChapter('GEN1')] }).errors.some(m => m.includes('id 缺或重複')));
+  const ref = orderInteract(); ref.items[2].ref = '2:9';
+  assert.ok(runWith({ ...healthy, CHAPTERS: [interactChapter(1, ref), fullChapter('GEN1')] }).errors.some(m => m.includes('要是本章節數')));
+  const noSkip = orderInteract(); noSkip.skipText = ' ';
+  assert.ok(runWith({ ...healthy, CHAPTERS: [interactChapter(1, noSkip), fullChapter('GEN1')] }).errors.some(m => m.includes('缺 skipText')));
+  const rev = { ...fullChapter('GEN1'), type: 'review', reviewOf: ['GEN1', 1], interact: matchInteract() };
+  assert.ok(runWith({ ...healthy, CHAPTERS: [fullChapter(1), rev] }).errors.some(m => m.includes('不能與回顧章')));
+  const dupL = matchInteract(); dupL.pairs[1].l = 'L1';
+  assert.ok(runWith({ ...healthy, CHAPTERS: [fullChapter(1), interactChapter('GEN1', dupL)] }).errors.some(m => m.includes('左欄文字缺或重複')));
+  const one = matchInteract(); one.pairs = one.pairs.slice(0, 1);
+  assert.ok(runWith({ ...healthy, CHAPTERS: [fullChapter(1), interactChapter('GEN1', one)] }).errors.some(m => m.includes('配對要 2-4 組')));
+});

@@ -9423,6 +9423,23 @@ const CHAPTERS = [
       C:'先找出還能做的一件事，是很務實的活法。這一章有意思的地方在於，神接下來說的並不是「你們什麼都別做」——十五節是「你吩咐以色列人往前走」，十六節交代得更具體：舉手，向海伸杖。摩西手上確實有一件事要做，只是那件事本身不能把海分開，海是大東風吹了一夜才開的。你手上大概也有那件能做的事。今天可以問自己一個問題：我正在忙的這些，哪一件是我真的能決定的，哪一件本來就不在我手上？',
       D:'既站不住也走不動的時候，這一章讀起來會有點刺耳，因為兩句話聽起來都像要求。可是經文的順序是這樣的：他們先向耶和華哀求，十五節神開口的第一句是「你為甚麼向我哀求呢」，然後才說往前走。經文只記下這句問話，沒有交代語氣，也沒有說他們錯在哪裡。海是一夜東風吹開的，不是因為誰站得夠穩。今天不必決定要站住還是往前，只認一件事，不用說給誰聽：我現在動不了，這不是我把事情搞砸了。'
     },
+    // 2026-10-11 經文互動試驗（規格 docs/spec-scripture-interaction-2026-10-11.md）：取代情境題那一格。
+    // 上面的 q／choices／responses 刻意保留：改章前已完成的人重看與日記仍要對得到他當時的四格。
+    interact:{
+      kind:'order',
+      prompt:'那一夜海邊發生了這幾件事。照經文的先後，把它們排排看。',
+      items:[
+        {id:'a', text:'照吩咐轉回，安營在海邊', ref:'14:2'},
+        {id:'b', text:'法老帶六百輛特選的車追上來', ref:'14:7-9'},
+        {id:'c', text:'百姓哀求，說「難道在埃及沒有墳地」', ref:'14:10-12'},
+        {id:'d', text:'摩西說「只管站住」，神說「往前走」', ref:'14:13-15'},
+        {id:'e', text:'伸杖，大東風吹了一夜，海成了乾地', ref:'14:21-22'},
+        {id:'f', text:'海水復原，埃及全軍連一個也沒有剩下', ref:'14:27-28'}
+      ],
+      hint:'摩西還沒伸杖以前，百姓已經先開口了。',
+      doneText:'對一下經文的順序，有一件事很容易被跳過去：百姓先哀求（第十節），神才說「往前走」（第十五節）；而海也不是他們一往前走就開的，是摩西伸杖之後，大東風吹了一整夜才退去的（第二十一節）。站住、哀求、往前走、等一夜——這幾件事在經文裡是有先後的，沒有哪一步被省掉。今天不用做什麼，只在心裡留一句：我現在是在哪一幕？',
+      skipText:'沒關係，這一幕今天先放著。海邊那一夜的順序，哪天想起來再看一次就好。'
+    },
     reflectionTitle:'兩句話',
     reflection:'這一章有兩句話挨得很近。十三節，摩西對著一群剛看見追兵的人說：「不要懼怕，只管站住！看耶和華今天向你們所要施行的救恩。」十四節接著說：「耶和華必為你們爭戰；你們只管靜默，不要作聲。」然後只隔了一節，十五節耶和華對摩西說：「你為甚麼向我哀求呢？你吩咐以色列人往前走。」一句叫他們站住，一句叫他們往前走，中間沒有任何解釋。那一夜實際發生的是：大東風吹了一整夜，海才退去分開——他們站住的時候，海還沒有開；他們往前走的時候，那條乾地已經在那裡了。\n\n你現在的處境裡，有沒有哪一件事也是這樣兩邊拉著——有人叫你別急、再等等，也有事情催著你趕快決定？不用急著判斷哪一邊才對。今天可以想一件小一點的事：這件事裡面，哪一部分是現在就得動的，哪一部分其實可以先擱著，等天亮再說？如果一時想不出來，把「我在等」這三個字寫下來也可以，那也是一個位置。',
     baseItem:{emoji:'👘', name:'舉目哀求', desc:'「法老臨近的時候，以色列人舉目看見埃及人趕來，就甚懼怕，向耶和華哀求。」', slot:'body'},
@@ -10482,17 +10499,21 @@ function validateContent() {
 
   // 8) 單章物件形狀（2026-08-31 D5）：情境題四選項、responses A-D 齊、核心欄位非空、裝備 slot 合法。
   //    這是內容產線每週交付物的 shape 契約，先前只活在 CLAUDE.md 文件裡。
+  //    2026-10-11 經文互動：有 interact 的章，q／choices／responses 可省略（有寫就照常驗）；互動題本身的形狀在檢查 11。
   const SLOTS = ['hat', 'body', 'hand', 'bg'];
   CHAPTERS.forEach(c => {
     const k = String(c.chapter);
-    ['verse', 'verseRef', 'scene', 'q', 'reflectionTitle', 'reflection'].forEach(f => {
+    const hasInteract = c.interact !== undefined;
+    ['verse', 'verseRef', 'scene', 'reflectionTitle', 'reflection'].forEach(f => {
       if (!String(c[f] || '').trim()) errors.push(`CHAPTERS：${k} 缺 ${f}`);
     });
-    if (!Array.isArray(c.choices) || c.choices.length !== 4
-        || c.choices.some(o => !o || !String(o.k || '').trim() || !String(o.text || '').trim())) {
+    if (!hasInteract && !String(c.q || '').trim()) errors.push(`CHAPTERS：${k} 缺 q`);
+    if ((!hasInteract || c.choices !== undefined)
+        && (!Array.isArray(c.choices) || c.choices.length !== 4
+        || c.choices.some(o => !o || !String(o.k || '').trim() || !String(o.text || '').trim()))) {
       errors.push(`CHAPTERS：${k} choices 不是 4 格完整選項`);
     }
-    ['A', 'B', 'C', 'D'].forEach(kk => {
+    if (!hasInteract || c.responses !== undefined) ['A', 'B', 'C', 'D'].forEach(kk => {
       if (!String((c.responses || {})[kk] || '').trim()) errors.push(`CHAPTERS：${k} responses 缺 ${kk}`);
     });
     [['baseItem', c.baseItem], ['bonusItem', c.bonusItem]].forEach(([nm, it]) => {
@@ -10539,6 +10560,39 @@ function validateContent() {
     (c.choices || []).forEach(o => {
       if (o && o.ref !== undefined && !chapterSet.has(String(o.ref))) errors.push(`CHAPTERS：${k} 選項 ${o.k} 的 ref「${o.ref}」在 CHAPTERS 找不到`);
     });
+  });
+
+  // 11) 經文互動（2026-10-11 試驗，規格 docs/spec-scripture-interaction-2026-10-11.md）：
+  //     kind 只能 order／match；排序 4-6 幕且 id 不重複、配對 2-4 組且左右文字各不重複；
+  //     每項 ref 必填且落在本章（章數＝chapter key 結尾的數字）；prompt／hint／doneText／skipText 必填；不與回顧章並存。
+  CHAPTERS.forEach(c => {
+    if (c.interact === undefined) return;
+    const k = String(c.chapter);
+    const it = c.interact || {};
+    const tag = `CHAPTERS：${k} interact`;
+    if (!['order', 'match'].includes(it.kind)) { errors.push(`${tag} kind「${it.kind}」不合法（只能 order／match）`); return; }
+    if (c.type === 'review') errors.push(`${tag} 不能與回顧章（type review）並存`);
+    ['prompt', 'hint', 'doneText', 'skipText'].forEach(f => { if (!String(it[f] || '').trim()) errors.push(`${tag} 缺 ${f}`); });
+    const chNum = (k.match(/(\d+)$/) || [])[1];
+    const refOk = r => !!chNum && new RegExp(`^${chNum}:\\d+(-\\d+)?$`).test(String(r || ''));
+    const refMsg = (what, r) => `${tag} ${what} ref「${r}」要是本章節數（如 ${chNum}:3 或 ${chNum}:3-5）`;
+    if (it.kind === 'order') {
+      const items = Array.isArray(it.items) ? it.items : [];
+      if (items.length < 4 || items.length > 6) errors.push(`${tag} 排序要 4-6 幕（現有 ${items.length}）`);
+      const ids = items.map(x => String((x && x.id) || '').trim());
+      if (ids.some(id => !id) || new Set(ids).size !== ids.length) errors.push(`${tag} 幕的 id 缺或重複`);
+      items.forEach((x, i) => {
+        if (!x || !String(x.text || '').trim()) errors.push(`${tag} 第 ${i + 1} 幕缺 text`);
+        if (!x || !refOk(x.ref)) errors.push(refMsg(`第 ${i + 1} 幕`, x && x.ref));
+      });
+    } else {
+      const pairs = Array.isArray(it.pairs) ? it.pairs : [];
+      if (pairs.length < 2 || pairs.length > 4) errors.push(`${tag} 配對要 2-4 組（現有 ${pairs.length}）`);
+      const ls = pairs.map(p => String((p && p.l) || '').trim()), rs = pairs.map(p => String((p && p.r) || '').trim());
+      if (ls.some(t => !t) || new Set(ls).size !== ls.length) errors.push(`${tag} 左欄文字缺或重複`);
+      if (rs.some(t => !t) || new Set(rs).size !== rs.length) errors.push(`${tag} 右欄文字缺或重複`);
+      pairs.forEach((p, i) => { if (!p || !refOk(p.ref)) errors.push(refMsg(`第 ${i + 1} 組`, p && p.ref)); });
+    }
   });
 
   if (errors.length) {

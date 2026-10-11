@@ -41,6 +41,7 @@ users/{userId}/chapters/{chapterKey}     ← 每章完成記錄（如 ACT10, ROM
   aiResponse:     '...'                  // Gemini 2.5 Flash 的 AI 回應（v2.9 新增）
   aiIsFallback:   false                  // AI 是否回 fallback（v2.9.x，2026-04-29 新增）
   mood:           '今天還不錯/想要一點力量/...'  // 情緒2.0 起點心情（v2.16 新增；玩家本人回顧用，null＝「先不說」時不寫此欄）
+  interact:       { kind: 'order'|'match', result: 'done'|'skip', hintUsed: false }  // 經文互動（2026-10-11 試驗）；一般章與舊紀錄無此欄；不存玩家排的順序／配對內容（紅線 4：不算答對率）；choiceSelected 在這類章為 ''
   // 注意：本文件用 .set() 寫入會覆蓋；保留最後一次默想用，歷史請查 reflections 子集合
 
 users/{userId}/chapters/{chapterKey}/reflections/{timestampId}   ← 默想歷史（v2.9.x 新增）
