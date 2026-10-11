@@ -1946,9 +1946,11 @@ function renderInteractUI() {
   if (st.kind === 'order') {
     const pool = st.layout.items.filter(x => !st.picked.includes(x.id));
     allPlaced = pool.length === 0;
+    // 操作說明放在卡片上方、整段都看得到（James 2026-10-11 試玩：一開始需要適應一下）
+    html += `<div class="ia-sub"><span class="ia-note">點一張卡片，它會照先後排進下面「我的順序」；放錯了再點一下就放回來</span></div>`;
     html += `<div class="ia-pool">${pool.map(x =>
       `<button class="choice-btn ia-card" onclick="interactPick('${esc(x.id)}')" ${dis}><span class="ch-letter">·</span><span>${esc(x.text)}</span></button>`).join('')}</div>`;
-    html += `<div class="ia-sub">我的順序${st.picked.length ? '' : '　<span class="ia-note">點上面的卡片，照你覺得的先後放進來；放錯再點一下就放回去</span>'}</div>`;
+    html += `<div class="ia-sub">我的順序</div>`;
     html += `<div class="ia-picked">${st.picked.map((id, i) => {
       const x = st.layout.items.find(y => y.id === id);
       return `<button class="choice-btn ia-card selected" onclick="interactUnpick('${esc(id)}')" ${dis}><span class="ch-letter">${i + 1}</span><span>${esc(x ? x.text : '')}</span></button>`;
