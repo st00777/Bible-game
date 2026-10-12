@@ -38,10 +38,19 @@
 **座標與樞紐**
 - `createShapes` 的 x／y 是形狀原點＝旋轉樞紐，path 指令相對原點。**把原點放在關節**（肩、肘、腕）就不用再校 pivot。
 - `createParametricShapes` 的 x／y 是中心、樞紐在中心；要關節樞紐就用 freeform，或外包群組當樞紐。
+- `createParametricShapes` 的 `parentId` **時靈時不靈**（2026-10-09 兩次實測：高光一次被忽略掉在畫板層、眼皮一次生效）；建完一律 `find_objects name=… parentId=目標` 驗一次，沒進去就 `reparent_objects` 搬進目標 Node 再重設 x／y。
+- **mesh 綁骨鐵律**（2026-10-09 辮子實錄，recraft.md §6.7）：骨頭數值定好才 bindBones；綁完改骨頭＝變形不是重綁；要重綁得 `delete_objects` 刪路徑底下的 Skin 再綁。自動權重會看骨頭是否在形狀內，骨頭要穿過要跟著動的髮塊／布塊。大量查頂點用 HTTP 端點 `127.0.0.1:9791/mcp` 批次落檔，不進對話。
 - 群組樞紐做法：`group_editor` 建空群組（給 parentId）→ **x／y 參數實測沒生效，會掉在 (0,0)**，建完立刻 `set_property_values` 補 x(13)／y(14) → `reparent_objects` 把零件搬進去 → 零件 local x／y／r 歸零。
-- `reparent_objects` 不保留世界座標、保留 local 值；搬完一律重設。
+- `reparent_objects` 兩種行為都遇過：9/26 保留 local 值、10/9 保留世界座標並自動換算 local（可能版本差異）。搬完一律 `query_property_values` 驗，再決定要不要重設。
 - `reparent_objects` 用 `position: "end"` 逐件搬進群組時，畫序會**整段反過來**（先搬的跑到最前面，頭髮會蓋住臉）；搬完在群組內照原順序再跑一次 `sendToFront` 鏈。
 - `group_editor` 用 objectIds 包既有物件時，若含空 Node（無 stage item）整個呼叫失敗；改「建空群組＋reparent」。
+
+- **換裝 Solo 鐵律**（2026-10-09，recraft.md §6.8）：MCP 建不了 Solo，要 James 右鍵 Wrap in Solo；Solo 子物件順序必須＝enum 值順序（convertToNumber 給的是 index）；`capture_artboard` 不套 Data Binding，驗換裝一定匯 .riv 進 runtime；`group_editor` 的 x／y 是世界座標，掛在縮放過的父層下建完要把 local 歸零。
+
+- **一次性動作鐵律**（2026-10-09，recraft.md §6.9）：`createLinearAnimations` duration 單位是秒，建完改 key 57（幀）／59（0 oneShot）；transition flags key 152：1 停用、4 enableExitTime、8 百分比；exit time 用 **flags 12＋exittime 100**，寫幀數不生效；trigger 條件只給 leftComparator 的 viewModelPropertyId；每次改完跑 `simulateStateMachine` 看幀號。
+
+- **runtime 驗一次性動作聽 StateChange，不靠截圖**（2026-10-09，recraft.md §6.10）：Chrome 自動化分頁 document.hidden 會讓 rAF 停、動作一格跳完，截圖看起來像「trigger 沒反應」。
+- **裝備要「戴在角色身上生成」再摳**（2026-10-09，recraft.md §6.11）：獨立畫的帽子帽口是平的、貼上去交接處會醜；把 r4 頭 render 成底圖請 GPT 戴帽，再用 ImageMagick 相減／HSL 色相窗摳出來（紅帽 vs 褐髮灰階相同，相減法失敗要走色相）。MCP `upload_asset` 在 macOS 沙盒下失敗，PNG 要 James 拖到畫布。
 
 **屬性**
 - `set_property_values` 的 key 必須是整數，先 `query_property_keys`。常用：x 13、y 14、r 15（度）、sx 16、sy 17（百分比）、opacity 18。

@@ -548,6 +548,7 @@ async function saveChapterRecord(ch, choiceSelected, hasReflection, hasRead, ref
     };
     if (reflectionText) record.reflectionText = reflectionText;
     if (sessionMood) record.mood = sessionMood;  // 情緒2.0：當天起點心情，玩家本人回顧用；null（先不說）不寫此欄（紅線7）
+    if (sessionInteract) record.interact = sessionInteract;  // 經文互動（2026-10-11 試驗）：只存 kind／result／hintUsed，不存玩家排的順序；一般章不寫此欄
     if (lastAiResponse) {
       record.aiResponse = lastAiResponse;
       record.aiIsFallback = lastAiIsFallback;
@@ -1219,6 +1220,8 @@ let sessionMood = null;          // 情緒2.0：本次靈修起點心情（先�
 let _pendingChapterPick = null;  // 心情選擇器待載入章節（攔 confirmDaySelection/selectMergedDayChapter）
 let _pendingMood = null;         // 心情選擇器暫存值；proceedToChapter 在 selectChapter 後才寫入 sessionMood
 let sessionHasRead = false;  // 本章是否點閱讀完整章節
+let interactState = null;    // 經文互動（2026-10-11 試驗）：本章進行中的狀態 { kind, layout, picked:[id], pairs:[{l,r}], pendingLeft, hintUsed, locked }
+let sessionInteract = null;  // 互動結果 { kind, result:'done'|'skip', hintUsed }，saveChapterRecord 寫進章紀錄；一般章維持 null
 
 function initApp() {
   renderAvatar();
@@ -1790,6 +1793,8 @@ function resetSessionState() {
   sessionHasRead = false;
   sessionMood = null;  // 情緒2.0：跨章不留痕——任何 selectChapter 呼叫都清掉；mood-picked 路徑在 proceedToChapter 於此之後重設
   _reflEditStart = null;  // 換章節清掉上一章的編輯起點，避免帶舊時間
+  interactState = null; sessionInteract = null;   // 經文互動：跨章不留痕
+  const _ia = document.getElementById('interact-container'); if (_ia) { _ia.hidden = true; _ia.innerHTML = ''; }
   document.getElementById('refl-text').value = '';
   document.getElementById('ai-resp').classList.remove('show');
   document.getElementById('choice-feedback').style.display = 'none';
@@ -1831,7 +1836,7 @@ function selectChapter(ch) {
   // Scene & question
   document.getElementById('scene-emoji').textContent = data.sceneEmoji;
   document.getElementById('scene-text').textContent = data.scene;
-  document.getElementById('scenario-q').textContent = data.q;
+  document.getElementById('scenario-q').textContent = data.q || '';
   // 2026-09-11 章節類型：回顧章把標題換成「本週回顧」，並在場景上方列出這週走過的幾章（✅＝已完成）
   const ctype = chapterType(data);
   document.getElementById('scenario-lbl').textContent = ctype === 'review' ? '🔁 本週回顧' : '🎭 今日情境';
@@ -1844,13 +1849,18 @@ function selectChapter(ch) {
   // B1: question_view — 玩家看到情境題（selectChapter 一次性 render，等同 chapter_select 後立即看到題）
   track('question_view', _elapsed({ chapter: ch }));
 
-  // Choices
-  const container = document.getElementById('choices-container');
-  container.innerHTML = data.choices.map(c =>
-    `<button class="choice-btn" id="choice-${c.k}" onclick="selectChoice(this,'${c.k}')">
-      <span class="ch-letter">${c.k}</span><span>${choiceEmoji(c) ? `<span class="ch-ref-emoji">${choiceEmoji(c)}</span>` : ''}${c.text}</span>
-    </button>`
-  ).join('');
+  // 2026-10-11 經文互動：有 interact 的章，情境題那一格換成排序／配對；默想、獎勵、streak 全部不動。
+  // 先分支再渲染：互動章不碰 choices（內容可省略四格），一般章照舊走 renderChoices。
+  document.getElementById('choices-container').innerHTML = '';
+  if (interactKind(data) !== 'none') {
+    document.getElementById('interact-container').hidden = false;   // 清空與隱藏在 resetSessionState
+    document.getElementById('scenario-lbl').textContent = interactSummary(data).title;
+    document.getElementById('scenario-q').textContent = data.interact.prompt;
+    track('interact_view', _elapsed({ chapter: ch, kind: interactKind(data) }));
+    renderInteract(data, isChapterDone(ch));
+  } else {
+    renderChoices(data);
+  }
 
   // Reflection
   document.getElementById('refl-title').textContent = data.reflectionTitle;
@@ -1873,6 +1883,169 @@ function selectChapter(ch) {
     completeBtn.classList.remove('done');
   }
   renderRewardRecovery(ch);   // 領裝備漏領補救：已完成但未領 → 補發鈕 + 安撫文案
+}
+
+// 一般章四格渲染（自 selectChapter 抽出，互動章重看回退到舊紀錄時也用）
+function renderChoices(data) {
+  const container = document.getElementById('choices-container');
+  const choices = Array.isArray(data.choices) ? data.choices : [];
+  container.innerHTML = choices.map(c =>
+    `<button class="choice-btn" id="choice-${c.k}" onclick="selectChoice(this,'${c.k}')">
+      <span class="ch-letter">${c.k}</span><span>${choiceEmoji(c) ? `<span class="ch-ref-emoji">${choiceEmoji(c)}</span>` : ''}${c.text}</span>
+    </button>`
+  ).join('');
+  // 護欄：既沒四格也沒認得的互動題（內容與程式版本錯開的極端情況）→ 直接可完成，不白屏、不卡住
+  if (!choices.length) {
+    choiceConfirmed = true;
+    if (!isChapterDone(selectedChapter)) document.getElementById('complete-btn').disabled = false;
+  }
+}
+
+// ══ 經文互動（2026-10-11 試驗；規格 docs/spec-scripture-interaction-2026-10-11.md）═══════
+// 只取代情境題那一格：排序＝依序點卡片放進「我的順序」、配對＝點左再點右；全程只用「點」不拖曳（iOS 捲動鎖）。
+// 不計時不計分不記對錯；「先跳過」永遠可按；完成或跳過都把 choiceConfirmed 設 true，後面的步驟判斷與一般章完全相同。
+function renderInteract(data, done) {
+  const layout = interactLayout(data);
+  if (!layout) return;
+  interactState = { kind: layout.kind, layout, picked: [], pairs: [], pendingLeft: null, hintUsed: false, locked: false };
+  const ia = document.getElementById('interact-container');
+  if (done && currentUser) {
+    // 已完成章重看：有 interact 紀錄 → 直接顯示經文對照＋當時的回饋；
+    // 舊紀錄沒 interact 欄位（改章前完成的人）→ 照舊顯示四格，絕不猜成「先跳過」；完全沒紀錄 → 當未操作呈現。
+    ia.innerHTML = '<div class="ia-sub">載入中…</div>';
+    const myCh = selectedChapter;
+    db.collection('users').doc(currentUser.uid).collection('chapters').doc(chapterKey(myCh)).get().then(doc => {
+      if (selectedChapter !== myCh || !interactState) return;   // 玩家已換章
+      const rec = doc.exists ? doc.data() : null;
+      if (rec && rec.interact && rec.interact.result) {
+        interactState.locked = true;
+        renderInteractResult(data, rec.interact.result, false);
+      } else if (rec) {
+        interactState = null;
+        ia.hidden = true; ia.innerHTML = '';
+        document.getElementById('scenario-lbl').textContent = chapterType(data) === 'review' ? '🔁 本週回顧' : '🎭 今日情境';
+        document.getElementById('scenario-q').textContent = data.q || '';
+        renderChoices(data);
+      } else {
+        renderInteractUI();
+      }
+    }).catch(() => { if (selectedChapter === myCh && interactState) renderInteractUI(); });
+    return;
+  }
+  renderInteractUI();   // 訪客或未完成：從頭操作（訪客不存章紀錄，重看時一律當未操作）
+}
+
+function renderInteractUI() {
+  const st = interactState;
+  if (!st) return;
+  const ia = document.getElementById('interact-container');
+  const esc = escapeHtmlMyMsg;
+  const dis = st.locked ? 'disabled' : '';
+  let html = '';
+  let allPlaced = false;
+  if (st.kind === 'order') {
+    const pool = st.layout.items.filter(x => !st.picked.includes(x.id));
+    allPlaced = pool.length === 0;
+    // 操作說明放在卡片上方、整段都看得到（James 2026-10-11 試玩：一開始需要適應一下）
+    html += `<div class="ia-sub"><span class="ia-note">點一張卡片，它會照先後排進下面「我的順序」；放錯了再點一下就放回來</span></div>`;
+    html += `<div class="ia-pool">${pool.map(x =>
+      `<button class="choice-btn ia-card" onclick="interactPick('${esc(x.id)}')" ${dis}><span class="ch-letter">·</span><span>${esc(x.text)}</span></button>`).join('')}</div>`;
+    html += `<div class="ia-sub">我的順序</div>`;
+    html += `<div class="ia-picked">${st.picked.map((id, i) => {
+      const x = st.layout.items.find(y => y.id === id);
+      return `<button class="choice-btn ia-card selected" onclick="interactUnpick('${esc(id)}')" ${dis}><span class="ch-letter">${i + 1}</span><span>${esc(x ? x.text : '')}</span></button>`;
+    }).join('')}</div>`;
+  } else {
+    const numOf = {};
+    st.pairs.forEach((p, i) => { numOf['L' + p.l] = i + 1; numOf['R' + p.r] = i + 1; });
+    allPlaced = st.pairs.length === st.layout.pairs.length;
+    const col = (side, list) => list.map(x => {
+      const n = numOf[side + x.id];
+      const cls = n ? 'selected' : (side === 'L' && st.pendingLeft === x.id ? 'previewing' : '');
+      return `<button class="choice-btn ia-card ${cls}" onclick="interactMatchTap('${side}','${esc(x.id)}')" ${dis}><span class="ch-letter">${n || '·'}</span><span>${esc(x.text)}</span></button>`;
+    }).join('');
+    html += `<div class="ia-sub"><span class="ia-note">先點左邊一條，再點右邊一條，就連成一組；點已連好的可以拆開</span></div>`;
+    html += `<div class="ia-cols"><div>${col('L', st.layout.left)}</div><div>${col('R', st.layout.right)}</div></div>`;
+  }
+  if (st.hintUsed) html += `<div class="ia-hint">💡 ${esc(getChapter(selectedChapter).interact.hint)}</div>`;
+  if (!st.locked) {
+    html += `<div class="ia-actions">
+      ${allPlaced ? `<button class="green-btn ia-go" onclick="interactDone()">${st.kind === 'order' ? '這樣排 ✓' : '這樣連 ✓'}</button>` : ''}
+      ${st.hintUsed ? '' : `<button class="ia-text-btn" onclick="interactHint()">💡 看提示</button>`}
+      <button class="ia-text-btn" onclick="interactSkip()">先跳過 →</button>
+    </div>`;
+  }
+  ia.innerHTML = html;
+}
+
+function interactPick(id) {
+  const st = interactState;
+  if (!st || st.locked || st.kind !== 'order' || st.picked.includes(id)) return;
+  st.picked.push(id);
+  renderInteractUI();
+}
+function interactUnpick(id) {
+  const st = interactState;
+  if (!st || st.locked || st.kind !== 'order') return;
+  st.picked = st.picked.filter(x => x !== id);
+  renderInteractUI();
+}
+function interactMatchTap(side, id) {
+  const st = interactState;
+  if (!st || st.locked || st.kind !== 'match') return;
+  const paired = st.pairs.findIndex(p => (side === 'L' ? p.l : p.r) === id);
+  if (paired >= 0) { st.pairs.splice(paired, 1); st.pendingLeft = null; }      // 點已連好的 → 拆開
+  else if (side === 'L') { st.pendingLeft = st.pendingLeft === id ? null : id; } // 左：選起來（再點取消）
+  else if (st.pendingLeft) { st.pairs.push({ l: st.pendingLeft, r: id }); st.pendingLeft = null; }
+  else { showToast('先點左邊一條，再點右邊'); return; }
+  renderInteractUI();
+}
+function interactHint() {
+  const st = interactState;
+  if (!st || st.locked || st.hintUsed) return;
+  st.hintUsed = true;
+  track('interact_hint', _elapsed({ chapter: selectedChapter, kind: st.kind }));
+  renderInteractUI();
+}
+function interactDone() { _interactFinish('done'); }
+function interactSkip() { _interactFinish('skip'); }
+function _interactFinish(result) {
+  const st = interactState;
+  if (!st || st.locked || choiceConfirmed) return;
+  st.locked = true;
+  choiceConfirmed = true;   // _currentStep／完成鈕都靠這個旗標，與一般章二次確認後完全相同
+  sessionInteract = { kind: st.kind, result, hintUsed: st.hintUsed };
+  track(result === 'done' ? 'interact_done' : 'interact_skip', _elapsed({ chapter: selectedChapter, kind: st.kind, hintUsed: st.hintUsed }));
+  renderInteractResult(getChapter(selectedChapter), result, true);
+}
+
+// 經文對照＋回饋。live＝玩家剛按下（顯示他自己的排法／連法、解鎖完成鈕、捲到回饋）；重看時只有經文對照＋當時的回饋。
+// 紀錄不存玩家排的順序（規格第六節），所以重看沒有「你排的順序」那一段。
+function renderInteractResult(data, result, live) {
+  const st = interactState;
+  const ia = document.getElementById('interact-container');
+  const sum = interactSummary(data);
+  const esc = escapeHtmlMyMsg;
+  const isOrder = interactKind(data) === 'order';
+  let html = '';
+  if (live && result === 'done' && st) {
+    if (isOrder) {
+      html += `<div class="ia-sub">你排的順序</div><ol class="ia-list mine">${st.picked.map(id => `<li>${esc((st.layout.items.find(x => x.id === id) || {}).text || '')}</li>`).join('')}</ol>`;
+    } else {
+      const lt = id => (st.layout.left.find(x => x.id === id) || {}).text || '';
+      const rt = id => (st.layout.right.find(x => x.id === id) || {}).text || '';
+      html += `<div class="ia-sub">你連的線</div><ul class="ia-list mine">${st.pairs.map(p => `<li>${esc(lt(p.l))}　—　${esc(rt(p.r))}</li>`).join('')}</ul>`;
+    }
+  }
+  html += `<div class="ia-sub">${isOrder ? '經文裡的順序' : '經文裡的對照'}</div><ol class="ia-list">${sum.lines.map(l => `<li>${esc(l.text)}<span class="ia-ref">${esc(l.ref)}</span></li>`).join('')}</ol>`;
+  ia.innerHTML = `<div class="ia-result">${html}</div>`;
+  const fb = document.getElementById('choice-feedback');
+  fb.textContent = result === 'skip' ? data.interact.skipText : data.interact.doneText;
+  fb.style.display = 'block';
+  if (!live) return;
+  fb.style.animation = 'popIn .4s ease';
+  if (!isChapterDone(selectedChapter)) document.getElementById('complete-btn').disabled = false;
+  afterAnimation(fb, () => fb.scrollIntoView({ behavior: 'smooth', block: 'start' }), 800);
 }
 
 // ══ CHOICE SELECTION ══════════════════════════════════════
@@ -2896,6 +3069,14 @@ function showDiaryDetail(key) {
     html += `<div class="diary-detail-section">
       <div class="diary-detail-label">💬 情境回應</div>
       <div class="diary-detail-ai">${responseText}</div>
+    </div>`;
+  }
+  // 經文互動（2026-10-11 試驗）：有 interact 紀錄的章改列經文對照；跳過與否只在當下成立、不留長期提醒（規格第五節）
+  const iaSum = ch && entry.interact ? interactSummary(ch) : null;
+  if (iaSum) {
+    html += `<div class="diary-detail-section">
+      <div class="diary-detail-label">${iaSum.title}</div>
+      <div class="diary-detail-ai">${iaSum.lines.map(l => `${escapeHtmlMyMsg(l.text)}（${escapeHtmlMyMsg(l.ref)}）`).join('<br>')}</div>
     </div>`;
   }
   if (title) {

@@ -169,4 +169,5 @@ LEARNING.md             開發學習筆記（踩坑紀錄）
 - **Triage labels**：`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`，見 `docs/agents/triage-labels.md`。
 - **Domain docs**：根目錄 `CONTEXT.md` ＋ `docs/adr/`，見 `docs/agents/domain.md`。
 - **Skills 指令速查**：mattpocock-skills 中文速查在 `docs/agents/skills-guide.md`。
+- **外部顧問小居（ChatGPT／Codex，唯讀）**：PR 合 dev 前對帳、規格反方、內容審；何時送什麼見 `docs/agents/external-advisor.md`，怎麼叫見 `~/.claude/docs/codex-second-opinion.md`。
 - 專案 subagent：`pm-critic`（冷評估）、`content-editor`（內容終審）、`code-reviewer`（紅線審查）、`data-analyst`（數據）、`art-director`（視覺）。

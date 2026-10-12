@@ -350,6 +350,23 @@ body{background:linear-gradient(180deg,#C8E6FA 0%,#E8F4FD 40%,#F0F7E8 100%);min-
 .choice-btn.selected{border-color:var(--green-dark);background:linear-gradient(135deg,#E8F5E9,#F1F8E9);box-shadow:0 4px 14px rgba(76,175,80,.25);}
 .choice-btn.selected .ch-letter{background:var(--green-dark);color:white;}
 .ch-letter{width:25px;height:25px;border-radius:50%;background:var(--sky-deep);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:background .2s,border-color .2s,color .2s,box-shadow .2s,transform .2s;}
+/* 經文互動（2026-10-11 試驗）：沿用 .choice-btn 尺寸與 popIn，不開新色 */
+.ia-card{margin-bottom:8px;}
+.ia-card:disabled{cursor:default;}
+.ia-sub{font-size:12px;font-weight:700;color:var(--text-soft);margin:10px 0 6px;line-height:1.6;}
+.ia-note{font-weight:400;}
+.ia-picked:empty{min-height:46px;border:2px dashed var(--sky-deep);border-radius:13px;}
+.ia-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;}
+.ia-cols .ia-card{padding:11px 10px;font-size:calc(var(--fs-body) - 1px);}
+.ia-actions{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:10px;}
+.ia-actions .ia-go{width:100%;margin:0 0 4px;}
+.ia-text-btn{background:none;border:none;color:var(--text-soft);font-size:13px;font-weight:700;padding:8px 10px;cursor:pointer;font-family:inherit;border-radius:8px;}
+.ia-hint{font-size:13px;line-height:1.7;color:var(--text);background:#FFF8E7;border-left:3px solid var(--warm);border-radius:9px;padding:10px 12px;margin-top:8px;animation:popIn .4s var(--ease-out);}
+.ia-result{animation:popIn .4s var(--ease-out);}
+.ia-list{margin:0 0 4px;padding-left:22px;font-size:var(--fs-body);line-height:1.7;}
+.ia-list li{margin-bottom:4px;}
+.ia-list.mine{color:var(--text-soft);}
+.ia-ref{font-size:11px;color:var(--text-soft);margin-left:6px;white-space:nowrap;}
 .choice-feedback{scroll-margin-top:24px;margin-top:12px;padding:13px 15px;background:#F0FAF0;border-radius:11px;font-size:var(--fs-body);line-height:1.8;border-left:3px solid var(--green-dark);display:none;animation:popIn .4s var(--ease-out);}
 
 /* Reflection */
@@ -1218,6 +1235,7 @@ body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋�
       </div>
       <p class="scenario-q" id="scenario-q"></p>
       <div id="choices-container"></div>
+      <div id="interact-container" hidden></div><!-- 經文互動（2026-10-11 試驗）：有 interact 的章在這裡渲染，其餘章保持 hidden -->
       <div class="choice-feedback" id="choice-feedback"></div>
     </div>
 
@@ -1262,6 +1280,13 @@ body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋�
     <div style="margin-bottom:20px;">
       <div class="sheet-title" style="text-align:left;margin-bottom:4px;">📢 更新公告</div>
       <div style="font-size:13px;color:var(--text-soft);">靈修冒險的最新版本與功能更新</div>
+    </div>
+
+    <div class="log-entry">
+      <div class="log-ver">2026.10.12 · 經文互動第一週（預告）</div>
+      <div class="log-date">2026年10月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>10/26、10/28、10/30 三天的情境題那一格改成「經文裡的一幕」排排看、「經文裡的線索」連連看；不計分、沒有對錯、隨時可先跳過，默想與裝備不變</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>可按「看提示」一則，完成後列出經文順序與節數，自己對照</span></div>
     </div>
 
     <div class="log-entry">

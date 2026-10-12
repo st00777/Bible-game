@@ -85,6 +85,28 @@ choices: [
 - 回顧章四格仍守立場配額；`ref` 可重複或缺（一格可以是「這週哪一幕都不太像我」）。
 - 改已上線章的 type 前先查 Firestore 有無人提前完成（`users/{uid}.completed`）。
 
+## 經文互動 `interact`（2026-10-11 試驗，選填；正本＝`docs/spec-scripture-interaction-2026-10-11.md`）
+
+> 獨立欄位、不佔 `type`（可與節點章並存，不與回顧章並存）。只取代情境題那一格：默想、AI 回應、獎勵、streak 全部不動。不計時不計分不記對錯；對玩家不出現「測驗／關卡／答對」字樣。`validateContent()` 檢查 11 擋形狀錯誤。
+
+```javascript
+// 排序題（kind:'order'）：items 依「經文正確順序」寫，程式端用章節 key 當種子固定亂序；4-6 幕、每幕 ≤ 22 字、ref 必填且是本章節數。
+interact: {
+  kind: 'order',
+  prompt: '那一夜海邊發生了這幾件事。照經文的先後，把它們排排看。',   // 邀請語，不用「記得／還記不記得」
+  items: [ { id:'a', text:'照吩咐轉回，安營在海邊', ref:'14:2' }, /* … */ ],
+  hint: '一則，按了就展開，不扣任何東西',
+  doneText: '朋友口吻：落在經文的觀察上、點出那一件事、最後留一個小步',
+  skipText: '不責備、一句話帶過'
+},
+// 配對題（kind:'match'）：2-4 組、左右各 ≤ 16 字、左右文字各不重複；程式端兩欄各自亂序。
+interact: { kind: 'match', prompt: '…', pairs: [ { l:'「只管站住」', r:'摩西對百姓', ref:'14:13' }, /* … */ ], hint:'…', doneText:'…', skipText:'…' }
+```
+
+- 有 `interact` 的章 `q`／`choices`／`responses` 可省略；**改已上線章時刻意保留**，改章前已完成者的重看與日記才對得到當時的四格（EXO14 原型即如此）。
+- 每章先寫清楚「要讓玩家多注意到經文裡的哪一件事」，再決定排序或配對；引號內是經文原句時逐句過 `npm run verify:scripture`。
+- 章紀錄只存 `interact: { kind, result, hintUsed }`，不存玩家排的順序（`docs/firestore-schema.md`）。
+
 ## 情境題設計原則（v2 升級版）
 
 1. 沒有對錯，選最有共鳴的
