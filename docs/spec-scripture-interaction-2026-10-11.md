@@ -104,7 +104,8 @@ interact: { kind: 'order'|'match', result: 'done'|'skip', hintUsed: true|false }
 ## 七、埋點（追 `docs/metric-changelog.md`）
 
 - 新增 `interact_view`、`interact_done`、`interact_skip`、`interact_hint`，參數同 `question_view` 的 `_elapsed({chapter})`。
-- 為了 B1 漏斗（`scripts/funnel.js` 第 8 行 STAGES 只認 `choice_confirm`）不斷線：這類章**仍發 `question_view`**，漏斗腳本把 `interact_done`＋`interact_skip` 合併視同「通過情境題步」，**但另列一行完成／跳過比例**，否則大量跳過會看起來像採用成功。metric-changelog 記一筆口徑說明；各段耗時自選章起算，只能看相對差異，不能證明「全程十分鐘內」。
+- 為了 B1 漏斗（`scripts/funnel.js` 第 8 行 STAGES 只認 `choice_confirm`）不斷線：這類章**仍發 `question_view`**，漏斗腳本把 `interact_done` 視同「通過情境題步」，**但另列一行完成／跳過比例**，否則大量跳過會看起來像採用成功。metric-changelog 記一筆口徑說明；各段耗時自選章起算，只能看相對差異，不能證明「全程十分鐘內」。
+- 2026-10-16 修口徑（code review）：① `interact_skip` 不再算「確認」，跳過＝沒答題；「確認→送默想／完成」只算有確認的人×章。② 四個 `interact_*` 事件只在該章未完成時發，已完成章重看不記，否則回看會灌水「看到」、跳過比例失真。10-11~10-15 的數字含舊口徑，正式站當時尚無互動章資料。
 
 ## 八、試驗設計
 
