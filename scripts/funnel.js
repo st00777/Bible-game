@@ -7,9 +7,11 @@ const { getAccessToken, FIRESTORE_BASE: FB, parseDoc: parse, fetchCollection: fe
 const WEEKS = Number(process.argv[2]) || 6;
 const STAGES = ['chapter_select', 'question_view', 'choice_confirm', 'submit_reflection', 'complete_devotional'];
 const STAGE_LABEL = { chapter_select: '選章', question_view: '看題', choice_confirm: '確認', submit_reflection: '送默想', complete_devotional: '完成' };
-// 2026-10-11 經文互動試驗：互動章沒有 choice_confirm，interact_done／interact_skip 視同「通過情境題步」讓漏斗不斷線；
-// 完成／跳過比例另列在「經文互動」區塊，否則大量跳過會看起來像採用成功（docs/metric-changelog.md 2026-10-11 條）。
-const isStage = (e, s) => e.type === s || (s === 'choice_confirm' && (e.type === 'interact_done' || e.type === 'interact_skip'));
+// 2026-10-11 經文互動試驗：互動章沒有 choice_confirm，interact_done 視同「通過情境題步」讓漏斗不斷線；
+// 2026-10-16 起 interact_skip 不再算「確認」（跳過＝沒答題，混進去會讓互動章看起來比一般章健康）。
+// 跳過的人會直接出現在送默想／完成，所以「確認→…」兩欄只算有確認的人（見下方 among）。
+// 完成／跳過比例另列在「經文互動」區塊（docs/metric-changelog.md 2026-10-11、2026-10-16 條）。
+const isStage = (e, s) => e.type === s || (s === 'choice_confirm' && e.type === 'interact_done');
 
 async function allUids(token) { return (await fetchAllUsers(token)).map(u => u.localId); }
 // 台北時間日期（事件 ts 是 UTC）
@@ -45,15 +47,17 @@ const pct = (n, d) => d ? Math.round(n / d * 100) + '%' : '—';
   console.log('| 週別 | ' + STAGES.map(s => STAGE_LABEL[s]).join(' | ') + ' | 看題→確認 | 確認→送默想 | 確認→完成 |');
   console.log('|---|' + STAGES.map(() => '---').join('|') + '|---|---|---|');
   for (const wk of weeks) {
-    const c = STAGES.map(s => new Set(inWin.filter(e => e.wk === wk && isStage(e, s) && e.chapter).map(e => e.uid + '|' + e.chapter)).size);
-    console.log(`| ${weekLabel(wk)} | ${c.join(' | ')} | ${pct(c[2], c[1])} | ${pct(c[3], c[2])} | ${pct(c[4], c[2])} |`);
+    const sets = STAGES.map(s => new Set(inWin.filter(e => e.wk === wk && isStage(e, s) && e.chapter).map(e => e.uid + '|' + e.chapter)));
+    const c = sets.map(s => s.size);
+    const among = (later) => [...later].filter(k => sets[2].has(k)).length;   // 後段中「也確認過」的人×章，分母才對得上
+    console.log(`| ${weekLabel(wk)} | ${c.join(' | ')} | ${pct(c[2], c[1])} | ${pct(among(sets[3]), c[2])} | ${pct(among(sets[4]), c[2])} |`);
   }
   console.log('※ 「看題→確認」低 = 看了情境題沒選（乏味／猶豫）；「確認→完成」低 = 選了卻沒領裝備（流程斷或關頁）。');
-  console.log('※ 「確認」含經文互動章的完成＋跳過（2026-10-11 起）；跳過比例見下方「經文互動」區塊，別把跳過當採用。');
+  console.log('※ 「確認」只含經文互動章的完成、不含跳過（2026-10-16 起；10-11~10-15 含跳過）；「確認→送默想／完成」只算有確認的人×章。跳過比例見下方「經文互動」區塊。');
 
   // ── 2b. 經文互動（2026-10-11 試驗）：每章看到／完成／跳過／看提示，跳過比例過半＝停損訊號之一（規格第八節）──
   const iaEv = inWin.filter(e => e.chapter && /^interact_(view|done|skip|hint)$/.test(e.type));
-  console.log(`\n## 經文互動（interact_*，人×章去重）\n`);
+  console.log(`\n## 經文互動（interact_*，人×章去重；2026-10-16 起四個事件都只在未完成時記，重看不算）\n`);
   if (!iaEv.length) console.log('窗口內尚無互動章事件。');
   else {
     const byIa = {};

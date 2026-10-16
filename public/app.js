@@ -1856,7 +1856,8 @@ function selectChapter(ch) {
     document.getElementById('interact-container').hidden = false;   // 清空與隱藏在 resetSessionState
     document.getElementById('scenario-lbl').textContent = interactSummary(data).title;
     document.getElementById('scenario-q').textContent = data.interact.prompt;
-    track('interact_view', _elapsed({ chapter: ch, kind: interactKind(data) }));
+    // 只在未完成時記 interact_view（2026-10-16）：重看已完成章不記，否則 funnel 2b 的「看到」會被回看灌水、跳過比例失真
+    if (!isChapterDone(ch)) track('interact_view', _elapsed({ chapter: ch, kind: interactKind(data) }));
     renderInteract(data, isChapterDone(ch));
   } else {
     renderChoices(data);
@@ -1920,12 +1921,17 @@ function renderInteract(data, done) {
       if (rec && rec.interact && rec.interact.result) {
         interactState.locked = true;
         renderInteractResult(data, rec.interact.result, false);
-      } else if (rec) {
+      } else if (rec && Array.isArray(data.choices) && data.choices.length) {
         interactState = null;
         ia.hidden = true; ia.innerHTML = '';
         document.getElementById('scenario-lbl').textContent = chapterType(data) === 'review' ? '🔁 本週回顧' : '🎭 今日情境';
         document.getElementById('scenario-q').textContent = data.q || '';
         renderChoices(data);
+      } else if (rec) {
+        // 有紀錄但沒 interact 欄位、章本身又沒四格可退（2026-10-16 code review）：只列經文對照、不配回饋、
+        // 不猜成完成或跳過；以前這裡會落到空四格，畫面看起來像壞掉。
+        interactState.locked = true;
+        renderInteractResult(data, null, false);
       } else {
         renderInteractUI();
       }
@@ -1949,11 +1955,11 @@ function renderInteractUI() {
     // 操作說明放在卡片上方、整段都看得到（James 2026-10-11 試玩：一開始需要適應一下）
     html += `<div class="ia-sub"><span class="ia-note">點一張卡片，它會照先後排進下面「我的順序」；放錯了再點一下就放回來</span></div>`;
     html += `<div class="ia-pool">${pool.map(x =>
-      `<button class="choice-btn ia-card" onclick="interactPick('${esc(x.id)}')" ${dis}><span class="ch-letter">·</span><span>${esc(x.text)}</span></button>`).join('')}</div>`;
+      `<button class="choice-btn ia-card" data-ia="pick" data-id="${esc(x.id)}" ${dis}><span class="ch-letter">·</span><span>${esc(x.text)}</span></button>`).join('')}</div>`;
     html += `<div class="ia-sub">我的順序</div>`;
     html += `<div class="ia-picked">${st.picked.map((id, i) => {
       const x = st.layout.items.find(y => y.id === id);
-      return `<button class="choice-btn ia-card selected" onclick="interactUnpick('${esc(id)}')" ${dis}><span class="ch-letter">${i + 1}</span><span>${esc(x ? x.text : '')}</span></button>`;
+      return `<button class="choice-btn ia-card selected" data-ia="unpick" data-id="${esc(id)}" ${dis}><span class="ch-letter">${i + 1}</span><span>${esc(x ? x.text : '')}</span></button>`;
     }).join('')}</div>`;
   } else {
     const numOf = {};
@@ -1962,21 +1968,42 @@ function renderInteractUI() {
     const col = (side, list) => list.map(x => {
       const n = numOf[side + x.id];
       const cls = n ? 'selected' : (side === 'L' && st.pendingLeft === x.id ? 'previewing' : '');
-      return `<button class="choice-btn ia-card ${cls}" onclick="interactMatchTap('${side}','${esc(x.id)}')" ${dis}><span class="ch-letter">${n || '·'}</span><span>${esc(x.text)}</span></button>`;
+      return `<button class="choice-btn ia-card ${cls}" data-ia="match" data-side="${side}" data-id="${esc(x.id)}" ${dis}><span class="ch-letter">${n || '·'}</span><span>${esc(x.text)}</span></button>`;
     }).join('');
     html += `<div class="ia-sub"><span class="ia-note">先點左邊一條，再點右邊一條，就連成一組；點已連好的可以拆開</span></div>`;
     html += `<div class="ia-cols"><div>${col('L', st.layout.left)}</div><div>${col('R', st.layout.right)}</div></div>`;
   }
-  if (st.hintUsed) html += `<div class="ia-hint">💡 ${esc(getChapter(selectedChapter).interact.hint)}</div>`;
+  // 提示文字有才給按鈕（2026-10-16）：自檢雖要求 hint 必填，這裡仍守一道，免得出現「💡 undefined」
+  const hintText = interactHintText();
+  if (st.hintUsed && hintText) html += `<div class="ia-hint">💡 ${esc(hintText)}</div>`;
   if (!st.locked) {
     html += `<div class="ia-actions">
       ${allPlaced ? `<button class="green-btn ia-go" onclick="interactDone()">${st.kind === 'order' ? '這樣排 ✓' : '這樣連 ✓'}</button>` : ''}
-      ${st.hintUsed ? '' : `<button class="ia-text-btn" onclick="interactHint()">💡 看提示</button>`}
+      ${(st.hintUsed || !hintText) ? '' : `<button class="ia-text-btn" onclick="interactHint()">💡 看提示</button>`}
       <button class="ia-text-btn" onclick="interactSkip()">先跳過 →</button>
     </div>`;
   }
   ia.innerHTML = html;
 }
+function interactHintText() {
+  const d = getChapter(selectedChapter);
+  return String((d && d.interact && d.interact.hint) || '').trim();
+}
+
+// 卡片點擊走事件委派（2026-10-16 code review）：id 放 data 屬性、不再塞進 onclick 字串，
+// 內容 id 含撇號或反斜線也不會把 handler 弄斷。「這樣排／看提示／先跳過」三顆按鈕沒有參數，維持 onclick。
+(function bindInteractCards() {
+  const ia = document.getElementById('interact-container');
+  if (!ia) return;
+  ia.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-ia]');
+    if (!btn || btn.disabled) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.ia === 'pick') interactPick(id);
+    else if (btn.dataset.ia === 'unpick') interactUnpick(id);
+    else if (btn.dataset.ia === 'match') interactMatchTap(btn.dataset.side, id);
+  });
+})();
 
 function interactPick(id) {
   const st = interactState;
@@ -2002,9 +2029,9 @@ function interactMatchTap(side, id) {
 }
 function interactHint() {
   const st = interactState;
-  if (!st || st.locked || st.hintUsed) return;
+  if (!st || st.locked || st.hintUsed || !interactHintText()) return;
   st.hintUsed = true;
-  track('interact_hint', _elapsed({ chapter: selectedChapter, kind: st.kind }));
+  if (!isChapterDone(selectedChapter)) track('interact_hint', _elapsed({ chapter: selectedChapter, kind: st.kind }));
   renderInteractUI();
 }
 function interactDone() { _interactFinish('done'); }
@@ -2015,7 +2042,8 @@ function _interactFinish(result) {
   st.locked = true;
   choiceConfirmed = true;   // _currentStep／完成鈕都靠這個旗標，與一般章二次確認後完全相同
   sessionInteract = { kind: st.kind, result, hintUsed: st.hintUsed };
-  track(result === 'done' ? 'interact_done' : 'interact_skip', _elapsed({ chapter: selectedChapter, kind: st.kind, hintUsed: st.hintUsed }));
+  // 已完成章重看（沒紀錄時會回到可操作狀態）不記事件（2026-10-16）：done／skip 只算第一次走到這章的人
+  if (!isChapterDone(selectedChapter)) track(result === 'done' ? 'interact_done' : 'interact_skip', _elapsed({ chapter: selectedChapter, kind: st.kind, hintUsed: st.hintUsed }));
   renderInteractResult(getChapter(selectedChapter), result, true);
 }
 
@@ -2039,6 +2067,7 @@ function renderInteractResult(data, result, live) {
   }
   html += `<div class="ia-sub">${isOrder ? '經文裡的順序' : '經文裡的對照'}</div><ol class="ia-list">${sum.lines.map(l => `<li>${esc(l.text)}<span class="ia-ref">${esc(l.ref)}</span></li>`).join('')}</ol>`;
   ia.innerHTML = `<div class="ia-result">${html}</div>`;
+  if (!result) return;   // 紀錄缺 result 的重看：只列經文對照，不配回饋（不知道他當時是完成還是跳過）
   const fb = document.getElementById('choice-feedback');
   fb.textContent = result === 'skip' ? data.interact.skipText : data.interact.doneText;
   fb.style.display = 'block';

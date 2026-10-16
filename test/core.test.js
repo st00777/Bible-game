@@ -279,3 +279,11 @@ test('interactSummary：依經文順序列出、每行附 ref；一般章回 nul
   assert.equal(m.lines[0].ref, '15:1');
   assert.ok(m.lines[0].text.includes('L1') && m.lines[0].text.includes('R1'));
 });
+
+// 2026-10-16 code review：卡片 id 走 data 屬性＋事件委派，不再塞進 onclick 字串（id 含撇號會把 handler 弄斷）
+test('app.js 互動卡片：不把 id 塞進 onclick，改 data-ia／data-id 委派', () => {
+  const appjs = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
+  assert.ok(!/onclick="interact(Pick|Unpick|MatchTap)\(/.test(appjs), 'app.js 仍把卡片 id 塞進 onclick');
+  for (const kind of ['pick', 'unpick', 'match']) assert.ok(appjs.includes(`data-ia="${kind}"`), `缺 data-ia="${kind}"`);
+  assert.ok(appjs.includes(`button[data-ia]`), '缺委派監聽');
+});
