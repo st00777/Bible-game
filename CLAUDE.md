@@ -13,7 +13,7 @@
 - 臨時預覽（Firebase preview channel）：`https://bible-game-bcb84--dev-01luz2yz.web.app/bible-game-v2.html` —— dev 分支預覽用，`bash deploy.sh channel dev` 部署（每次自動延長 30 天）
 - 🔴 **規則：發布後的玩家端終驗只對正式站進行。驗測試站等同未驗。**（James 2026-08-20 確認）終驗＝`bible-playtest` skill 自動 17 步＋`docs/playtest-checklist.md` 真機 8 步（2026-08-28 起）。
 **GitHub Repo**：`github.com/st00777/Bible-game`
-**目前版本**：`2026.09.05`（9/5 情境題回饋捲動修正、同日晚補版創世記人物冊六位人物＋出處 ref 欄位＋人物冊自檢，PR #107-#111，彈公告。日期版號制 2026-06-05 起，最後語意版號 v2.16。更早近況見 docs/history/）
+**目前版本**：`2026.10.16`（經文互動加固五項，PR #179、#180；前版 2026.10.12 互動第一週預告 PR #177。日期版號制 2026-06-05 起，最後語意版號 v2.16。更早近況見 docs/history/）
 
 **核心定位**：針對大光教會成人查經班的每日靈修輔助遊戲。不是取代靈修，而是輔助靈修——建議玩家先讀完當天經文再來玩。
 
