@@ -326,11 +326,11 @@
     const it = data.interact;
     if (kind === 'order') return { kind, items: seededShuffle(it.items || [], data.chapter) };
     const pairs = (it.pairs || []).map((p, i) => ({ id: 'p' + i, l: p.l, r: p.r, ref: p.ref }));
-    return {
-      kind, pairs,
-      left: seededShuffle(pairs.map(p => ({ id: p.id, text: p.l })), String(data.chapter) + ':L'),
-      right: seededShuffle(pairs.map(p => ({ id: p.id, text: p.r })), String(data.chapter) + ':R'),
-    };
+    const left = seededShuffle(pairs.map(p => ({ id: p.id, text: p.l })), String(data.chapter) + ':L');
+    const right = seededShuffle(pairs.map(p => ({ id: p.id, text: p.r })), String(data.chapter) + ':R');
+    // 兩欄洗成同一個順序＝每一橫排直接對上答案（2026-10-21 code review 第 8 項；兩組的題目必定同序）：右欄旋轉一格
+    if (right.length > 1 && right.every((x, i) => x.id === left[i].id)) right.push(right.shift());
+    return { kind, pairs, left, right };
   }
   // 經文對照：玩家按下「這樣排／這樣連」後、已完成章重看、日記都用這一份。
   // 依經文正確順序列出、每行附節數；只給事實，不打勾不打叉、不算幾個對。沒有 interact 回 null。

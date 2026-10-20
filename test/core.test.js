@@ -268,6 +268,24 @@ test('interactLayout：排序題亂序但 id 齊；配對題左右各自亂序�
   assert.equal(m.right.find(p => p.id === 'p1').text, 'R2');
 });
 
+test('interactLayout：配對題左右兩欄不會同序（同序＝每一橫排直接對上答案）', () => {
+  const pairsOf = n => Array.from({ length: n }, (_, i) => ({ l: 'L' + i, r: 'R' + i, ref: '1:' + i }));
+  for (const n of [2, 3, 4, 5]) {
+    for (const ch of ['EXO14', 'EXO16', 'EXO18', 'GEN1', 'LEV19', 'A', 'B', 'C']) {
+      const m = core.interactLayout({ chapter: ch, interact: { kind: 'match', pairs: pairsOf(n) } });
+      assert.notDeepEqual(m.right.map(p => p.id), m.left.map(p => p.id), `${ch} ${n} 組`);
+    }
+  }
+  // 真內容裡每個配對章也守一次
+  const { CHAPTERS: real } = require('../scripts/validate-content.js').loadContent(path.join(ROOT, 'content.js'));
+  const matchChs = real.filter(ch => core.interactKind(ch) === 'match');
+  assert.ok(matchChs.length > 0, '真內容至少有一個配對章');
+  for (const ch of matchChs) {
+    const m = core.interactLayout(ch);
+    assert.notDeepEqual(m.right.map(p => p.id), m.left.map(p => p.id), String(ch.chapter));
+  }
+});
+
 test('interactSummary：依經文順序列出、每行附 ref；一般章回 null', () => {
   assert.equal(core.interactSummary({ chapter: 1 }), null);
   const o = core.interactSummary(ORDER_CH);
