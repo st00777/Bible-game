@@ -327,9 +327,15 @@
     if (kind === 'order') return { kind, items: seededShuffle(it.items || [], data.chapter) };
     const pairs = (it.pairs || []).map((p, i) => ({ id: 'p' + i, l: p.l, r: p.r, ref: p.ref }));
     const left = seededShuffle(pairs.map(p => ({ id: p.id, text: p.l })), String(data.chapter) + ':L');
-    const right = seededShuffle(pairs.map(p => ({ id: p.id, text: p.r })), String(data.chapter) + ':R');
-    // 兩欄洗成同一個順序＝每一橫排直接對上答案（2026-10-21 code review 第 8 項；兩組的題目必定同序）：右欄旋轉一格
-    if (right.length > 1 && right.every((x, i) => x.id === left[i].id)) right.push(right.shift());
+    const shuffled = seededShuffle(pairs.map(p => ({ id: p.id, text: p.r })), String(data.chapter) + ':R');
+    // 左右同一橫排剛好是一組＝直接看到答案（2026-10-21 code review 第 8 項；EXO16 原本 4 排有 2 排對上）。
+    // 右欄試每一種旋轉、取對上排數最少的：一定找得到 ≤1 排的（通常 0 排），仍是固定亂序。
+    const aligned = list => list.filter((x, i) => x.id === left[i].id).length;
+    let right = shuffled;
+    for (let k = 1; k < shuffled.length && aligned(right) > 0; k++) {
+      const rot = shuffled.slice(k).concat(shuffled.slice(0, k));
+      if (aligned(rot) < aligned(right)) right = rot;
+    }
     return { kind, pairs, left, right };
   }
   // 經文對照：玩家按下「這樣排／這樣連」後、已完成章重看、日記都用這一份。
