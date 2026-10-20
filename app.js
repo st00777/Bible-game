@@ -1915,7 +1915,14 @@ function renderInteract(data, done) {
     // 舊紀錄沒 interact 欄位（改章前完成的人）→ 照舊顯示四格，絕不猜成「先跳過」；完全沒紀錄 → 當未操作呈現。
     ia.innerHTML = '<div class="ia-sub">載入中…</div>';
     const myCh = selectedChapter;
+    // 讀取逾時（2026-10-21 code review 第 4 項）：網路卡住時 8 秒後當未操作呈現，不讓畫面停在「載入中…」；
+    // 之後資料才回來就不理它（settled），免得畫面中途換掉。
+    let settled = false;
+    const fallback = () => { if (settled) return; settled = true; if (selectedChapter === myCh && interactState) renderInteractUI(); };
+    const timer = setTimeout(fallback, 8000);
     db.collection('users').doc(currentUser.uid).collection('chapters').doc(chapterKey(myCh)).get().then(doc => {
+      if (settled) return;
+      settled = true; clearTimeout(timer);
       if (selectedChapter !== myCh || !interactState) return;   // 玩家已換章
       const rec = doc.exists ? doc.data() : null;
       if (rec && rec.interact && rec.interact.result) {
@@ -1935,7 +1942,9 @@ function renderInteract(data, done) {
       } else {
         renderInteractUI();
       }
-    }).catch(() => { if (selectedChapter === myCh && interactState) renderInteractUI(); });
+    }, () => { clearTimeout(timer); fallback(); })
+      // 只有「讀取失敗」才退回可操作；顯示過程自己出錯要留在 console 看得到（第 7 項：以前被同一個 catch 吞掉）
+      .catch(e => console.error('[interact] 重看顯示失敗', e));
     return;
   }
   renderInteractUI();   // 訪客或未完成：從頭操作（訪客不存章紀錄，重看時一律當未操作）
