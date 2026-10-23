@@ -18,7 +18,7 @@ description: 靈修冒險固定測玩清單。用 Chrome（手機視窗）對 de
 ## 執行方式
 1. **用 subagent 跑**（截圖很吃 token，主對話只收結果表）。subagent 先 ToolSearch 一次載入 `mcp__claude-in-chrome__tabs_context_mcp, tabs_create_mcp, navigate, computer, read_page, find, read_console_messages, read_network_requests, javascript_tool, resize_window, tabs_close_mcp`。
 2. 開新分頁，`resize_window` 到 390×844（手機視窗；已知有時不生效，截圖確認實際寬度並在回報註明）。
-3. **先確認是訪客**：開站後用 `javascript_tool` 查 `firebase.auth().currentUser`。若已登入（Chrome 可能帶著 James 的帳號），**不要用真帳號測**——先 `firebase.auth().signOut()` 並清 localStorage 再開始；測完一律清 localStorage，避免訪客進度污染 James 下次登入。只動該站 origin 的本機資料，雲端資料不得寫入。
+3. **先確認是訪客**：開站後用 `javascript_tool` 查 `firebase.auth().currentUser`。若已登入（Chrome 可能帶著 James 的帳號），**不要用真帳號測**——先 `firebase.auth().signOut()` 並清本遊戲的 localStorage 再開始；測完一律再清一次，避免訪客進度污染 James 下次登入。**只清 `bible_state`、`login_choice_made` 等非 `sheepfold-*` 的 key，不可 `localStorage.clear()`**——正式站 `st00777.github.io` 與羊圈守夜同一個 origin，全清會洗掉羊圈守夜進度（2026-10-21 測玩發現）。只動該站 origin 的本機資料，雲端資料不得寫入。
    以**訪客模式**走（Google／LINE 彈窗自動化做不到；訪客不寫 B1 事件，事件檢查改看 GA `collect` 請求）。
 3b. 在步驟 7 之前先呼叫一次 `read_network_requests` 啟動追蹤，否則抓不到 aireflection 請求。讀 `GAME_VERSION` 用 `GAME_VERSION.split('.').join('|')`（純數字版號會被工具誤遮）。選單項目用座標點，先截圖確認選單已開。
 4. 每步：做動作 → 截圖 → `read_console_messages` 只抓 `pattern: "error|Error|Uncaught|Event write error"`。
