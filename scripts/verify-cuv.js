@@ -39,7 +39,7 @@ const CUNP1 = 'https://rcuv.hkbs.org.hk/CUNP1';
 
 // content.js 章節 key 前綴 → bible-api 書卷代碼（新書卷上線時在此補一行）
 const BOOK_CODES = {
-  GEN: 'GEN', EXO: 'EXO', ACT: 'ACT', ROM: 'ROM',
+  GEN: 'GEN', EXO: 'EXO', LEV: 'LEV', ACT: 'ACT', ROM: 'ROM',
   COR1: '1CO', COR2: '2CO', GAL: 'GAL', EPH: 'EPH', PHP: 'PHP', COL: 'COL',
   TH1: '1TH', TH2: '2TH', TIM1: '1TI', TIM2: '2TI', TIT: 'TIT', PHM: 'PHM',
   HEB: 'HEB', JAS: 'JAS', PE1: '1PE', PE2: '2PE',
