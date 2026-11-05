@@ -336,6 +336,13 @@
       const rot = shuffled.slice(k).concat(shuffled.slice(0, k));
       if (aligned(rot) < aligned(right)) right = rot;
     }
+    // 轉一圈仍有對上（三組時某些亂序轉到哪都剩 1 排，2026-10-23 LEV20 碰到）→ 右欄倒過來再轉一圈。
+    // 只在上面找不到 0 排時才走，已是 0 排的章（EXO16 等）排法不變。
+    const reversed = shuffled.slice().reverse();
+    for (let k = 0; k < reversed.length && aligned(right) > 0; k++) {
+      const rot = reversed.slice(k).concat(reversed.slice(0, k));
+      if (aligned(rot) < aligned(right)) right = rot;
+    }
     return { kind, pairs, left, right };
   }
   // 經文對照：玩家按下「這樣排／這樣連」後、已完成章重看、日記都用這一份。

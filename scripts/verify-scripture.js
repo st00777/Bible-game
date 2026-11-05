@@ -20,7 +20,7 @@ const vm = require('vm');
 
 // 章節 key 前綴 → CUNP1 書卷代碼（新書卷上線時在此補一行）
 const BOOK_CODES = {
-  GEN: 'GEN', EXO: 'EXO', ACT: 'ACT', ROM: 'ROM',
+  GEN: 'GEN', EXO: 'EXO', LEV: 'LEV', ACT: 'ACT', ROM: 'ROM',
   COR1: '1CO', COR2: '2CO', GAL: 'GAL', EPH: 'EPH', PHP: 'PHP', COL: 'COL',
   TH1: '1TH', TH2: '2TH', TIM1: '1TI', TIM2: '2TI', TIT: 'TIT', PHM: 'PHM',
   HEB: 'HEB', JAS: 'JAS', PE1: '1PE', PE2: '2PE',
@@ -104,9 +104,13 @@ async function main() {
     checkQuote(`${key} baseItem「${c.baseItem?.name}」`, c.baseItem?.desc || '', sourceNorm, errors);
     checkQuote(`${key} bonusItem「${c.bonusItem?.name}」`, c.bonusItem?.desc || '', sourceNorm, errors);
 
-    for (const f of REQUIRED) if (c[f] === undefined) errors.push(`${key}：缺欄位 ${f}`);
-    if (c.choices?.length !== 4) errors.push(`${key}：choices 不是 4 項`);
-    for (const k of ['A', 'B', 'C', 'D']) if (!c.responses?.[k]) errors.push(`${key}：responses 缺 ${k}`);
+    // 經文互動章（有 interact）可省略 q／choices／responses，與 content.js validateContent 檢查 1 同口徑；有寫就照常驗（2026-10-23 利未記首次省略）
+    const iaOnly = !!c.interact && c.choices === undefined;
+    for (const f of REQUIRED) if (c[f] === undefined && !(iaOnly && ['q', 'choices', 'responses'].includes(f))) errors.push(`${key}：缺欄位 ${f}`);
+    if (!iaOnly) {
+      if (c.choices?.length !== 4) errors.push(`${key}：choices 不是 4 項`);
+      for (const k of ['A', 'B', 'C', 'D']) if (!c.responses?.[k]) errors.push(`${key}：responses 缺 ${k}`);
+    }
     if (!c.guide?.intro || !c.guide?.outline?.length || !c.guide?.focus) errors.push(`${key}：guide 不完整`);
   }
 
