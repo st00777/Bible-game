@@ -307,3 +307,25 @@ test('app.js 互動卡片：不把 id 塞進 onclick，改 data-ia／data-id 委
   for (const kind of ['pick', 'unpick', 'match']) assert.ok(appjs.includes(`data-ia="${kind}"`), `缺 data-ia="${kind}"`);
   assert.ok(appjs.includes(`button[data-ia]`), '缺委派監聽');
 });
+
+// 默想暫存佇列（封版藍圖期 1，2026-11-08）
+test('默想暫存：依帳號分 key、壞資料讀成空陣列', () => {
+  assert.notEqual(core.reflPendingKey('A'), core.reflPendingKey('B'));
+  assert.deepEqual(core.parseReflPending(null), []);
+  assert.deepEqual(core.parseReflPending('不是JSON'), []);
+  assert.deepEqual(core.parseReflPending('{"a":1}'), []);
+  assert.deepEqual(core.parseReflPending('[{"key":"NUM1","id":"1","text":""},{"key":"NUM1"}]'), []);
+});
+
+test('默想暫存：同章同 id 重存只留一筆、不同 id 各自保留、刪除只刪那一筆', () => {
+  let q = [];
+  q = core.addReflPending(q, { key: 'NUM1', id: '100', text: 'a', ts: 1 });
+  q = core.addReflPending(q, { key: 'NUM1', id: '100', text: 'a', ts: 2 });
+  assert.equal(q.length, 1);
+  q = core.addReflPending(q, { key: 'NUM1', id: '200', text: 'b', ts: 3 });
+  q = core.addReflPending(q, { key: 'NUM2', id: '100', text: 'c', ts: 4 });
+  assert.equal(q.length, 3);
+  q = core.removeReflPending(q, 'NUM1', '100');
+  assert.deepEqual(q.map(p => p.text), ['b', 'c']);
+  assert.deepEqual(core.parseReflPending(JSON.stringify(q)), q);
+});
