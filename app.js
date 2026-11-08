@@ -1006,6 +1006,7 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   updateAuthUI();
   if (!user || typeof state === 'undefined') return;
+  flushReflPending();   // 默想暫存：上次沒送出的默想，登入後補送（不 await，不擋載入）
   // B1: app_open — 登入用戶首次解算後 fire 一次（訪客 user=null 已被上一行 return 擋掉）
   if (!_appOpenFired) {
     _appOpenFired = true;
@@ -2147,6 +2148,54 @@ function selectChoice(btn, choice) {
 let lastAiResponse = '';
 let lastAiIsFallback = false;
 
+// ── 默想暫存（封版藍圖期 1，2026-11-08）──────────────────────
+// 佇列規則（依帳號分開、同篇不重複）在 core.js；這裡負責讀寫 localStorage 和重送。
+// 本機那份只拿來重送，畫面上不顯示（默想是悄悄話）。localStorage 跟羊圈守夜共用，只動自己的 key。
+const REFL_SAVE_TIMEOUT_MS = 8000;
+function _readReflPending(uid) {
+  try { return parseReflPending(localStorage.getItem(reflPendingKey(uid))); } catch(e) { return []; }
+}
+function _writeReflPending(uid, list) {
+  try {
+    if (list.length) localStorage.setItem(reflPendingKey(uid), JSON.stringify(list));
+    else localStorage.removeItem(reflPendingKey(uid));
+    return true;
+  } catch(e) { return false; }
+}
+// 寫一篇到 reflections 子集合。doc id 在送出那一刻就定好、重送沿用 → 同一篇只會有一筆。
+// 逾時算失敗：Firestore 離線時 set() 不會報錯、只會一直等（以前按鈕會卡在「正在整理」）。
+function _writeReflDoc(uid, p) {
+  const write = db.collection('users').doc(uid)
+    .collection('chapters').doc(p.key)
+    .collection('reflections').doc(p.id)
+    .set({
+      reflectionText: p.text,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), REFL_SAVE_TIMEOUT_MS));
+  return Promise.race([write, timeout]);
+}
+// 補送：登入完成、網路恢復、回到前景時各試一次；一筆失敗就停，等下次機會。
+let _reflFlushing = false;
+async function flushReflPending() {
+  const user = currentUser;
+  if (!user || _reflFlushing || !_readReflPending(user.uid).length) return;
+  _reflFlushing = true;
+  let sent = 0;
+  try {
+    for (const p of _readReflPending(user.uid)) {
+      if (currentUser?.uid !== user.uid) break;   // 中途換帳號就停，不送錯人
+      try { await _writeReflDoc(user.uid, p); }
+      catch(e) { console.warn('Reflection resend error:', e); break; }
+      _writeReflPending(user.uid, removeReflPending(_readReflPending(user.uid), p.key, p.id));
+      sent++;
+    }
+  } finally { _reflFlushing = false; }
+  if (sent) showToast('☁️ 之前沒送出的默想已補存');
+}
+window.addEventListener('online', flushReflPending);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) flushReflPending(); });
+
 async function submitReflection() {
   const text = document.getElementById('refl-text').value.trim();
   if (!text || reflSubmitted) return;
@@ -2161,21 +2210,27 @@ async function submitReflection() {
   // 默想落地脫鉤（治本）：在 AI fetch 之前就直寫 reflections 子集合，獨立於 AI 成敗。
   // 此處只存玩家文字（aiResponse 此刻尚未產生，留給 finalize 寫進 chapter doc）；存檔失敗報錯、不 silent。
   // ★不寫 chapter doc（chapter doc 留給 finalize）→ 沒領就離開時：默想已保命，但不會誤進日記/誤判完成。
-  // ★存檔失敗 → return false：呼叫端不生「領取」綠鈕、讓玩家重送，鎖死「章 completed ⟹ 非空默想已落地」。
+  // ★不變式（2026-11-08 起）：「章 completed ⟹ 非空默想已落在雲端，或落在本機等補送」。
+  //   本機待補送那篇，玩家若在補送前清網站資料或換手機會遺失——刻意取捨：比卡住不給領好。
+  //   本機也存不進 → return false：呼叫端不生「領取」綠鈕、讓玩家重送（舊行為）。
+  // 默想暫存（封版藍圖期 1，2026-11-08）：先存手機再送雲端，寫成功才刪本機那份。
+  // 雲端失敗／逾時 → 本機那份留著，之後自動補送（flushReflPending），玩家照常往下走。
+  // 只有「本機也存不進去」（無痕模式、空間滿）才退回舊行為：報錯、不給綠鈕、讓玩家重送。
   if (currentUser) {
+    const uid = currentUser.uid;
+    const item = { key: chapterKey(selectedChapter), id: String(Date.now()), text, ts: Date.now() };
+    const kept = _writeReflPending(uid, addReflPending(_readReflPending(uid), item));
     try {
-      await db.collection('users').doc(currentUser.uid)
-        .collection('chapters').doc(chapterKey(selectedChapter))
-        .collection('reflections').doc(String(Date.now()))
-        .set({
-          reflectionText: text,
-          submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
+      await _writeReflDoc(uid, item);
+      _writeReflPending(uid, removeReflPending(_readReflPending(uid), item.key, item.id));
     } catch(e) {
       console.warn('Reflection save error:', e);
-      showToast('⚠️ 默想沒存成功，請再按一次「完成」重送');
-      reflSubmitted = false;   // 允許重送
-      return false;            // 不進入可完成路徑
+      if (!kept) {
+        showToast('⚠️ 默想沒存成功，請再按一次「完成」重送');
+        reflSubmitted = false;   // 允許重送
+        return false;            // 不進入可完成路徑
+      }
+      showToast('📱 默想先存在這支手機，連上網會自動補存');
     }
   }
 
