@@ -200,7 +200,13 @@ async function main() {
   // 2026-08-30 起：8/23 週 GA4 新客 75 人但 Firestore 註冊只 +6，查出 dev 預覽站與正式站共用同一個 measurement ID，
   // 測玩流量全混進來。同日前端改為「只有 st00777.github.io 才送 GA4」，之前的資料只能靠這裡的 hostName 事後拆。
   const PROD_HOST = 'st00777.github.io';
-  const prodOnly = { filter: { fieldName: 'hostName', stringFilter: { matchType: 'EXACT', value: PROD_HOST } } };
+  // 2026-11-05 起：塔防「羊圈守夜」（/sheepfold-defense/）也掛同一組 GA4、同一個主機，11/01 週新客 16 人有 13 人是塔防。
+  // 正式站限定改成「主機＋頁面路徑在 /Bible-game/ 底下」，才只算靈修冒險。
+  const PROD_PATH = '/Bible-game/';
+  const prodOnly = { andGroup: { expressions: [
+    { filter: { fieldName: 'hostName', stringFilter: { matchType: 'EXACT', value: PROD_HOST } } },
+    { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: PROD_PATH } } },
+  ] } };
   const seg = async (dims, range, extra = {}) => {
     const r = await runReport(token, {
       dimensions: dims.map((name) => ({ name })),
@@ -221,7 +227,7 @@ async function main() {
   };
 
   console.log('\n④ 層別（近30天）                              活躍    新客');
-  console.log('   ── 站別（hostName）：只有 ' + PROD_HOST + ' 是玩家正式站，其餘全是測試流量 ──');
+  console.log('   ── 站別（hostName）：只有 ' + PROD_HOST + PROD_PATH + ' 是玩家正式站，同主機的 /sheepfold-defense/ 是塔防，其餘全是測試流量 ──');
   pr(await seg(['hostName'], ['30daysAgo', 'today']));
 
   const [pMau, pWau, pDau] = await Promise.all([
