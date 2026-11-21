@@ -1198,7 +1198,7 @@ function chooseGuestMode() {
   showSetupScreen();
 }
 
-// ══ SCHEDULE (loaded from content.js) ═══════════════════
+// ══ SCHEDULE (loaded from schedule.js) ══════════════════
 
 // SCHEDULE 統一陣列：合併日 length>=2、單章日 length==1
 // helper：拿某日的章節陣列，找不到回空陣列（避免 null/undefined check）

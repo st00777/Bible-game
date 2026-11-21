@@ -37,6 +37,7 @@
 ```
 bible-game-v2.html      遊戲主體（結構與樣式；主邏輯已抽至 app.js）
 app.js                  遊戲主邏輯（2026-09-01 自 HTML 抽出；SDK 與本檔皆 defer）
+schedule.js             讀經進度 SCHEDULE（日期→章節、合併日只在這裡；換進度＝整份換檔）
 content.js              靈修內容（每週更新這個）；末尾 validateContent() 五張表自檢
 core.js                 零 DOM 依賴的純邏輯（chapterKey／進度／日曆／完成計分…），Node 可測
 shared/feedback-schema.js  曠野呼聲狀態機單一正本；npm run sync-shared 複製到三個部署單元
