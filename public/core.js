@@ -6,7 +6,7 @@
 //   · bible-game-v2.html 的 onclick 仍呼叫同名全域函式，玩家零感知
 // 規則：需要 state 的邏輯請把 state 的那一塊（例如 state.completed）當參數傳進來，
 //       HTML 端留一行薄包裝（例 getBookProgress(book) → bookProgress(book, state.completed)）。
-// 內容表 BOOKS / CHAPTERS / SCHEDULE 是 content.js 宣告的全域（defer 載入），
+// 內容表 BOOKS / CHAPTERS 是 content.js、SCHEDULE 是 schedule.js 宣告的全域（defer 載入），
 // 這裡只在函式被呼叫時才讀，不在載入當下讀；Node 測試前先把表掛到 globalThis 即可。
 //
 // 部署：正本在 repo 根目錄（GitHub Pages 正式站直接讀根目錄），deploy.sh sync_public 會複製到 public/。
@@ -336,6 +336,13 @@
       const rot = shuffled.slice(k).concat(shuffled.slice(0, k));
       if (aligned(rot) < aligned(right)) right = rot;
     }
+    // 轉一圈仍有對上（三組時某些亂序轉到哪都剩 1 排，2026-10-23 LEV20 碰到）→ 右欄倒過來再轉一圈。
+    // 只在上面找不到 0 排時才走，已是 0 排的章（EXO16 等）排法不變。
+    const reversed = shuffled.slice().reverse();
+    for (let k = 0; k < reversed.length && aligned(right) > 0; k++) {
+      const rot = reversed.slice(k).concat(reversed.slice(0, k));
+      if (aligned(rot) < aligned(right)) right = rot;
+    }
     return { kind, pairs, left, right };
   }
   // 經文對照：玩家按下「這樣排／這樣連」後、已完成章重看、日記都用這一份。
@@ -346,6 +353,28 @@
     const it = data.interact;
     if (kind === 'order') return { title: '📜 經文裡的一幕', lines: (it.items || []).map(x => ({ text: x.text, ref: x.ref })) };
     return { title: '🔗 經文裡的線索', lines: (it.pairs || []).map(p => ({ text: `${p.l}　—　${p.r}`, ref: p.ref })) };
+  }
+
+  // ── 默想暫存佇列（封版藍圖期 1，2026-11-08）────────────────────
+  // 默想寫 Firestore 前先存一份在本機，寫成功才刪；失敗或逾時就留著，之後用「同一個 doc id」重送。
+  // 這裡只管佇列本身（純資料），讀寫 localStorage 與重送在 app.js。
+  //   · 依帳號分開存（key 帶 uid），換帳號不會互相看到、不會送錯人
+  //   · 一筆＝{ key: 章節存檔 key, id: reflections 的 doc id, text, ts }；key+id 相同視為同一篇（重送不會變兩筆）
+  //   · 默想是悄悄話：佇列只拿來重送，畫面上不顯示
+  const REFL_PENDING_MAX = 50;   // 上限，防壞掉的筆數無限累積（正常情況幾乎都是 0～1 筆）
+  function reflPendingKey(uid) { return `refl_pending_v1:${uid}`; }
+  function parseReflPending(raw) {
+    let a;
+    try { a = JSON.parse(raw || '[]'); } catch (e) { return []; }
+    if (!Array.isArray(a)) return [];
+    return a.filter(p => p && typeof p.key === 'string' && typeof p.id === 'string' && typeof p.text === 'string' && p.text);
+  }
+  function addReflPending(list, item) {
+    const rest = list.filter(p => !(p.key === item.key && p.id === item.id));
+    return rest.concat([item]).slice(-REFL_PENDING_MAX);
+  }
+  function removeReflPending(list, key, id) {
+    return list.filter(p => !(p.key === key && p.id === id));
   }
 
   return {
@@ -359,5 +388,6 @@
     totalDevotionDays, bestStreak, equippedVerses,
     chapterType, reviewChapters, choiceEmoji,
     interactKind, seededShuffle, interactLayout, interactSummary,
+    reflPendingKey, parseReflPending, addReflPending, removeReflPending,
   };
 });
