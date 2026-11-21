@@ -7,10 +7,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-function loadContent(file) {
+// 讀經進度 SCHEDULE 在 schedule.js（2026-11-21 期 2 抽檔），與瀏覽器同順序：先 schedule.js 再 content.js，
+// 兩支在同一個 vm context 跑（等同瀏覽器 classic script 共用全域詞法範圍）。預設取 content.js 同目錄的 schedule.js。
+function loadContent(file, scheduleFile = path.join(path.dirname(file), 'schedule.js')) {
   const src = fs.readFileSync(file, 'utf8');
   // 靜音 content.js 載入時自己印的 console（避免重複輸出），結果用回傳值拿
   const ctx = vm.createContext({ console: { log() {}, warn() {}, error() {} } });
+  vm.runInContext(fs.readFileSync(scheduleFile, 'utf8'), ctx, { filename: scheduleFile });
   vm.runInContext(src, ctx, { filename: file });
   // content.js 的頂層 const 在 vm 的全域詞法範圍，再跑一段取出需要的東西
   return vm.runInContext('({ validateContent, BOOKS, CHAPTERS, SCHEDULE, BIBLE_LINKS, BOOK_INTRO })', ctx);

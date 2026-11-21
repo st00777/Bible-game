@@ -6,7 +6,7 @@
 // getAccessToken 與 Firestore/Auth REST helpers 從 _shared.js 共用
 const { getAccessToken, FIRESTORE_BASE, fetchCollection, parseDoc, fetchAllUsers } = require('./_shared');
 
-// ── Load SCHEDULE from content.js ────────────────────────
+// ── Load SCHEDULE from schedule.js ───────────────────────
 // 用 vm 沙箱載入 content.js，避免污染全域；content.js 純資料、無 browser API 引用
 // 注意：content.js 用 `const SCHEDULE` 宣告，vm.runInNewContext 下 const 不會曝到 context global，
 // 所以包 IIFE 在最後 return 出來
@@ -14,7 +14,9 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const contentSrc = fs.readFileSync(path.join(__dirname, '../content.js'), 'utf8');
-const wrappedSrc = `(function(){\n${contentSrc}\nreturn { SCHEDULE, AI_FALLBACK_TEXT };\n})()`;
+// SCHEDULE 已抽到 schedule.js（2026-11-21 期 2）；與瀏覽器同順序先放進度檔再放內容
+const scheduleSrc = fs.readFileSync(path.join(__dirname, '../schedule.js'), 'utf8');
+const wrappedSrc = `(function(){\n${scheduleSrc}\n${contentSrc}\nreturn { SCHEDULE, AI_FALLBACK_TEXT };\n})()`;
 const { SCHEDULE = {}, AI_FALLBACK_TEXT } = vm.runInNewContext(wrappedSrc, {});
 // 合併日日期集合（例如 4/05、4/17、4/28、5/10、5/22、6/03）
 const MERGED_DATES = new Set(
