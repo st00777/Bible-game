@@ -12,7 +12,10 @@
 //
 // 載入順序：bible-game-v2.html 以 defer 在 content.js 之前載入（content.js 載完即跑 validateContent 自檢會讀它）。
 // 部署：正本在 repo 根目錄（GitHub Pages 直接讀），deploy.sh sync_public 複製到 public/。
-const SCHEDULE = {
+// 🔴 刻意用 globalThis.SCHEDULE 而不是 const：上線當下若玩家手機還快取著舊 content.js（裡面有 const SCHEDULE），
+//    兩邊都用 const 會丟「SCHEDULE 已宣告」讓舊 content.js 整支不跑→白屏。掛在全域物件上就不衝突
+//    （舊檔的 const 會蓋過它，內容相同）。其他檔照樣直接寫 SCHEDULE 讀得到。（code-reviewer 2026-11-21 第 3 點）
+globalThis.SCHEDULE = {
   '2026-04-01': [10], '2026-04-02': [11], '2026-04-03': [12],
   '2026-04-04': [13], '2026-04-05': [14, 15], '2026-04-06': [16],
   '2026-04-07': [17], '2026-04-08': [18], '2026-04-09': [19],

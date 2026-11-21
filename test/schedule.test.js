@@ -45,7 +45,7 @@ test('數字 key 只有使徒行傳 10–28，且一個都沒變成字串', () =
 });
 
 test('SCHEDULE 只宣告在 schedule.js，content.js 不再有', () => {
-  assert.ok(/^const SCHEDULE = \{/m.test(read('schedule.js')));
+  assert.ok(/^globalThis\.SCHEDULE = \{/m.test(read('schedule.js')));
   assert.ok(!/^\s*(const|let|var)\s+SCHEDULE\b/m.test(read('content.js')), 'content.js 仍宣告 SCHEDULE');
 });
 
@@ -84,4 +84,10 @@ test('scripts/validate-content.js 的 loadContent 會帶上 schedule.js', () => 
   const { SCHEDULE: s, validateContent } = loadContent(path.join(ROOT, 'content.js'));
   assert.equal(Object.keys(s).length, Object.keys(SCHEDULE).length);
   assert.deepEqual(Array.from(validateContent().errors), []);
+});
+
+test('快取混搭：新 schedule.js 之後再跑舊版 content.js（含 const SCHEDULE）不會丟「已宣告」', () => {
+  const ctx = vm.createContext({});
+  vm.runInContext(read('schedule.js'), ctx);
+  assert.doesNotThrow(() => vm.runInContext("const SCHEDULE = { '2026-01-01': ['X'] };", ctx));
 });
