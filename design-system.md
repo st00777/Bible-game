@@ -341,7 +341,7 @@ transform: translateY(-2px) ~ translateY(-3px);
 不設定：🌿 旅人的外衣（衣服）
 ```
 
-### 9.3 成就 Emoji（28 個，三級制：bronze 銅 / silver 銀 / gold 金）
+### 9.3 成就 Emoji（現役 24 個；app.js 共定義 26 條，分享祝福、福音使者 2026-08-27 已退役；三級制：bronze 銅 / silver 銀 / gold 金）
 
 | 維度 | 銅 | 銀 | 金 |
 |---|---|---|---|
@@ -583,7 +583,7 @@ transform: translateY(-2px) ~ translateY(-3px);
 - **狀態**：未啟動
 - **優先級**：第一梯隊
 - **問題描述**：bounce 動畫 + 金色 emoji + verse 卡，儀式感「平淡」
-- **觸及率**：每玩家終生 28 次（28 個成就）
+- **觸及率**：每玩家終生最多 24 次（現役 24 個成就）
 - **可做方向**：
   - 光暈從中心擴散（radial gradient + opacity 動畫）
   - 粒子或星星從卡片飛出（box-shadow 多層 + animation）
