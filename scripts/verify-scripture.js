@@ -85,6 +85,8 @@ async function main() {
   const src = fs.readFileSync(path.join(__dirname, '..', 'content.js'), 'utf8');
   const ctx = { window: {}, console: { log() {}, warn() {}, error() {} }, __out: {} };
   vm.createContext(ctx);
+  // SCHEDULE 在 schedule.js（期 2 抽檔）；content.js 載入即跑自檢會讀它，故先載進度檔
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'schedule.js'), 'utf8'), ctx);
   vm.runInContext(src + '\n;__out.CHAPTERS = CHAPTERS;', ctx);
   const CHAPTERS = ctx.__out.CHAPTERS;
 

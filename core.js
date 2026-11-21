@@ -6,7 +6,7 @@
 //   · bible-game-v2.html 的 onclick 仍呼叫同名全域函式，玩家零感知
 // 規則：需要 state 的邏輯請把 state 的那一塊（例如 state.completed）當參數傳進來，
 //       HTML 端留一行薄包裝（例 getBookProgress(book) → bookProgress(book, state.completed)）。
-// 內容表 BOOKS / CHAPTERS / SCHEDULE 是 content.js 宣告的全域（defer 載入），
+// 內容表 BOOKS / CHAPTERS 是 content.js、SCHEDULE 是 schedule.js 宣告的全域（defer 載入），
 // 這裡只在函式被呼叫時才讀，不在載入當下讀；Node 測試前先把表掛到 globalThis 即可。
 //
 // 部署：正本在 repo 根目錄（GitHub Pages 正式站直接讀根目錄），deploy.sh sync_public 會複製到 public/。

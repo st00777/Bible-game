@@ -7,7 +7,7 @@
 ```javascript
 const GAME_VERSION = '2026.08.27'; // 版本號（日期制）
 const VERSION_NOTES = [...];       // 更新摘要（顯示在彈窗）
-const SCHEDULE = {...};            // 日期→章節對應表
+// SCHEDULE（日期→章節對應表、合併日）2026-11-21 起在 schedule.js，不在 content.js
 const BIBLE_LINKS = {...};         // Bible.com 連結
 const CHAPTERS = [...];            // 每日靈修內容陣列
 ```
