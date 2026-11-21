@@ -85,11 +85,23 @@ async function runReport(token, body) {
   return res.json();
 }
 
-// 取單一 activeUsers 數值（給某個日期區間）
-async function activeUsers(token, startDate, endDate) {
+// ── 正式站篩選（只算靈修冒險）──
+// 2026-11-05 起：塔防「羊圈守夜」（/sheepfold-defense/）也掛同一組 GA4、同一個主機，11/01 週新客 16 人有 13 人是塔防。
+// 正式站限定＝「主機＋頁面路徑在 /Bible-game/ 底下」。
+// 2026-11-21 起：①②③ 也一律套這個篩選（原本只有 ④ 有套，①②③ 混著塔防與測試流量）；全站數字只留在 ④ 站別表當對照。
+const PROD_HOST = 'st00777.github.io';
+const PROD_PATH = '/Bible-game/';
+const prodOnly = { andGroup: { expressions: [
+  { filter: { fieldName: 'hostName', stringFilter: { matchType: 'EXACT', value: PROD_HOST } } },
+  { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: PROD_PATH } } },
+] } };
+
+// 取單一 activeUsers 數值（給某個日期區間；filter 不給＝全站）
+async function activeUsers(token, startDate, endDate, filter) {
   const r = await runReport(token, {
     metrics: [{ name: 'activeUsers' }],
     dateRanges: [{ startDate, endDate }],
+    ...(filter ? { dimensionFilter: filter } : {}),
   });
   return Number(r.rows?.[0]?.metricValues?.[0]?.value || 0);
 }
@@ -126,12 +138,16 @@ async function main() {
   const token = await getAccessToken();
 
   // ① 活躍規模 ────────────────────────────────────────
-  const [mau, wau, dau] = await Promise.all([
+  // mau/wau/dau＝正式站（只算靈修冒險）；allMau…＝全站（含塔防與測試流量），只在 ④ 當對照
+  const [mau, wau, dau, allMau, allWau, allDau] = await Promise.all([
+    activeUsers(token, '30daysAgo', 'today', prodOnly),
+    activeUsers(token, '7daysAgo', 'today', prodOnly),
+    activeUsers(token, 'yesterday', 'yesterday', prodOnly),
     activeUsers(token, '30daysAgo', 'today'),
     activeUsers(token, '7daysAgo', 'today'),
     activeUsers(token, 'yesterday', 'yesterday'),
   ]);
-  console.log('① 活躍規模');
+  console.log('① 活躍規模（正式站 ' + PROD_HOST + PROD_PATH + ' 限定）');
   console.log(`   MAU (近30天) : ${mau}`);
   console.log(`   WAU (近7天)  : ${wau}`);
   console.log(`   DAU (昨天)   : ${dau}`);
@@ -142,9 +158,10 @@ async function main() {
     dimensions: [{ name: 'eventName' }],
     metrics: [{ name: 'activeUsers' }, { name: 'eventCount' }],
     dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
-    dimensionFilter: {
-      filter: { fieldName: 'eventName', inListFilter: { values: CORE_EVENTS } },
-    },
+    dimensionFilter: { andGroup: { expressions: [
+      { filter: { fieldName: 'eventName', inListFilter: { values: CORE_EVENTS } } },
+      prodOnly,
+    ] } },
   });
   const evMap = {};
   for (const row of evReport.rows || []) {
@@ -153,7 +170,7 @@ async function main() {
       count: Number(row.metricValues[1].value),
     };
   }
-  console.log('② 核心事件觸發人數（近30天，依 B1 事件流 9 事件）');
+  console.log('② 核心事件觸發人數（近30天，依 B1 事件流 9 事件，正式站限定）');
   console.log('   事件名                觸發人數    事件次數');
   for (const ev of CORE_EVENTS) {
     const e = evMap[ev] || { users: 0, count: 0 };
@@ -170,6 +187,7 @@ async function main() {
       cohorts,
       cohortsRange: { granularity: 'WEEKLY', startOffset: 0, endOffset: 5 },
     },
+    dimensionFilter: prodOnly,
   });
   // 整理成 { cohortName: { week: activeUsers } }
   const grid = {};
@@ -179,7 +197,7 @@ async function main() {
     const v = Number(row.metricValues[0].value);
     (grid[cName] ||= {})[wk] = v;
   }
-  console.log('③ 週 cohort 留存（以 firstSessionDate 分週，週日~週六）');
+  console.log('③ 週 cohort 留存（以 firstSessionDate 分週，週日~週六，正式站限定）');
   console.log('   首訪週起日     W0    W1    W2    W3    W4    W5   (W0=當週新客；後續為留存人數/留存率)');
   // GA4 回的 cohort 名 = 我們傳入 cohort 的 name 欄位（這裡是各週起日字串）
   cohorts.forEach((c) => {
@@ -199,14 +217,6 @@ async function main() {
   // ④ 層別：正式站 vs 測試站、來源、裝置 ────────────────────────
   // 2026-08-30 起：8/23 週 GA4 新客 75 人但 Firestore 註冊只 +6，查出 dev 預覽站與正式站共用同一個 measurement ID，
   // 測玩流量全混進來。同日前端改為「只有 st00777.github.io 才送 GA4」，之前的資料只能靠這裡的 hostName 事後拆。
-  const PROD_HOST = 'st00777.github.io';
-  // 2026-11-05 起：塔防「羊圈守夜」（/sheepfold-defense/）也掛同一組 GA4、同一個主機，11/01 週新客 16 人有 13 人是塔防。
-  // 正式站限定改成「主機＋頁面路徑在 /Bible-game/ 底下」，才只算靈修冒險。
-  const PROD_PATH = '/Bible-game/';
-  const prodOnly = { andGroup: { expressions: [
-    { filter: { fieldName: 'hostName', stringFilter: { matchType: 'EXACT', value: PROD_HOST } } },
-    { filter: { fieldName: 'pagePath', stringFilter: { matchType: 'BEGINS_WITH', value: PROD_PATH } } },
-  ] } };
   const seg = async (dims, range, extra = {}) => {
     const r = await runReport(token, {
       dimensions: dims.map((name) => ({ name })),
@@ -230,12 +240,7 @@ async function main() {
   console.log('   ── 站別（hostName）：只有 ' + PROD_HOST + PROD_PATH + ' 是玩家正式站，同主機的 /sheepfold-defense/ 是塔防，其餘全是測試流量 ──');
   pr(await seg(['hostName'], ['30daysAgo', 'today']));
 
-  const [pMau, pWau, pDau] = await Promise.all([
-    ['30daysAgo', 'today'], ['7daysAgo', 'today'], ['yesterday', 'yesterday'],
-  ].map(([a, b]) => runReport(token, {
-    metrics: [{ name: 'activeUsers' }], dateRanges: [{ startDate: a, endDate: b }], dimensionFilter: prodOnly,
-  }).then((r) => Number(r.rows?.[0]?.metricValues?.[0]?.value || 0))));
-  console.log(`\n   ── 正式站限定活躍：MAU ${pMau} / WAU ${pWau} / DAU ${pDau}（① 全站：${mau} / ${wau} / ${dau}）──`);
+  console.log(`\n   ── 全站活躍（含塔防＋測試，僅對照）：MAU ${allMau} / WAU ${allWau} / DAU ${allDau}（① 正式站：${mau} / ${wau} / ${dau}）──`);
 
   console.log('\n   ── 正式站新客週序列（firstSessionDate 落在該週；跟 Firestore 註冊數對照）──');
   const wkRows = await seg(['firstSessionDate'], ['42daysAgo', 'today'], { dimensionFilter: prodOnly });
