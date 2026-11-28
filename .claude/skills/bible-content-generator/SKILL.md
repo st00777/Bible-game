@@ -232,7 +232,7 @@ npm run verify:cuv -- GEN 25-26             # 逐節四類報告（一致／標�
 
 **完成後的輸出位置**：
 1. 把生成的 JavaScript 物件貼到 `content.js` 的 `CHAPTERS` 陣列內
-2. 在 `SCHEDULE` 加排程日期 → 章節 key 對應
+2. 在 `schedule.js` 的 `SCHEDULE` 加排程日期 → 章節 key 對應（2026-11-21 起進度檔獨立；數字 key 型別不改、已過日期不改寫）
 3. 跑 `npm test`、`npm run verify:scripture <keys>`、`npm run verify:cuv -- <BOOK> <from>-<to>` 三道都過
 4. 部署到 dev preview 讓使用者驗證
 5. 沒問題後 commit + push

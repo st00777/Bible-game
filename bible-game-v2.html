@@ -1283,6 +1283,13 @@ body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋�
     </div>
 
     <div class="log-entry">
+      <div class="log-ver">2026.11.28 · 民數記 7-19 上架</div>
+      <div class="log-date">2026年11月</div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>民數記 7-19 章靈修內容（12/21 起到 12/31）</span></div>
+      <div class="log-item"><span class="log-tag tag-new">新增</span><span>人物冊新增米利暗、迦勒</span></div>
+    </div>
+
+    <div class="log-entry">
       <div class="log-ver">2026.11.21 · 默想不怕斷線</div>
       <div class="log-date">2026年11月</div>
       <div class="log-item"><span class="log-tag tag-fix">修正</span><span>網路不穩時，默想會先存在手機上，連上網自動補存，不用再重寫</span></div>
@@ -1599,6 +1606,8 @@ body.focus-mode .choice-feedback{scroll-margin-top:80px;}   /* 情境題回饋�
 <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<!-- 讀經進度（期 2 章日拆開）：schedule.js 必須在 content.js 之前（content.js 載完即跑 validateContent 會讀 SCHEDULE）；defer 依出現順序執行 -->
+<script src="schedule.js" defer></script>
 <script src="content.js" defer></script>
 <!-- 純邏輯層（issue #6）：零 DOM 依賴的規則函式掛成全域，Node 可測；正本在根目錄，deploy.sh 同步到 public/ -->
 <script src="core.js"></script>
